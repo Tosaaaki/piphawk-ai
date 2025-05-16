@@ -82,13 +82,19 @@ def init_db():
             )
         ''')
 
-def log_trade(instrument, entry_time, entry_price, units, ai_reason, exit_time=None, exit_price=None, profit_loss=None):
+def log_trade(instrument, entry_time, entry_price, units, ai_reason,
+              entry_regime=None, exit_time=None, exit_price=None, profit_loss=None):
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO trades (instrument, entry_time, entry_price, units, ai_reason, exit_time, exit_price, profit_loss)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (instrument, entry_time, entry_price, units, ai_reason, exit_time, exit_price, profit_loss))
+            INSERT INTO trades (
+                instrument, entry_time, entry_price, units,
+                ai_reason, entry_regime, exit_time, exit_price, profit_loss
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            instrument, entry_time, entry_price, units,
+            ai_reason, entry_regime, exit_time, exit_price, profit_loss
+        ))
 
 def log_ai_decision(decision_type, instrument, ai_response):
     with sqlite3.connect(DB_PATH) as conn:

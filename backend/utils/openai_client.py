@@ -15,7 +15,7 @@ if not OPENAI_API_KEY:
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Default model can be overridden via settings.env → AI_MODEL
-AI_MODEL = os.getenv("AI_MODEL", "gpt-4o")
+AI_MODEL = os.getenv("AI_MODEL", "gpt-4o-mini")
 
 def ask_openai(prompt: str,
                system_prompt: str = "You are a helpful assistant.",

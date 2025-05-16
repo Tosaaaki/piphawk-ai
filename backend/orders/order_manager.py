@@ -3,6 +3,7 @@ import requests
 from backend.logs.log_manager import log_trade, log_error
 from datetime import datetime
 import time
+import json
 import logging
 logger = logging.getLogger(__name__)
 
@@ -88,6 +89,21 @@ class OrderManager:
         units = int(lot_size * 1000) if side == "long" else -int(lot_size * 1000)
         entry_time = datetime.utcnow().isoformat()
 
+        # ---- embed entry‑regime JSON into clientExtensions.comment (≤255 bytes) ----
+        comment_json = None
+        try:
+            regime_info = strategy_params.get("market_cond", {}) or {}
+            comment_dict = {
+                "regime": regime_info.get("market_condition"),
+                "dir": regime_info.get("trend_direction"),
+            }
+            comment_json = json.dumps(comment_dict, separators=(",", ":"))
+            # OANDA は 255 byte 制限。安全マージンで 240 byte に丸める
+            if len(comment_json.encode("utf-8")) > 240:
+                comment_json = comment_json.encode("utf-8")[:240].decode("utf-8", "ignore")
+        except Exception as exc:
+            logger.debug(f"[enter_trade] building comment JSON failed: {exc}")
+
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
         order_body = {
             "order": {
@@ -98,6 +114,8 @@ class OrderManager:
                 "positionFill": "DEFAULT"
             }
         }
+        if comment_json:
+            order_body["order"]["clientExtensions"] = {"comment": comment_json}
 
         if tp_pips and sl_pips:
             if side == "long":
@@ -115,7 +133,19 @@ class OrderManager:
             raise Exception(f"Failed to place order: {response.text}")
 
         result = response.json()
-        log_trade(instrument, entry_time, entry_price, units, strategy_params.get("ai_reason", "manual"), side.upper())
+        # Save market regime at entry (if provided)
+        entry_regime = None
+        if strategy_params.get("market_cond"):
+            entry_regime = json.dumps(strategy_params["market_cond"])
+        log_trade(
+            instrument=instrument,
+            entry_time=entry_time,
+            entry_price=entry_price,
+            units=units,
+            ai_reason=strategy_params.get("ai_reason", "manual"),
+            side=side.upper(),
+            entry_regime=entry_regime
+        )
         return result
 
     def exit_trade(self, position):

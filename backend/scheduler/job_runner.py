@@ -15,6 +15,7 @@ from backend.strategy.signal_filter import pass_entry_filter
 from backend.strategy.openai_analysis import get_market_condition
 from backend.strategy.exit_ai_decision import evaluate as ai_exit_evaluate
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
+import requests
 from dotenv import load_dotenv
 from backend.logs.update_oanda_trades import update_oanda_trades
 def build_exit_context(position, tick_data, indicators) -> dict:
@@ -47,10 +48,33 @@ order_mgr = OrderManager()
 
 DEFAULT_PAIR = os.getenv('DEFAULT_PAIR', 'USD_JPY')
 
+OANDA_API_KEY = os.getenv("OANDA_API_KEY")
+OANDA_ACCOUNT_ID = os.getenv("OANDA_ACCOUNT_ID")
+
 # POSITION_REVIEW_ENABLED : "true" | "false"  – enable/disable periodic position reviews (default "true")
 # POSITION_REVIEW_SEC     : seconds between AI reviews while holding a position   (default 60)
 # AIに利益確定を問い合わせる閾値（TP目標の何割以上で問い合わせるか）
 AI_PROFIT_TRIGGER_RATIO = float(os.getenv('AI_PROFIT_TRIGGER_RATIO', '0.5'))
+
+# ───────────────────────────────────────────────────────────
+#  Check if the instrument is currently tradeable via OANDA
+# ───────────────────────────────────────────────────────────
+def instrument_is_tradeable(instrument: str) -> bool:
+    if not OANDA_API_KEY or not OANDA_ACCOUNT_ID:
+        return True  # assume open if credentials missing
+
+    url = f"https://api-fxtrade.oanda.com/v3/accounts/{OANDA_ACCOUNT_ID}/instruments"
+    headers = {"Authorization": f"Bearer {OANDA_API_KEY}"}
+    params = {"instruments": instrument}
+    try:
+        resp = requests.get(url, headers=headers, params=params, timeout=5)
+        resp.raise_for_status()
+        instruments = resp.json().get("instruments", [])
+        if instruments:
+            return str(instruments[0].get("tradeable", "true")).lower() == "true"
+    except requests.RequestException as exc:
+        logger.warning(f"instrument_is_tradeable: {exc}")
+    return False
 
 class JobRunner:
     def __init__(self, interval_seconds=1):
@@ -84,6 +108,12 @@ class JobRunner:
                 # Hot‑reload .env each cycle so updated thresholds take effect without restart
                 load_dotenv(override=True)
                 logger.debug("[JobRunner] .env reloaded")
+                # ---- Market‑hours guard ---------------------------------
+                if not instrument_is_tradeable(DEFAULT_PAIR):
+                    logger.info(f"{DEFAULT_PAIR} market closed – sleeping 60 s")
+                    time.sleep(60)
+                    self.last_run = datetime.utcnow()
+                    continue
                 # Refresh POSITION_REVIEW_SEC dynamically each loop
                 self.review_sec = int(os.getenv("POSITION_REVIEW_SEC", self.review_sec))
                 logger.debug(f"review_sec={self.review_sec}")
@@ -111,6 +141,7 @@ class JobRunner:
                     # 指標計算
                     indicators = calculate_indicators(candles)
                     logger.info("Indicators calculation successful.")
+
 
                     # ポジション確認
                     has_position = check_current_position(DEFAULT_PAIR)
@@ -154,6 +185,7 @@ class JobRunner:
                             if pass_exit_filter(indicators):
                                 logger.info("Filter OK → Processing exit decision with AI.")
                                 context = build_exit_context(has_position, tick_data, indicators)
+                                # TODO: switch to process_exit() and pass market_cond for regime‑aware exits
                                 result = ai_exit_evaluate(context)
 
                                 if result.action == "EXIT":
@@ -218,6 +250,7 @@ class JobRunner:
                         if pass_entry_filter(indicators):
                             logger.info("Filter OK → Processing entry decision with AI.")
                             market_cond = get_market_condition(indicators, candles)
+                            logger.debug(f"Market condition (post‑filter): {market_cond}")
                             result = process_entry(indicators, candles, tick_data, market_cond)
                             if not result:
                                 logger.info("process_entry returned False → aborting entry and continuing loop")

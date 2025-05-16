@@ -2,6 +2,7 @@ import os
 import requests
 from dotenv import load_dotenv
 import logging
+import json
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../config/secret.env'))
 
@@ -57,7 +58,19 @@ def get_position_details(instrument: str) -> Optional[Dict[str, Any]]:
             position_data['entry_time'] = entry_time
         else:
             position_data['entry_time'] = None
-        
+
+        # ---- extract entry_regime JSON from clientExtensions.comment ----
+        entry_regime = None
+        for tr in trades:
+            comment = tr.get("clientExtensions", {}).get("comment")
+            if comment:
+                try:
+                    entry_regime = json.loads(comment)
+                except json.JSONDecodeError:
+                    entry_regime = {"regime": "unknown"}
+                break
+        position_data["entry_regime"] = json.dumps(entry_regime) if entry_regime else None
+
         return position_data
 
     except Exception as e:

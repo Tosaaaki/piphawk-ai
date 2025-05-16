@@ -56,19 +56,39 @@ def get_market_condition(indicators: dict, candles: list[dict]) -> dict:
         {"market_condition": "range"}
         {"market_condition": "trend", "trend_direction": "long"}  # or "short"
     """
+    # ---- safely extract latest indicator values ------------------------
+    latest_rsi = indicators["rsi"].iloc[-1] if "rsi" in indicators and len(indicators["rsi"]) else None
+    latest_atr = indicators["atr"].iloc[-1] if "atr" in indicators and len(indicators["atr"]) else None
+    latest_adx = indicators["adx"].iloc[-1] if "adx" in indicators and len(indicators["adx"]) else None
+    bb_upper_last = indicators["bb_upper"].iloc[-1] if "bb_upper" in indicators and len(indicators["bb_upper"]) else None
+    bb_lower_last = indicators["bb_lower"].iloc[-1] if "bb_lower" in indicators and len(indicators["bb_lower"]) else None
+    bb_width_last = (bb_upper_last - bb_lower_last) if (bb_upper_last is not None and bb_lower_last is not None) else None
     prompt = f"""
-    以下のマーケットデータから、現在がトレンドかレンジか判断してください。
-    ローソク足(1H)：{candles[-20:]}
-    RSI：{indicators.get('rsi', [None])[-1]}
-    ATR：{indicators.get('atr', [None])[-1]}
-    ADX：{indicators.get('adx', [None])[-1]}
-    ボリンジャーバンド幅：{indicators.get('bb_upper', [0])[-1] - indicators.get('bb_lower', [0])[-1]}
+Determine whether the current market regime is **TREND** or **RANGE**.
+If TREND, also specify its direction.
 
-    結果を次の JSON のいずれかで返してください:
-      • レンジの場合: {{ "market_condition": "range" }}
-      • トレンドの場合: {{ "market_condition": "trend", "trend_direction": "long" または "short" }}
-    """
-    response = ask_openai(prompt).strip()
+## Data snapshot
+- Last 20 candles (1‑hour): {candles[-20:]}
+- RSI (14): {latest_rsi}
+- ATR (14): {latest_atr}
+- ADX (14): {latest_adx}
+- Bollinger Band width: {bb_width_last}
+
+## Response format (return **exactly** one of these JSON objects)
+• RANGE :
+  {{ "market_condition": "range" }}
+
+• TREND :
+  {{ "market_condition": "trend", "trend_direction": "long" | "short" }}
+"""
+    response = ask_openai(
+        prompt,
+        model=os.getenv("AI_REGIME_MODEL", "gpt-4o-mini")
+    )
+    # If ask_openai already returned a parsed dict, use it immediately
+    if isinstance(response, dict):
+        return response
+    response = response.strip()
     try:
         return json.loads(response)
     except json.JSONDecodeError:
@@ -172,7 +192,10 @@ Examples:
 
 Do NOT include any extra text, fields, or reasoning.
 """
-    response = ask_openai(prompt)
+    response = ask_openai(
+        prompt,
+        model=os.getenv("AI_ENTRY_MODEL", "gpt-4o-mini")
+    )
     _last_entry_ai_call_time = now
     import re
     response_clean = re.sub(r'```(?:json)?|```', '', response).strip()
@@ -204,7 +227,9 @@ Do NOT include any extra text, fields, or reasoning.
 # ----------------------------------------------------------------------
 # Exit decision
 # ----------------------------------------------------------------------
-def get_exit_decision(market_data, current_position, indicators=None, higher_tf=None):
+def get_exit_decision(market_data, current_position,
+                      indicators=None, entry_regime=None,
+                      market_cond=None, higher_tf=None):
     """
     Ask the LLM whether we should exit an existing position.
     Returns a JSON-formatted string like:
@@ -226,6 +251,8 @@ def get_exit_decision(market_data, current_position, indicators=None, higher_tf=
         indicators["adx"] = market_data.get("adx")
 
     higher_tf_json = json.dumps(higher_tf) if higher_tf else "{}"
+    market_cond_json = json.dumps(market_cond) if market_cond else "{}"
+    entry_regime_json = json.dumps(entry_regime) if entry_regime else "{}"
 
     units_val = float(current_position.get("units", 0))
     side = "SHORT" if units_val < 0 else "LONG"
@@ -275,6 +302,12 @@ You are an expert FX trader making sophisticated and flexible decisions about wh
 
 ## Higher‑TF reference
 {higher_tf_json}
+
+## AI‑derived market condition
+{market_cond_json}
+
+## Entry‑regime at position open
+{entry_regime_json}
 
 ## Technical Indicators (JSON)
 {indicators}
