@@ -53,50 +53,42 @@ def _ema_flat_or_cross(
 #        False → スキップ
 # ────────────────────────────────────────────────
 def pass_entry_filter(indicators: dict) -> bool:
+    """
+    Pure rule‑based entry filter.
+    Returns True when market conditions warrant querying the AI entry decision.
+    """
     if os.getenv("DISABLE_ENTRY_FILTER", "false").lower() == "true":
         return True
 
-    # --- Time‑of‑day block (configurable via .env, supports decimal hours) ---
-    #  Example: QUIET_START_HOUR_JST=3   → 03:00
-    #           QUIET_END_HOUR_JST=7.5  → 07:30
-    quiet_start = float(os.getenv("QUIET_START_HOUR_JST", "3"))
-    quiet_end   = float(os.getenv("QUIET_END_HOUR_JST", "7"))
+    # --- Time‑of‑day block (JST decimal hours) --------------------------
+    quiet_start = float(os.getenv("QUIET_START_HOUR_JST", "3"))   # default 03:00
+    quiet_end   = float(os.getenv("QUIET_END_HOUR_JST", "7"))     # default 07:00
 
     now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
     current_time = now_jst.hour + now_jst.minute / 60.0
 
-    # If the window does **not** wrap midnight (e.g. 3 → 7.5)
-    #   block when: start ≤ current < end
-    # If the window *does* wrap midnight (e.g. 22 → 7)
-    #   block when: current ≥ start  OR  current < end
     in_quiet_hours = (
         (quiet_start < quiet_end  and quiet_start <= current_time < quiet_end) or
         (quiet_start > quiet_end  and (current_time >= quiet_start or current_time < quiet_end)) or
-        (quiet_start == quiet_end)  # same value blocks all day
+        (quiet_start == quiet_end)
     )
-
     if in_quiet_hours:
-        logger.debug(
-            f"EntryFilter blocked: JST quiet hours "
-            f"({quiet_start}‑{quiet_end}, current={current_time:.2f})"
-        )
+        logger.debug(f"EntryFilter blocked by quiet hours ({quiet_start}-{quiet_end})")
         return False
 
-    # --- Pivot suppression: avoid entries within 5 pips of daily pivot ---
+    # --- Daily pivot suppression ---------------------------------------
     if os.getenv("HIGHER_TF_ENABLED", "true").lower() == "true":
         pair = os.getenv("DEFAULT_PAIR", "USD_JPY")
-        higher_tf = analyze_higher_tf(pair)
-        pivot = higher_tf.get("pivot_d")
+        pivot = analyze_higher_tf(pair).get("pivot_d")
         if pivot is not None:
             tick = fetch_tick_data(pair)
             current_price = float(tick["prices"][0]["bids"][0]["price"])
             pip_size = float(os.getenv("PIP_SIZE", "0.01"))
             if abs((current_price - pivot) / pip_size) <= 5:
-                logger.debug(
-                    f"EntryFilter blocked: price {current_price} within 5 pips of daily pivot {pivot}"
-                )
+                logger.debug("EntryFilter blocked: within 5 pips of daily pivot")
                 return False
 
+    # --- Range / Volatility metrics ------------------------------------
     rsi_series = indicators["rsi"]
     atr_series = indicators["atr"]
     adx_series = indicators.get("adx")
@@ -104,21 +96,17 @@ def pass_entry_filter(indicators: dict) -> bool:
     adx_thresh = float(os.getenv("ADX_RANGE_THRESHOLD", "25"))
     range_mode = latest_adx is not None and latest_adx < adx_thresh
 
-    # --- Volume filter --------------------------------------------------
+    # --- Volume check ---------------------------------------------------
     vol_series = indicators.get("volume")
-    vol_ok = True  # default allow if volume not available
-    # --- MA period & threshold are now env‑driven -------------------
-    ma_period = int(os.getenv("VOL_MA_PERIOD", "5"))  # default 5 bars
+    vol_ok = True
+    ma_period = int(os.getenv("VOL_MA_PERIOD", "5"))
     if vol_series is not None and len(vol_series) >= ma_period:
         sma_vol = vol_series.rolling(window=ma_period).mean().iloc[-1]
-        # Primary ENV key is MIN_VOL_MA; falls back to MIN_VOL_M1 (legacy) then 60.
         min_vol = float(os.getenv("MIN_VOL_MA", os.getenv("MIN_VOL_M1", "60")))
         vol_ok = sma_vol >= min_vol
-        logger.debug(
-            f"EntryFilter volume SMA({ma_period})={sma_vol:.1f} (min={min_vol}) → vol_ok={vol_ok}"
-        )
         if not vol_ok:
-            return False  # insufficient liquidity → skip entry
+            logger.debug("EntryFilter blocked: volume below threshold")
+            return False
 
     ema_fast = indicators["ema_fast"]
     ema_slow = indicators["ema_slow"]
@@ -130,55 +118,40 @@ def pass_entry_filter(indicators: dict) -> bool:
     prev_ema_fast = ema_fast.iloc[-2] if len(ema_fast) > 1 else None
     prev_ema_slow = ema_slow.iloc[-2] if len(ema_slow) > 1 else None
 
-    # --- Bollinger Band幅フィルター（狭いレンジを除外） ----------------
+    # --- Bollinger Band width check ------------------------------------
     bb_upper = indicators.get("bb_upper")
     bb_lower = indicators.get("bb_lower")
-    band_width_ok = False  # デフォルトは不可（計算できなければ通さない）
+    band_width_ok = False
     if bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
         pip_size = float(os.getenv("PIP_SIZE", "0.01"))
         bw_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
         bw_thresh = float(os.getenv("BAND_WIDTH_THRESH_PIPS", "4"))
         band_width_ok = bw_pips >= bw_thresh
-        logger.debug(
-            f"EntryFilter BB width={bw_pips:.2f}p (th={bw_thresh}) → band_ok={band_width_ok}"
-        )
 
     if None in [latest_rsi, latest_atr, latest_ema_fast, latest_ema_slow, prev_ema_fast, prev_ema_slow]:
-        return False  # データ不足時スキップ
+        return False  # insufficient data
 
+    # --- Composite conditions ------------------------------------------
     lower = float(os.getenv("RSI_ENTRY_LOWER", "20"))
     upper = float(os.getenv("RSI_ENTRY_UPPER", "80"))
-    # --- ATR フィルターを pip ベースで判定 ---
-    pip_size = float(os.getenv("PIP_SIZE", "0.01"))
-    atr_th = float(os.getenv("ATR_ENTRY_THRESHOLD", "0.09"))  # 環境変数は価格単位 (円)
-    if range_mode:
-        # レンジでは ATR を無視
-        atr_condition = True
-        logger.debug(f"EntryFilter RANGE mode (ADX={latest_adx:.1f} < {adx_thresh}) → ATR ignored")
-    else:
-        atr_pips = latest_atr / pip_size
-        atr_condition = atr_pips >= (atr_th / pip_size)
-        logger.debug(
-            f"EntryFilter ATR={atr_pips:.2f}p (th={atr_th/pip_size:.2f}) → atr_ok={atr_condition}"
-        )
 
-    # RSI が拡大範囲外か ATR がしきい値以上なら True
+    pip_size = float(os.getenv("PIP_SIZE", "0.01"))
+    atr_th = float(os.getenv("ATR_ENTRY_THRESHOLD", "0.09"))
+
+    if range_mode:
+        atr_condition = True  # ignore ATR in range market
+    else:
+        atr_condition = (latest_atr / pip_size) >= (atr_th / pip_size)
+
     rsi_condition = latest_rsi < lower or latest_rsi > upper
 
-    # EMAのクロスを追加（ゴールデンクロスまたはデッドクロス）
     ema_cross_up = prev_ema_fast < prev_ema_slow and latest_ema_fast > latest_ema_slow
     ema_cross_down = prev_ema_fast > prev_ema_slow and latest_ema_fast < latest_ema_slow
-
     ema_condition = ema_cross_up or ema_cross_down
 
-    # 少なくとも 2 つの条件が成立していればエントリー許可
     score = sum([rsi_condition, atr_condition, ema_condition])
-    logger.debug(
-        f"EntryFilter flags | band={band_width_ok}, rsi={rsi_condition}, "
-        f"atr={atr_condition}, ema={ema_condition}, score={score}"
-    )
-    required = 1 if range_mode else 1  # range mode still requires 1; adjust if needed
-    # volume check already returned False when vol_ok is False, but include for clarity
+    required = 1  # adjust if you want stricter logic
+
     return band_width_ok and score >= required
 
 

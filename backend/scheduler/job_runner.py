@@ -12,6 +12,7 @@ from backend.orders.position_manager import check_current_position
 from backend.orders.order_manager import OrderManager
 from backend.utils.openai_client import ask_openai
 from backend.strategy.signal_filter import pass_entry_filter
+from backend.strategy.openai_analysis import get_market_condition
 from backend.strategy.exit_ai_decision import evaluate as ai_exit_evaluate
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from dotenv import load_dotenv
@@ -72,6 +73,7 @@ class JobRunner:
         self.last_ai_call = datetime.min
         # Entry cooldown: time in seconds after a close during which new entries are skipped
         self.entry_cooldown_sec = int(os.getenv("ENTRY_COOLDOWN_SEC", "30"))
+        self.entry_cooldown_sec_after_close = int(os.getenv("ENTRY_COOLDOWN_SEC_AFTER_CLOSE", "300"))
         self.last_close_ts: datetime | None = None
 
     def run(self):
@@ -148,25 +150,20 @@ class JobRunner:
                             logger.info(f"SL updated to entry price to secure minimum profit: {new_sl_price}")
 
                         if current_profit_pips >= TP_PIPS * AI_PROFIT_TRIGGER_RATIO:
-                            decision_prompt = (
-                                f"現在、{DEFAULT_PAIR}で{position_side}ポジションを保持しています。\n"
-                                f"現在の利益は{current_profit_pips:.1f}pipsで、目標TPまであと{TP_PIPS - current_profit_pips:.1f}pipsです。\n"
-                                "現在の市場状況を考慮して、利益をここで確定すべきでしょうか？それともさらに伸ばすべきでしょうか？"
-                            )
+                            # EXITフィルターを評価し、フィルターNGの場合はAIの決済判断をスキップ
+                            if pass_exit_filter(indicators):
+                                logger.info("Filter OK → Processing exit decision with AI.")
+                                context = build_exit_context(has_position, tick_data, indicators)
+                                result = ai_exit_evaluate(context)
 
-                            ai_decision = ask_openai(decision_prompt)
-
-                            if "確定" in ai_decision or "exit" in ai_decision.lower():
-                                order_mgr.close_position(DEFAULT_PAIR, side=position_side if position_side else "both")
-                                self.last_close_ts = datetime.utcnow()
-                                logger.info("Position closed based on AI recommendation.")
-                            elif "伸ばす" in ai_decision or "hold" in ai_decision.lower():
-                                atr_value = indicators["atr"][-1]
-                                ATR_SL_MULTIPLIER = float(os.getenv("ATR_SL_MULTIPLIER", 1.5))
-                                dynamic_sl_pips = atr_value * ATR_SL_MULTIPLIER
-                                new_sl_price = current_price - dynamic_sl_pips * pip_size if position_side == 'long' else current_price + dynamic_sl_pips * pip_size
-                                order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
-                                logger.info(f"SL dynamically updated to protect profits at: {new_sl_price}")
+                                if result.action == "EXIT":
+                                    order_mgr.close_position(DEFAULT_PAIR, side=position_side)
+                                    self.last_close_ts = datetime.utcnow()
+                                    logger.info("Position closed based on AI recommendation.")
+                                else:
+                                    logger.info("AI decision was HOLD → No exit executed.")
+                            else:
+                                logger.info("Filter NG → AI exit decision skipped.")
 
                     # ---- Position‑review timing -----------------------------
                     due_for_review = False
@@ -197,6 +194,14 @@ class JobRunner:
                             time.sleep(self.interval_seconds)
                             continue
 
+                        # ポジション解消後の追加クールダウンチェック
+                        if self.last_close_ts and (datetime.utcnow() - self.last_close_ts).total_seconds() < self.entry_cooldown_sec_after_close:
+                            logger.info(f"Entry cooldown after close active ({(datetime.utcnow() - self.last_close_ts).total_seconds():.1f}s < {self.entry_cooldown_sec_after_close}s). Skipping entry.")
+                            self.last_run = now
+                            update_oanda_trades()
+                            time.sleep(self.interval_seconds)
+                            continue
+
                         # 2) Pivot-based suppression: avoid entries within 5 pips of daily pivot
                         if self.higher_tf_enabled and higher_tf.get("pivot_d") is not None:
                             current_price = float(tick_data["prices"][0]["bids"][0]["price"])
@@ -212,7 +217,8 @@ class JobRunner:
                         # ── Entry side ───────────────────────────────
                         if pass_entry_filter(indicators):
                             logger.info("Filter OK → Processing entry decision with AI.")
-                            result = process_entry(indicators, tick_data, candles)
+                            market_cond = get_market_condition(indicators, candles)
+                            result = process_entry(indicators, candles, tick_data, market_cond)
                             if not result:
                                 logger.info("process_entry returned False → aborting entry and continuing loop")
                                 self.last_run = now

@@ -10,15 +10,17 @@ OANDA_API_URL = os.getenv('OANDA_API_URL', 'https://api-fxtrade.oanda.com/v3')
 OANDA_API_KEY = os.getenv('OANDA_API_KEY')
 OANDA_ACCOUNT_ID = os.getenv('OANDA_ACCOUNT_ID')
 
-def fetch_tick_data(instrument: str, count: int = 1):
+def fetch_tick_data(instrument: str | None = None, count: int = 1):
     """
     Fetch tick (pricing) data for a given instrument from the OANDA API.
     Args:
-        instrument (str): The instrument to fetch (e.g. "EUR_USD").
+        instrument (str): The instrument to fetch (e.g. "USD_JPY").
         count (int): Number of price points to fetch (default: 1).
     Returns:
         dict: JSON response from OANDA API with tick data, or None on error.
     """
+    if instrument is None:
+        instrument = os.getenv("DEFAULT_PAIR", "USD_JPY")
     if not OANDA_API_KEY or not OANDA_ACCOUNT_ID:
         raise EnvironmentError("OANDA_API_KEY or OANDA_ACCOUNT_ID not set in environment variables.")
     url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/pricing"
@@ -40,6 +42,6 @@ def fetch_tick_data(instrument: str, count: int = 1):
 
 # Example usage (remove or comment out in production)
 if __name__ == "__main__":
-    instrument = os.getenv('DEFAULT_PAIR')
+    instrument = os.getenv("DEFAULT_PAIR", "USD_JPY")
     data = fetch_tick_data(instrument)
     print(data)

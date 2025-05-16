@@ -15,11 +15,20 @@ HEADERS = {
     "Content-Type": "application/json"
 }
 
-# --- pip size per instrument (simple map; extend as needed)
-PIP_SIZE = {
+# ----------------------------------------------------------------------
+#  Pip‑size table (extend as needed) and helper
+# ----------------------------------------------------------------------
+DEFAULT_PAIR = os.getenv("DEFAULT_PAIR", "USD_JPY")
+
+PIP_SIZES: dict[str, float] = {
     "USD_JPY": 0.01,
     "EUR_USD": 0.0001,
+    # add more pairs here if necessary
 }
+
+def get_pip_size(instrument: str) -> float:
+    """Return pip size for the instrument; fallback to DEFAULT_PAIR mapping."""
+    return PIP_SIZES.get(instrument, PIP_SIZES.get(DEFAULT_PAIR, 0.01))
 
 class OrderManager:
 
@@ -72,7 +81,7 @@ class OrderManager:
         instrument = strategy_params["instrument"]
         tp_pips = strategy_params.get("tp_pips")
         sl_pips = strategy_params.get("sl_pips")
-        pip = PIP_SIZE.get(instrument, 0.0001)
+        pip = get_pip_size(instrument)
         # side = strategy_params.get("side", "long").lower()
 
         entry_price = float(market_data['prices'][0]['bids'][0]['price']) if side == "long" else float(market_data['prices'][0]['asks'][0]['price'])

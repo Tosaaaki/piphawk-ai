@@ -11,7 +11,7 @@ def fetch_candles(instrument=None, granularity="M1", count=500):
     Fetch candlestick data from OANDA API.
     
     Parameters:
-        instrument (str): The instrument to fetch data for (e.g. "EUR_USD").
+        instrument (str): The instrument to fetch data for (e.g. "USD_JPY").
         granularity (str): The granularity of the candles (e.g. "M1", "H1").
         count (int): Number of candles to fetch (max 5000).
         

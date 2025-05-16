@@ -11,7 +11,20 @@ load_dotenv()
 
 order_manager = OrderManager()
 
-def process_entry(indicators, market_data, strategy_params=None):
+def process_entry(indicators, candles, market_data, market_cond: dict | None = None, strategy_params=None):
+    """
+    Ask OpenAI whether to enter a trade.
+
+    Args:
+        indicators: dict of calculated indicators
+        candles   : recent candle list (passed through, not used here—kept for API consistency)
+        market_data: latest tick data (dict from OANDA)
+        market_cond: output of get_market_condition()  e.g. {"market_condition":"trend","trend_direction":"long"}
+        strategy_params: optional dict to pass extra parameters / overrides
+
+    Returns:
+        True if an entry was placed, False otherwise.
+    """
     # If the caller did not pass a dict (JobRunner passes candles), fall back to an empty dict
     if not isinstance(strategy_params, dict):
         strategy_params = {}
@@ -19,7 +32,7 @@ def process_entry(indicators, market_data, strategy_params=None):
     Ask OpenAI whether to enter and, if yes, retrieve tp/sl in pips.
     strategy_params is enriched with tp_pips / sl_pips for use by OrderManager.
     """
-    ai_response = get_entry_decision(market_data, strategy_params, indicators)
+    ai_response = get_entry_decision(market_data, strategy_params, indicators, market_cond)
 
     # --- Robustly parse AI response (dict or JSON string) ---
     if isinstance(ai_response, dict):

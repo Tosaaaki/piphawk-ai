@@ -16,10 +16,13 @@ import time
 AI_COOLDOWN_SEC_FLAT: int = int(os.getenv("AI_COOLDOWN_SEC_FLAT", 60))
 AI_COOLDOWN_SEC_OPEN: int = int(os.getenv("AI_COOLDOWN_SEC_OPEN", 30))
 BREAKEVEN_TRIGGER_PIPS: int = int(os.getenv("BREAKEVEN_TRIGGER_PIPS", 4))
+ENTRY_COOLDOWN_SEC_AFTER_CLOSE: int = int(os.getenv("ENTRY_COOLDOWN_SEC_AFTER_CLOSE", 300))
 
 # Global variables to store last AI call timestamps
 _last_entry_ai_call_time = 0.0
 _last_exit_ai_call_time = 0.0
+# Global variable to store last position close time (for entry cooldown after close)
+_last_position_close_time = 0.0
 
 def get_ai_cooldown_sec(current_position: dict | None) -> int:
     """
@@ -39,9 +42,44 @@ print("[INFO] OpenAI Analysis started")
 
 
 # ----------------------------------------------------------------------
+# Market‑regime classification helper
+# ----------------------------------------------------------------------
+def get_market_condition(indicators: dict, candles: list[dict]) -> dict:
+    """
+    Use the LLM to classify whether the market is in a TREND or RANGE regime.
+
+    Args:
+        indicators: Dict with recent indicator arrays (rsi, atr, adx, bb_upper, bb_lower, etc.)
+        candles:    List of the latest candle dictionaries (OANDA format)
+
+    Returns:
+        {"market_condition": "range"}
+        {"market_condition": "trend", "trend_direction": "long"}  # or "short"
+    """
+    prompt = f"""
+    以下のマーケットデータから、現在がトレンドかレンジか判断してください。
+    ローソク足(1H)：{candles[-20:]}
+    RSI：{indicators.get('rsi', [None])[-1]}
+    ATR：{indicators.get('atr', [None])[-1]}
+    ADX：{indicators.get('adx', [None])[-1]}
+    ボリンジャーバンド幅：{indicators.get('bb_upper', [0])[-1] - indicators.get('bb_lower', [0])[-1]}
+
+    結果を次の JSON のいずれかで返してください:
+      • レンジの場合: {{ "market_condition": "range" }}
+      • トレンドの場合: {{ "market_condition": "trend", "trend_direction": "long" または "short" }}
+    """
+    response = ask_openai(prompt).strip()
+    try:
+        return json.loads(response)
+    except json.JSONDecodeError:
+        logger.warning("get_market_condition: invalid JSON → fallback to range")
+        return {"market_condition": "range"}
+
+
+# ----------------------------------------------------------------------
 # Entry decision
 # ----------------------------------------------------------------------
-def get_entry_decision(market_data, strategy_params, indicators=None, higher_tf=None):
+def get_entry_decision(market_data, strategy_params, indicators=None, market_cond=None, higher_tf=None):
     """
     Ask the LLM whether we should open a new trade now.
 
@@ -53,7 +91,12 @@ def get_entry_decision(market_data, strategy_params, indicators=None, higher_tf=
     higher_tf (dict|None): higher‑timeframe reference levels
     """
     global _last_entry_ai_call_time
+    global _last_position_close_time
     now = time.time()
+    # Cooldown after position close
+    if time.time() - _last_position_close_time < ENTRY_COOLDOWN_SEC_AFTER_CLOSE:
+        logger.info("Entry skipped due to cooldown period after position close.")
+        return {"side": "no"}
     cooldown = get_ai_cooldown_sec(None)
     if now - _last_entry_ai_call_time < cooldown:
         return {"side": "no"}
@@ -63,6 +106,7 @@ def get_entry_decision(market_data, strategy_params, indicators=None, higher_tf=
 
     market_data_json = json.dumps(market_data)
     strategy_params_json = json.dumps(strategy_params)
+    market_cond_json = json.dumps(market_cond) if market_cond else "{}"
 
     def convert_to_json_serializable(obj):
         if isinstance(obj, pd.Series):
@@ -86,6 +130,7 @@ Market data: {market_data_json}
 Strategy parameters: {strategy_params_json}
 Technical indicators: {indicators_json}
 Higher‑timeframe reference levels: {higher_tf_json}
+AI‑derived market condition: {market_cond_json}
 - Daily pivot point (pivot_d) and its ±5 pips buffer: avoid entries when price is within this range.
 - 4H pivot point (pivot_h4) and support/resistance levels: treat similarly to daily pivot.
 - Consider higher‑timeframe trend direction: if daily trend opposes the proposed side, prefer "no" or "wait_pullback".
@@ -347,6 +392,7 @@ __all__ = [
     "get_entry_decision",
     "get_exit_decision",
     "get_tp_sl_adjustment",
+    "get_market_condition",
     "AIDecision",
     "evaluate_exit",
 ]
