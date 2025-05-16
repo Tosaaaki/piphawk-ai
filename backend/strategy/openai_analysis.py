@@ -67,10 +67,14 @@ You are a seasoned FX trader assistant. Based on the following inputs, decide if
 - Strategy parameters: {strategy_params_json}
 - Technical indicators: {indicators_json}
 - Higher‑timeframe reference levels: {higher_tf_json}
+- Daily pivot point (pivot_d) and its ±5 pips buffer: avoid entries when price is within this range.
+- 4H pivot point (pivot_h4) and support/resistance levels: treat similarly to daily pivot.
+- Consider higher‑timeframe trend direction: if daily trend opposes the proposed side, prefer "no" or "wait_pullback".
 
 Carefully analyze the market context and indicators.
 - You may choose **trend‑following _or_ counter‑trend (逆張り)** trades.  When ADX < 25 _or_ RSI is ≤ 35 / ≥ 65, actively look for counter‑trend opportunities at Bollinger Band touches or key support/resistance.
 - Counter-trend entries should be based on reliable indicators signaling potential reversals, such as RSI extremes (above 65 or below 35), price rejection at Bollinger Bands, or clear reaction at strong support/resistance levels.
+- Do NOT open counter-trend trades when price is within ±5 pips of a daily or 4H pivot.
 - Dynamically set TP and SL considering market volatility, key technical levels, and risk-reward balance.
 - When proposing **"tp_pips"**, explicitly factor in:
     • **Volatility** – use the latest ATR; aim for TP ≈ 2‑3 × ATR.  
