@@ -1,0 +1,22 @@
+FROM python:3.11-slim
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+        build-essential \
+        git \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# requirements.txt はbackend配下
+COPY backend/requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+# backendごと/appにコピー
+COPY backend /app/backend
+
+ENV PYTHONUNBUFFERED=1
+ENV TZ=Asia/Tokyo
+
+CMD ["python", "-m", "backend.scheduler.job_runner"]

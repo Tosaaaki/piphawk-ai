@@ -1,0 +1,45 @@
+import os
+import requests
+from dotenv import load_dotenv
+
+# Load environment variables from .env files
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../config/settings.env'))
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../config/secret.env'))
+
+OANDA_API_URL = os.getenv('OANDA_API_URL', 'https://api-fxtrade.oanda.com/v3')
+OANDA_API_KEY = os.getenv('OANDA_API_KEY')
+OANDA_ACCOUNT_ID = os.getenv('OANDA_ACCOUNT_ID')
+
+def fetch_tick_data(instrument: str, count: int = 1):
+    """
+    Fetch tick (pricing) data for a given instrument from the OANDA API.
+    Args:
+        instrument (str): The instrument to fetch (e.g. "EUR_USD").
+        count (int): Number of price points to fetch (default: 1).
+    Returns:
+        dict: JSON response from OANDA API with tick data, or None on error.
+    """
+    if not OANDA_API_KEY or not OANDA_ACCOUNT_ID:
+        raise EnvironmentError("OANDA_API_KEY or OANDA_ACCOUNT_ID not set in environment variables.")
+    url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/pricing"
+    headers = {
+        "Authorization": f"Bearer {OANDA_API_KEY}"
+    }
+    params = {
+        "instruments": instrument,
+        "since": None,
+        "includeUnitsAvailable": "false"
+    }
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        print(f"Error fetching tick data: {e}")
+        return None
+
+# Example usage (remove or comment out in production)
+if __name__ == "__main__":
+    instrument = os.getenv('DEFAULT_PAIR')
+    data = fetch_tick_data(instrument)
+    print(data)
