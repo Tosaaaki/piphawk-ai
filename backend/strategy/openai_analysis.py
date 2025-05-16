@@ -4,6 +4,11 @@ import pandas as pd
 from backend.utils.openai_client import ask_openai
 import os
 import math
+# --- Added for AI-based exit decision ---
+import os
+from dataclasses import dataclass
+from typing import Any, Dict
+import time
 
 # ----------------------------------------------------------------------
 # Config – driven by environment variables
@@ -11,6 +16,10 @@ import math
 AI_COOLDOWN_SEC_FLAT: int = int(os.getenv("AI_COOLDOWN_SEC_FLAT", 60))
 AI_COOLDOWN_SEC_OPEN: int = int(os.getenv("AI_COOLDOWN_SEC_OPEN", 30))
 BREAKEVEN_TRIGGER_PIPS: int = int(os.getenv("BREAKEVEN_TRIGGER_PIPS", 4))
+
+# Global variables to store last AI call timestamps
+_last_entry_ai_call_time = 0.0
+_last_exit_ai_call_time = 0.0
 
 def get_ai_cooldown_sec(current_position: dict | None) -> int:
     """
@@ -43,6 +52,12 @@ def get_entry_decision(market_data, strategy_params, indicators=None, higher_tf=
 
     higher_tf (dict|None): higher‑timeframe reference levels
     """
+    global _last_entry_ai_call_time
+    now = time.time()
+    cooldown = get_ai_cooldown_sec(None)
+    if now - _last_entry_ai_call_time < cooldown:
+        return {"side": "no"}
+
     if indicators is None:
         indicators = {}
 
@@ -63,22 +78,34 @@ def get_entry_decision(market_data, strategy_params, indicators=None, higher_tf=
     prompt = f"""
 You are a seasoned FX trader assistant. Based on the following inputs, decide if a new trade should be opened right now.
 
-- Market data: {market_data_json}
-- Strategy parameters: {strategy_params_json}
-- Technical indicators: {indicators_json}
-- Higher‑timeframe reference levels: {higher_tf_json}
+First determine the market regime: classify as "RANGE" (sideways) or "TREND" (directional) based on ADX, Bollinger Bands, and moving averages.
+If RANGE: identify support and resistance (e.g. Bollinger Band lower/upper) and suggest entries at band extremes when RSI is oversold/overbought.
+If TREND: identify direction via moving average cross (e.g. EMA fast vs. slow) and suggest entries in the trend direction on pullbacks to EMA or mid-band.
+
+Market data: {market_data_json}
+Strategy parameters: {strategy_params_json}
+Technical indicators: {indicators_json}
+Higher‑timeframe reference levels: {higher_tf_json}
 - Daily pivot point (pivot_d) and its ±5 pips buffer: avoid entries when price is within this range.
 - 4H pivot point (pivot_h4) and support/resistance levels: treat similarly to daily pivot.
 - Consider higher‑timeframe trend direction: if daily trend opposes the proposed side, prefer "no" or "wait_pullback".
 
 Carefully analyze the market context and indicators.
-- You may choose **trend‑following _or_ counter‑trend (逆張り)** trades.  When ADX < 25 _or_ RSI is ≤ 35 / ≥ 65, actively look for counter‑trend opportunities at Bollinger Band touches or key support/resistance.
-- Counter-trend entries should be based on reliable indicators signaling potential reversals, such as RSI extremes (above 65 or below 35), price rejection at Bollinger Bands, or clear reaction at strong support/resistance levels.
-- Do NOT open counter-trend trades when price is within ±5 pips of a daily or 4H pivot.
+
+Regime-specific guidance:
+- **RANGE**: Look for entries at Bollinger Band extremes. 
+  • For long entries: price near lower band with RSI ≤ 30.  
+  • For short entries: price near upper band with RSI ≥ 70.  
+  Use Bollinger Bands and RSI extremes only when the regime is confirmed as RANGE.
+- **TREND**: Identify trend direction by EMA fast crossing EMA slow.  
+  • For long trend: EMA fast > EMA slow and price pullback to EMA fast or mid-band.  
+  • For short trend: EMA fast < EMA slow and price pullback to EMA fast or mid-band.
+
+Do NOT open counter-trend trades when price is within ±5 pips of a daily or 4H pivot.
 - Dynamically set TP and SL considering market volatility, key technical levels, and risk-reward balance.
 - When proposing **"tp_pips"**, explicitly factor in:
     • **Volatility** – use the latest ATR; aim for TP ≈ 2‑3 × ATR.  
-    • **Bollinger Band** distances – for counter‑trend trades, target 40‑60 % of BB width (toward the mid‑band); for trend‑following trades, allow up to 80 % of BB width.  
+    • **Bollinger Band** distances – for trend‑following trades, allow up to 80 % of BB width.  
     • **RSI reversion** – if RSI is extreme (≤35 / ≥65), set TP so that RSI would likely revert toward 50 at exit.  
   Ensure risk‑reward ≥ 1.5 and round TP/SL to whole pips.
 
@@ -101,12 +128,27 @@ Examples:
 Do NOT include any extra text, fields, or reasoning.
 """
     response = ask_openai(prompt)
+    _last_entry_ai_call_time = now
+    import re
+    response_clean = re.sub(r'```(?:json)?|```', '', response).strip()
+    response = response_clean
     logger.info(f"OpenAI response: {response}")
 
     if isinstance(response, dict):
         return response
     try:
         parsed = json.loads(response)
+        if parsed.get("side") not in ("long", "short"):
+            return {"side": "no"}
+
+        # ── 反転オプション ───────────────────────────────────────────────
+        # INVERT_ENTRY_SIDE=true のとき、long⇔shortを入れ替える
+        if os.getenv("INVERT_ENTRY_SIDE", "false").lower() == "true":
+            if parsed["side"] == "long":
+                parsed["side"] = "short"
+            elif parsed["side"] == "short":
+                parsed["side"] = "long"
+
         return parsed
     except (json.JSONDecodeError, TypeError) as e:
         logger.error(f"Failed to parse OpenAI response: {e}")
@@ -125,6 +167,12 @@ def get_exit_decision(market_data, current_position, indicators=None, higher_tf=
 
     higher_tf (dict|None): higher‑timeframe reference levels
     """
+    global _last_exit_ai_call_time
+    now = time.time()
+    cooldown = get_ai_cooldown_sec(current_position)
+    if now - _last_exit_ai_call_time < cooldown:
+        return json.dumps({"action": "HOLD", "reason": "Cooldown active"})
+
     if indicators is None:
         indicators = {}
 
@@ -173,6 +221,9 @@ You are an expert FX trader making sophisticated and flexible decisions about wh
 - **Regime‑shift awareness**: Use ADX (25 threshold) and Bollinger‑Band width to detect if the market has switched between *range* and *trend*.  
   • If the new regime is favorable to the current position (e.g., a fresh trend in the trade direction), prefer **HOLD** to ride profits.  
   • If the new regime increases risk (e.g., range compression against an existing trend position), prefer **EXIT** quickly.
+- Consider the entry regime type (TREND or RANGE) used when opening the position:
+  • For TREND entries, aim to exit at appropriate trend profit levels, respecting trend momentum and pullbacks.
+  • For RANGE entries, use Bollinger Bands and RSI extremes to guide exit levels, taking profits near band extremes or on RSI reversion.
 
 ## Market Snapshot
 {market_data}
@@ -195,6 +246,7 @@ Examples:
 Do NOT output anything else (no prefixes, no Markdown, no reasoning).
 """
     response = ask_openai(prompt)
+    _last_exit_ai_call_time = now
     logger.debug(f"[get_exit_decision] prompt sent:\n{prompt}")
     logger.info(f"OpenAI response: {response}")
 
@@ -233,4 +285,68 @@ def get_tp_sl_adjustment(market_data, current_tp, current_sl):
     return response  # ← そのまま返す
 
 
+# ----------------------------------------------------------------------
+# AI-based exit decision using AIDecision
+# ----------------------------------------------------------------------
+_EXIT_SYSTEM_PROMPT = (
+    "You are an expert foreign‑exchange risk manager and trading coach. "
+    "Given the current trading context you must respond with a strict JSON "
+    "object using exactly the keys: action, confidence, reason.\n\n"
+    "Allowed values for *action* are EXIT, HOLD, SCALE.\n"
+    "*confidence* must be a number between 0 and 1.\n"
+    "*reason* must be a single short English sentence (max 25 words).\n"
+    "Do not wrap the JSON in markdown."
+)
+_EXIT_ALLOWED_ACTIONS = {"EXIT", "HOLD", "SCALE"}
+
+@dataclass(slots=True)
+class AIDecision:
+    action: str = "HOLD"
+    confidence: float = 0.0
+    reason: str = ""
+    def as_dict(self) -> Dict[str, Any]:
+        return {"action": self.action, "confidence": self.confidence, "reason": self.reason}
+
+def _exit_build_prompt(context: Dict[str, Any]) -> str:
+    user_json = json.dumps(context, separators=(",", ":"), ensure_ascii=False)
+    return f"{_EXIT_SYSTEM_PROMPT}\nUSER_CONTEXT:\n{user_json}"
+
+def _exit_parse_answer(raw: str) -> AIDecision:
+    try:
+        data = json.loads(raw.strip())
+    except json.JSONDecodeError as exc:
+        return AIDecision(action="HOLD", confidence=0.0, reason=f"json_error:{exc}")
+    action = str(data.get("action", "HOLD")).upper()
+    if action not in _EXIT_ALLOWED_ACTIONS:
+        action = "HOLD"
+    try:
+        conf = float(data.get("confidence", 0))
+    except (TypeError, ValueError):
+        conf = 0.0
+    reason = str(data.get("reason", ""))[:120]
+    return AIDecision(action=action, confidence=conf, reason=reason)
+
+def evaluate_exit(context: Dict[str, Any]) -> AIDecision:
+    """
+    Ask OpenAI whether to exit a position given the context.
+    Returns an AIDecision(action, confidence, reason).
+    """
+    prompt = _exit_build_prompt(context)
+    model = os.getenv("AI_EXIT_MODEL", "gpt-4o-mini")
+    temperature = float(os.getenv("AI_EXIT_TEMPERATURE", "0.0"))
+    max_tokens = int(os.getenv("AI_EXIT_MAX_TOKENS", "128"))
+    raw = ask_openai(prompt, model=model, temperature=temperature, max_tokens=max_tokens)
+    return _exit_parse_answer(raw)
+
+
 print("[INFO] OpenAI Analysis finished")
+
+# Exports
+__all__ = [
+    "get_ai_cooldown_sec",
+    "get_entry_decision",
+    "get_exit_decision",
+    "get_tp_sl_adjustment",
+    "AIDecision",
+    "evaluate_exit",
+]

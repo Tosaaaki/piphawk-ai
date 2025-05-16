@@ -102,10 +102,6 @@ def process_exit(indicators, market_data):
         logging.info("No active position found.")
         return False
 
-    from backend.strategy.signal_filter import pass_exit_filter
-    if not pass_exit_filter(indicators, position_side):
-        logging.info(f"Exit filter blocked AI evaluation for {position_side} position.")
-        return False
 
     # -------- Early‑exit / break‑even logic ----------------------------
     if EARLY_EXIT_ENABLED:

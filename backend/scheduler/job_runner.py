@@ -11,7 +11,7 @@ from backend.strategy.exit_logic import process_exit
 from backend.orders.position_manager import check_current_position
 from backend.orders.order_manager import OrderManager
 from backend.utils.openai_client import ask_openai
-from backend.strategy.signal_filter import pass_entry_filter, pass_exit_filter
+from backend.strategy.signal_filter import pass_entry_filter
 from backend.strategy.exit_ai_decision import evaluate as ai_exit_evaluate
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from dotenv import load_dotenv
@@ -96,7 +96,7 @@ class JobRunner:
                     logger.info(f"Tick data details: {tick_data}")
 
                     # ローソク足データ取得（指標計算用）
-                    candles = fetch_candles(DEFAULT_PAIR, granularity='M1', count=50)
+                    candles = fetch_candles(DEFAULT_PAIR, granularity='M5', count=50)
                     logger.info(f"Candle data fetched: {candles[-1] if candles else 'No candles'}")
                     logger.info(f"Last candle details: {candles[-1] if candles else 'No candles retrieved'}")
 
@@ -223,33 +223,10 @@ class JobRunner:
                         else:
                             logger.info("Filter NG → AI entry decision skipped.")
                             self.last_position_review_ts = None
-                    else:
-                        # ── Exit side ────────────────────────────────
-                        if due_for_review and position_side and pass_exit_filter(indicators, position_side):
-                            logger.info("Filter OK → Processing exit decision with AI.")
-                            process_exit(indicators, tick_data)
-                            self.last_close_ts = datetime.utcnow()
-                            self.last_ai_call = datetime.now()  # AI呼び出し時刻を明示的に記録（クールダウン用）
-                            self.last_position_review_ts = now
-                else:
-                    # --- AI exit override when filter NG ----------------------
-                    if os.getenv("ALLOW_AI_EXIT_OVERRIDE", "true").lower() == "true":
-                        ctx = build_exit_context(has_position, tick_data, indicators)
-                        ai_decision = ai_exit_evaluate(ctx)
-                        logger.debug(f"AI Exit decision: {ai_decision.as_dict()}")
-                        if ai_decision.action == "EXIT" and ai_decision.confidence >= float(os.getenv("AI_EXIT_CONF_THRESH", "0.6")):
-                            order_mgr.close_position(DEFAULT_PAIR, side=position_side)
-                            self.last_close_ts = datetime.utcnow()
-                            logger.info("Position closed by AI override.")
-                            self.last_ai_call = datetime.now()
-                            self.last_position_review_ts = now
-                        else:
-                            logger.info("Filter NG → AI exit override not triggered.")
-                    # keep last_position_review_ts unchanged
-
-                    self.last_run = now
-
+                    # (removed: periodic exit check block)
                 # Update OANDA trade history every second
+                self.last_run = now
+
                 update_oanda_trades()
                 time.sleep(self.interval_seconds)
 
