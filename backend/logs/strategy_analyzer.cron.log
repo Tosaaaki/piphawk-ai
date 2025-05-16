@@ -858,3 +858,33 @@ Traceback (most recent call last):
   File "/Users/tossaki/piphawk/backend/utils/openai_client.py", line 12, in <module>
     raise RuntimeError("OPENAI_API_KEY not set in environment variables.")
 RuntimeError: OPENAI_API_KEY not set in environment variables.
+Traceback (most recent call last):
+  File "/Users/tossaki/.pyenv/versions/3.10.14/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/Users/tossaki/.pyenv/versions/3.10.14/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/Users/tossaki/piphawk/backend/strategy/strategy_analyzer.py", line 7, in <module>
+    from backend.utils.openai_client import ask_openai
+  File "/Users/tossaki/piphawk/backend/utils/openai_client.py", line 12, in <module>
+    raise RuntimeError("OPENAI_API_KEY not set in environment variables.")
+RuntimeError: OPENAI_API_KEY not set in environment variables.
+Traceback (most recent call last):
+  File "/Users/tossaki/.pyenv/versions/3.10.14/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/Users/tossaki/.pyenv/versions/3.10.14/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/Users/tossaki/piphawk/backend/strategy/strategy_analyzer.py", line 7, in <module>
+    from backend.utils.openai_client import ask_openai
+  File "/Users/tossaki/piphawk/backend/utils/openai_client.py", line 12, in <module>
+    raise RuntimeError("OPENAI_API_KEY not set in environment variables.")
+RuntimeError: OPENAI_API_KEY not set in environment variables.
+Traceback (most recent call last):
+  File "/Users/tossaki/.pyenv/versions/3.10.14/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/Users/tossaki/.pyenv/versions/3.10.14/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/Users/tossaki/piphawk/backend/strategy/strategy_analyzer.py", line 7, in <module>
+    from backend.utils.openai_client import ask_openai
+  File "/Users/tossaki/piphawk/backend/utils/openai_client.py", line 12, in <module>
+    raise RuntimeError("OPENAI_API_KEY not set in environment variables.")
+RuntimeError: OPENAI_API_KEY not set in environment variables.
