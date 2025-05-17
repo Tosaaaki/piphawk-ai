@@ -18,6 +18,9 @@ from backend.strategy.exit_ai_decision import evaluate as ai_exit_evaluate
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 import requests
 
+# LINE notification sender
+from backend.api.main import send_line_message
+
 #
 # optional helper for pending LIMIT look‑up;
 # provide stub if module is absent in current build
@@ -235,6 +238,10 @@ class JobRunner:
                                     order_mgr.close_position(DEFAULT_PAIR, side=position_side)
                                     self.last_close_ts = datetime.utcnow()
                                     logger.info("Position closed based on AI recommendation.")
+                                    # Send LINE notification on exit
+                                    send_line_message(
+                                        f"【EXIT】{DEFAULT_PAIR} {current_price} で決済しました。PL={current_profit_pips * pip_size:.2f}"
+                                    )
                                 else:
                                     logger.info("AI decision was HOLD → No exit executed.")
                             else:
@@ -302,6 +309,9 @@ class JobRunner:
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)
                                 continue
+                            # Send LINE notification on entry
+                            price = float(tick_data["prices"][0]["bids"][0]["price"])
+                            send_line_message(f"【ENTRY】{DEFAULT_PAIR} {price} でエントリーしました。")
                         else:
                             logger.info("Filter NG → AI entry decision skipped.")
                             self.last_position_review_ts = None

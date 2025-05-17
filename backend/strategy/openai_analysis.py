@@ -63,8 +63,8 @@ def get_market_condition(indicators: dict, candles: list[dict]) -> dict:
 # ----------------------------------------------------------------------
 # Entry decision
 # ----------------------------------------------------------------------
-def get_entry_decision(market_data, strategy_params, indicators=None, market_cond=None, higher_tf=None):
-    plan = get_trade_plan(market_data, indicators or {}, candles or [])
+def get_entry_decision(market_data, strategy_params, indicators=None, candles=None, market_cond=None, higher_tf=None):
+    plan = get_trade_plan(market_data, indicators or {}, candles or [], strategy_params)
     return plan.get("entry", {"side": "no"})
 
 
