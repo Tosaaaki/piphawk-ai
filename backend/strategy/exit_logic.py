@@ -243,12 +243,16 @@ def process_exit(indicators, market_data, market_cond=None):
                     distance_pips = atr_pips * TRAIL_DISTANCE_MULTIPLIER
 
                 if profit_pips >= trigger_pips:
-                    order_manager.place_trailing_stop(
-                        instrument=position["instrument"],
-                        units=units,
-                        trail_distance_pips=distance_pips,
-                        side=position_side,
-                    )
+                    # --- attach trailing stop to the first open trade ID ---
+                    trade_ids = position.get(position_side, {}).get("tradeIDs", [])
+                    if trade_ids:
+                        order_manager.place_trailing_stop(
+                            trade_id=trade_ids[0],
+                            instrument=position["instrument"],
+                            distance_pips=int(distance_pips)
+                        )
+                    else:
+                        logging.warning("No tradeIDs found; trailing stop not placed.")
                     logging.info(
                         f"Trailing stop placed on {position['instrument']} "
                         f"({position_side}) profit={profit_pips:.1f}p, "

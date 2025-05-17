@@ -1,10 +1,11 @@
 import os
 import requests
 from backend.logs.log_manager import log_trade, log_error
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import json
 import logging
+import uuid
 logger = logging.getLogger(__name__)
 
 OANDA_API_URL = os.getenv("OANDA_API_URL", "https://api-fxtrade.oanda.com/v3")
@@ -31,7 +32,96 @@ def get_pip_size(instrument: str) -> float:
     """Return pip size for the instrument; fallback to DEFAULT_PAIR mapping."""
     return PIP_SIZES.get(instrument, PIP_SIZES.get(DEFAULT_PAIR, 0.01))
 
+def _price_precision(instrument: str) -> int:
+    """Return 3 for JPY pairs, else 5."""
+    return 3 if instrument.endswith("JPY") else 5
+
 class OrderManager:
+
+    # ------------------------------------------------------------------
+    # LIMIT order helpers
+    # ------------------------------------------------------------------
+    def place_limit_order(
+        self,
+        instrument: str,
+        units: int,
+        limit_price: float,
+        tp_pips: int | None = None,
+        sl_pips: int | None = None,
+        side: str = "long",
+        entry_uuid: str | None = None,
+        valid_sec: int = 180,
+        risk_info: dict | None = None,
+    ) -> dict:
+        """
+        Submit a LIMIT order with optional TP/SL. Returns API JSON.
+        """
+        pip = get_pip_size(instrument)
+        precision = _price_precision(instrument)
+        tp_price = sl_price = None
+        if tp_pips and sl_pips:
+            if side == "long":
+                tp_price = round(limit_price + tp_pips * pip, precision)
+                sl_price = round(limit_price - sl_pips * pip, precision)
+            else:
+                tp_price = round(limit_price - tp_pips * pip, precision)
+                sl_price = round(limit_price + sl_pips * pip, precision)
+
+        comment_dict = {"entry_uuid": entry_uuid, "mode": "limit"}
+        if risk_info:
+            comment_dict.update(tp=risk_info.get("tp_pips"),
+                                sl=risk_info.get("sl_pips"),
+                                pp=risk_info.get("tp_prob"),
+                                qp=risk_info.get("sl_prob"))
+        comment_json = json.dumps(comment_dict, separators=(",", ":"))
+        if len(comment_json.encode("utf-8")) > 240:
+            comment_json = comment_json.encode("utf-8")[:240].decode("utf-8", "ignore")
+
+        tag = str(int(time.time()))
+
+        payload = {
+            "order": {
+                "units": str(units),
+                "price": str(limit_price),
+                "instrument": instrument,
+                "timeInForce": "GTC",
+                "type": "LIMIT",
+                "positionFill": "DEFAULT",
+                "clientExtensions": {
+                    "comment": comment_json,
+                    "tag": tag
+                },
+                "gtdTime": (datetime.utcnow() + 
+                            timedelta(seconds=valid_sec)).isoformat("T") + "Z"
+            }
+        }
+        if tp_price and sl_price:
+            payload["order"]["takeProfitOnFill"] = {"price": str(tp_price)}
+            payload["order"]["stopLossOnFill"] = {"price": str(sl_price)}
+
+        url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
+        r = requests.post(url, json=payload, headers=HEADERS)
+        r.raise_for_status()
+        return r.json()
+
+    def cancel_order(self, order_id: str) -> dict:
+        url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{order_id}/cancel"
+        r = requests.put(url, headers=HEADERS)
+        r.raise_for_status()
+        return r.json()
+
+    def modify_order_price(self, order_id: str, new_price: float, valid_sec: int = 180) -> dict:
+        payload = {
+            "order": {
+                "price": str(new_price),
+                "gtdTime": (datetime.utcnow() + 
+                            timedelta(seconds=valid_sec)).isoformat("T") + "Z"
+            }
+        }
+        url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{order_id}"
+        r = requests.put(url, json=payload, headers=HEADERS)
+        r.raise_for_status()
+        return r.json()
 
     def place_market_order(self, instrument, units):
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
@@ -79,6 +169,11 @@ class OrderManager:
         max_lot = float(os.getenv("MAX_TRADE_LOT", "0.1"))
         lot_size = max(min_lot, min(lot_size, max_lot))
 
+        mode = strategy_params.get("mode", "market")
+        limit_price = strategy_params.get("limit_price")
+        entry_uuid = strategy_params.get("entry_uuid") or str(uuid.uuid4())[:8]
+        valid_sec = int(strategy_params.get("valid_for_sec", os.getenv("MAX_LIMIT_AGE_SEC", "180")))
+
         instrument = strategy_params["instrument"]
         tp_pips = strategy_params.get("tp_pips")
         sl_pips = strategy_params.get("sl_pips")
@@ -89,6 +184,20 @@ class OrderManager:
         units = int(lot_size * 1000) if side == "long" else -int(lot_size * 1000)
         entry_time = datetime.utcnow().isoformat()
 
+        # ---- LIMIT order path ----
+        if mode == "limit":
+            return self.place_limit_order(
+                instrument=instrument,
+                units=units,
+                limit_price=limit_price,
+                tp_pips=tp_pips,
+                sl_pips=sl_pips,
+                side=side,
+                entry_uuid=entry_uuid,
+                valid_sec=valid_sec,
+                risk_info=strategy_params.get("risk")
+            )
+
         # ---- embed entry‑regime JSON into clientExtensions.comment (≤255 bytes) ----
         comment_json = None
         try:
@@ -96,7 +205,18 @@ class OrderManager:
             comment_dict = {
                 "regime": regime_info.get("market_condition"),
                 "dir": regime_info.get("trend_direction"),
+                "mode": mode,
+                "entry_uuid": entry_uuid,
             }
+            # ---- embed AI risk info (tp/sl & probabilities) if present ----
+            risk_info = strategy_params.get("risk", {})
+            if risk_info:
+                comment_dict.update(
+                    tp=risk_info.get("tp_pips"),
+                    sl=risk_info.get("sl_pips"),
+                    pp=risk_info.get("tp_prob"),  # TP probability
+                    qp=risk_info.get("sl_prob"),  # SL probability
+                )
             comment_json = json.dumps(comment_dict, separators=(",", ":"))
             # OANDA は 255 byte 制限。安全マージンで 240 byte に丸める
             if len(comment_json.encode("utf-8")) > 240:
@@ -118,12 +238,13 @@ class OrderManager:
             order_body["order"]["clientExtensions"] = {"comment": comment_json}
 
         if tp_pips and sl_pips:
+            precision = 3 if instrument.endswith("JPY") else 5
             if side == "long":
-                tp_price = round(entry_price + float(tp_pips) * pip, 3)
-                sl_price = round(entry_price - float(sl_pips) * pip, 3)
+                tp_price = round(entry_price + float(tp_pips) * pip, precision)
+                sl_price = round(entry_price - float(sl_pips) * pip, precision)
             else:
-                tp_price = round(entry_price - float(tp_pips) * pip, 3)
-                sl_price = round(entry_price + float(sl_pips) * pip, 3)
+                tp_price = round(entry_price - float(tp_pips) * pip, precision)
+                sl_price = round(entry_price + float(sl_pips) * pip, precision)
 
             order_body["order"]["takeProfitOnFill"] = {"price": str(tp_price)}
             order_body["order"]["stopLossOnFill"] = {"price": str(sl_price)}
@@ -143,6 +264,8 @@ class OrderManager:
             entry_price=entry_price,
             units=units,
             ai_reason=strategy_params.get("ai_reason", "manual"),
+            tp_prob=risk_info.get("tp_prob") if risk_info else None,
+            sl_prob=risk_info.get("sl_prob") if risk_info else None,
             side=side.upper(),
             entry_regime=entry_regime
         )

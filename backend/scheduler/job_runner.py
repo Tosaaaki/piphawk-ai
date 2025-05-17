@@ -12,11 +12,15 @@ from backend.orders.position_manager import check_current_position
 from backend.orders.order_manager import OrderManager
 from backend.utils.openai_client import ask_openai
 from backend.strategy.signal_filter import pass_entry_filter
+from backend.strategy.signal_filter import pass_exit_filter
 from backend.strategy.openai_analysis import get_market_condition
 from backend.strategy.exit_ai_decision import evaluate as ai_exit_evaluate
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 import requests
 from dotenv import load_dotenv
+
+# Helper for pending LIMIT check
+from backend.utils.oanda_client import get_pending_entry_order  # helper for pending LIMIT check
 from backend.logs.update_oanda_trades import update_oanda_trades
 def build_exit_context(position, tick_data, indicators) -> dict:
     """Compose a minimal context dict for AI exit evaluation."""
@@ -50,6 +54,8 @@ DEFAULT_PAIR = os.getenv('DEFAULT_PAIR', 'USD_JPY')
 
 OANDA_API_KEY = os.getenv("OANDA_API_KEY")
 OANDA_ACCOUNT_ID = os.getenv("OANDA_ACCOUNT_ID")
+# ----- limit‑order housekeeping ------------------------------------
+MAX_LIMIT_AGE_SEC = int(os.getenv("MAX_LIMIT_AGE_SEC", "180"))  # seconds before a pending LIMIT is cancelled
 
 # POSITION_REVIEW_ENABLED : "true" | "false"  – enable/disable periodic position reviews (default "true")
 # POSITION_REVIEW_SEC     : seconds between AI reviews while holding a position   (default 60)
@@ -90,6 +96,26 @@ class JobRunner:
         # --- position review (巡回) settings ----------------------------
         self.review_enabled = os.getenv("POSITION_REVIEW_ENABLED", "true").lower() == "true"
         self.review_sec = int(os.getenv("POSITION_REVIEW_SEC", "60"))
+        # LIMIT order age threshold
+        self.max_limit_age_sec = MAX_LIMIT_AGE_SEC
+    # ────────────────────────────────────────────────────────────
+    #  Cancel LIMIT orders that are too old
+    # ────────────────────────────────────────────────────────────
+    def _cancel_stale_limits(self, instrument: str):
+        """
+        Cancel pending LIMIT entry orders older than self.max_limit_age_sec.
+        Relies on clientExtensions.tag (unix ts) in the order and backend.utils.oanda_client helper.
+        """
+        pend = get_pending_entry_order(instrument)  # returns dict {"order_id", "ts"}
+        if not pend:
+            return
+        age = time.time() - pend["ts"]
+        if age >= self.max_limit_age_sec:
+            try:
+                logger.info(f"Stale LIMIT order {pend['order_id']} ({age:.0f}s) → cancelling")
+                order_mgr.cancel_order(pend["order_id"])
+            except Exception as exc:
+                logger.warning(f"Failed to cancel LIMIT order: {exc}")
         # Toggle for higher‑timeframe reference levels (daily / H4)
         self.higher_tf_enabled = os.getenv("HIGHER_TF_ENABLED", "true").lower() == "true"
         self.last_position_review_ts = None  # datetime of last position review
@@ -138,6 +164,8 @@ class JobRunner:
                         higher_tf = analyze_higher_tf(DEFAULT_PAIR)
                         logger.debug(f"Higher‑TF levels: {higher_tf}")
 
+                    # チェック：保留LIMIT注文の寿命切れ
+                    self._cancel_stale_limits(DEFAULT_PAIR)
                     # 指標計算
                     indicators = calculate_indicators(candles)
                     logger.info("Indicators calculation successful.")
@@ -182,7 +210,7 @@ class JobRunner:
 
                         if current_profit_pips >= TP_PIPS * AI_PROFIT_TRIGGER_RATIO:
                             # EXITフィルターを評価し、フィルターNGの場合はAIの決済判断をスキップ
-                            if pass_exit_filter(indicators):
+                            if pass_exit_filter(indicators, position_side):
                                 logger.info("Filter OK → Processing exit decision with AI.")
                                 context = build_exit_context(has_position, tick_data, indicators)
                                 # TODO: switch to process_exit() and pass market_cond for regime‑aware exits
@@ -249,6 +277,7 @@ class JobRunner:
                         # ── Entry side ───────────────────────────────
                         if pass_entry_filter(indicators):
                             logger.info("Filter OK → Processing entry decision with AI.")
+                            self.last_ai_call = datetime.now()  # record AI call time *before* the call
                             market_cond = get_market_condition(indicators, candles)
                             logger.debug(f"Market condition (post‑filter): {market_cond}")
                             result = process_entry(indicators, candles, tick_data, market_cond)
@@ -258,7 +287,6 @@ class JobRunner:
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)
                                 continue
-                            self.last_ai_call = datetime.now()  # AI呼び出し時刻を明示的に記録（クールダウン用）
                         else:
                             logger.info("Filter NG → AI entry decision skipped.")
                             self.last_position_review_ts = None

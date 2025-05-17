@@ -15,12 +15,24 @@ import time
 # ----------------------------------------------------------------------
 AI_COOLDOWN_SEC_FLAT: int = int(os.getenv("AI_COOLDOWN_SEC_FLAT", 60))
 AI_COOLDOWN_SEC_OPEN: int = int(os.getenv("AI_COOLDOWN_SEC_OPEN", 30))
+# Regime‑classification specific cooldown (defaults to flat cooldown)
+AI_REGIME_COOLDOWN_SEC: int = int(os.getenv("AI_REGIME_COOLDOWN_SEC", AI_COOLDOWN_SEC_FLAT))
+
+# --- Threshold for AI‑proposed TP probability ---
+MIN_TP_PROB: float = float(os.getenv("MIN_TP_PROB", "0.75"))
+LIMIT_THRESHOLD_ATR_RATIO: float = float(os.getenv("LIMIT_THRESHOLD_ATR_RATIO", "0.3"))
+MAX_LIMIT_AGE_SEC: int = int(os.getenv("MAX_LIMIT_AGE_SEC", "180"))
+MIN_NET_TP_PIPS: float = float(os.getenv("MIN_NET_TP_PIPS", "2"))
 BREAKEVEN_TRIGGER_PIPS: int = int(os.getenv("BREAKEVEN_TRIGGER_PIPS", 4))
 ENTRY_COOLDOWN_SEC_AFTER_CLOSE: int = int(os.getenv("ENTRY_COOLDOWN_SEC_AFTER_CLOSE", 300))
 
 # Global variables to store last AI call timestamps
+# Global variables to store last AI call timestamps
 _last_entry_ai_call_time = 0.0
 _last_exit_ai_call_time = 0.0
+# Regime‑AI cache
+_last_regime_ai_call_time = 0.0
+_cached_regime_result: dict | None = None
 # Global variable to store last position close time (for entry cooldown after close)
 _last_position_close_time = 0.0
 
@@ -45,182 +57,16 @@ print("[INFO] OpenAI Analysis started")
 # Market‑regime classification helper
 # ----------------------------------------------------------------------
 def get_market_condition(indicators: dict, candles: list[dict]) -> dict:
-    """
-    Use the LLM to classify whether the market is in a TREND or RANGE regime.
-
-    Args:
-        indicators: Dict with recent indicator arrays (rsi, atr, adx, bb_upper, bb_lower, etc.)
-        candles:    List of the latest candle dictionaries (OANDA format)
-
-    Returns:
-        {"market_condition": "range"}
-        {"market_condition": "trend", "trend_direction": "long"}  # or "short"
-    """
-    # ---- safely extract latest indicator values ------------------------
-    latest_rsi = indicators["rsi"].iloc[-1] if "rsi" in indicators and len(indicators["rsi"]) else None
-    latest_atr = indicators["atr"].iloc[-1] if "atr" in indicators and len(indicators["atr"]) else None
-    latest_adx = indicators["adx"].iloc[-1] if "adx" in indicators and len(indicators["adx"]) else None
-    bb_upper_last = indicators["bb_upper"].iloc[-1] if "bb_upper" in indicators and len(indicators["bb_upper"]) else None
-    bb_lower_last = indicators["bb_lower"].iloc[-1] if "bb_lower" in indicators and len(indicators["bb_lower"]) else None
-    bb_width_last = (bb_upper_last - bb_lower_last) if (bb_upper_last is not None and bb_lower_last is not None) else None
-    prompt = f"""
-Determine whether the current market regime is **TREND** or **RANGE**.
-If TREND, also specify its direction.
-
-## Data snapshot
-- Last 20 candles (1‑hour): {candles[-20:]}
-- RSI (14): {latest_rsi}
-- ATR (14): {latest_atr}
-- ADX (14): {latest_adx}
-- Bollinger Band width: {bb_width_last}
-
-## Response format (return **exactly** one of these JSON objects)
-• RANGE :
-  {{ "market_condition": "range" }}
-
-• TREND :
-  {{ "market_condition": "trend", "trend_direction": "long" | "short" }}
-"""
-    response = ask_openai(
-        prompt,
-        model=os.getenv("AI_REGIME_MODEL", "gpt-4o-mini")
-    )
-    # If ask_openai already returned a parsed dict, use it immediately
-    if isinstance(response, dict):
-        return response
-    response = response.strip()
-    try:
-        return json.loads(response)
-    except json.JSONDecodeError:
-        logger.warning("get_market_condition: invalid JSON → fallback to range")
-        return {"market_condition": "range"}
+    plan = get_trade_plan({}, indicators, candles)
+    return plan.get("regime", {"market_condition": "unclear"})
 
 
 # ----------------------------------------------------------------------
 # Entry decision
 # ----------------------------------------------------------------------
 def get_entry_decision(market_data, strategy_params, indicators=None, market_cond=None, higher_tf=None):
-    """
-    Ask the LLM whether we should open a new trade now.
-
-    Returns a Python dict like:
-        {"side":"long","tp_pips":30,"sl_pips":15}
-        {"side":"short","tp_pips":25,"sl_pips":10}
-        {"side":"no"}
-
-    higher_tf (dict|None): higher‑timeframe reference levels
-    """
-    global _last_entry_ai_call_time
-    global _last_position_close_time
-    now = time.time()
-    # Cooldown after position close
-    if time.time() - _last_position_close_time < ENTRY_COOLDOWN_SEC_AFTER_CLOSE:
-        logger.info("Entry skipped due to cooldown period after position close.")
-        return {"side": "no"}
-    cooldown = get_ai_cooldown_sec(None)
-    if now - _last_entry_ai_call_time < cooldown:
-        return {"side": "no"}
-
-    if indicators is None:
-        indicators = {}
-
-    market_data_json = json.dumps(market_data)
-    strategy_params_json = json.dumps(strategy_params)
-    market_cond_json = json.dumps(market_cond) if market_cond else "{}"
-
-    def convert_to_json_serializable(obj):
-        if isinstance(obj, pd.Series):
-            return obj.tolist()
-        elif isinstance(obj, pd.DataFrame):
-            return obj.to_dict(orient="records")
-        raise TypeError(f"Type {type(obj)} not serializable")
-
-    indicators_json = json.dumps(indicators, default=convert_to_json_serializable)
-
-    higher_tf_json = json.dumps(higher_tf) if higher_tf else "{}"
-
-    prompt = f"""
-You are a seasoned FX trader assistant. Based on the following inputs, decide if a new trade should be opened right now.
-
-First determine the market regime: classify as "RANGE" (sideways) or "TREND" (directional) based on ADX, Bollinger Bands, and moving averages.
-If RANGE: identify support and resistance (e.g. Bollinger Band lower/upper) and suggest entries at band extremes when RSI is oversold/overbought.
-If TREND: identify direction via moving average cross (e.g. EMA fast vs. slow) and suggest entries in the trend direction on pullbacks to EMA or mid-band.
-
-Market data: {market_data_json}
-Strategy parameters: {strategy_params_json}
-Technical indicators: {indicators_json}
-Higher‑timeframe reference levels: {higher_tf_json}
-AI‑derived market condition: {market_cond_json}
-- Daily pivot point (pivot_d) and its ±5 pips buffer: avoid entries when price is within this range.
-- 4H pivot point (pivot_h4) and support/resistance levels: treat similarly to daily pivot.
-- Consider higher‑timeframe trend direction: if daily trend opposes the proposed side, prefer "no" or "wait_pullback".
-
-Carefully analyze the market context and indicators.
-
-Regime-specific guidance:
-- **RANGE**: Look for entries at Bollinger Band extremes. 
-  • For long entries: price near lower band with RSI ≤ 30.  
-  • For short entries: price near upper band with RSI ≥ 70.  
-  Use Bollinger Bands and RSI extremes only when the regime is confirmed as RANGE.
-- **TREND**: Identify trend direction by EMA fast crossing EMA slow.  
-  • For long trend: EMA fast > EMA slow and price pullback to EMA fast or mid-band.  
-  • For short trend: EMA fast < EMA slow and price pullback to EMA fast or mid-band.
-
-Do NOT open counter-trend trades when price is within ±5 pips of a daily or 4H pivot.
-- Dynamically set TP and SL considering market volatility, key technical levels, and risk-reward balance.
-- When proposing **"tp_pips"**, explicitly factor in:
-    • **Volatility** – use the latest ATR; aim for TP ≈ 2‑3 × ATR.  
-    • **Bollinger Band** distances – for trend‑following trades, allow up to 80 % of BB width.  
-    • **RSI reversion** – if RSI is extreme (≤35 / ≥65), set TP so that RSI would likely revert toward 50 at exit.  
-  Ensure risk‑reward ≥ 1.5 and round TP/SL to whole pips.
-
-  - Avoid “chasing” the same price:  
-    • If we have just closed a trade in the **same direction** within the last 5 minutes **OR**  
-      the current price is within **5 pips** of that exit level, prefer `"wait_pullback": true` or `"side":"no"`.  
-  - For **short** ideas, prefer to wait until price bounces at least **30–50 % of the last down‑leg**  
-    (e.g. mid‑Bollinger or EMA‑20) before re‑entering, **unless** momentum is extreme (ADX > 25 **and** ATR is high).  
-  
-Please respond strictly in JSON format with these keys only:
-- "side": "long", "short", or "no"
-- "tp_pips": take profit in pips (integer ≥ 1), omit or set to null if "side" is "no"
-- "sl_pips": stop loss in pips (integer ≥ 1), omit or set to null if "side" is "no"
-
-Examples:
-{{"side":"long","tp_pips":25,"sl_pips":12}}
-{{"side":"short","tp_pips":20,"sl_pips":10}}
-{{"side":"no"}}
-
-Do NOT include any extra text, fields, or reasoning.
-"""
-    response = ask_openai(
-        prompt,
-        model=os.getenv("AI_ENTRY_MODEL", "gpt-4o-mini")
-    )
-    _last_entry_ai_call_time = now
-    import re
-    response_clean = re.sub(r'```(?:json)?|```', '', response).strip()
-    response = response_clean
-    logger.info(f"OpenAI response: {response}")
-
-    if isinstance(response, dict):
-        return response
-    try:
-        parsed = json.loads(response)
-        if parsed.get("side") not in ("long", "short"):
-            return {"side": "no"}
-
-        # ── 反転オプション ───────────────────────────────────────────────
-        # INVERT_ENTRY_SIDE=true のとき、long⇔shortを入れ替える
-        if os.getenv("INVERT_ENTRY_SIDE", "false").lower() == "true":
-            if parsed["side"] == "long":
-                parsed["side"] = "short"
-            elif parsed["side"] == "short":
-                parsed["side"] = "long"
-
-        return parsed
-    except (json.JSONDecodeError, TypeError) as e:
-        logger.error(f"Failed to parse OpenAI response: {e}")
-        return {"side": "no"}
+    plan = get_trade_plan(market_data, indicators or {}, candles or [])
+    return plan.get("entry", {"side": "no"})
 
 
 
@@ -346,21 +192,116 @@ Do NOT output anything else (no prefixes, no Markdown, no reasoning).
 # TP / SL adjustment helper
 # ----------------------------------------------------------------------
 def get_tp_sl_adjustment(market_data, current_tp, current_sl):
+    # TP/SL is now decided in get_trade_plan; no further adjustment needed.
+    return "No adjustment"
+
+
+# ----------------------------------------------------------------------
+# Unified LLM call: regime → entry → TP/SL & probabilities
+# ----------------------------------------------------------------------
+def get_trade_plan(
+    market_data: dict,
+    indicators: dict,
+    candles: list[dict],
+    hist_stats: dict | None = None,
+) -> dict:
     """
-    Ask the LLM whether current TP / SL should be adjusted.
-    Returns the raw response (string or dict as generated by LLM).
+    Single‑shot call to the LLM that returns a dict:
+        {
+          "regime": {...},
+          "entry":  {...},
+          "risk":   {...}
+        }
+    The function also performs local guards:
+        • tp_prob ≥ MIN_TP_PROB
+        • expected value (tp*tp_prob – sl*sl_prob) > 0
+      If either guard fails, it forces side:"no".
     """
     prompt = f"""
-    Given the current market data:
-    {market_data}
-    and the current take profit (TP): {current_tp}
-    and stop loss (SL): {current_sl}
-    Should we adjust the TP or SL? If yes, provide new TP and SL values.
-    Otherwise, say "No adjustment".
-    """
-    response = ask_openai(prompt)
-    logger.info(f"OpenAI response: {response}")
-    return response  # ← そのまま返す
+You are an elite FX trader and quantitative analyst.
+
+### Task
+1️⃣  Classify the current regime as "trend" or "range".
+    If "trend", include direction "long" or "short".  
+    Return this at JSON key "regime".
+
+🚩 **Regime‑specific entry rules**
+   • range : prefer mean‑reversion trades  
+       – go LONG near lower Bollinger band when RSI ≤ 30  
+       – go SHORT near upper Bollinger band when RSI ≥ 70  
+       – target TP = middle band or opposite band; SL = band outside + ATR×0.8  
+   • trend : enter only in trend direction on healthy pullbacks  
+       – use EMA_fast vs EMA_slow cross & ADX>25 to confirm  
+       – TP ≈ 1.5–2.5 × ATR in trend direction
+
+4️⃣  If RSI is satisfied but EMA／BB alignment is pending, choose:
+    • mode:"limit" with limit_price at EMA_fast, EMA_slow, or BB_mid  
+    • mode:"wait"  if distance &lt; 0.1 × ATR (just re‑evaluate next loop)  
+    When mode is "limit", set valid_for_sec ≤ {MAX_LIMIT_AGE_SEC}.  
+
+4️⃣  Decide whether to open a trade *now*.  
+    Return JSON key "entry" with:
+        {{ "side":"long"|"short"|"no", "rationale":"…" }}
+
+5️⃣  If side ≠ "no", propose TP/SL distances **in pips** plus
+    their 24‑hour hit probabilities:
+        {{ "tp_pips":int, "sl_pips":int,
+           "tp_prob":float, "sl_prob":float }}
+    Return this at JSON key "risk".
+
+    **Constraints**
+      • tp_prob must be ≥ {MIN_TP_PROB:.2f}
+      • expected value (tp_pips*tp_prob - sl_pips*sl_prob) must be > 0
+      • If you cannot satisfy both, output side:"no".
+      • (tp_pips - spread_pips) must be ≥ {os.getenv("MIN_NET_TP_PIPS","2")} pips
+
+### Recent indicators (last 20 values each)
+RSI  : {indicators.get('rsi', [])[-20:]}
+ATR  : {indicators.get('atr', [])[-20:]}
+ADX  : {indicators.get('adx', [])[-20:]}
+BB_hi: {indicators.get('bb_upper', [])[-20:]}
+BB_lo: {indicators.get('bb_lower', [])[-20:]}
+EMA_f: {indicators.get('ema_fast', [])[-20:]}
+EMA_s: {indicators.get('ema_slow', [])[-20:]}
+
+### Candles (last 20, OANDA format)
+{candles[-20:]}
+
+### 90‑day historical stats
+{json.dumps(hist_stats or {}, separators=(',', ':'))}
+
+Respond **one‑line valid JSON** exactly:
+{{"regime":{{...}},"entry":{{...}},"risk":{{...}}}}
+"""
+    raw = ask_openai(prompt, model=os.getenv("AI_TRADE_MODEL", "gpt-4o-mini"))
+    try:
+        plan = json.loads(raw.strip())
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON from LLM → fallback no‑trade")
+        return {"entry": {"side": "no"}}
+
+    # ---- local guards -------------------------------------------------
+    risk = plan.get("risk", {})
+    entry = plan.get("entry", {})
+    mode = entry.get("mode", "market")
+    if mode not in ("market", "limit", "wait"):
+        entry["mode"] = "market"
+    if risk:
+        try:
+            tp = float(risk.get("tp_pips", 0))
+            sl = float(risk.get("sl_pips", 0))
+            p  = float(risk.get("tp_prob", 0))
+            q  = float(risk.get("sl_prob", 0))
+            spread = float(market_data.get("spread_pips", 0))
+            if (tp - spread) < MIN_NET_TP_PIPS:
+                plan["entry"]["side"] = "no"
+        except (TypeError, ValueError):
+            plan["entry"]["side"] = "no"
+            return plan
+
+        if p < MIN_TP_PROB or (tp * p - sl * q) <= 0:
+            plan["entry"]["side"] = "no"
+    return plan
 
 
 # ----------------------------------------------------------------------
@@ -426,6 +367,10 @@ __all__ = [
     "get_exit_decision",
     "get_tp_sl_adjustment",
     "get_market_condition",
+    "get_trade_plan",
     "AIDecision",
     "evaluate_exit",
+    "LIMIT_THRESHOLD_ATR_RATIO",
+    "MAX_LIMIT_AGE_SEC",
+    "MIN_NET_TP_PIPS",
 ]
