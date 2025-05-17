@@ -1,14 +1,11 @@
-import os
 import requests
-from dotenv import load_dotenv
+from backend.utils import env_loader
 
-# Load environment variables from .env files
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../config/settings.env'))
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../config/secret.env'))
+# env_loader automatically loads default env files at import time
 
-OANDA_API_URL = os.getenv('OANDA_API_URL', 'https://api-fxtrade.oanda.com/v3')
-OANDA_API_KEY = os.getenv('OANDA_API_KEY')
-OANDA_ACCOUNT_ID = os.getenv('OANDA_ACCOUNT_ID')
+OANDA_API_URL = env_loader.get_env('OANDA_API_URL', 'https://api-fxtrade.oanda.com/v3')
+OANDA_API_KEY = env_loader.get_env('OANDA_API_KEY')
+OANDA_ACCOUNT_ID = env_loader.get_env('OANDA_ACCOUNT_ID')
 
 def fetch_tick_data(instrument: str | None = None, count: int = 1):
     """
@@ -20,7 +17,7 @@ def fetch_tick_data(instrument: str | None = None, count: int = 1):
         dict: JSON response from OANDA API with tick data, or None on error.
     """
     if instrument is None:
-        instrument = os.getenv("DEFAULT_PAIR", "USD_JPY")
+        instrument = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
     if not OANDA_API_KEY or not OANDA_ACCOUNT_ID:
         raise EnvironmentError("OANDA_API_KEY or OANDA_ACCOUNT_ID not set in environment variables.")
     url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/pricing"
@@ -42,6 +39,6 @@ def fetch_tick_data(instrument: str | None = None, count: int = 1):
 
 # Example usage (remove or comment out in production)
 if __name__ == "__main__":
-    instrument = os.getenv("DEFAULT_PAIR", "USD_JPY")
+    instrument = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
     data = fetch_tick_data(instrument)
     print(data)

@@ -22,7 +22,10 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    cp backend/config/secret.env .env
    cp backend/config/settings.env .
    ```
-   Edit `.env` and set `OPENAI_API_KEY`, `OANDA_API_KEY` and `OANDA_ACCOUNT_ID`. Adjust any values in `settings.env` as needed.
+   Edit `.env` and set `OPENAI_API_KEY`, `OANDA_API_KEY` and `OANDA_ACCOUNT_ID`.
+   The application automatically loads `.env`, `backend/config/settings.env` and
+   `backend/config/secret.env` once at startup using `backend.utils.env_loader`.
+   Adjust any values in `settings.env` as needed.
 
 ## Running the API
 

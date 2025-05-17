@@ -1,13 +1,11 @@
-import os
 from openai import OpenAI, APIError
-from dotenv import load_dotenv
+from backend.utils import env_loader
 import json
 
-# Load environment variables from .env files (if present)
-load_dotenv()
+# env_loader automatically loads default .env files at import time
 
 # Get OpenAI API key from environment
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = env_loader.get_env("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY not set in environment variables.")
 
@@ -15,7 +13,7 @@ if not OPENAI_API_KEY:
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Default model can be overridden via settings.env → AI_MODEL
-AI_MODEL = os.getenv("AI_MODEL", "gpt-4o-mini")
+AI_MODEL = env_loader.get_env("AI_MODEL", "gpt-4o-mini")
 
 def ask_openai(prompt: str,
                system_prompt: str = "You are a helpful assistant.",

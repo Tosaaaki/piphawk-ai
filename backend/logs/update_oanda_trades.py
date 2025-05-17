@@ -1,13 +1,12 @@
-import os
 import logging
 import requests
-from dotenv import load_dotenv
+from backend.utils import env_loader
 from backend.logs.log_manager import get_db_connection
 
-load_dotenv('./backend/config/secret.env')
+# env_loader automatically loads default env files at import time
 
-OANDA_API_KEY = os.getenv('OANDA_API_KEY')
-OANDA_ACCOUNT_ID = os.getenv('OANDA_ACCOUNT_ID')
+OANDA_API_KEY = env_loader.get_env('OANDA_API_KEY')
+OANDA_ACCOUNT_ID = env_loader.get_env('OANDA_ACCOUNT_ID')
 OANDA_API_URL = "https://api-fxtrade.oanda.com"
 
 headers = {

@@ -1,18 +1,17 @@
-import os
 import requests
-from dotenv import load_dotenv
+from backend.utils import env_loader
 import logging
 
 logger = logging.getLogger(__name__)
 import json
 
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../config/secret.env'))
+# env_loader automatically loads default env files at import time
 
 from typing import List, Dict, Any, Optional
 
 # Load OANDA API credentials from environment variables
-OANDA_API_KEY = os.getenv("OANDA_API_KEY")
-OANDA_ACCOUNT_ID = os.getenv("OANDA_ACCOUNT_ID")
+OANDA_API_KEY = env_loader.get_env("OANDA_API_KEY")
+OANDA_ACCOUNT_ID = env_loader.get_env("OANDA_ACCOUNT_ID")
 OANDA_API_URL = "https://api-fxtrade.oanda.com/v3"
 
 if not OANDA_API_KEY or not OANDA_ACCOUNT_ID:
@@ -99,7 +98,7 @@ def close_position(pair: str, side: str) -> bool:
 
 # Example: List all open positions (for testing)
 if __name__ == "__main__":
-    instrument = os.getenv('DEFAULT_PAIR', 'USD_JPY')
+    instrument = env_loader.get_env('DEFAULT_PAIR', 'USD_JPY')
     if has_open_position(instrument):
         logger.info(f"Position exists for {instrument}")
         details = get_position_details(instrument)

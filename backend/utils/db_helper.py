@@ -2,15 +2,15 @@ from __future__ import annotations
 
 """Simple SQLite helper utilities."""
 
-import os
 import sqlite3
+from backend.utils import env_loader
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
 # Default DB path is repository root / trades.db unless TRADES_DB_PATH env var is set
 _BASE_DIR = Path(__file__).resolve().parents[2]
-DB_PATH = os.getenv("TRADES_DB_PATH", str(_BASE_DIR / "trades.db"))
+DB_PATH = env_loader.get_env("TRADES_DB_PATH", str(_BASE_DIR / "trades.db"))
 
 
 def get_connection(db_path: str | None = None) -> sqlite3.Connection:

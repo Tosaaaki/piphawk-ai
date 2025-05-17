@@ -3,7 +3,8 @@ from __future__ import annotations
 """Convenience entry point for running Piphawk components."""
 
 import argparse
-import os
+
+from backend.utils import env_loader
 
 import uvicorn
 
@@ -20,7 +21,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.component == "api":
-        port = int(os.getenv("API_PORT", "8080"))
+        port = int(env_loader.get_env("API_PORT", "8080"))
         uvicorn.run("backend.api.main:app", host="0.0.0.0", port=port)
     else:
         runner = JobRunner()

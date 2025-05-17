@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import time
 import logging
-import os
+from backend.utils import env_loader
 
 from backend.market_data.tick_fetcher import fetch_tick_data
 from backend.market_data.candle_fetcher import fetch_candles
@@ -17,7 +17,6 @@ from backend.strategy.openai_analysis import get_market_condition
 from backend.strategy.exit_ai_decision import evaluate as ai_exit_evaluate
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 import requests
-from dotenv import load_dotenv
 
 #
 # optional helper for pending LIMIT look‑up;
@@ -32,8 +31,8 @@ def build_exit_context(position, tick_data, indicators) -> dict:
     """Compose a minimal context dict for AI exit evaluation."""
     bid = float(tick_data["prices"][0]["bids"][0]["price"])
     ask = float(tick_data["prices"][0]["asks"][0]["price"])
-    pip_size = float(os.getenv("PIP_SIZE", "0.01"))
-    unrealized_pl_pips = float(position["unrealizedPL"]) / float(os.getenv("PIP_VALUE_JPY", "100"))
+    pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+    unrealized_pl_pips = float(position["unrealizedPL"]) / float(env_loader.get_env("PIP_VALUE_JPY", "100"))
     context = {
         "side": "long" if position.get("long") else "short",
         "units": abs(int(position["long"]["units"] if position.get("long") else position["short"]["units"])),
@@ -48,7 +47,7 @@ def build_exit_context(position, tick_data, indicators) -> dict:
     }
     return context
 
-log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+log_level = env_loader.get_env("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=getattr(logging, log_level, logging.INFO),
                     format="%(levelname)s:%(name)s:%(message)s")
 logger = logging.getLogger(__name__)
@@ -56,17 +55,17 @@ logger = logging.getLogger(__name__)
 order_mgr = OrderManager()
 
 
-DEFAULT_PAIR = os.getenv('DEFAULT_PAIR', 'USD_JPY')
+DEFAULT_PAIR = env_loader.get_env('DEFAULT_PAIR', 'USD_JPY')
 
-OANDA_API_KEY = os.getenv("OANDA_API_KEY")
-OANDA_ACCOUNT_ID = os.getenv("OANDA_ACCOUNT_ID")
+OANDA_API_KEY = env_loader.get_env("OANDA_API_KEY")
+OANDA_ACCOUNT_ID = env_loader.get_env("OANDA_ACCOUNT_ID")
 # ----- limit‑order housekeeping ------------------------------------
-MAX_LIMIT_AGE_SEC = int(os.getenv("MAX_LIMIT_AGE_SEC", "180"))  # seconds before a pending LIMIT is cancelled
+MAX_LIMIT_AGE_SEC = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))  # seconds before a pending LIMIT is cancelled
 
 # POSITION_REVIEW_ENABLED : "true" | "false"  – enable/disable periodic position reviews (default "true")
 # POSITION_REVIEW_SEC     : seconds between AI reviews while holding a position   (default 60)
 # AIに利益確定を問い合わせる閾値（TP目標の何割以上で問い合わせるか）
-AI_PROFIT_TRIGGER_RATIO = float(os.getenv('AI_PROFIT_TRIGGER_RATIO', '0.5'))
+AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env('AI_PROFIT_TRIGGER_RATIO', '0.5'))
 
 # ───────────────────────────────────────────────────────────
 #  Check if the instrument is currently tradeable via OANDA
@@ -95,24 +94,24 @@ class JobRunner:
         # --- AI cooldown values ---------------------------------------
         #   * AI_COOLDOWN_SEC_OPEN : seconds between AI calls while holding a position
         #   * AI_COOLDOWN_SEC_FLAT : seconds between AI calls while flat (no position)
-        self.ai_cooldown_open = int(os.getenv("AI_COOLDOWN_SEC_OPEN", "30"))
-        self.ai_cooldown_flat = int(os.getenv("AI_COOLDOWN_SEC_FLAT", "60"))
+        self.ai_cooldown_open = int(env_loader.get_env("AI_COOLDOWN_SEC_OPEN", "30"))
+        self.ai_cooldown_flat = int(env_loader.get_env("AI_COOLDOWN_SEC_FLAT", "60"))
         # Current effective cooldown (updated each loop iteration)
         self.ai_cooldown = self.ai_cooldown_flat
         # --- position review (巡回) settings ----------------------------
-        self.review_enabled = os.getenv("POSITION_REVIEW_ENABLED", "true").lower() == "true"
-        self.review_sec = int(os.getenv("POSITION_REVIEW_SEC", "60"))
+        self.review_enabled = env_loader.get_env("POSITION_REVIEW_ENABLED", "true").lower() == "true"
+        self.review_sec = int(env_loader.get_env("POSITION_REVIEW_SEC", "60"))
         # LIMIT order age threshold
         self.max_limit_age_sec = MAX_LIMIT_AGE_SEC
         # ----- Additional runtime state --------------------------------
         # Toggle for higher‑timeframe reference levels (daily / H4)
-        self.higher_tf_enabled = os.getenv("HIGHER_TF_ENABLED", "true").lower() == "true"
+        self.higher_tf_enabled = env_loader.get_env("HIGHER_TF_ENABLED", "true").lower() == "true"
         self.last_position_review_ts = None  # datetime of last position review
         # Epoch timestamp of last AI call (seconds)
         self.last_ai_call = datetime.min
         # Entry cooldown settings
-        self.entry_cooldown_sec = int(os.getenv("ENTRY_COOLDOWN_SEC", "30"))
-        self.entry_cooldown_sec_after_close = int(os.getenv("ENTRY_COOLDOWN_SEC_AFTER_CLOSE", "300"))
+        self.entry_cooldown_sec = int(env_loader.get_env("ENTRY_COOLDOWN_SEC", "30"))
+        self.entry_cooldown_sec_after_close = int(env_loader.get_env("ENTRY_COOLDOWN_SEC_AFTER_CLOSE", "300"))
         self.last_close_ts: datetime | None = None
     # ────────────────────────────────────────────────────────────
     #  Cancel LIMIT orders that are too old
@@ -138,9 +137,6 @@ class JobRunner:
         while True:
             try:
                 now = datetime.utcnow()
-                # Hot‑reload .env each cycle so updated thresholds take effect without restart
-                load_dotenv(override=True)
-                logger.debug("[JobRunner] .env reloaded")
                 # ---- Market‑hours guard ---------------------------------
                 if not instrument_is_tradeable(DEFAULT_PAIR):
                     logger.info(f"{DEFAULT_PAIR} market closed – sleeping 60 s")
@@ -148,10 +144,10 @@ class JobRunner:
                     self.last_run = datetime.utcnow()
                     continue
                 # Refresh POSITION_REVIEW_SEC dynamically each loop
-                self.review_sec = int(os.getenv("POSITION_REVIEW_SEC", self.review_sec))
+                self.review_sec = int(env_loader.get_env("POSITION_REVIEW_SEC", self.review_sec))
                 logger.debug(f"review_sec={self.review_sec}")
                 # Refresh HIGHER_TF_ENABLED dynamically
-                self.higher_tf_enabled = os.getenv("HIGHER_TF_ENABLED", "true").lower() == "true"
+                self.higher_tf_enabled = env_loader.get_env("HIGHER_TF_ENABLED", "true").lower() == "true"
                 if self.last_run is None or (now - self.last_run) >= timedelta(seconds=self.interval_seconds):
                     logger.info(f"Running job at {now.isoformat()}")
 
@@ -214,12 +210,12 @@ class JobRunner:
                         current_price = float(tick_data['prices'][0]['bids'][0]['price']) if position_side == 'long' else float(tick_data['prices'][0]['asks'][0]['price'])
                         entry_price = float(has_position[position_side]['averagePrice'])
 
-                        pip_size = float(os.getenv("PIP_SIZE", "0.01"))
+                        pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
                         current_profit_pips = (current_price - entry_price) / pip_size if position_side == 'long' else (entry_price - current_price) / pip_size
 
-                        BE_TRIGGER_PIPS = float(os.getenv("BE_TRIGGER_PIPS", "5"))
-                        TP_PIPS = float(os.getenv("INIT_TP_PIPS", "30"))
-                        AI_PROFIT_TRIGGER_RATIO = float(os.getenv("AI_PROFIT_TRIGGER_RATIO", "0.5"))
+                        BE_TRIGGER_PIPS = float(env_loader.get_env("BE_TRIGGER_PIPS", "5"))
+                        TP_PIPS = float(env_loader.get_env("INIT_TP_PIPS", "30"))
+                        AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.5"))
 
                         if current_profit_pips >= BE_TRIGGER_PIPS:
                             new_sl_price = entry_price
@@ -284,7 +280,7 @@ class JobRunner:
                         # 2) Pivot-based suppression: avoid entries within 5 pips of daily pivot
                         if self.higher_tf_enabled and higher_tf.get("pivot_d") is not None:
                             current_price = float(tick_data["prices"][0]["bids"][0]["price"])
-                            pip_size = float(os.getenv("PIP_SIZE", "0.01"))
+                            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
                             pivot = higher_tf["pivot_d"]
                             if abs((current_price - pivot) / pip_size) <= 5:
                                 logger.info(f"Pivot suppression: price {current_price} within 5 pips of daily pivot {pivot}. Skipping entry.")
