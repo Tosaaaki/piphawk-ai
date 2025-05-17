@@ -50,3 +50,16 @@ Trade history is stored in `trades.db` (SQLite). A pre-populated file is provide
 ## License
 
 This project is provided as-is under the MIT license.
+
+## Frontend Components
+
+The `frontend/` directory contains example React components styled with `styled-components` for a dark dashboard UI:
+
+- `Dashboard.jsx` – trade history table, performance summary, and a line chart placeholder.
+- `Settings.jsx` – controls for numeric and boolean parameters with sliders and toggles.
+- `ContainerControls.jsx` – start/stop/restart buttons with spinner indicators.
+- `LogViewer.jsx` – tabbed viewer showing errors and recent trades.
+
+These components are examples only and are not yet integrated into a build setup.
+
+
