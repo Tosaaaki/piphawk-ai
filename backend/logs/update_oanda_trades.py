@@ -1,4 +1,5 @@
 import os
+import logging
 import requests
 from dotenv import load_dotenv
 from backend.logs.log_manager import get_db_connection
@@ -13,6 +14,8 @@ headers = {
     "Authorization": f"Bearer {OANDA_API_KEY}",
     "Content-Type": "application/json"
 }
+
+logger = logging.getLogger(__name__)
 
 def fetch_transactions(url, params=None):
     response = requests.get(url, headers=headers, params=params)
@@ -45,7 +48,7 @@ def update_oanda_trades():
     cursor = conn.cursor()
 
     last_transaction_id = get_last_transaction_id()
-    print(f"Last transaction ID fetched from DB: {last_transaction_id}")
+    logger.info(f"Last transaction ID fetched from DB: {last_transaction_id}")
 
     base_url = f"{OANDA_API_URL}/v3/accounts/{OANDA_ACCOUNT_ID}/transactions/sinceid"
     params = {
@@ -53,13 +56,13 @@ def update_oanda_trades():
         "id": str(int(last_transaction_id) + 1)
     }
 
-    print(f"Making API request to URL: {base_url} with params: {params}")
+    logger.info(f"Making API request to URL: {base_url} with params: {params}")
 
     try:
         transactions_data = fetch_transactions(base_url, params)
         transactions = transactions_data.get('transactions', [])
-        print("Transactions fetched from API:", transactions)
-        print("Fetched transactions:", json.dumps(transactions, indent=2))
+        logger.debug("Transactions fetched from API: %s", transactions)
+        logger.debug("Fetched transactions: %s", json.dumps(transactions, indent=2))
 
         updated_count = 0
         for transaction in transactions:
@@ -74,7 +77,7 @@ def update_oanda_trades():
                 price = transaction.get('price', 0.0)
                 realized_pl = float(transaction.get('pl', 0.0))
 
-                print("Debug BEFORE INSERT:", trade_id, instrument, units, open_time, price, realized_pl)
+                logger.debug("Debug BEFORE INSERT: %s %s %s %s %s %s", trade_id, instrument, units, open_time, price, realized_pl)
                 cursor.execute(
                     """
                     INSERT OR IGNORE INTO oanda_trades (trade_id, instrument, units, open_time, price, realized_pl)
@@ -82,7 +85,7 @@ def update_oanda_trades():
                     """,
                     (trade_id, instrument, units, open_time, price, realized_pl)
                 )
-                print("Debug AFTER INSERT rowcount:", cursor.rowcount)
+                logger.debug("Debug AFTER INSERT rowcount: %s", cursor.rowcount)
 
             elif transaction_type in ('STOP_LOSS_ORDER', 'TAKE_PROFIT_ORDER'):
                 trade_id = transaction.get('tradeID') or transaction.get('tradesClosed', [{}])[0].get('tradeID')
@@ -110,15 +113,15 @@ def update_oanda_trades():
                         (close_time, price, realized_pl, trade_id)
                     )
 
-                print(f"{transaction_type} updated for trade_id {trade_id}, rowcount={cursor.rowcount}")
+                logger.info(f"{transaction_type} updated for trade_id {trade_id}, rowcount={cursor.rowcount}")
 
-            print(f"{transaction_type} processed for trade_id {transaction_id}, rowcount={cursor.rowcount}")
+            logger.info(f"{transaction_type} processed for trade_id {transaction_id}, rowcount={cursor.rowcount}")
             updated_count += cursor.rowcount
 
         conn.commit()
-        print(f"Successfully updated {updated_count} new trades.")
+        logger.info(f"Successfully updated {updated_count} new trades.")
     except Exception as e:
-        print(f"Error updating trades: {e}")
+        logger.error(f"Error updating trades: {e}")
     finally:
         conn.close()
 

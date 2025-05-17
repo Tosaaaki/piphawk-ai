@@ -2,6 +2,8 @@ import os
 import requests
 from dotenv import load_dotenv
 import logging
+
+logger = logging.getLogger(__name__)
 import json
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../config/secret.env'))
@@ -33,7 +35,7 @@ def get_open_positions() -> Optional[List[Dict[str, Any]]]:
         data = response.json()
         return data.get("positions", [])
     except Exception as e:
-        print(f"Error fetching open positions: {e}")
+        logger.error(f"Error fetching open positions: {e}")
         return None
 
 def get_position_details(instrument: str) -> Optional[Dict[str, Any]]:
@@ -74,7 +76,7 @@ def get_position_details(instrument: str) -> Optional[Dict[str, Any]]:
         return position_data
 
     except Exception as e:
-        print(f"Error fetching position details for {instrument}: {e}")
+        logger.error(f"Error fetching position details for {instrument}: {e}")
         return None
 
 def has_open_position(pair: str) -> bool:
@@ -99,11 +101,11 @@ def close_position(pair: str, side: str) -> bool:
 if __name__ == "__main__":
     instrument = os.getenv('DEFAULT_PAIR', 'USD_JPY')
     if has_open_position(instrument):
-        print(f"Position exists for {instrument}")
+        logger.info(f"Position exists for {instrument}")
         details = get_position_details(instrument)
-        print(details)
+        logger.info(details)
     else:
-        print(f"No position exists for {instrument}")
+        logger.info(f"No position exists for {instrument}")
 
 def check_current_position(pair: str) -> Optional[Dict[str, Any]]:
     """
