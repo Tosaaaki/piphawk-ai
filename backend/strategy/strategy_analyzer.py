@@ -7,6 +7,12 @@ from backend.utils.openai_client import ask_openai
 from backend.logs.log_manager import log_param_change
 
 import logging
+
+log_level = env_loader.get_env("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=getattr(logging, log_level, logging.INFO),
+    format="%(levelname)s:%(name)s:%(message)s",
+)
 logger = logging.getLogger(__name__)
 
 DB_PATH = "backend/logs/trades.db"
@@ -103,13 +109,16 @@ def suggest_parameter_adjustments(settings, summary_text: str):
     try:
         changes = json.loads(response)
         if isinstance(changes, dict) and changes:
-            print("[戦略分析AI] 提案されたパラメータ変更: ", changes)
+            logger.info("[戦略分析AI] 提案されたパラメータ変更: %s", changes)
             apply_param_changes(changes)
-            print("[戦略分析AI] settings.env を更新しました。次サイクルから有効になります。")
+            logger.info("[戦略分析AI] settings.env を更新しました。次サイクルから有効になります。")
         else:
-            print("[戦略分析AI] 有効な変更提案はありません。")
+            logger.info("[戦略分析AI] 有効な変更提案はありません。")
     except json.JSONDecodeError:
-        print("[戦略分析AI] OpenAI からの応答を JSON として解析できませんでした。応答:\n", response)
+        logger.warning(
+            "[戦略分析AI] OpenAI からの応答を JSON として解析できませんでした。応答:\n%s",
+            response,
+        )
 
 def fetch_recent_trades(hours=1):
     since = datetime.utcnow() - timedelta(hours=hours)
@@ -133,7 +142,7 @@ def fetch_ai_decisions(hours=1):
 
 def analyze_performance(trades):
     if not trades:
-        print("No trades found.")
+        logger.info("No trades found.")
         return
 
     total = len(trades)
@@ -144,25 +153,28 @@ def analyze_performance(trades):
     win_rate = len(wins) / total * 100 if total else 0
     net = sum(p for _, _, p in trades if p is not None)
 
-    print(f"[戦略分析AIレポート] {datetime.utcnow().isoformat()} UTC")
-    print(f"トレード数: {total}")
-    print(f"勝率: {win_rate:.2f}%")
-    print(f"平均利益: {avg_win:.2f}pips")
-    print(f"平均損失: {avg_loss:.2f}pips")
-    print(f"純利益: {net:.2f}pips")
+    logger.info(
+        "[戦略分析AIレポート] %s UTC",
+        datetime.utcnow().isoformat(),
+    )
+    logger.info("トレード数: %s", total)
+    logger.info("勝率: %.2f%%", win_rate)
+    logger.info("平均利益: %.2fpips", avg_win)
+    logger.info("平均損失: %.2fpips", avg_loss)
+    logger.info("純利益: %.2fpips", net)
     return f"勝率:{win_rate:.2f}% 純利益:{net:.2f}pips 平均利益:{avg_win:.2f} 平均損失:{avg_loss:.2f}"
 
 def main():
     trades = fetch_recent_trades(hours=1)
     decisions = fetch_ai_decisions(hours=1)
     perf_summary = analyze_performance(trades)
-    print(f"AI判断回数: {len(decisions)}")
+    logger.info("AI判断回数: %s", len(decisions))
 
     # パラメータ表示
     settings = load_env_settings()
-    print("\n[現在の戦略パラメータ]")
+    logger.info("\n[現在の戦略パラメータ]")
     for k, v in settings.items():
-        print(f"{k}: {v}")
+        logger.info("%s: %s", k, v)
 
     # OpenAI による自動最適化提案
     performance_summary = perf_summary  # returned string
