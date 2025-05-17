@@ -19,8 +19,14 @@ from backend.strategy.higher_tf_analysis import analyze_higher_tf
 import requests
 from dotenv import load_dotenv
 
-# Helper for pending LIMIT check
-from backend.utils.oanda_client import get_pending_entry_order  # helper for pending LIMIT check
+#
+# optional helper for pending LIMIT look‑up;
+# provide stub if module is absent in current build
+try:
+    from backend.utils.oanda_client import get_pending_entry_order  # type: ignore
+except ModuleNotFoundError:
+    def get_pending_entry_order(instrument: str):
+        return None
 from backend.logs.update_oanda_trades import update_oanda_trades
 def build_exit_context(position, tick_data, indicators) -> dict:
     """Compose a minimal context dict for AI exit evaluation."""
@@ -98,6 +104,16 @@ class JobRunner:
         self.review_sec = int(os.getenv("POSITION_REVIEW_SEC", "60"))
         # LIMIT order age threshold
         self.max_limit_age_sec = MAX_LIMIT_AGE_SEC
+        # ----- Additional runtime state --------------------------------
+        # Toggle for higher‑timeframe reference levels (daily / H4)
+        self.higher_tf_enabled = os.getenv("HIGHER_TF_ENABLED", "true").lower() == "true"
+        self.last_position_review_ts = None  # datetime of last position review
+        # Epoch timestamp of last AI call (seconds)
+        self.last_ai_call = datetime.min
+        # Entry cooldown settings
+        self.entry_cooldown_sec = int(os.getenv("ENTRY_COOLDOWN_SEC", "30"))
+        self.entry_cooldown_sec_after_close = int(os.getenv("ENTRY_COOLDOWN_SEC_AFTER_CLOSE", "300"))
+        self.last_close_ts: datetime | None = None
     # ────────────────────────────────────────────────────────────
     #  Cancel LIMIT orders that are too old
     # ────────────────────────────────────────────────────────────
@@ -116,15 +132,6 @@ class JobRunner:
                 order_mgr.cancel_order(pend["order_id"])
             except Exception as exc:
                 logger.warning(f"Failed to cancel LIMIT order: {exc}")
-        # Toggle for higher‑timeframe reference levels (daily / H4)
-        self.higher_tf_enabled = os.getenv("HIGHER_TF_ENABLED", "true").lower() == "true"
-        self.last_position_review_ts = None  # datetime of last position review
-        # Epoch timestamp of last AI call (seconds)
-        self.last_ai_call = datetime.min
-        # Entry cooldown: time in seconds after a close during which new entries are skipped
-        self.entry_cooldown_sec = int(os.getenv("ENTRY_COOLDOWN_SEC", "30"))
-        self.entry_cooldown_sec_after_close = int(os.getenv("ENTRY_COOLDOWN_SEC_AFTER_CLOSE", "300"))
-        self.last_close_ts: datetime | None = None
 
     def run(self):
         logger.info("Job Runner started.")

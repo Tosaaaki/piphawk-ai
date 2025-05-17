@@ -7,7 +7,12 @@ from dotenv import load_dotenv
 import logging
 import json
 import uuid
-from backend.utils.oanda_client import get_pending_entry_order  # helper to query OANDA pending orders
+# optional helper; fallback stub if module is absent
+try:
+    from backend.utils.oanda_client import get_pending_entry_order  # type: ignore
+except ModuleNotFoundError:
+    def get_pending_entry_order(instrument: str):
+        return None
 
 load_dotenv()
 
