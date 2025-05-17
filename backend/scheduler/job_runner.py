@@ -160,6 +160,18 @@ class JobRunner:
                     logger.info(f"Tick data fetched: {tick_data}")
                     logger.info(f"Tick data details: {tick_data}")
 
+                    # ---- Market closed guard (price feed says non‑tradeable) ----
+                    try:
+                        if (not tick_data["prices"][0].get("tradeable", True)) \
+                                or tick_data["prices"][0].get("status") == "non-tradeable":
+                            logger.info(f"{DEFAULT_PAIR} price feed marked non‑tradeable – sleeping 120 s")
+                            time.sleep(120)
+                            self.last_run = datetime.utcnow()
+                            continue
+                    except (IndexError, KeyError, TypeError):
+                        # if structure unexpected, fall back to old check
+                        pass
+
                     # ローソク足データ取得（指標計算用）
                     candles = fetch_candles(DEFAULT_PAIR, granularity='M5', count=50)
                     logger.info(f"Candle data fetched: {candles[-1] if candles else 'No candles'}")
