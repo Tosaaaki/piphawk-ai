@@ -21,9 +21,9 @@ If no order is found – or an HTTP error occurs – it returns *None*.
 from __future__ import annotations
 
 import json
-import os
 import time
 from typing import Any, Dict, Optional
+from backend.utils import env_loader
 
 import requests
 from requests.exceptions import HTTPError, RequestException
@@ -31,9 +31,9 @@ from requests.exceptions import HTTPError, RequestException
 # ──────────────────────────────────
 #   Environment / Constants
 # ──────────────────────────────────
-OANDA_API_URL = os.getenv("OANDA_API_URL", "https://api-fxtrade.oanda.com/v3")
-OANDA_ACCOUNT_ID = os.getenv("OANDA_ACCOUNT_ID")
-OANDA_API_KEY = os.getenv("OANDA_API_KEY")
+OANDA_API_URL = env_loader.get_env("OANDA_API_URL", "https://api-fxtrade.oanda.com/v3")
+OANDA_ACCOUNT_ID = env_loader.get_env("OANDA_ACCOUNT_ID")
+OANDA_API_KEY = env_loader.get_env("OANDA_API_KEY")
 
 if not (OANDA_ACCOUNT_ID and OANDA_API_KEY):
     raise EnvironmentError("OANDA_ACCOUNT_ID / OANDA_API_KEY not configured")

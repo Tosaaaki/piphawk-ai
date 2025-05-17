@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-import os
+from backend.utils import env_loader
 
 import sqlite3
 from fastapi import HTTPException
@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-DATABASE_PATH = os.getenv("TRADES_DB_PATH", "/app/trades.db")
+DATABASE_PATH = env_loader.get_env("TRADES_DB_PATH", "/app/trades.db")
 
 @app.get("/status")
 def status():
@@ -47,9 +47,9 @@ class Settings(BaseModel):
 
 # In-memory settings store
 current_settings = {
-    "ai_cooldown_flat": int(os.getenv("AI_COOLDOWN_SEC_FLAT", "60")),
-    "ai_cooldown_open": int(os.getenv("AI_COOLDOWN_SEC_OPEN", "30")),
-    "review_sec": int(os.getenv("POSITION_REVIEW_SEC", "60")),
+    "ai_cooldown_flat": int(env_loader.get_env("AI_COOLDOWN_SEC_FLAT", "60")),
+    "ai_cooldown_open": int(env_loader.get_env("AI_COOLDOWN_SEC_OPEN", "30")),
+    "review_sec": int(env_loader.get_env("POSITION_REVIEW_SEC", "60")),
 }
 
 @app.get("/settings")

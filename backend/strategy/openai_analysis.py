@@ -2,10 +2,9 @@ import logging
 import json
 import pandas as pd
 from backend.utils.openai_client import ask_openai
-import os
+from backend.utils import env_loader
 import math
 # --- Added for AI-based exit decision ---
-import os
 from dataclasses import dataclass
 from typing import Any, Dict
 import time
@@ -13,18 +12,18 @@ import time
 # ----------------------------------------------------------------------
 # Config – driven by environment variables
 # ----------------------------------------------------------------------
-AI_COOLDOWN_SEC_FLAT: int = int(os.getenv("AI_COOLDOWN_SEC_FLAT", 60))
-AI_COOLDOWN_SEC_OPEN: int = int(os.getenv("AI_COOLDOWN_SEC_OPEN", 30))
+AI_COOLDOWN_SEC_FLAT: int = int(env_loader.get_env("AI_COOLDOWN_SEC_FLAT", 60))
+AI_COOLDOWN_SEC_OPEN: int = int(env_loader.get_env("AI_COOLDOWN_SEC_OPEN", 30))
 # Regime‑classification specific cooldown (defaults to flat cooldown)
-AI_REGIME_COOLDOWN_SEC: int = int(os.getenv("AI_REGIME_COOLDOWN_SEC", AI_COOLDOWN_SEC_FLAT))
+AI_REGIME_COOLDOWN_SEC: int = int(env_loader.get_env("AI_REGIME_COOLDOWN_SEC", AI_COOLDOWN_SEC_FLAT))
 
 # --- Threshold for AI‑proposed TP probability ---
-MIN_TP_PROB: float = float(os.getenv("MIN_TP_PROB", "0.75"))
-LIMIT_THRESHOLD_ATR_RATIO: float = float(os.getenv("LIMIT_THRESHOLD_ATR_RATIO", "0.3"))
-MAX_LIMIT_AGE_SEC: int = int(os.getenv("MAX_LIMIT_AGE_SEC", "180"))
-MIN_NET_TP_PIPS: float = float(os.getenv("MIN_NET_TP_PIPS", "2"))
-BREAKEVEN_TRIGGER_PIPS: int = int(os.getenv("BREAKEVEN_TRIGGER_PIPS", 4))
-ENTRY_COOLDOWN_SEC_AFTER_CLOSE: int = int(os.getenv("ENTRY_COOLDOWN_SEC_AFTER_CLOSE", 300))
+MIN_TP_PROB: float = float(env_loader.get_env("MIN_TP_PROB", "0.75"))
+LIMIT_THRESHOLD_ATR_RATIO: float = float(env_loader.get_env("LIMIT_THRESHOLD_ATR_RATIO", "0.3"))
+MAX_LIMIT_AGE_SEC: int = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
+MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "2"))
+BREAKEVEN_TRIGGER_PIPS: int = int(env_loader.get_env("BREAKEVEN_TRIGGER_PIPS", 4))
+ENTRY_COOLDOWN_SEC_AFTER_CLOSE: int = int(env_loader.get_env("ENTRY_COOLDOWN_SEC_AFTER_CLOSE", 300))
 
 # Global variables to store last AI call timestamps
 # Global variables to store last AI call timestamps
@@ -253,7 +252,7 @@ You are an elite FX trader and quantitative analyst.
       • tp_prob must be ≥ {MIN_TP_PROB:.2f}
       • expected value (tp_pips*tp_prob - sl_pips*sl_prob) must be > 0
       • If you cannot satisfy both, output side:"no".
-      • (tp_pips - spread_pips) must be ≥ {os.getenv("MIN_NET_TP_PIPS","2")} pips
+      • (tp_pips - spread_pips) must be ≥ {env_loader.get_env("MIN_NET_TP_PIPS","2")} pips
 
 ### Recent indicators (last 20 values each)
 RSI  : {indicators.get('rsi', [])[-20:]}
@@ -273,7 +272,7 @@ EMA_s: {indicators.get('ema_slow', [])[-20:]}
 Respond **one‑line valid JSON** exactly:
 {{"regime":{{...}},"entry":{{...}},"risk":{{...}}}}
 """
-    raw = ask_openai(prompt, model=os.getenv("AI_TRADE_MODEL", "gpt-4o-mini"))
+    raw = ask_openai(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4o-mini"))
     try:
         plan = json.loads(raw.strip())
     except json.JSONDecodeError:
@@ -351,9 +350,9 @@ def evaluate_exit(context: Dict[str, Any]) -> AIDecision:
     Returns an AIDecision(action, confidence, reason).
     """
     prompt = _exit_build_prompt(context)
-    model = os.getenv("AI_EXIT_MODEL", "gpt-4o-mini")
-    temperature = float(os.getenv("AI_EXIT_TEMPERATURE", "0.0"))
-    max_tokens = int(os.getenv("AI_EXIT_MAX_TOKENS", "128"))
+    model = env_loader.get_env("AI_EXIT_MODEL", "gpt-4o-mini")
+    temperature = float(env_loader.get_env("AI_EXIT_TEMPERATURE", "0.0"))
+    max_tokens = int(env_loader.get_env("AI_EXIT_MAX_TOKENS", "128"))
     raw = ask_openai(prompt, model=model, temperature=temperature, max_tokens=max_tokens)
     return _exit_parse_answer(raw)
 

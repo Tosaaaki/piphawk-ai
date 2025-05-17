@@ -1,7 +1,6 @@
 import sqlite3
 from datetime import datetime, timedelta
-import os
-import dotenv
+from backend.utils import env_loader
 import json
 import shutil
 from backend.utils.openai_client import ask_openai
@@ -18,18 +17,18 @@ def load_env_settings():
     """
     .envファイルから戦略パラメータを読み込む
     """
-    dotenv.load_dotenv(SETTINGS_PATH, override=True)
+    env_loader.load_env([SETTINGS_PATH])
     settings = {
-        "RSI_PERIOD": int(os.getenv("RSI_PERIOD", 14)),
-        "EMA_PERIOD": int(os.getenv("EMA_PERIOD", 20)),
-        "ATR_PERIOD": int(os.getenv("ATR_PERIOD", 14)),
-        "BOLLINGER_WINDOW": int(os.getenv("BOLLINGER_WINDOW", 20)),
-        "BOLLINGER_STD": float(os.getenv("BOLLINGER_STD", 2.0)),
-        "RSI_ENTRY_LOWER": int(os.getenv("RSI_ENTRY_LOWER", 30)),
-        "RSI_ENTRY_UPPER": int(os.getenv("RSI_ENTRY_UPPER", 70)),
-        "ATR_ENTRY_THRESHOLD": float(os.getenv("ATR_ENTRY_THRESHOLD", 0.05)),
-        "EMA_DIFF_THRESHOLD": float(os.getenv("EMA_DIFF_THRESHOLD", 0.1)),
-        "BB_POSITION_THRESHOLD": float(os.getenv("BB_POSITION_THRESHOLD", 0.9)),
+        "RSI_PERIOD": int(env_loader.get_env("RSI_PERIOD", 14)),
+        "EMA_PERIOD": int(env_loader.get_env("EMA_PERIOD", 20)),
+        "ATR_PERIOD": int(env_loader.get_env("ATR_PERIOD", 14)),
+        "BOLLINGER_WINDOW": int(env_loader.get_env("BOLLINGER_WINDOW", 20)),
+        "BOLLINGER_STD": float(env_loader.get_env("BOLLINGER_STD", 2.0)),
+        "RSI_ENTRY_LOWER": int(env_loader.get_env("RSI_ENTRY_LOWER", 30)),
+        "RSI_ENTRY_UPPER": int(env_loader.get_env("RSI_ENTRY_UPPER", 70)),
+        "ATR_ENTRY_THRESHOLD": float(env_loader.get_env("ATR_ENTRY_THRESHOLD", 0.05)),
+        "EMA_DIFF_THRESHOLD": float(env_loader.get_env("EMA_DIFF_THRESHOLD", 0.1)),
+        "BB_POSITION_THRESHOLD": float(env_loader.get_env("BB_POSITION_THRESHOLD", 0.9)),
     }
     return settings
 
@@ -73,7 +72,7 @@ def apply_param_changes(changes: dict):
             updated_lines.append(f"{key}={changes[key]}\n")
             seen_keys.add(key)
             # Log parameter change
-            log_param_change(key, os.getenv(key, ""), str(changes[key]), ai_reason="strategy_optimizer")
+            log_param_change(key, env_loader.get_env(key, ""), str(changes[key]), ai_reason="strategy_optimizer")
         else:
             updated_lines.append(line)
 

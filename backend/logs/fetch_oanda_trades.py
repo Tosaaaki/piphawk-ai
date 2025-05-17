@@ -1,18 +1,15 @@
-from dotenv import load_dotenv
-from pathlib import Path
+from backend.utils import env_loader
 
-dotenv_path = Path(__file__).resolve().parents[1] / 'config' / 'secret.env'
-load_dotenv(dotenv_path)
+# env_loader automatically loads default env files at import time
 
 import requests
-import os
 import sqlite3
 from datetime import datetime, timedelta
 import backend.logs.log_manager
 
 def fetch_oanda_trades():
-    api_key = os.getenv('OANDA_API_KEY')
-    account_id = os.getenv('OANDA_ACCOUNT_ID')
+    api_key = env_loader.get_env('OANDA_API_KEY')
+    account_id = env_loader.get_env('OANDA_ACCOUNT_ID')
     print(f"Using account_id: {account_id}")
     url = f'https://api-fxtrade.oanda.com/v3/accounts/{account_id}/transactions'
     params = {
@@ -63,7 +60,7 @@ def fetch_and_store_transactions():
 
     initial_response = fetch_oanda_trades()
     pages = initial_response.get('pages', [])
-    api_key = os.getenv('OANDA_API_KEY')
+    api_key = env_loader.get_env('OANDA_API_KEY')
     headers = {
         'Authorization': f'Bearer {api_key}',
         'Content-Type': 'application/json'

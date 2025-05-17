@@ -2,8 +2,7 @@ from backend.strategy.openai_analysis import get_trade_plan
 from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
 from datetime import datetime
-import os
-from dotenv import load_dotenv
+from backend.utils import env_loader
 import logging
 import json
 import uuid
@@ -14,7 +13,7 @@ except ModuleNotFoundError:
     def get_pending_entry_order(instrument: str):
         return None
 
-load_dotenv()
+# env_loader automatically loads default env files at import time
 
 order_manager = OrderManager()
 
@@ -58,7 +57,7 @@ def process_entry(indicators, candles, market_data, market_cond: dict | None = N
 
     mode = entry_info.get("mode", "market")
     limit_price = entry_info.get("limit_price")
-    valid_sec = int(entry_info.get("valid_for_sec", os.getenv("MAX_LIMIT_AGE_SEC", "180")))
+    valid_sec = int(entry_info.get("valid_for_sec", env_loader.get_env("MAX_LIMIT_AGE_SEC", "180")))
 
     if mode == "wait":
         logging.info("AI suggests WAIT – re‑evaluate next loop.")
@@ -72,7 +71,7 @@ def process_entry(indicators, candles, market_data, market_cond: dict | None = N
     if isinstance(market_data, dict):
         instrument = market_data["prices"][0]["instrument"]
     else:
-        instrument = os.getenv("DEFAULT_PAIR", "USD_JPY")
+        instrument = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
 
     if mode == "limit":
         if limit_price is None:
@@ -98,7 +97,7 @@ def process_entry(indicators, candles, market_data, market_cond: dict | None = N
         }
         result = order_manager.enter_trade(
             side=side,
-            lot_size=float(os.getenv("TRADE_LOT_SIZE", "1.0")),
+            lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
             market_data=market_data,
             strategy_params=params_limit,
         )
@@ -122,14 +121,14 @@ def process_entry(indicators, candles, market_data, market_cond: dict | None = N
 
     trade_result = order_manager.enter_trade(
         side=side,
-        lot_size=float(os.getenv("TRADE_LOT_SIZE", "1.0")),
+        lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
         market_data=market_data,
         strategy_params=params
     )
 
     if trade_result and mode == "market":
         instrument = params["instrument"]
-        lot_size = float(os.getenv("TRADE_LOT_SIZE", "1.0"))
+        lot_size = float(env_loader.get_env("TRADE_LOT_SIZE", "1.0"))
         units = int(lot_size * 1000) if side == "long" else -int(lot_size * 1000)
         entry_price = float(market_data['prices'][0]['bids'][0]['price'])
         entry_time = datetime.utcnow().isoformat()
