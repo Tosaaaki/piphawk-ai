@@ -1,12 +1,16 @@
 from fastapi import FastAPI
 from backend.utils import env_loader
 
+import os
+from apscheduler.schedulers.background import BackgroundScheduler
+
 import sqlite3
 from fastapi import HTTPException
 
 app = FastAPI()
 
 DATABASE_PATH = env_loader.get_env("TRADES_DB_PATH", "/app/trades.db")
+LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
 
 # Initialize and start the background scheduler
 scheduler = BackgroundScheduler()
