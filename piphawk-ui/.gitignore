@@ -21,3 +21,17 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# -------- Python / virtualenv / cache --------
+# Ignore compiled bytecode
+*.py[cod]
+**/__pycache__/
+
+# Ignore virtual environments
+.venv/
+venv/
+
+# Ignore distribution metadata
+*.egg-info/
+dist/
+build/
