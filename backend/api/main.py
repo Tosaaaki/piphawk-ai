@@ -65,6 +65,12 @@ current_settings = {
     "review_sec": int(env_loader.get_env("POSITION_REVIEW_SEC", "60")),
 }
 
+
+class RuntimeSettings(BaseModel):
+    ai_cooldown_flat: int | None = None
+    ai_cooldown_open: int | None = None
+    review_sec: int | None = None
+
 class NotificationSettings(BaseModel):
     enabled: bool
     token: str
@@ -185,6 +191,24 @@ def ui_get_settings():
 def ui_update_settings(settings: NotificationSettings):
     notification_settings.update(settings.dict())
     return {"status": "ok", "settings": notification_settings}
+
+
+@app.get("/settings/runtime")
+def get_runtime_settings():
+    """Return current runtime settings."""
+    return current_settings
+
+
+@app.put("/settings/runtime")
+def update_runtime_settings(settings: RuntimeSettings):
+    """Update runtime settings in-memory."""
+    updates = settings.dict(exclude_unset=True)
+    for key, value in updates.items():
+        if not isinstance(value, int):
+            raise HTTPException(status_code=400, detail=f"{key} must be an int")
+        if key in current_settings:
+            current_settings[key] = value
+    return {"status": "ok", "settings": current_settings}
 
 notifications_router = APIRouter(prefix="/notifications")
 

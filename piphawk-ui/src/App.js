@@ -9,61 +9,49 @@ import { colors, shadows } from './theme';
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 function App() {
-  // ── front‑end state that mirrors backend /settings ──────────
+  // ── front‑end state that mirrors backend /settings/runtime ──────────
   const [numericParams, setNumericParams] = useState([]);
   const [boolParams,    setBoolParams]    = useState([]);
   const [modelSelect,   setModelSelect]   = useState({ value: '', options: [] });
 
   // Fetch settings once on mount
   useEffect(() => {
-    fetch(`${API_URL}/settings`)
+    fetch(`${API_URL}/settings/runtime`)
       .then(res => res.json())
       .then(cfg => {
         // ----- map backend keys → UI spec --------------------
         setNumericParams([
           {
-            key: 'AI_COOLDOWN_SEC_OPEN',
+            key: 'ai_cooldown_open',
             label: 'AI Cool‑down (Open)',
             min: 10, max: 300,
-            value: cfg.AI_COOLDOWN_SEC_OPEN ?? 60,
-            onChange: v => patchSetting({ AI_COOLDOWN_SEC_OPEN: v })
+            value: cfg.ai_cooldown_open ?? 30,
+            onChange: v => patchSetting({ ai_cooldown_open: v })
           },
           {
-            key: 'POSITION_REVIEW_SEC',
+            key: 'ai_cooldown_flat',
+            label: 'AI Cool‑down (Flat)',
+            min: 10, max: 600,
+            value: cfg.ai_cooldown_flat ?? 60,
+            onChange: v => patchSetting({ ai_cooldown_flat: v })
+          },
+          {
+            key: 'review_sec',
             label: 'Review Interval (sec)',
             min: 10, max: 600,
-            value: cfg.POSITION_REVIEW_SEC ?? 60,
-            onChange: v => patchSetting({ POSITION_REVIEW_SEC: v })
+            value: cfg.review_sec ?? 60,
+            onChange: v => patchSetting({ review_sec: v })
           }
         ]);
-
-        setBoolParams([
-          {
-            key: 'TRAIL_ENABLED',
-            label: 'Trailing Stop',
-            value: cfg.TRAIL_ENABLED ?? false,
-            onChange: v => patchSetting({ TRAIL_ENABLED: v })
-          },
-          {
-            key: 'HIGHER_TF_ENABLED',
-            label: 'Higher‑TF Levels',
-            value: cfg.HIGHER_TF_ENABLED ?? true,
-            onChange: v => patchSetting({ HIGHER_TF_ENABLED: v })
-          }
-        ]);
-
-        setModelSelect({
-          value: cfg.AI_EXIT_MODEL ?? '',
-          options: ['gpt-4o-mini', 'gpt-4o', 'gpt-4'],
-          onChange: v => patchSetting({ AI_EXIT_MODEL: v })
-        });
+        setBoolParams([]);
+        setModelSelect({ value: '', options: [] });
       })
       .catch(console.error);
   }, []);
 
   // PATCH helper
   const patchSetting = patch =>
-    fetch(`${API_URL}/settings`, {
+    fetch(`${API_URL}/settings/runtime`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch)
