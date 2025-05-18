@@ -3,6 +3,8 @@ from backend.utils import env_loader
 import sqlite3
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.base import STATE_RUNNING
+from backend.scheduler.job_runner import JobRunner
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
 from datetime import datetime, timedelta
@@ -31,6 +33,9 @@ LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
 # Initialize and start the background scheduler
 scheduler = BackgroundScheduler()
 scheduler.start()
+
+# JobRunner instance used for start/stop control
+job_runner = JobRunner()
 
 LINE_CHANNEL_TOKEN = os.getenv("LINE_CHANNEL_TOKEN", "")
 LINE_USER_ID = os.getenv("LINE_USER_ID", "")
@@ -172,6 +177,35 @@ def get_trade_summary():
             "total_pl": total_pl or 0
         }
     }
+
+
+@app.post("/control/{action}")
+def control_scheduler(action: str):
+    action = action.lower()
+    if action not in {"start", "stop", "restart"}:
+        raise HTTPException(status_code=400, detail="Invalid action")
+
+    global scheduler
+
+    if action == "start":
+        if scheduler.state == STATE_RUNNING:
+            return {"status": "already running"}
+        scheduler.start()
+        return {"status": "started"}
+
+    if action == "stop":
+        if scheduler.state != STATE_RUNNING:
+            return {"status": "not running"}
+        scheduler.shutdown(wait=False)
+        return {"status": "stopped"}
+
+    # restart
+    if scheduler.state == STATE_RUNNING:
+        scheduler.shutdown(wait=False)
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(send_hourly_summary, 'cron', minute=0)
+    scheduler.start()
+    return {"status": "restarted"}
 
 
 # ------------------------------------------------------------------
