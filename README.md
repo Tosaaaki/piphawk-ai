@@ -86,7 +86,8 @@ npm install
 npm start
 ```
 
-Node.js **14 or later** is required (Node 18 LTS recommended).
+Node.js **14 or later** is required (Node 18 LTS recommended). The React UI is
+built with **React 18** and should be run with that major version.
 
 ## License
 
