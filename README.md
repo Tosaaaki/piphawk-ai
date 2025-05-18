@@ -89,6 +89,19 @@ npm start
 Node.js **14 or later** is required (Node 18 LTS recommended). The React UI is
 built with **React 18** and should be run with that major version.
 
+## Building the Frontend
+
+To create a production build of the React UI, use `npm run build` inside
+`piphawk-ui/`. You can optionally set `REACT_APP_API_URL` to target a different
+backend during the build:
+
+```bash
+REACT_APP_API_URL=https://<api-host> npm run build
+```
+
+If `REACT_APP_API_URL` is omitted, the application defaults to
+`http://localhost:8080`.
+
 ## License
 
 This project is provided as-is under the MIT license.
