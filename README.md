@@ -49,7 +49,7 @@ Trade history is stored in `trades.db` (SQLite). A pre-populated file is provide
 
 ## React UI
 
-The `piphawk-ui/` directory contains a full React application built with Create React App. Run it locally with:
+The active React application lives in `piphawk-ui/` and was bootstrapped with Create React App. Run it locally with:
 
 ```bash
 cd piphawk-ui
@@ -65,7 +65,7 @@ This project is provided as-is under the MIT license.
 
 ## Frontend Components
 
-The `frontend/` directory contains example React components styled with `styled-components` for a dark dashboard UI:
+Example React components are provided under `docs/examples/` and are styled with `styled-components` for a dark dashboard UI:
 
 - `Dashboard.jsx` – trade history table, performance summary, and a line chart placeholder.
 - `Settings.jsx` – controls for numeric and boolean parameters with sliders and toggles.
