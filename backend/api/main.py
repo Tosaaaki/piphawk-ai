@@ -4,16 +4,27 @@ import sqlite3
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.base import STATE_RUNNING
-from backend.scheduler.job_runner import JobRunner
-from linebot import LineBotApi
-from linebot.models import TextSendMessage
+from datetime import datetime, timedelta
+from fastapi import APIRouter
+from pydantic import BaseModel
+
+from backend.utils.notification import send_line_message
 from datetime import datetime, timedelta
 from fastapi import APIRouter
 from pydantic import BaseModel
 
 from fastapi.middleware.cors import CORSMiddleware
 
+
 app = FastAPI()
+
+# ------------------------------------------------------------------
+# simple health‑check endpoint for Cloud Run / load‑balancers
+# ------------------------------------------------------------------
+@app.get("/health")
+def health():
+    """Return 200 OK with a tiny JSON payload."""
+    return {"status": "ok"}
 
 # --- CORS ---
 # Allow requests from any origin (frontend dev & Cloud Run UI).
@@ -34,21 +45,7 @@ LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
 scheduler = BackgroundScheduler()
 scheduler.start()
 
-# JobRunner instance used for start/stop control
-job_runner = JobRunner()
 
-LINE_CHANNEL_TOKEN = os.getenv("LINE_CHANNEL_TOKEN", "")
-LINE_USER_ID = os.getenv("LINE_USER_ID", "")
-
-line_api = LineBotApi(LINE_CHANNEL_TOKEN)
-
-def send_line_message(text: str):
-    if not LINE_CHANNEL_TOKEN or not LINE_USER_ID:
-        raise HTTPException(status_code=500, detail="LINE API token or user ID not configured")
-    line_api.push_message(
-        to=LINE_USER_ID,
-        messages=[TextSendMessage(text=text)]
-    )
 
 
 @app.get("/logs/errors")
@@ -81,7 +78,7 @@ class NotificationSettings(BaseModel):
     token: str
 
 # In-memory notification settings
-notification_settings = {"enabled": False, "token": LINE_CHANNEL_TOKEN}
+notification_settings = {"enabled": False, "token": ""}
 
 
 @app.get("/strategy/backtest")

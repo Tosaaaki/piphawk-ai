@@ -18,8 +18,7 @@ from backend.strategy.exit_ai_decision import evaluate as ai_exit_evaluate
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 import requests
 
-# LINE notification sender
-from backend.api.main import send_line_message
+from backend.utils.notification import send_line_message
 
 #
 # optional helper for pending LIMIT look‑up;
