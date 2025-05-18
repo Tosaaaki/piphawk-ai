@@ -47,6 +47,18 @@ Both services can also be launched via Docker using `Dockerfile.api` and `Docker
 
 Trade history is stored in `trades.db` (SQLite). A pre-populated file is provided in `backend/logs/` for testing. When running inside Docker the database is copied to `/app/trades.db`.
 
+## React UI
+
+The `piphawk-ui/` directory contains a full React application built with Create React App. Run it locally with:
+
+```bash
+cd piphawk-ui
+npm install
+npm start
+```
+
+Node.js **14 or later** is required (Node 18 LTS recommended).
+
 ## License
 
 This project is provided as-is under the MIT license.
