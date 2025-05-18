@@ -1,5 +1,5 @@
-from backend.utils import env_loader
 from fastapi import FastAPI, HTTPException
+from backend.utils import env_loader
 import sqlite3
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -9,7 +9,21 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI()
+
+# --- CORS ---
+# Allow requests from any origin (frontend dev & Cloud Run UI).
+# Adjust `allow_origins` to a specific list when moving to production.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 DATABASE_PATH = env_loader.get_env("TRADES_DB_PATH", "/app/trades.db")
 LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
@@ -43,12 +57,20 @@ def get_error_logs():
         raise HTTPException(status_code=404, detail="Error log file not found")
 
 
+
 # In-memory settings store
 current_settings = {
     "ai_cooldown_flat": int(env_loader.get_env("AI_COOLDOWN_SEC_FLAT", "60")),
     "ai_cooldown_open": int(env_loader.get_env("AI_COOLDOWN_SEC_OPEN", "30")),
     "review_sec": int(env_loader.get_env("POSITION_REVIEW_SEC", "60")),
 }
+
+class NotificationSettings(BaseModel):
+    enabled: bool
+    token: str
+
+# In-memory notification settings
+notification_settings = {"enabled": False, "token": LINE_CHANNEL_TOKEN}
 
 
 @app.get("/strategy/backtest")
@@ -151,14 +173,20 @@ def get_trade_summary():
         }
     }
 
+
+# ------------------------------------------------------------------
+#  UI‑friendly settings endpoints (alias for /notifications/settings)
+# ------------------------------------------------------------------
+@app.get("/settings")
+def ui_get_settings():
+    return notification_settings
+
+@app.post("/settings")
+def ui_update_settings(settings: NotificationSettings):
+    notification_settings.update(settings.dict())
+    return {"status": "ok", "settings": notification_settings}
+
 notifications_router = APIRouter(prefix="/notifications")
-
-class NotificationSettings(BaseModel):
-    enabled: bool
-    token: str
-
-# In-memory notification settings
-notification_settings = {"enabled": False, "token": LINE_CHANNEL_TOKEN}
 
 @notifications_router.get("/settings")
 def get_notification_settings():

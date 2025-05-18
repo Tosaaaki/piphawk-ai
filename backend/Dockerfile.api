@@ -8,13 +8,15 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY backend/requirements.txt .
+# Copy requirements from the build‑context root (backend/)
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend /app/backend
+# Copy the backend source code into the image
+COPY . /app/backend
 
-# Copy existing trades database into container
-COPY backend/logs/trades.db /app/trades.db
+# Create an empty SQLite DB placeholder so the path exists at runtime
+RUN touch /app/trades.db
 
 ENV PYTHONUNBUFFERED=1
 ENV TZ=Asia/Tokyo
