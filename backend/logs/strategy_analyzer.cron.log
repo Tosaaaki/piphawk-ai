@@ -1028,3 +1028,33 @@ Traceback (most recent call last):
   File "/Users/tossaki/piphawk/backend/utils/openai_client.py", line 12, in <module>
     raise RuntimeError("OPENAI_API_KEY not set in environment variables.")
 RuntimeError: OPENAI_API_KEY not set in environment variables.
+INFO:__main__:No trades found.
+INFO:__main__:AI判断回数: 0
+INFO:__main__:
+[現在の戦略パラメータ]
+INFO:__main__:RSI_PERIOD: 14
+INFO:__main__:EMA_PERIOD: 20
+INFO:__main__:ATR_PERIOD: 14
+INFO:__main__:BOLLINGER_WINDOW: 20
+INFO:__main__:BOLLINGER_STD: 2.0
+INFO:__main__:RSI_ENTRY_LOWER: 30
+INFO:__main__:RSI_ENTRY_UPPER: 70
+INFO:__main__:ATR_ENTRY_THRESHOLD: 0.06
+INFO:__main__:EMA_DIFF_THRESHOLD: 0.3
+INFO:__main__:BB_POSITION_THRESHOLD: 0.8
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:__main__:Strategy optimizer AI response: {'RSI_PERIOD': 10, 'EMA_PERIOD': 25, 'ATR_PERIOD': 10, 'BOLLINGER_WINDOW': 15, 'BOLLINGER_STD': 2.5, 'RSI_ENTRY_LOWER': 25, 'RSI_ENTRY_UPPER': 75, 'ATR_ENTRY_THRESHOLD': 0.05, 'EMA_DIFF_THRESHOLD': 0.4, 'BB_POSITION_THRESHOLD': 0.85}
+Traceback (most recent call last):
+  File "/Users/tossaki/.pyenv/versions/3.10.14/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/Users/tossaki/.pyenv/versions/3.10.14/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/Users/tossaki/piphawk/backend/strategy/strategy_analyzer.py", line 184, in <module>
+    main()
+  File "/Users/tossaki/piphawk/backend/strategy/strategy_analyzer.py", line 181, in main
+    suggest_parameter_adjustments(settings, performance_summary)
+  File "/Users/tossaki/piphawk/backend/strategy/strategy_analyzer.py", line 110, in suggest_parameter_adjustments
+    changes = json.loads(response)
+  File "/Users/tossaki/.pyenv/versions/3.10.14/lib/python3.10/json/__init__.py", line 339, in loads
+    raise TypeError(f'the JSON object must be str, bytes or bytearray, '
+TypeError: the JSON object must be str, bytes or bytearray, not dict

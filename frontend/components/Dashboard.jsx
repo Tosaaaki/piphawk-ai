@@ -85,4 +85,3 @@ const Dashboard = ({ trades = [], wins = 0, losses = 0 }) => {
 };
 
 export default Dashboard;
-

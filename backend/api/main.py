@@ -1,11 +1,13 @@
-from fastapi import FastAPI
 from backend.utils import env_loader
-
+from fastapi import FastAPI, HTTPException
+import sqlite3
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
-
-import sqlite3
-from fastapi import HTTPException
+from linebot import LineBotApi
+from linebot.models import TextSendMessage
+from datetime import datetime, timedelta
+from fastapi import APIRouter
+from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -15,9 +17,6 @@ LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
 # Initialize and start the background scheduler
 scheduler = BackgroundScheduler()
 scheduler.start()
-
-from linebot import LineBotApi
-from linebot.models import TextSendMessage
 
 LINE_CHANNEL_TOKEN = os.getenv("LINE_CHANNEL_TOKEN", "")
 LINE_USER_ID = os.getenv("LINE_USER_ID", "")
@@ -151,8 +150,6 @@ def get_trade_summary():
             "total_pl": total_pl or 0
         }
     }
-
-from fastapi import APIRouter
 
 notifications_router = APIRouter(prefix="/notifications")
 
