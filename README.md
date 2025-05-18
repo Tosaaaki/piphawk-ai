@@ -45,7 +45,22 @@ Both services can also be launched via Docker using `Dockerfile.api` and `Docker
 
 ## Database
 
-Trade history is stored in `trades.db` (SQLite). A pre-populated file is provided in `backend/logs/` for testing. When running inside Docker the database is copied to `/app/trades.db`.
+Trade history is stored in `trades.db` (SQLite) at the repository root. This file is no longer tracked in Git. A pre-populated example is available in `backend/logs/` and is copied to `/app/trades.db` when running inside Docker.
+
+If you need a clean database locally, either copy the example file:
+
+```bash
+cp backend/logs/trades.db trades.db
+```
+
+or create a fresh one using the helper in `backend.logs.log_manager`:
+
+```bash
+python - <<'EOF'
+from backend.logs.log_manager import init_db
+init_db()
+EOF
+```
 
 ## React UI
 
