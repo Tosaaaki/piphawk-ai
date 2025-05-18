@@ -43,6 +43,20 @@ python -m backend.scheduler.job_runner
 
 Both services can also be launched via Docker using `Dockerfile.api` and `Dockerfile.job` respectively.
 
+### Apple Silicon (ARM) users
+
+If you are on an M1/M2 Mac or other ARM-based machine, build the images for
+the `linux/amd64` platform so they run correctly:
+
+```bash
+docker build --platform linux/amd64 -f Dockerfile .
+```
+
+Use the same flag when building `backend/Dockerfile.api` or
+`backend/Dockerfile.job`. Note that running these x86 containers under
+emulation can be slower and some dependencies may not behave exactly the same
+as on native x86 hardware.
+
 ## Database
 
 Trade history is stored in `trades.db` (SQLite). A pre-populated file is provided in `backend/logs/` for testing. When running inside Docker the database is copied to `/app/trades.db`.
