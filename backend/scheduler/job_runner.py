@@ -10,11 +10,9 @@ from backend.strategy.entry_logic import process_entry
 from backend.strategy.exit_logic import process_exit
 from backend.orders.position_manager import check_current_position
 from backend.orders.order_manager import OrderManager
-from backend.utils.openai_client import ask_openai
 from backend.strategy.signal_filter import pass_entry_filter
 from backend.strategy.signal_filter import pass_exit_filter
 from backend.strategy.openai_analysis import get_market_condition
-from backend.strategy.exit_ai_decision import evaluate as ai_exit_evaluate
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 import requests
 
@@ -241,15 +239,13 @@ class JobRunner:
                             # EXITフィルターを評価し、フィルターNGの場合はAIの決済判断をスキップ
                             if pass_exit_filter(indicators, position_side):
                                 logger.info("Filter OK → Processing exit decision with AI.")
-                                context = build_exit_context(has_position, tick_data, indicators)
-                                # TODO: switch to process_exit() and pass market_cond for regime‑aware exits
-                                result = ai_exit_evaluate(context)
-
-                                if result.action == "EXIT":
-                                    order_mgr.close_position(DEFAULT_PAIR, side=position_side)
+                                self.last_ai_call = datetime.now()
+                                market_cond = get_market_condition(indicators, candles)
+                                logger.debug(f"Market condition (exit): {market_cond}")
+                                exit_executed = process_exit(indicators, tick_data, market_cond)
+                                if exit_executed:
                                     self.last_close_ts = datetime.utcnow()
                                     logger.info("Position closed based on AI recommendation.")
-                                    # Send LINE notification on exit
                                     send_line_message(
                                         f"【EXIT】{DEFAULT_PAIR} {current_price} で決済しました。PL={current_profit_pips * pip_size:.2f}"
                                     )
