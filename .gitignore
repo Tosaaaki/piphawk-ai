@@ -175,3 +175,4 @@ cython_debug/
 .pypirc
 node_modules/
 
+backend/logs/*.db
