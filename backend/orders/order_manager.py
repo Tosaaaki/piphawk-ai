@@ -164,13 +164,25 @@ class OrderManager:
         logger.debug(f"[market_close_position] closing BOTH sides for {instrument}")
         return self.close_position(instrument, side="both")
 
-    def enter_trade(self, lot_size, market_data, strategy_params, side="long"):
+    def enter_trade(
+        self,
+        lot_size,
+        market_data,
+        strategy_params,
+        side="long",
+        force_limit_only: bool = False,
+    ):
         min_lot = float(os.getenv("MIN_TRADE_LOT", "0.01"))
         max_lot = float(os.getenv("MAX_TRADE_LOT", "0.1"))
         lot_size = max(min_lot, min(lot_size, max_lot))
 
         mode = strategy_params.get("mode", "market")
         limit_price = strategy_params.get("limit_price")
+        if force_limit_only and mode == "market" and limit_price is not None:
+            logger.debug(
+                "[enter_trade] force_limit_only=True → converting market to limit"
+            )
+            mode = "limit"
         entry_uuid = strategy_params.get("entry_uuid") or str(uuid.uuid4())[:8]
         valid_sec = int(strategy_params.get("valid_for_sec", os.getenv("MAX_LIMIT_AGE_SEC", "180")))
 

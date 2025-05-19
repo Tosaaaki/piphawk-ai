@@ -59,6 +59,21 @@ def process_entry(indicators, candles, market_data, market_cond: dict | None = N
     limit_price = entry_info.get("limit_price")
     valid_sec = int(entry_info.get("valid_for_sec", env_loader.get_env("MAX_LIMIT_AGE_SEC", "180")))
 
+    # ------------------------------------------------------------
+    #  Detect narrow-range market (Bollinger band width < threshold)
+    # ------------------------------------------------------------
+    narrow_range = False
+    try:
+        bb_upper = indicators.get("bb_upper")
+        bb_lower = indicators.get("bb_lower")
+        if bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
+            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+            bw_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
+            bw_thresh = float(env_loader.get_env("BAND_WIDTH_THRESH_PIPS", "4"))
+            narrow_range = bw_pips < bw_thresh
+    except Exception as exc:
+        logging.debug(f"[process_entry] narrow-range detection failed: {exc}")
+
     if mode == "wait":
         logging.info("AI suggests WAIT – re‑evaluate next loop.")
         return False
@@ -100,6 +115,7 @@ def process_entry(indicators, candles, market_data, market_cond: dict | None = N
             lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
             market_data=market_data,
             strategy_params=params_limit,
+            force_limit_only=narrow_range,
         )
         if result:
             _pending_limits[entry_uuid] = {
@@ -117,13 +133,15 @@ def process_entry(indicators, candles, market_data, market_cond: dict | None = N
             "tp_pips": tp_pips,
             "sl_pips": sl_pips,
             "mode": "market",
+            "limit_price": limit_price,
         }
 
     trade_result = order_manager.enter_trade(
         side=side,
         lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
         market_data=market_data,
-        strategy_params=params
+        strategy_params=params,
+        force_limit_only=narrow_range
     )
 
     if trade_result and mode == "market":
