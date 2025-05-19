@@ -23,19 +23,28 @@ class FakeSeries:
 class TestSeriesHandling(unittest.TestCase):
     def setUp(self):
         os.environ.setdefault("OPENAI_API_KEY", "dummy")
-        sys.modules.setdefault("pandas", types.ModuleType("pandas"))
+
+        # Keep track of modules we stub so they can be cleaned up in tearDown
+        self._added_modules: list[str] = []
+
+        def add_module(name: str, module: types.ModuleType):
+            if name not in sys.modules:
+                sys.modules[name] = module
+                self._added_modules.append(name)
+
+        add_module("pandas", types.ModuleType("pandas"))
         openai_stub = types.ModuleType("openai")
         class DummyClient:
             def __init__(self, *a, **k):
                 pass
         openai_stub.OpenAI = DummyClient
         openai_stub.APIError = Exception
-        sys.modules.setdefault("openai", openai_stub)
+        add_module("openai", openai_stub)
         dotenv_stub = types.ModuleType("dotenv")
         dotenv_stub.load_dotenv = lambda *a, **k: None
-        sys.modules.setdefault("dotenv", dotenv_stub)
-        sys.modules.setdefault("requests", types.ModuleType("requests"))
-        sys.modules.setdefault("numpy", types.ModuleType("numpy"))
+        add_module("dotenv", dotenv_stub)
+        add_module("requests", types.ModuleType("requests"))
+        add_module("numpy", types.ModuleType("numpy"))
 
         stub_modules = [
             "backend.market_data.tick_fetcher",
@@ -51,7 +60,7 @@ class TestSeriesHandling(unittest.TestCase):
         ]
         for name in stub_modules:
             mod = types.ModuleType(name)
-            sys.modules.setdefault(name, mod)
+            add_module(name, mod)
 
         # provide minimal attributes for imported names
         sys.modules["backend.market_data.tick_fetcher"].fetch_tick_data = lambda *a, **k: None
@@ -74,6 +83,11 @@ class TestSeriesHandling(unittest.TestCase):
         importlib.reload(jr)
         self.oa = oa
         self.jr = jr
+
+    def tearDown(self):
+        # Remove any modules we added during setUp to keep sys.modules clean
+        for name in getattr(self, "_added_modules", []):
+            sys.modules.pop(name, None)
 
     def test_get_trade_plan_range_index(self):
         self.oa.ask_openai = lambda *a, **k: '{"entry": {"side": "no"}}'
