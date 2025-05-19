@@ -286,11 +286,14 @@ Respond **one‑line valid JSON** exactly:
 {{"regime":{{...}},"entry":{{...}},"risk":{{...}}}}
 """
     raw = ask_openai(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4o-mini"))
-    try:
-        plan = json.loads(raw.strip())
-    except json.JSONDecodeError:
-        logger.error("Invalid JSON from LLM → fallback no‑trade")
-        return {"entry": {"side": "no"}}
+    if isinstance(raw, dict):
+        plan = raw
+    else:
+        try:
+            plan = json.loads(raw.strip())
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON from LLM → fallback no‑trade")
+            return {"entry": {"side": "no"}}
 
     # ---- local guards -------------------------------------------------
     risk = plan.get("risk", {})
@@ -359,11 +362,14 @@ def _exit_build_prompt(context: Dict[str, Any]) -> str:
     user_json = json.dumps(context, separators=(",", ":"), ensure_ascii=False)
     return f"{_EXIT_SYSTEM_PROMPT}\nUSER_CONTEXT:\n{user_json}"
 
-def _exit_parse_answer(raw: str) -> AIDecision:
-    try:
-        data = json.loads(raw.strip())
-    except json.JSONDecodeError as exc:
-        return AIDecision(action="HOLD", confidence=0.0, reason=f"json_error:{exc}")
+def _exit_parse_answer(raw: str | dict) -> AIDecision:
+    if isinstance(raw, dict):
+        data = raw
+    else:
+        try:
+            data = json.loads(raw.strip())
+        except json.JSONDecodeError as exc:
+            return AIDecision(action="HOLD", confidence=0.0, reason=f"json_error:{exc}")
     action = str(data.get("action", "HOLD")).upper()
     if action not in _EXIT_ALLOWED_ACTIONS:
         action = "HOLD"
