@@ -331,6 +331,36 @@ class JobRunner:
                         time.sleep(self.interval_seconds)
                         continue
 
+                    # Periodic exit review
+                    if has_position and due_for_review:
+                        self.last_position_review_ts = now
+                        if position_side:
+                            cur_price = float(tick_data['prices'][0]['bids'][0]['price']) if position_side == 'long' else float(tick_data['prices'][0]['asks'][0]['price'])
+                            entry_price = float(has_position[position_side]['averagePrice'])
+                            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+                            profit_pips = (cur_price - entry_price) / pip_size if position_side == 'long' else (entry_price - cur_price) / pip_size
+                        else:
+                            cur_price = float(tick_data['prices'][0]['bids'][0]['price'])
+                            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+                            profit_pips = 0.0
+
+                        if pass_exit_filter(indicators, position_side):
+                            logger.info("Filter OK → Processing periodic exit decision with AI.")
+                            self.last_ai_call = datetime.now()
+                            market_cond = get_market_condition(indicators, candles)
+                            logger.debug(f"Market condition (review): {market_cond}")
+                            exit_executed = process_exit(indicators, tick_data, market_cond)
+                            if exit_executed:
+                                self.last_close_ts = datetime.utcnow()
+                                logger.info("Position closed based on AI recommendation.")
+                                send_line_message(
+                                    f"【EXIT】{DEFAULT_PAIR} {cur_price} で決済しました。PL={profit_pips * pip_size:.2f}"
+                                )
+                            else:
+                                logger.info("AI decision was HOLD → No exit executed.")
+                        else:
+                            logger.info("Filter NG → AI exit decision skipped.")
+
                     # AIによるエントリー/エグジット判断
                     if not has_position:
                         # 1) Entry cooldown check
