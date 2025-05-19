@@ -402,6 +402,8 @@ __all__ = [
     "LIMIT_THRESHOLD_ATR_RATIO",
     "MAX_LIMIT_AGE_SEC",
     "MIN_NET_TP_PIPS",
+]
+
     "COOL_BBWIDTH_PCT",
     "COOL_ATR_PCT",
     "ADX_NO_TRADE_MIN",
