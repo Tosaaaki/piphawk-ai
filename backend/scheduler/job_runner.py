@@ -43,9 +43,9 @@ def build_exit_context(position, tick_data, indicators) -> dict:
         "bid": bid,
         "ask": ask,
         "spread_pips": (ask - bid) / pip_size,
-        "atr_pips": indicators["atr"][-1],
-        "rsi": indicators["rsi"][-1],
-        "ema_slope": indicators["ema_slope"][-1],
+        "atr_pips": indicators["atr"].iloc[-1] if hasattr(indicators["atr"], "iloc") else indicators["atr"][-1],
+        "rsi": indicators["rsi"].iloc[-1] if hasattr(indicators["rsi"], "iloc") else indicators["rsi"][-1],
+        "ema_slope": indicators["ema_slope"].iloc[-1] if hasattr(indicators["ema_slope"], "iloc") else indicators["ema_slope"][-1],
     }
     return context
 

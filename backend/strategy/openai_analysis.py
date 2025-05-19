@@ -319,8 +319,22 @@ Respond **one‑line valid JSON** exactly:
 
     # Over-cool filter using Bollinger Band width and ATR
     try:
-        bw = float(indicators.get("bb_upper")[-1]) - float(indicators.get("bb_lower")[-1])
-        atr_val = float(indicators.get("atr")[-1])
+        bb_upper = indicators.get("bb_upper")
+        bb_lower = indicators.get("bb_lower")
+        atr_series = indicators.get("atr")
+        if hasattr(bb_upper, "iloc"):
+            bb_upper = bb_upper.iloc[-1]
+        else:
+            bb_upper = bb_upper[-1]
+        if hasattr(bb_lower, "iloc"):
+            bb_lower = bb_lower.iloc[-1]
+        else:
+            bb_lower = bb_lower[-1]
+        if hasattr(atr_series, "iloc"):
+            atr_val = float(atr_series.iloc[-1])
+        else:
+            atr_val = float(atr_series[-1])
+        bw = float(bb_upper) - float(bb_lower)
         if (bw / atr_val) < COOL_BBWIDTH_PCT or atr_val < COOL_ATR_PCT:
             plan["entry"]["side"] = "no"
     except (TypeError, ValueError, IndexError, ZeroDivisionError):
@@ -328,7 +342,11 @@ Respond **one‑line valid JSON** exactly:
 
     # ADX no-trade zone enforcement
     try:
-        adx_val = float(indicators.get("adx")[-1])
+        adx_series = indicators.get("adx")
+        if hasattr(adx_series, "iloc"):
+            adx_val = float(adx_series.iloc[-1])
+        else:
+            adx_val = float(adx_series[-1])
         if ADX_NO_TRADE_MIN <= adx_val <= ADX_NO_TRADE_MAX:
             plan["entry"]["side"] = "no"
     except (TypeError, ValueError, IndexError):
