@@ -1,9 +1,7 @@
 import logging
 import json
-import pandas as pd
 from backend.utils.openai_client import ask_openai
 from backend.utils import env_loader
-import math
 # --- Added for AI-based exit decision ---
 from dataclasses import dataclass
 from typing import Any, Dict
