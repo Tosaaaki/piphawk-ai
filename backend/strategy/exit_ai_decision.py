@@ -81,14 +81,17 @@ def _build_prompt(context: Dict[str, Any]) -> str:
     return f"{_SYSTEM_PROMPT}\nUSER_CONTEXT:\n{user_json}"
 
 
-def _parse_answer(raw: str) -> AIDecision:
-    """Parse the model answer (expected raw JSON)."""
+def _parse_answer(raw: str | dict) -> AIDecision:
+    """Parse the model answer which may be a dict or JSON string."""
 
-    try:
-        data = json.loads(raw.strip())
-    except json.JSONDecodeError as exc:
-        # Fallback – treat as HOLD with low confidence
-        return AIDecision(action="HOLD", confidence=0.0, reason=f"json_error:{exc}")
+    if isinstance(raw, dict):
+        data = raw
+    else:
+        try:
+            data = json.loads(raw.strip())
+        except json.JSONDecodeError as exc:
+            # Fallback – treat as HOLD with low confidence
+            return AIDecision(action="HOLD", confidence=0.0, reason=f"json_error:{exc}")
 
     action = str(data.get("action", "HOLD")).upper()
     if action not in _ALLOWED_ACTIONS:
