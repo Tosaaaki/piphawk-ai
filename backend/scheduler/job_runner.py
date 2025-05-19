@@ -1,19 +1,20 @@
 from datetime import datetime, timedelta
 import time
+import uuid
 import logging
 from backend.utils import env_loader
 
 from backend.market_data.tick_fetcher import fetch_tick_data
 from backend.market_data.candle_fetcher import fetch_candles
 from backend.indicators.calculate_indicators import calculate_indicators
-from backend.strategy.entry_logic import process_entry
+from backend.strategy.entry_logic import process_entry, _pending_limits
 from backend.strategy.exit_logic import process_exit
 from backend.orders.position_manager import check_current_position
 from backend.orders.order_manager import OrderManager
 from backend.utils.openai_client import ask_openai
 from backend.strategy.signal_filter import pass_entry_filter
 from backend.strategy.signal_filter import pass_exit_filter
-from backend.strategy.openai_analysis import get_market_condition
+from backend.strategy.openai_analysis import get_market_condition, get_trade_plan
 from backend.strategy.exit_ai_decision import evaluate as ai_exit_evaluate
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 import requests
@@ -116,23 +117,77 @@ class JobRunner:
         self.entry_cooldown_sec_after_close = int(env_loader.get_env("ENTRY_COOLDOWN_SEC_AFTER_CLOSE", "300"))
         self.last_close_ts: datetime | None = None
     # ────────────────────────────────────────────────────────────
-    #  Cancel LIMIT orders that are too old
+    #  Poll & renew pending LIMIT orders
     # ────────────────────────────────────────────────────────────
-    def _cancel_stale_limits(self, instrument: str):
-        """
-        Cancel pending LIMIT entry orders older than self.max_limit_age_sec.
-        Relies on clientExtensions.tag (unix ts) in the order and backend.utils.oanda_client helper.
-        """
-        pend = get_pending_entry_order(instrument)  # returns dict {"order_id", "ts"}
+    def _manage_pending_limits(self, instrument: str, indicators: dict, candles: list, tick_data: dict):
+        """Cancel stale LIMIT orders and optionally renew them."""
+        pend = get_pending_entry_order(instrument)
         if not pend:
+            # purge any local record if OANDA reports none
+            for key, info in list(_pending_limits.items()):
+                if info.get("instrument") == instrument:
+                    _pending_limits.pop(key, None)
             return
+
         age = time.time() - pend["ts"]
-        if age >= self.max_limit_age_sec:
-            try:
-                logger.info(f"Stale LIMIT order {pend['order_id']} ({age:.0f}s) → cancelling")
-                order_mgr.cancel_order(pend["order_id"])
-            except Exception as exc:
-                logger.warning(f"Failed to cancel LIMIT order: {exc}")
+        if age < self.max_limit_age_sec:
+            return
+
+        try:
+            logger.info(f"Stale LIMIT order {pend['order_id']} ({age:.0f}s) → cancelling")
+            order_mgr.cancel_order(pend["order_id"])
+        except Exception as exc:
+            logger.warning(f"Failed to cancel LIMIT order: {exc}")
+            return
+
+        for key, info in list(_pending_limits.items()):
+            if info.get("order_id") == pend["order_id"]:
+                _pending_limits.pop(key, None)
+
+        # consult AI for potential renewal
+        try:
+            plan = get_trade_plan(tick_data, indicators or {}, candles or [])
+        except Exception as exc:
+            logger.warning(f"get_trade_plan failed: {exc}")
+            return
+
+        entry = plan.get("entry", {})
+        risk = plan.get("risk", {})
+        side = entry.get("side", "no").lower()
+        if side not in ("long", "short") or entry.get("mode") != "limit":
+            logger.info("AI does not propose renewing the LIMIT order.")
+            return
+
+        limit_price = entry.get("limit_price")
+        if limit_price is None:
+            logger.info("AI proposed LIMIT without price – skipping renewal.")
+            return
+
+        entry_uuid = str(uuid.uuid4())[:8]
+        params = {
+            "instrument": instrument,
+            "side": side,
+            "tp_pips": risk.get("tp_pips"),
+            "sl_pips": risk.get("sl_pips"),
+            "mode": "limit",
+            "limit_price": limit_price,
+            "entry_uuid": entry_uuid,
+            "valid_for_sec": int(entry.get("valid_for_sec", self.max_limit_age_sec)),
+            "risk": risk,
+        }
+        result = order_mgr.enter_trade(
+            side=side,
+            lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
+            market_data=tick_data,
+            strategy_params=params,
+        )
+        if result:
+            _pending_limits[entry_uuid] = {
+                "instrument": instrument,
+                "order_id": result.get("order_id"),
+                "ts": int(datetime.utcnow().timestamp()),
+            }
+            logger.info(f"Renewed LIMIT order {result.get('order_id')}")
 
     def run(self):
         logger.info("Job Runner started.")
@@ -181,11 +236,12 @@ class JobRunner:
                         higher_tf = analyze_higher_tf(DEFAULT_PAIR)
                         logger.debug(f"Higher‑TF levels: {higher_tf}")
 
-                    # チェック：保留LIMIT注文の寿命切れ
-                    self._cancel_stale_limits(DEFAULT_PAIR)
                     # 指標計算
                     indicators = calculate_indicators(candles)
                     logger.info("Indicators calculation successful.")
+
+                    # チェック：保留LIMIT注文の更新
+                    self._manage_pending_limits(DEFAULT_PAIR, indicators, candles, tick_data)
 
 
                     # ポジション確認
