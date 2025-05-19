@@ -242,6 +242,11 @@ def process_exit(indicators, market_data, market_cond=None):
                     trigger_pips  = atr_pips * TRAIL_TRIGGER_MULTIPLIER
                     distance_pips = atr_pips * TRAIL_DISTANCE_MULTIPLIER
 
+                logging.info(
+                    f"Trailing stop check: profit={profit_pips:.1f}p "
+                    f"trigger={trigger_pips:.1f}p"
+                )
+
                 if profit_pips >= trigger_pips:
                     # --- attach trailing stop to the first open trade ID ---
                     trade_ids = position.get(position_side, {}).get("tradeIDs", [])
@@ -252,11 +257,16 @@ def process_exit(indicators, market_data, market_cond=None):
                             distance_pips=int(distance_pips)
                         )
                     else:
-                        logging.warning("No tradeIDs found; trailing stop not placed.")
+                        logging.warning("Trailing-stop placement skipped: missing trade IDs")
                     logging.info(
                         f"Trailing stop placed on {position['instrument']} "
                         f"({position_side}) profit={profit_pips:.1f}p, "
                         f"trigger={trigger_pips:.1f}p, distance={distance_pips:.1f}p"
+                    )
+                else:
+                    logging.debug(
+                        f"Trailing stop not triggered: profit={profit_pips:.1f}p < "
+                        f"trigger={trigger_pips:.1f}p"
                     )
         except Exception as e:
             logging.error(f"Trailing‑stop logic failed: {e}")
