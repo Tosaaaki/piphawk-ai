@@ -411,7 +411,7 @@ def evaluate_exit(context: Dict[str, Any]) -> AIDecision:
     return _exit_parse_answer(raw)
 
 
-print("[INFO] OpenAI Analysis finished")
+logger.info("OpenAI Analysis finished")
 
 # Exports
 __all__ = [
