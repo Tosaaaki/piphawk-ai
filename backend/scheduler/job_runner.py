@@ -14,7 +14,6 @@ from backend.orders.order_manager import OrderManager
 from backend.strategy.signal_filter import pass_entry_filter
 from backend.strategy.signal_filter import pass_exit_filter
 from backend.strategy.openai_analysis import get_market_condition, get_trade_plan
-from backend.strategy.exit_ai_decision import evaluate as ai_exit_evaluate
 from backend.strategy.openai_analysis import get_market_condition
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 import requests
