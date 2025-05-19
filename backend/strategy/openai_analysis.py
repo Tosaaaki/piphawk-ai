@@ -55,7 +55,7 @@ def get_ai_cooldown_sec(current_position: dict | None) -> int:
 
 logger = logging.getLogger(__name__)
 
-print("[INFO] OpenAI Analysis started")
+logger.info("OpenAI Analysis started")
 
 
 # ----------------------------------------------------------------------
