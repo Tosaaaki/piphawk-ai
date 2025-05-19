@@ -219,11 +219,23 @@ class JobRunner:
                         TP_PIPS = float(env_loader.get_env("INIT_TP_PIPS", "30"))
                         AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.5"))
 
+                        logger.info(
+                            f"profit_pips={current_profit_pips:.1f}, "
+                            f"BE_trigger={BE_TRIGGER_PIPS}, "
+                            f"AI_trigger={TP_PIPS * AI_PROFIT_TRIGGER_RATIO}"
+                        )
+
                         if current_profit_pips >= BE_TRIGGER_PIPS:
                             new_sl_price = entry_price
                             trade_id = has_position[position_side]['tradeIDs'][0]
-                            order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
-                            logger.info(f"SL updated to entry price to secure minimum profit: {new_sl_price}")
+                            result = order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
+                            if result is None:
+                                logger.warning("SL update failed on first attempt; retrying")
+                                result = order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
+                                if result is None:
+                                    logger.error("SL update failed after retry")
+                            if result is not None:
+                                logger.info(f"SL updated to entry price to secure minimum profit: {new_sl_price}")
 
                         if current_profit_pips >= TP_PIPS * AI_PROFIT_TRIGGER_RATIO:
                             # EXITフィルターを評価し、フィルターNGの場合はAIの決済判断をスキップ
