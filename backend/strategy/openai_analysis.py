@@ -25,6 +25,12 @@ MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "2"))
 BREAKEVEN_TRIGGER_PIPS: int = int(env_loader.get_env("BREAKEVEN_TRIGGER_PIPS", 4))
 ENTRY_COOLDOWN_SEC_AFTER_CLOSE: int = int(env_loader.get_env("ENTRY_COOLDOWN_SEC_AFTER_CLOSE", 300))
 
+# --- Volatility and ADX filters ---
+COOL_BBWIDTH_PCT: float = float(env_loader.get_env("COOL_BBWIDTH_PCT", "0"))
+COOL_ATR_PCT: float = float(env_loader.get_env("COOL_ATR_PCT", "0"))
+ADX_NO_TRADE_MIN: float = float(env_loader.get_env("ADX_NO_TRADE_MIN", "20"))
+ADX_NO_TRADE_MAX: float = float(env_loader.get_env("ADX_NO_TRADE_MAX", "30"))
+
 # Global variables to store last AI call timestamps
 # Global variables to store last AI call timestamps
 _last_entry_ai_call_time = 0.0
@@ -230,8 +236,15 @@ You are an elite FX trader and quantitative analyst.
        – go SHORT near upper Bollinger band when RSI ≥ 70  
        – target TP = middle band or opposite band; SL = band outside + ATR×0.8  
    • trend : enter only in trend direction on healthy pullbacks  
-       – use EMA_fast vs EMA_slow cross & ADX>25 to confirm  
+       – use EMA_fast vs EMA_slow cross & ADX>25 to confirm
        – TP ≈ 1.5–2.5 × ATR in trend direction
+
+⚙️ **Additional filters**
+   – Over‑cool filter: skip trades when BB width/ATR < {COOL_BBWIDTH_PCT} or ATR < {COOL_ATR_PCT}
+   – ADX no‑trade zone {ADX_NO_TRADE_MIN}–{ADX_NO_TRADE_MAX}
+   – BB‑width scaled TP/SL
+   – Dynamic RSI thresholds
+   – Limit‑only mode when range is narrow
 
 4️⃣  If RSI is satisfied but EMA／BB alignment is pending, choose:
     • mode:"limit" with limit_price at EMA_fast, EMA_slow, or BB_mid  
@@ -300,6 +313,23 @@ Respond **one‑line valid JSON** exactly:
 
         if p < MIN_TP_PROB or (tp * p - sl * q) <= 0:
             plan["entry"]["side"] = "no"
+
+    # Over-cool filter using Bollinger Band width and ATR
+    try:
+        bw = float(indicators.get("bb_upper")[-1]) - float(indicators.get("bb_lower")[-1])
+        atr_val = float(indicators.get("atr")[-1])
+        if (bw / atr_val) < COOL_BBWIDTH_PCT or atr_val < COOL_ATR_PCT:
+            plan["entry"]["side"] = "no"
+    except (TypeError, ValueError, IndexError, ZeroDivisionError):
+        pass
+
+    # ADX no-trade zone enforcement
+    try:
+        adx_val = float(indicators.get("adx")[-1])
+        if ADX_NO_TRADE_MIN <= adx_val <= ADX_NO_TRADE_MAX:
+            plan["entry"]["side"] = "no"
+    except (TypeError, ValueError, IndexError):
+        pass
     return plan
 
 
@@ -372,4 +402,8 @@ __all__ = [
     "LIMIT_THRESHOLD_ATR_RATIO",
     "MAX_LIMIT_AGE_SEC",
     "MIN_NET_TP_PIPS",
+    "COOL_BBWIDTH_PCT",
+    "COOL_ATR_PCT",
+    "ADX_NO_TRADE_MIN",
+    "ADX_NO_TRADE_MAX",
 ]
