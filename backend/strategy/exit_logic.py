@@ -49,7 +49,35 @@ def decide_exit(position: Dict[str, Any],
     Use AI to decide whether to exit the given position.
     Returns a dict: {'decision': 'EXIT' or 'HOLD', 'reason': str}
     """
-    ai_response = get_exit_decision(market_data, position, indicators, entry_regime, market_cond)
+    # --- Compute time since entry and pips moved for additional context ---
+    context_data = dict(market_data)
+    secs_since_entry = None
+    pips_from_entry = 0.0
+    try:
+        entry_time_str = position.get("entry_time") or position.get("openTime")
+        if entry_time_str:
+            entry_dt = datetime.fromisoformat(entry_time_str.replace("Z", "+00:00"))
+            secs_since_entry = (datetime.utcnow() - entry_dt).total_seconds()
+    except Exception:
+        secs_since_entry = None
+
+    try:
+        pip_size = 0.01 if position["instrument"].endswith("_JPY") else 0.0001
+        if position.get("long") and int(position["long"].get("units", 0)) > 0:
+            entry_price = float(position["long"]["averagePrice"])
+            current_price = float(market_data["prices"][0]["bids"][0]["price"])
+            pips_from_entry = (current_price - entry_price) / pip_size
+        elif position.get("short") and int(position["short"].get("units", 0)) < 0:
+            entry_price = float(position["short"]["averagePrice"])
+            current_price = float(market_data["prices"][0]["asks"][0]["price"])
+            pips_from_entry = (entry_price - current_price) / pip_size
+    except Exception:
+        pips_from_entry = 0.0
+
+    context_data["secs_since_entry"] = secs_since_entry
+    context_data["pips_from_entry"] = pips_from_entry
+
+    ai_response = get_exit_decision(context_data, position, indicators, entry_regime, market_cond)
     raw = ai_response if isinstance(ai_response, str) else json.dumps(ai_response)
 
     # --- Robustly parse AI response (dict or JSON string) ---
