@@ -327,6 +327,18 @@ Trend recognition conditions:
 
 Prioritize these rules for market regime determination, especially to avoid misclassification as ranging when RSI is flat at extreme values.
 
+⚠️【Entry Improvement for Continued Trends at RSI Extremes】
+- Even if RSI ≤ 30 (oversold), strongly prioritize entering SHORT trades if all these conditions hold:
+  - ADX remains consistently above 25, clearly signaling strong momentum.
+  - EMA slope is consistently downward over at least the last 5 candles.
+  - Recent price action shows at least 3 consecutive bearish candles with progressively lower closes and highs.
+- Conversely, even if RSI ≥ 70 (overbought), strongly prioritize entering LONG trades if:
+  - ADX remains consistently above 25, clearly signaling strong momentum.
+  - EMA slope is consistently upward over at least the last 5 candles.
+  - Recent price action shows at least 3 consecutive bullish candles with progressively higher closes and lows.
+  
+Under these conditions, override typical RSI hesitation and confidently execute entries in the direction of the clear trend to maximize profit opportunities.
+
 Respond **one‑line valid JSON** exactly:
 {{"regime":{{...}},"entry":{{...}},"risk":{{...}}}}
 """
