@@ -26,6 +26,9 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    The application automatically loads `.env`, `backend/config/settings.env` and
    `backend/config/secret.env` once at startup using `backend.utils.env_loader`.
    Adjust any values in `settings.env` as needed.
+   `RANGE_CENTER_BLOCK_PCT` controls how close to the Bollinger band center price
+   can be when ADX is below `ADX_RANGE_THRESHOLD`. Set to `0.3` (30%) to block
+   entries near the middle of a range, helping suppress counter-trend trades.
 
 ## Running the API
 

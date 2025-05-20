@@ -52,10 +52,17 @@ def _ema_flat_or_cross(
 #  戻り値 True  → AI へ問い合わせる
 #        False → スキップ
 # ────────────────────────────────────────────────
-def pass_entry_filter(indicators: dict) -> bool:
+def pass_entry_filter(indicators: dict, price: float | None = None) -> bool:
     """
     Pure rule‑based entry filter.
     Returns True when market conditions warrant querying the AI entry decision.
+
+    Parameters
+    ----------
+    indicators : dict
+        Indicator dictionary returned by ``calculate_indicators``.
+    price : float | None
+        Latest market price used for Bollinger band deviation checks.
     """
     if os.getenv("DISABLE_ENTRY_FILTER", "false").lower() == "true":
         return True
@@ -121,12 +128,34 @@ def pass_entry_filter(indicators: dict) -> bool:
     # --- Bollinger Band width check ------------------------------------
     bb_upper = indicators.get("bb_upper")
     bb_lower = indicators.get("bb_lower")
+    bb_middle = indicators.get("bb_middle")
     band_width_ok = False
     if bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
         pip_size = float(os.getenv("PIP_SIZE", "0.01"))
         bw_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
         bw_thresh = float(os.getenv("BAND_WIDTH_THRESH_PIPS", "4"))
         band_width_ok = bw_pips >= bw_thresh
+
+    # --- Range center block --------------------------------------------
+    block_pct = float(os.getenv("RANGE_CENTER_BLOCK_PCT", "0.3"))
+    if (
+        range_mode
+        and price is not None
+        and bb_upper is not None
+        and bb_lower is not None
+        and bb_middle is not None
+        and len(bb_upper)
+        and len(bb_lower)
+        and len(bb_middle)
+    ):
+        band_span = bb_upper.iloc[-1] - bb_lower.iloc[-1]
+        if band_span != 0:
+            deviation = abs(price - bb_middle.iloc[-1]) / band_span
+            if deviation < block_pct:
+                logger.debug(
+                    "EntryFilter blocked: price near BB center in range mode"
+                )
+                return False
 
     if None in [latest_rsi, latest_atr, latest_ema_fast, latest_ema_slow, prev_ema_fast, prev_ema_slow]:
         return False  # insufficient data
