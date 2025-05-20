@@ -250,6 +250,8 @@ Conversely, if the price is near a strong support level or a clear market bottom
    – BB‑width scaled TP/SL
    – Dynamic RSI thresholds
    – Limit‑only mode when range is narrow
+   – When the market has clearly dropped significantly and is close to recent historical lows or support levels, refrain from entering short positions. Conversely, when the market has risen significantly and is near recent historical highs or resistance levels, refrain from entering long positions. This helps to avoid trades at extreme levels that have higher reversal risk.
+   - Avoid entering short positions immediately after a significant rapid price drop, especially when RSI is persistently oversold (≤30) and prices approach strong historical support or recent market lows. Conversely, avoid entering long positions immediately after a significant rapid price rise when RSI is persistently overbought (≥70) and prices approach strong historical resistance or recent market highs. This is critical to reduce risk from sharp reversal movements.
 
 ⚠️【Special Rules for RSI Extremes】
 Even if RSI is at extreme levels (≤ 30 oversold or ≥ 70 overbought), it is acceptable to pursue entries aggressively under the following conditions:
@@ -320,6 +322,10 @@ EMA_s: {indicators.get('ema_slow', [])[-20:]}
 Special rules:
 - If RSI remains flat at the upper or lower extremes, clearly classify the market as trending.
 - If RSI remains consistently flat around 30 or 70 and price action shows consecutive directional movements, classify the market as trending, not ranging.
+
+- Emphasize the RSI trend direction (rising or falling), not only the absolute value.
+- Prioritize entries if MACD forms a clear golden cross (MACD line crossing above the signal line).
+- Clearly indicate when the price rebounds off significant Bollinger Band levels, especially the ±2σ lines, as strong entry signals.
 
 Trend recognition conditions:
 - If RSI ≤ 30 and there are at least 3 consecutive bearish candles with progressively lower closes and highs, along with a downward EMA slope sustained for at least 5 candles, classify as a downward trend.
