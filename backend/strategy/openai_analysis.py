@@ -136,53 +136,41 @@ def get_exit_decision(market_data, current_position,
 
     breakeven_reached = pips_from_entry >= BREAKEVEN_TRIGGER_PIPS
 
-    prompt = f"""
-You are an expert FX trader making sophisticated and flexible decisions about whether to EXIT (close) or HOLD an **existing trade**.
-
-## Position
-• SIDE            : **{side}**
-• SIZE (units)    : {current_position.get("units")}
-• AVG ENTRY PRICE : {current_position.get("average_price")}
-• UNREALIZED P/L  : {unreal_pnl} JPY
-• B/E TRIGGER     : {"YES" if breakeven_reached else "NO"} (>{BREAKEVEN_TRIGGER_PIPS} pips)
-
-## Decision Guidelines
-- Carefully analyze the technical indicators and current market context.
-- Consider market momentum, trend strength, potential reversals, and key support/resistance levels.
-- Prioritize securing profit, but also allow reasonable fluctuations if there's potential for greater profit.
-- **Regime‑shift awareness**: Use ADX (25 threshold) and Bollinger‑Band width to detect if the market has switched between *range* and *trend*.  
-  • If the new regime is favorable to the current position (e.g., a fresh trend in the trade direction), prefer **HOLD** to ride profits.  
-  • If the new regime increases risk (e.g., range compression against an existing trend position), prefer **EXIT** quickly.
-- Consider the entry regime type (TREND or RANGE) used when opening the position:
-  • For TREND entries, aim to exit at appropriate trend profit levels, respecting trend momentum and pullbacks.
-  • For RANGE entries, use Bollinger Bands and RSI extremes to guide exit levels, taking profits near band extremes or on RSI reversion.
-
-## Market Snapshot
-{market_data}
-
-## Higher‑TF reference
-{higher_tf_json}
-
-## AI‑derived market condition
-{market_cond_json}
-
-## Entry‑regime at position open
-{entry_regime_json}
-
-## Technical Indicators (JSON)
-{indicators}
-
-## Response format (exactly one line of valid JSON)
-Return a JSON object with keys:
-  - "action": either "EXIT" or "HOLD"
-  - "reason": a concise, insightful explanation for your decision
-
-Examples:
-  {{"action":"EXIT", "reason":"RSI signals overbought and price approaching strong resistance"}}
-  {{"action":"HOLD", "reason":"Trend remains strong and indicators suggest continued momentum"}}
-
-Do NOT output anything else (no prefixes, no Markdown, no reasoning).
-"""
+    prompt = (
+        "You are an expert FX trader tasked with making precise decisions on whether to HOLD or EXIT an existing trade.\n"
+        "\n"
+        "## Steps for Analysis\n"
+        "1. Classify the market condition clearly as either 'range' or 'trend' using ADX, RSI, EMA, and Bollinger Bands.\n"
+        "   - Trend: ADX > 25, clear EMA slope, price consistently in upper or lower Bollinger half.\n"
+        "   - Range: ADX < 25, neutral EMA, price oscillating around Bollinger midline.\n"
+        "\n"
+        "2. Decision Criteria based on current position:\n"
+        "   - If LONG:\n"
+        "     - HOLD if indicators (EMA slope upwards, ADX >25, price upper Bollinger) suggest continued upward momentum.\n"
+        "     - EXIT if RSI >70 and price showing weakness at Bollinger upper limit, or indicators weakening.\n"
+        "\n"
+        "   - If SHORT:\n"
+        "     - HOLD if indicators (EMA slope downwards, ADX >25, price lower Bollinger) suggest continued downward momentum.\n"
+        "     - EXIT if RSI <30 and price bouncing at Bollinger lower limit, or indicators strengthening upwards.\n"
+        "\n"
+        "3. Post-entry Stability:\n"
+        "   - Avoid immediate exits just after entry for minor fluctuations. Wait at least 5 minutes or a ±5 pip move before considering EXIT.\n"
+        "\n"
+        "## Indicators Reference:\n"
+        "- ADX (Trend strength: >25 strong, <25 weak/range)\n"
+        "- RSI (Overbought >70, Oversold <30)\n"
+        "- EMA (Trend direction and strength)\n"
+        "- Bollinger Bands (Market volatility and extremes)\n"
+        "\n"
+        "## Response Format (strict JSON):\n"
+        "{\"action\":\"EXIT or HOLD\",\"reason\":\"Concise, insightful reason under 25 words\"}\n"
+        "\n"
+        "Example responses:\n"
+        "{\"action\":\"HOLD\",\"reason\":\"Upward EMA slope, strong ADX indicates potential further gains.\"}\n"
+        "{\"action\":\"EXIT\",\"reason\":\"RSI overbought with weakening price momentum, securing profits.\"}\n"
+        "\n"
+        "No other text or explanation."
+    )
     response = ask_openai(prompt)
     _last_exit_ai_call_time = now
     logger.debug(f"[get_exit_decision] prompt sent:\n{prompt}")
@@ -261,9 +249,22 @@ Conversely, if the price is near a strong support level or a clear market bottom
    – Dynamic RSI thresholds
    – Limit‑only mode when range is narrow
 
-Special RSI and Trend Rule: 
-  - If RSI indicates oversold (≤ 30) but the market exhibits clear, strong bullish momentum—defined explicitly as at least 3 consecutive bullish candles with progressively higher closes and higher lows, a positive EMA slope sustained over at least 5 recent candles, price consistently trading above the EMA for at least the past 5 candles, and an ADX value firmly above 25 and rising—prioritize the bullish trend condition and consider a long entry.
-  - Conversely, if RSI indicates overbought (≥ 70) but the market demonstrates clear, strong bearish momentum—defined explicitly as at least 3 consecutive bearish candles with progressively lower closes and lower highs, a negative EMA slope sustained over at least 5 recent candles, price consistently trading below the EMA for at least the past 5 candles, and an ADX value firmly above 25 and rising—prioritize the bearish trend condition and consider a short entry.
+⚠️【Special Rules for RSI Extremes】
+Even if RSI is at extreme levels (≤ 30 oversold or ≥ 70 overbought), it is acceptable to pursue entries aggressively under the following conditions:
+- ADX clearly exceeds 25, indicating a strong trend.
+- EMA shows a consistent slope, confirming continued momentum in the trend direction.
+- Price forms consecutive strong candles in one direction, accelerating the trend.
+
+However, refrain from entering trades at RSI extremes under these conditions:
+- ADX is below or equal to 25, indicating an unclear or weak trend.
+- EMA is flat or trending in the opposite direction.
+- Price action is unstable, lacking a clear directional bias.
+- Multiple small counter-trend bounces are observed over recent candles.
+
+Special RSI and Trend Rule:
+  - If RSI ≤ 30 and price action shows at least 3 consecutive bearish candles with progressively lower closes and lower highs, along with a negative EMA slope for at least 5 recent candles, and an ADX above 25, prioritize entering short positions.
+  - Conversely, if RSI ≥ 70 and price action shows at least 3 consecutive bullish candles with progressively higher closes and higher lows, along with a positive EMA slope for at least 5 recent candles, and an ADX above 25, prioritize entering long positions.
+  - Otherwise, do not make entry decisions solely based on RSI being oversold or overbought.
 
 Define "strong resistance" as:
   - Price has been rejected at least twice at similar price levels within the last 20 candles.

@@ -135,6 +135,7 @@ class OrderManager:
             }
         }
         response = requests.post(url, json=data, headers=HEADERS)
+        logger.debug(f"Market order response: {response.status_code} {response.text}")
         if response.status_code != 201:
             raise Exception(f"Failed to place order: {response.text}")
         return response.json()
@@ -262,6 +263,7 @@ class OrderManager:
             order_body["order"]["stopLossOnFill"] = {"price": str(sl_price)}
 
         response = requests.post(url, json=order_body, headers=HEADERS)
+        logger.debug(f"Order placement response: {response.status_code} - {response.text}")
         if response.status_code != 201:
             raise Exception(f"Failed to place order: {response.text}")
 
