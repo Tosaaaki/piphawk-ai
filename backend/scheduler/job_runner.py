@@ -345,7 +345,10 @@ class JobRunner:
                         if pass_exit_filter(indicators, position_side):
                             logger.info("Filter OK → Processing periodic exit decision with AI.")
                             self.last_ai_call = datetime.now()
-                            market_cond = get_market_condition(indicators, candles)
+                            market_cond = get_market_condition({
+                                "indicators": {key: float(val.iloc[-1]) if hasattr(val, 'iloc') else float(val) for key, val in indicators.items()},
+                                "candles": candles
+                            })
                             logger.debug(f"Market condition (review): {market_cond}")
                             exit_executed = process_exit(indicators, tick_data, market_cond)
                             if exit_executed:
@@ -394,7 +397,10 @@ class JobRunner:
                         if pass_entry_filter(indicators, current_price):
                             logger.info("Filter OK → Processing entry decision with AI.")
                             self.last_ai_call = datetime.now()  # record AI call time *before* the call
-                            market_cond = get_market_condition(indicators, candles)
+                            market_cond = get_market_condition({
+                                "indicators": {key: float(val.iloc[-1]) if hasattr(val, 'iloc') else float(val) for key, val in indicators.items()},
+                                "candles": candles
+                            })
                             logger.debug(f"Market condition (post‑filter): {market_cond}")
                             result = process_entry(indicators, candles, tick_data, market_cond)
                             if not result:

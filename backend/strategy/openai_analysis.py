@@ -56,12 +56,23 @@ logger = logging.getLogger(__name__)
 logger.info("OpenAI Analysis started")
 
 
+
 # ----------------------------------------------------------------------
-# Market‑regime classification helper
+# Market‑regime classification helper (OpenAI direct, enhanced English prompt)
 # ----------------------------------------------------------------------
-def get_market_condition(indicators: dict, candles: list[dict]) -> dict:
-    plan = get_trade_plan({}, indicators, candles)
-    return plan.get("regime", {"market_condition": "unclear"})
+def get_market_condition(context: dict) -> str:
+    prompt = (
+        "Based on the current market data and indicators provided below, determine whether the market is in a 'trend' or 'range' state.\n\n"
+        "### Evaluation Criteria:\n"
+        "- Short-term price action: consecutive candles strongly moving in one direction suggest a trend.\n"
+        "- EMA slope and price relationship: prices consistently above or below EMA indicate a trending market.\n"
+        "- ADX value: a value above 25 typically indicates a trending market.\n"
+        "- RSI extremes: extremely low or high RSI values can suggest range-bound conditions but must be evaluated alongside short-term price movements.\n\n"
+        f"### Market Data and Indicators:\n{json.dumps(context, ensure_ascii=False)}\n\n"
+        "Respond strictly with either 'trend' or 'range'."
+    )
+    response = ask_openai(prompt).strip().lower()
+    return response if response in ['trend', 'range'] else 'range'
 
 
 # ----------------------------------------------------------------------
@@ -243,6 +254,8 @@ You are an elite FX trader and quantitative analyst.
    – BB‑width scaled TP/SL
    – Dynamic RSI thresholds
    – Limit‑only mode when range is narrow
+
+Special RSI and Trend Rule: Even if RSI is low, consider an entry if the price clearly indicates an upward trend (e.g., consecutive bullish candles, positive EMA slope, price above EMA). Conversely, if RSI is high, consider an entry if the price clearly indicates a downward trend.
 
 4️⃣  If RSI is satisfied but EMA／BB alignment is pending, choose:
     • mode:"limit" with limit_price at EMA_fast, EMA_slow, or BB_mid  
