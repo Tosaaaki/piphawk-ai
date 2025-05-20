@@ -68,6 +68,8 @@ def get_market_condition(context: dict) -> str:
         "- EMA slope and price relationship: prices consistently above or below EMA indicate a trending market.\n"
         "- ADX value: a value above 25 typically indicates a trending market.\n"
         "- RSI extremes: extremely low or high RSI values can suggest range-bound conditions but must be evaluated alongside short-term price movements.\n\n"
+        "If RSI stays consistently near or below 30 for multiple candles, this indicates a strong bearish (downward) trend rather than oversold range conditions.\n"
+        "Conversely, if RSI stays consistently near or above 70 for multiple candles, this indicates a strong bullish (upward) trend rather than overbought range conditions.\n"
         f"### Market Data and Indicators:\n{json.dumps(context, ensure_ascii=False)}\n\n"
         "Respond strictly with either 'trend' or 'range'."
     )
@@ -314,6 +316,16 @@ EMA_s: {indicators.get('ema_slow', [])[-20:]}
 
 ### 90‑day historical stats
 {json.dumps(hist_stats or {}, separators=(',', ':'))}
+
+Special rules:
+- If RSI remains flat at the upper or lower extremes, clearly classify the market as trending.
+- If RSI remains consistently flat around 30 or 70 and price action shows consecutive directional movements, classify the market as trending, not ranging.
+
+Trend recognition conditions:
+- If RSI ≤ 30 and there are at least 3 consecutive bearish candles with progressively lower closes and highs, along with a downward EMA slope sustained for at least 5 candles, classify as a downward trend.
+- If RSI ≥ 70 and there are at least 3 consecutive bullish candles with progressively higher closes and lows, along with an upward EMA slope sustained for at least 5 candles, classify as an upward trend.
+
+Prioritize these rules for market regime determination, especially to avoid misclassification as ranging when RSI is flat at extreme values.
 
 Respond **one‑line valid JSON** exactly:
 {{"regime":{{...}},"entry":{{...}},"risk":{{...}}}}
