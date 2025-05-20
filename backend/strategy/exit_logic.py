@@ -50,6 +50,7 @@ def decide_exit(position: Dict[str, Any],
     Returns a dict: {'decision': 'EXIT' or 'HOLD', 'reason': str}
     """
     ai_response = get_exit_decision(market_data, position, indicators, entry_regime, market_cond)
+    raw = ai_response if isinstance(ai_response, str) else json.dumps(ai_response)
 
     # --- Robustly parse AI response (dict or JSON string) ---
     if isinstance(ai_response, dict):
@@ -67,7 +68,7 @@ def decide_exit(position: Dict[str, Any],
         decision_key = resp.get("action") or resp.get("decision")
         decision = decision_key.upper() if decision_key else "HOLD"
         reason   = resp.get("reason", "")
-        return {"decision": decision, "reason": reason}
+        return {"decision": decision, "reason": reason, "raw": raw}
 
     # ----- Plain‑text fallback -----
     if isinstance(ai_response, str) and not isinstance(resp, dict):
@@ -86,10 +87,10 @@ def decide_exit(position: Dict[str, Any],
             else:
                 decision = "HOLD"
         reason = ai_response
-        return {"decision": decision, "reason": reason}
+        return {"decision": decision, "reason": reason, "raw": raw}
 
     # ----- fallback for unknown type -----
-    return {"decision": "HOLD", "reason": "Unrecognized AI response"}
+    return {"decision": "HOLD", "reason": "Unrecognized AI response", "raw": raw}
 
 def process_exit(indicators, market_data, market_cond=None):
     default_pair = os.getenv("DEFAULT_PAIR", "USD_JPY")
@@ -161,7 +162,8 @@ def process_exit(indicators, market_data, market_cond=None):
                     entry_price=entry_price,
                     units=units,
                     profit_loss=float(position["pl"]),
-                    ai_reason=f"AI‑confirmed early‑exit: {exit_decision['reason']}"
+                    ai_reason=f"AI‑confirmed early‑exit: {exit_decision['reason']}",
+                    ai_response=exit_decision.get("raw")
                 )
                 return True
             else:
@@ -204,7 +206,8 @@ def process_exit(indicators, market_data, market_cond=None):
             entry_price=entry_price,
             units=units,
             profit_loss=float(position["pl"]),
-            ai_reason=exit_decision["reason"]
+            ai_reason=exit_decision["reason"],
+            ai_response=exit_decision.get("raw")
         )
         return True
     else:

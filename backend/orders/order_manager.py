@@ -276,9 +276,7 @@ class OrderManager:
             entry_price=entry_price,
             units=units,
             ai_reason=strategy_params.get("ai_reason", "manual"),
-            tp_prob=risk_info.get("tp_prob") if risk_info else None,
-            sl_prob=risk_info.get("sl_prob") if risk_info else None,
-            side=side.upper(),
+            ai_response=strategy_params.get("ai_response"),
             entry_regime=entry_regime
         )
         return result

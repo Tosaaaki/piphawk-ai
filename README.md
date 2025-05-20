@@ -61,6 +61,9 @@ as on native x86 hardware.
 
 Trade history is stored in `trades.db` (SQLite) at the repository root. This file is no longer tracked in Git. A pre-populated example is available in `backend/logs/` and is copied to `/app/trades.db` when running inside Docker.
 
+The table now includes an `ai_response` column which stores the full text returned
+by the AI when opening or closing a trade.
+
 If you need a clean database locally, either copy the example file:
 
 ```bash
@@ -75,6 +78,8 @@ from backend.logs.log_manager import init_db
 init_db()
 EOF
 ```
+This helper also upgrades older databases to include the new `ai_response`
+column. See `docs/db_migration.md` for details.
 
 ## React UI
 

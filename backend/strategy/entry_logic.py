@@ -109,6 +109,7 @@ def process_entry(indicators, candles, market_data, market_cond: dict | None = N
             "limit_price": limit_price,
             "entry_uuid": entry_uuid,
             "valid_for_sec": valid_sec,
+            "ai_response": ai_raw,
         }
         result = order_manager.enter_trade(
             side=side,
@@ -134,6 +135,7 @@ def process_entry(indicators, candles, market_data, market_cond: dict | None = N
             "sl_pips": sl_pips,
             "mode": "market",
             "limit_price": limit_price,
+            "ai_response": ai_raw,
         }
 
     trade_result = order_manager.enter_trade(
@@ -150,7 +152,14 @@ def process_entry(indicators, candles, market_data, market_cond: dict | None = N
         units = int(lot_size * 1000) if side == "long" else -int(lot_size * 1000)
         entry_price = float(market_data['prices'][0]['bids'][0]['price'])
         entry_time = datetime.utcnow().isoformat()
-        log_trade(instrument, entry_time, entry_price, units, ai_reason=ai_raw)
+        log_trade(
+            instrument,
+            entry_time=entry_time,
+            entry_price=entry_price,
+            units=units,
+            ai_reason=ai_raw,
+            ai_response=ai_raw
+        )
 
     return True
 
