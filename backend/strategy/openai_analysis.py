@@ -6,6 +6,7 @@ from backend.utils import env_loader
 from dataclasses import dataclass
 from typing import Any, Dict
 import time
+from datetime import datetime
 
 # ----------------------------------------------------------------------
 # Config – driven by environment variables
@@ -117,27 +118,42 @@ def get_exit_decision(market_data, current_position,
     side = "SHORT" if units_val < 0 else "LONG"
     unreal_pnl = current_position.get("unrealized_pl", "N/A")
 
+    secs_since_entry = market_data.get("secs_since_entry")
+    pips_from_entry = market_data.get("pips_from_entry")
+
+    if secs_since_entry is None:
+        try:
+            entry_time_str = current_position.get("entry_time") or current_position.get("openTime")
+            if entry_time_str:
+                entry_dt = datetime.fromisoformat(entry_time_str.replace("Z", "+00:00"))
+                secs_since_entry = (datetime.utcnow() - entry_dt).total_seconds()
+        except Exception:
+            secs_since_entry = None
+
     # --------------------------------------------------------------
     # Break‑even trigger
     # --------------------------------------------------------------
-    try:
-        bid = float(market_data.get("bid")) if isinstance(market_data, dict) else None
-        ask = float(market_data.get("ask")) if isinstance(market_data, dict) else None
-        avg_price = float(current_position.get("average_price"))
-        if side == "LONG" and bid:
-            pips_from_entry = (bid - avg_price) * 100
-        elif side == "SHORT" and ask:
-            pips_from_entry = (avg_price - ask) * 100
-        else:
+    if pips_from_entry is None:
+        try:
+            bid = float(market_data.get("bid")) if isinstance(market_data, dict) else None
+            ask = float(market_data.get("ask")) if isinstance(market_data, dict) else None
+            avg_price = float(current_position.get("average_price"))
+            if side == "LONG" and bid:
+                pips_from_entry = (bid - avg_price) * 100
+            elif side == "SHORT" and ask:
+                pips_from_entry = (avg_price - ask) * 100
+            else:
+                pips_from_entry = 0
+        except (ValueError, TypeError):
             pips_from_entry = 0
-    except (ValueError, TypeError):
-        pips_from_entry = 0
 
     breakeven_reached = pips_from_entry >= BREAKEVEN_TRIGGER_PIPS
 
     prompt = (
         "You are an expert FX trader tasked with making precise decisions on whether to HOLD or EXIT an existing trade.\n\n"
-        f"## Current Position Side: {side}\n\n"
+        f"## Current Position Side: {side}\n"
+        f"Time Since Entry: {secs_since_entry if secs_since_entry is not None else 'N/A'} sec\n"
+        f"Pips From Entry: {pips_from_entry:.1f}\n\n"
         "## Steps for Analysis\n"
         "1. Classify the market condition clearly as either 'range' or 'trend' using ADX, RSI, EMA, and Bollinger Bands.\n"
         "   - Trend: ADX > 25, clear EMA slope, price consistently in upper or lower Bollinger half.\n"
@@ -152,7 +168,7 @@ def get_exit_decision(market_data, current_position,
         "     - HOLD if indicators (EMA slope downwards, ADX >25, price lower Bollinger) suggest continued downward momentum.\n"
         "     - EXIT if RSI <30 and price bouncing at Bollinger lower limit, or indicators strengthening upwards.\n"
         "\n"
-        "3. Post-entry Stability:\n"
+        f"3. Post-entry Stability (elapsed {secs_since_entry if secs_since_entry is not None else 'N/A'} sec, {pips_from_entry:.1f} pips):\n"
         "   - Avoid immediate exits just after entry for minor fluctuations. Wait at least 5 minutes or a ±5 pip move before considering EXIT.\n"
         "\n"
         "## Indicators Reference:\n"
