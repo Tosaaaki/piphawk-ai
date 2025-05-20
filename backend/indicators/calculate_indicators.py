@@ -33,6 +33,10 @@ def calculate_indicators(
     high_prices = [float(candle['mid']['h']) for candle in market_data if candle['complete']]
     low_prices = [float(candle['mid']['l']) for candle in market_data if candle['complete']]
 
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Latest close prices: {close_prices[-15:]}")
+
     ema_fast_period = int(os.getenv("EMA_FAST_PERIOD", "9"))
     ema_slow_period = int(os.getenv("EMA_SLOW_PERIOD", "21"))
 
