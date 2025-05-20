@@ -112,7 +112,6 @@ class JobRunner:
         self.last_ai_call = datetime.min
         # Entry cooldown settings
         self.entry_cooldown_sec = int(env_loader.get_env("ENTRY_COOLDOWN_SEC", "30"))
-        self.entry_cooldown_sec_after_close = int(env_loader.get_env("ENTRY_COOLDOWN_SEC_AFTER_CLOSE", "300"))
         self.last_close_ts: datetime | None = None
     # ────────────────────────────────────────────────────────────
     #  Poll & renew pending LIMIT orders
@@ -367,14 +366,6 @@ class JobRunner:
                         # 1) Entry cooldown check
                         if self.last_close_ts and (datetime.utcnow() - self.last_close_ts).total_seconds() < self.entry_cooldown_sec:
                             logger.info(f"Entry cooldown active ({(datetime.utcnow() - self.last_close_ts).total_seconds():.1f}s < {self.entry_cooldown_sec}s). Skipping entry.")
-                            self.last_run = now
-                            update_oanda_trades()
-                            time.sleep(self.interval_seconds)
-                            continue
-
-                        # ポジション解消後の追加クールダウンチェック
-                        if self.last_close_ts and (datetime.utcnow() - self.last_close_ts).total_seconds() < self.entry_cooldown_sec_after_close:
-                            logger.info(f"Entry cooldown after close active ({(datetime.utcnow() - self.last_close_ts).total_seconds():.1f}s < {self.entry_cooldown_sec_after_close}s). Skipping entry.")
                             self.last_run = now
                             update_oanda_trades()
                             time.sleep(self.interval_seconds)
