@@ -137,8 +137,8 @@ def get_exit_decision(market_data, current_position,
     breakeven_reached = pips_from_entry >= BREAKEVEN_TRIGGER_PIPS
 
     prompt = (
-        "You are an expert FX trader tasked with making precise decisions on whether to HOLD or EXIT an existing trade.\n"
-        "\n"
+        "You are an expert FX trader tasked with making precise decisions on whether to HOLD or EXIT an existing trade.\n\n"
+        f"## Current Position Side: {side}\n\n"
         "## Steps for Analysis\n"
         "1. Classify the market condition clearly as either 'range' or 'trend' using ADX, RSI, EMA, and Bollinger Bands.\n"
         "   - Trend: ADX > 25, clear EMA slope, price consistently in upper or lower Bollinger half.\n"
