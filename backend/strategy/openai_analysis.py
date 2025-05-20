@@ -248,6 +248,12 @@ You are an elite FX trader and quantitative analyst.
        – use EMA_fast vs EMA_slow cross & ADX>25 to confirm
        – TP ≈ 1.5–2.5 × ATR in trend direction
 
+⚠️ **Short Entry at Resistance or Market Top**
+   – If price is near a strong resistance level or a clear market top, especially after a rapid upward movement, prioritize entering short positions.
+   – When entering short after such conditions, set the take-profit (TP) target near realistic pullback limits, not overly ambitious, to capture likely retracement.
+
+Conversely, if the price is near a strong support level or a clear market bottom, especially after a rapid downward movement, prioritize entering long positions. Set the take-profit (TP) target near realistic bounce-back limits to capture likely retracement effectively.
+
 ⚙️ **Additional filters**
    – Over‑cool filter: skip trades when BB width/ATR < {COOL_BBWIDTH_PCT} or ATR < {COOL_ATR_PCT}
    – ADX no‑trade zone {ADX_NO_TRADE_MIN}–{ADX_NO_TRADE_MAX}
@@ -255,7 +261,22 @@ You are an elite FX trader and quantitative analyst.
    – Dynamic RSI thresholds
    – Limit‑only mode when range is narrow
 
-Special RSI and Trend Rule: Even if RSI is low, consider an entry if the price clearly indicates an upward trend (e.g., consecutive bullish candles, positive EMA slope, price above EMA). Conversely, if RSI is high, consider an entry if the price clearly indicates a downward trend.
+Special RSI and Trend Rule: 
+  - If RSI indicates oversold (≤ 30) but the market exhibits clear, strong bullish momentum—defined explicitly as at least 3 consecutive bullish candles with progressively higher closes and higher lows, a positive EMA slope sustained over at least 5 recent candles, price consistently trading above the EMA for at least the past 5 candles, and an ADX value firmly above 25 and rising—prioritize the bullish trend condition and consider a long entry.
+  - Conversely, if RSI indicates overbought (≥ 70) but the market demonstrates clear, strong bearish momentum—defined explicitly as at least 3 consecutive bearish candles with progressively lower closes and lower highs, a negative EMA slope sustained over at least 5 recent candles, price consistently trading below the EMA for at least the past 5 candles, and an ADX value firmly above 25 and rising—prioritize the bearish trend condition and consider a short entry.
+
+Define "strong resistance" as:
+  - Price has been rejected at least twice at similar price levels within the last 20 candles.
+  - Presence of reversal candle patterns (e.g., pin bars, engulfing patterns).
+
+Define "strong support" as:
+  - Price has bounced at least twice at similar price levels within the last 20 candles.
+  - Presence of bullish reversal patterns (e.g., hammer candles, engulfing patterns).
+
+Do NOT enter a trade if:
+  - Indicators provide conflicting signals.
+  - Market is within ADX no-trade zone ({ADX_NO_TRADE_MIN}-{ADX_NO_TRADE_MAX}).
+  - Price action is indecisive (small candle bodies, long wicks).
 
 4️⃣  If RSI is satisfied but EMA／BB alignment is pending, choose:
     • mode:"limit" with limit_price at EMA_fast, EMA_slow, or BB_mid  
