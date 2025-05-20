@@ -21,7 +21,6 @@ LIMIT_THRESHOLD_ATR_RATIO: float = float(env_loader.get_env("LIMIT_THRESHOLD_ATR
 MAX_LIMIT_AGE_SEC: int = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
 MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "2"))
 BREAKEVEN_TRIGGER_PIPS: int = int(env_loader.get_env("BREAKEVEN_TRIGGER_PIPS", 4))
-ENTRY_COOLDOWN_SEC_AFTER_CLOSE: int = int(env_loader.get_env("ENTRY_COOLDOWN_SEC_AFTER_CLOSE", 300))
 
 # --- Volatility and ADX filters ---
 COOL_BBWIDTH_PCT: float = float(env_loader.get_env("COOL_BBWIDTH_PCT", "0"))
@@ -36,8 +35,6 @@ _last_exit_ai_call_time = 0.0
 # Regime‑AI cache
 _last_regime_ai_call_time = 0.0
 _cached_regime_result: dict | None = None
-# Global variable to store last position close time (for entry cooldown after close)
-_last_position_close_time = 0.0
 
 def get_ai_cooldown_sec(current_position: dict | None) -> int:
     """
