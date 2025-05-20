@@ -3,8 +3,8 @@ import json
 from backend.utils.openai_client import ask_openai
 from backend.utils import env_loader
 # --- Added for AI-based exit decision ---
-from dataclasses import dataclass
-from typing import Any, Dict
+# Consolidated exit decision helpers live in exit_ai_decision
+from backend.strategy.exit_ai_decision import AIDecision, evaluate as evaluate_exit
 import time
 from datetime import datetime
 
@@ -431,60 +431,10 @@ Respond **one‑line valid JSON** exactly:
 
 
 # ----------------------------------------------------------------------
-# AI-based exit decision using AIDecision
+# AI-based exit decision
 # ----------------------------------------------------------------------
-_EXIT_SYSTEM_PROMPT = (
-    "You are an expert foreign‑exchange risk manager and trading coach. "
-    "Given the current trading context you must respond with a strict JSON "
-    "object using exactly the keys: action, confidence, reason.\n\n"
-    "Allowed values for *action* are EXIT, HOLD, SCALE.\n"
-    "*confidence* must be a number between 0 and 1.\n"
-    "*reason* must be a single short English sentence (max 25 words).\n"
-    "Do not wrap the JSON in markdown."
-)
-_EXIT_ALLOWED_ACTIONS = {"EXIT", "HOLD", "SCALE"}
+# Legacy evaluate_exit functionality now lives in ``exit_ai_decision``.
 
-@dataclass(slots=True)
-class AIDecision:
-    action: str = "HOLD"
-    confidence: float = 0.0
-    reason: str = ""
-    def as_dict(self) -> Dict[str, Any]:
-        return {"action": self.action, "confidence": self.confidence, "reason": self.reason}
-
-def _exit_build_prompt(context: Dict[str, Any]) -> str:
-    user_json = json.dumps(context, separators=(",", ":"), ensure_ascii=False)
-    return f"{_EXIT_SYSTEM_PROMPT}\nUSER_CONTEXT:\n{user_json}"
-
-def _exit_parse_answer(raw: str | dict) -> AIDecision:
-    if isinstance(raw, dict):
-        data = raw
-    else:
-        try:
-            data = json.loads(raw.strip())
-        except json.JSONDecodeError as exc:
-            return AIDecision(action="HOLD", confidence=0.0, reason=f"json_error:{exc}")
-    action = str(data.get("action", "HOLD")).upper()
-    if action not in _EXIT_ALLOWED_ACTIONS:
-        action = "HOLD"
-    try:
-        conf = float(data.get("confidence", 0))
-    except (TypeError, ValueError):
-        conf = 0.0
-    reason = str(data.get("reason", ""))[:120]
-    return AIDecision(action=action, confidence=conf, reason=reason)
-
-def evaluate_exit(context: Dict[str, Any]) -> AIDecision:
-    """
-    Ask OpenAI whether to exit a position given the context.
-    Returns an AIDecision(action, confidence, reason).
-    """
-    prompt = _exit_build_prompt(context)
-    model = env_loader.get_env("AI_EXIT_MODEL", "gpt-4o-mini")
-    temperature = float(env_loader.get_env("AI_EXIT_TEMPERATURE", "0.0"))
-    max_tokens = int(env_loader.get_env("AI_EXIT_MAX_TOKENS", "128"))
-    raw = ask_openai(prompt, model=model, temperature=temperature, max_tokens=max_tokens)
-    return _exit_parse_answer(raw)
 
 
 logger.info("OpenAI Analysis finished")
