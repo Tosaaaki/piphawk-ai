@@ -31,6 +31,8 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    entries near the middle of a range, helping suppress counter-trend trades.
    `AI_PROFIT_TRIGGER_RATIO` defines what portion of the take-profit target must
    be reached before an AI exit check occurs. The default value is `0.3` (30%).
+   `PIVOT_SUPPRESSION_PIPS` sets how close price can be to the daily pivot
+   before entries are blocked. The default value is `15` pips.
 
 ## Running the API
 

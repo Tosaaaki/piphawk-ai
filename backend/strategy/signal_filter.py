@@ -91,8 +91,11 @@ def pass_entry_filter(indicators: dict, price: float | None = None) -> bool:
             tick = fetch_tick_data(pair)
             current_price = float(tick["prices"][0]["bids"][0]["price"])
             pip_size = float(os.getenv("PIP_SIZE", "0.01"))
-            if abs((current_price - pivot) / pip_size) <= 5:
-                logger.debug("EntryFilter blocked: within 5 pips of daily pivot")
+            sup_pips = float(os.getenv("PIVOT_SUPPRESSION_PIPS", "15"))
+            if abs((current_price - pivot) / pip_size) <= sup_pips:
+                logger.debug(
+                    f"EntryFilter blocked: within {sup_pips} pips of daily pivot"
+                )
                 return False
 
     # --- Range / Volatility metrics ------------------------------------
