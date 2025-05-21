@@ -52,7 +52,25 @@ def _ema_flat_or_cross(
 #  戻り値 True  → AI へ問い合わせる
 #        False → スキップ
 # ────────────────────────────────────────────────
-def pass_entry_filter(indicators: dict, price: float | None = None) -> bool:
+def _rsi_cross_up(series: pd.Series) -> bool:
+    """Return True when RSI crosses up from <30 to ≥35."""
+    try:
+        length = len(series)
+    except Exception:
+        length = len(getattr(series, "_data", []))
+    if length < 2:
+        return False
+    prev = series.iloc[-2] if hasattr(series, "iloc") else series[-2]
+    latest = series.iloc[-1] if hasattr(series, "iloc") else series[-1]
+    try:
+        return float(prev) < 30 and float(latest) >= 35
+    except Exception:
+        return False
+
+
+def pass_entry_filter(
+    indicators: dict, price: float | None = None, indicators_m1: dict | None = None
+) -> bool:
     """
     Pure rule‑based entry filter.
     Returns True when market conditions warrant querying the AI entry decision.
@@ -63,6 +81,9 @@ def pass_entry_filter(indicators: dict, price: float | None = None) -> bool:
         Indicator dictionary returned by ``calculate_indicators``.
     price : float | None
         Latest market price used for Bollinger band deviation checks.
+    indicators_m1 : dict | None
+        Optional M1 timeframe indicator dictionary. If not provided, the
+        function attempts to fetch M1 candles and compute indicators.
     """
     if os.getenv("DISABLE_ENTRY_FILTER", "false").lower() == "true":
         return True
@@ -91,8 +112,11 @@ def pass_entry_filter(indicators: dict, price: float | None = None) -> bool:
             tick = fetch_tick_data(pair)
             current_price = float(tick["prices"][0]["bids"][0]["price"])
             pip_size = float(os.getenv("PIP_SIZE", "0.01"))
-            if abs((current_price - pivot) / pip_size) <= 5:
-                logger.debug("EntryFilter blocked: within 5 pips of daily pivot")
+            sup_pips = float(os.getenv("PIVOT_SUPPRESSION_PIPS", "15"))
+            if abs((current_price - pivot) / pip_size) <= sup_pips:
+                logger.debug(
+                    f"EntryFilter blocked: within {sup_pips} pips of daily pivot"
+                )
                 return False
 
     # --- Range / Volatility metrics ------------------------------------
@@ -115,6 +139,26 @@ def pass_entry_filter(indicators: dict, price: float | None = None) -> bool:
             logger.debug("EntryFilter blocked: volume below threshold")
             return False
 
+    # --- M1 RSI cross-up check ----------------------------------------
+    if indicators_m1 is None:
+        try:
+            from backend.market_data.candle_fetcher import fetch_candles
+            from backend.indicators.calculate_indicators import calculate_indicators
+
+            pair = os.getenv("DEFAULT_PAIR", "USD_JPY")
+            candles_m1 = fetch_candles(pair, granularity="M1", count=10)
+            indicators_m1 = calculate_indicators(candles_m1, pair=pair)
+        except Exception as exc:
+            logger.warning("Failed to fetch M1 indicators: %s", exc)
+            indicators_m1 = None
+
+    if indicators_m1 and indicators_m1.get("rsi") is not None:
+        if not _rsi_cross_up(indicators_m1["rsi"]):
+            logger.debug(
+                "EntryFilter blocked: M1 RSI did not cross up from <30 to >=35"
+            )
+            return False
+
     ema_fast = indicators["ema_fast"]
     ema_slow = indicators["ema_slow"]
 
@@ -135,6 +179,13 @@ def pass_entry_filter(indicators: dict, price: float | None = None) -> bool:
         bw_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
         bw_thresh = float(os.getenv("BAND_WIDTH_THRESH_PIPS", "4"))
         band_width_ok = bw_pips >= bw_thresh
+
+        # Overshoot check --------------------------------------------------
+        overshoot_mult = float(os.getenv("OVERSHOOT_ATR_MULT", "1.0"))
+        threshold = bb_lower.iloc[-1] - atr_series.iloc[-1] * overshoot_mult
+        if price is not None and price <= threshold:
+            logger.debug("EntryFilter blocked: price overshoot below lower BB")
+            return False
 
     # --- Range center block --------------------------------------------
     block_pct = float(os.getenv("RANGE_CENTER_BLOCK_PCT", "0.3"))
