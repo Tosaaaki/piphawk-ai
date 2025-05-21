@@ -101,6 +101,7 @@ def get_exit_decision(market_data, current_position,
     now = time.time()
     cooldown = get_ai_cooldown_sec(current_position)
     if now - _last_exit_ai_call_time < cooldown:
+        logger.info("Exit decision skipped (cooldown)")
         return json.dumps({"action": "HOLD", "reason": "Cooldown active"})
 
     if indicators is None:
