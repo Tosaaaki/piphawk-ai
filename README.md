@@ -29,11 +29,9 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    `RANGE_CENTER_BLOCK_PCT` controls how close to the Bollinger band center price
    can be when ADX is below `ADX_RANGE_THRESHOLD`. Set to `0.3` (30%) to block
    entries near the middle of a range, helping suppress counter-trend trades.
-
-    `AI_PROFIT_TRIGGER_RATIO` defines what portion of the take-profit target must
-    be reached before an AI exit check occurs. The default value is `0.3` (30%).
-    `OVERSHOOT_ATR_MULT` blocks new trades when price falls more than this
-    multiple of ATR below the lower Bollinger band. The default is `1.0`.
+   `AI_PROFIT_TRIGGER_RATIO` defines what portion of the take-profit target must
+   be reached before an AI exit check occurs. The default value is `0.3` (30%).
+    `PULLBACK_LIMIT_OFFSET_PIPS` sets how many pips away from the current price to place a pullback limit order when the AI suggests a market entry. The default is `2`.
 
 ## Running the API
 
