@@ -180,6 +180,13 @@ def pass_entry_filter(
         bw_thresh = float(os.getenv("BAND_WIDTH_THRESH_PIPS", "4"))
         band_width_ok = bw_pips >= bw_thresh
 
+        # Overshoot check --------------------------------------------------
+        overshoot_mult = float(os.getenv("OVERSHOOT_ATR_MULT", "1.0"))
+        threshold = bb_lower.iloc[-1] - atr_series.iloc[-1] * overshoot_mult
+        if price is not None and price <= threshold:
+            logger.debug("EntryFilter blocked: price overshoot below lower BB")
+            return False
+
     # --- Range center block --------------------------------------------
     block_pct = float(os.getenv("RANGE_CENTER_BLOCK_PCT", "0.3"))
     if (
