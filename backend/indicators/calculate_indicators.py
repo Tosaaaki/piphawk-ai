@@ -97,22 +97,4 @@ def calculate_indicators_multi(market_data_dict: dict[str, list], *, pair: str |
         result[tf] = calculate_indicators(data, pair=pair, history_days=history_days)
     return result
 
-def calculate_indicators_multi(candles_dict: dict[str, list]) -> dict:
-    """Calculate indicators for multiple timeframes.
-
-    Parameters
-    ----------
-    candles_dict : dict[str, list]
-        Dictionary mapping timeframe strings (e.g. "M1", "M5", "D") to candle
-        lists.
-
-    Returns
-    -------
-    dict
-        Dictionary mapping each timeframe to its indicators dictionary.
-    """
-    results: dict[str, dict] = {}
-    for tf, candles in candles_dict.items():
-        results[tf] = calculate_indicators(candles)
-    return results
 
