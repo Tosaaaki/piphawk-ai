@@ -5,7 +5,7 @@ import types
 import sys
 
 pass_entry_filter = None
-_rsi_cross_up = None
+_rsi_cross_up_or_down = None
 
 
 class FakeSeries:
@@ -56,12 +56,12 @@ class TestEntryFilterRSICross(unittest.TestCase):
         sys.modules["backend.indicators.calculate_indicators"].calculate_indicators = lambda *a, **k: {"rsi": FakeSeries([20, 40])}
         sys.modules["backend.strategy.higher_tf_analysis"].analyze_higher_tf = lambda *a, **k: {}
 
-        global pass_entry_filter, _rsi_cross_up
+        global pass_entry_filter, _rsi_cross_up_or_down
         import importlib
         from backend.strategy import signal_filter as sf
         importlib.reload(sf)
         pass_entry_filter = sf.pass_entry_filter
-        _rsi_cross_up = sf._rsi_cross_up
+        _rsi_cross_up_or_down = sf._rsi_cross_up_or_down
         now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
         start = (now.hour + 1) % 24
         end = (start + 1) % 24
@@ -91,9 +91,10 @@ class TestEntryFilterRSICross(unittest.TestCase):
             "adx": FakeSeries([30, 30]),
         }
 
-    def test_rsi_cross_up_helper(self):
-        self.assertTrue(_rsi_cross_up(FakeSeries([25, 35])))
-        self.assertFalse(_rsi_cross_up(FakeSeries([31, 33])))
+    def test_rsi_cross_signal_helper(self):
+        self.assertTrue(_rsi_cross_up_or_down(FakeSeries([25, 35])))
+        self.assertTrue(_rsi_cross_up_or_down(FakeSeries([75, 65])))
+        self.assertFalse(_rsi_cross_up_or_down(FakeSeries([31, 33])))
 
     def test_pass_entry_filter_blocks_without_cross(self):
         ind = self._base_indicators()
@@ -101,9 +102,15 @@ class TestEntryFilterRSICross(unittest.TestCase):
         result = pass_entry_filter(ind, price=1.2, indicators_m1=m1)
         self.assertFalse(result)
 
-    def test_pass_entry_filter_allows_with_cross(self):
+    def test_pass_entry_filter_allows_with_cross_up(self):
         ind = self._base_indicators()
         m1 = {"rsi": FakeSeries([29, 35])}
+        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1)
+        self.assertTrue(result)
+
+    def test_pass_entry_filter_allows_with_cross_down(self):
+        ind = self._base_indicators()
+        m1 = {"rsi": FakeSeries([75, 65])}
         result = pass_entry_filter(ind, price=1.2, indicators_m1=m1)
         self.assertTrue(result)
 
