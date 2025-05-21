@@ -83,7 +83,7 @@ MAX_LIMIT_AGE_SEC = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))  # secon
 # POSITION_REVIEW_ENABLED : "true" | "false"  – enable/disable periodic position reviews (default "true")
 # POSITION_REVIEW_SEC     : seconds between AI reviews while holding a position   (default 60)
 # AIに利益確定を問い合わせる閾値（TP目標の何割以上で問い合わせるか）
-AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.5"))
+AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.3"))
 
 
 # ───────────────────────────────────────────────────────────
@@ -328,7 +328,7 @@ class JobRunner:
 
                         BE_TRIGGER_PIPS = float(env_loader.get_env("BE_TRIGGER_PIPS", "10"))
                         TP_PIPS = float(env_loader.get_env("INIT_TP_PIPS", "30"))
-                        AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.5"))
+                        AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.3"))
 
                         logger.info(
                             f"profit_pips={current_profit_pips:.1f}, "
