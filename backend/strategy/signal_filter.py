@@ -52,18 +52,22 @@ def _ema_flat_or_cross(
 #  戻り値 True  → AI へ問い合わせる
 #        False → スキップ
 # ────────────────────────────────────────────────
-def _rsi_cross_up(series: pd.Series) -> bool:
-    """Return True when RSI crosses up from <30 to ≥35."""
+def _rsi_cross_up_or_down(series: pd.Series) -> bool:
+    """Return True when RSI crosses up from <30 to ≥35 or down from >70 to ≤65."""
     try:
         length = len(series)
     except Exception:
         length = len(getattr(series, "_data", []))
     if length < 2:
         return False
+
     prev = series.iloc[-2] if hasattr(series, "iloc") else series[-2]
     latest = series.iloc[-1] if hasattr(series, "iloc") else series[-1]
+
     try:
-        return float(prev) < 30 and float(latest) >= 35
+        cross_up = float(prev) < 30 and float(latest) >= 35
+        cross_down = float(prev) > 70 and float(latest) <= 65
+        return cross_up or cross_down
     except Exception:
         return False
 
@@ -147,7 +151,7 @@ def pass_entry_filter(
             logger.debug("EntryFilter blocked: volume below threshold")
             return False
 
-    # --- M1 RSI cross-up check ----------------------------------------
+    # --- M1 RSI cross-up/down check ----------------------------------
     if indicators_m1 is None:
         try:
             from backend.market_data.candle_fetcher import fetch_candles
@@ -161,9 +165,9 @@ def pass_entry_filter(
             indicators_m1 = None
 
     if indicators_m1 and indicators_m1.get("rsi") is not None:
-        if not _rsi_cross_up(indicators_m1["rsi"]):
+        if not _rsi_cross_up_or_down(indicators_m1["rsi"]):
             logger.debug(
-                "EntryFilter blocked: M1 RSI did not cross up from <30 to >=35"
+                "EntryFilter blocked: M1 RSI did not show cross up/down signal"
             )
             return False
 
