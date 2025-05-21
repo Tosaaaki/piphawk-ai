@@ -245,7 +245,8 @@ class JobRunner:
                     candles_D = candles_dict.get("D", [])
                     candles = candles_M5  # backward compatibility
                     logger.info(
-                        f"Candle M5 last: {candles_M5[-1] if candles_M5 else 'No candles'}"
+                        f"Candle M5 last: {candles_M5[-1] if candles_M5 else 'No candles'}",
+                    )
 
                     # ローソク足データ取得（指標計算用）
                     candles_dict = fetch_multiple_timeframes(DEFAULT_PAIR)
