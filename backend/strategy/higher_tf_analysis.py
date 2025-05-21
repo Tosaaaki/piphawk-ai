@@ -39,7 +39,13 @@ def _sma(values: List[float], period: int) -> Union[float, None]:
     return mean(values[-period:])
 
 
-def analyze_higher_tf(pair: str, *, day_lookback: int = 200, h4_lookback: int = 90) -> Dict[str, float]:
+def analyze_higher_tf(
+    pair: str,
+    *,
+    day_lookback: int = 200,
+    h4_lookback: int = 90,
+    h1_lookback: int = 50,
+) -> Dict[str, float]:
     """
     Fetch higher‑timeframe candles and compute key reference levels.
 
@@ -82,10 +88,32 @@ def analyze_higher_tf(pair: str, *, day_lookback: int = 200, h4_lookback: int = 
             else None
         )
 
+        pivot_h4 = None
+        if h4_candles:
+            last_h4 = h4_candles[-1] if h4_candles[-1]["complete"] else h4_candles[-2]
+            pivot_h4 = _pivot(
+                float(last_h4["mid"]["h"]),
+                float(last_h4["mid"]["l"]),
+                float(last_h4["mid"]["c"]),
+            )
+
+        # --- H1 -----------------------------------------------------------
+        h1_candles = fetch_candles(pair, granularity="H1", count=h1_lookback)
+        pivot_h1 = None
+        if h1_candles:
+            last_h1 = h1_candles[-1] if h1_candles[-1]["complete"] else h1_candles[-2]
+            pivot_h1 = _pivot(
+                float(last_h1["mid"]["h"]),
+                float(last_h1["mid"]["l"]),
+                float(last_h1["mid"]["c"]),
+            )
+
         return {
             "day_high": day_high,
             "day_low": day_low,
             "pivot_d": pivot_d,
+            "pivot_h4": pivot_h4,
+            "pivot_h1": pivot_h1,
             "sma50_d": sma50_d,
             "sma200_d": sma200_d,
             "h4_recent_high": recent_high,
