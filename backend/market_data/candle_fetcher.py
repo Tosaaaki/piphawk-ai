@@ -45,8 +45,36 @@ def fetch_candles(instrument=None, granularity="M1", count=500):
         return []
 
 
+# New function to fetch multiple timeframes
+def fetch_multiple_timeframes(instrument=None, timeframes=None):
+    """
+    Fetch candlestick data for multiple timeframes from OANDA API.
+
+    Parameters:
+        instrument (str): The instrument to fetch data for (e.g. "USD_JPY").
+        timeframes (dict): A dictionary specifying granularities and candle counts.
+
+    Returns:
+        dict: A dictionary with granularity as keys and candle data lists as values.
+    """
+    if timeframes is None:
+        timeframes = {
+            "M5": 50,    # Medium-term trend analysis
+            "M1": 20,    # Short-term entry analysis
+            "D": 60      # Long-term trend (approx. 3 months)
+        }
+
+    candles_by_timeframe = {}
+    for granularity, count in timeframes.items():
+        candles = fetch_candles(instrument, granularity, count)
+        candles_by_timeframe[granularity] = candles
+    
+    return candles_by_timeframe
+
+
 if __name__ == "__main__":
     instrument = os.getenv('DEFAULT_PAIR', 'USD_JPY')
-    granularity = 'M5'
-    candles = fetch_candles(instrument, granularity)
-    print(candles)
+    candles = fetch_multiple_timeframes(instrument)
+    for tf, data in candles.items():
+        print(f"{tf} candles ({len(data)}):")
+        print(data[:3])  # Print first 3 candles as a sample
