@@ -59,13 +59,10 @@ def fetch_multiple_timeframes(instrument=None, timeframes=None):
     """
     if timeframes is None:
         timeframes = {
-            "M1": 20,    # Short-term entry analysis
-
-            "D1": 60     # Long-term trend (approx. 3 months)
-
-            "M5": 50,    # Medium-term trend analysis
-            "D": 90      # Long-term trend (approx. 3 months)
-
+            "M1": 20,  # Short-term entry analysis
+            "D1": 60,  # Long-term trend (approx. 3 months)
+            "M5": 50,  # Medium-term trend analysis
+            "D": 90    # Long-term trend (approx. 3 months)
         }
 
     candles_by_timeframe = {}
