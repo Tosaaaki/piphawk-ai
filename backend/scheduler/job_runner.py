@@ -5,11 +5,16 @@ import logging
 from backend.utils import env_loader
 
 from backend.market_data.tick_fetcher import fetch_tick_data
+
+from backend.market_data.candle_fetcher import fetch_candles, fetch_multiple_timeframes
+from backend.indicators.calculate_indicators import calculate_indicators, calculate_indicators_multi
+
 from backend.market_data.candle_fetcher import fetch_multiple_timeframes
 
 from backend.indicators.calculate_indicators import calculate_indicators_multi
 
 from backend.indicators.calculate_indicators import calculate_indicators
+
 
 from backend.strategy.entry_logic import process_entry, _pending_limits
 from backend.strategy.exit_logic import process_exit
@@ -151,7 +156,9 @@ class JobRunner:
 
         # consult AI for potential renewal
         try:
-            plan = get_trade_plan(tick_data, indicators or {}, candles or [])
+            candles_dict = {"M5": candles}
+            indicators_multi = {"M5": indicators}
+            plan = get_trade_plan(tick_data, indicators_multi or {}, candles_dict or {})
         except Exception as exc:
             logger.warning(f"get_trade_plan failed: {exc}")
             return
@@ -242,6 +249,11 @@ class JobRunner:
 
                     # ローソク足データ取得（指標計算用）
                     candles_dict = fetch_multiple_timeframes(DEFAULT_PAIR)
+
+                    candles = candles_dict.get('M5', [])
+                    logger.info(f"Candle data fetched: {candles[-1] if candles else 'No candles'}")
+                    logger.info(f"Last candle details: {candles[-1] if candles else 'No candles retrieved'}")
+
                     candles_m1 = candles_dict.get("M1", [])
                     candles_m5 = candles_dict.get("M5", [])
                     candles_d1 = candles_dict.get("D", [])
@@ -253,6 +265,7 @@ class JobRunner:
 
                     )
 
+
                     # -------- Higher‑timeframe reference levels --------
                     higher_tf = {}
                     if self.higher_tf_enabled:
@@ -260,6 +273,10 @@ class JobRunner:
                         logger.debug(f"Higher‑TF levels: {higher_tf}")
 
                     # 指標計算
+
+                    indicators_multi = calculate_indicators_multi(candles_dict)
+                    indicators = indicators_multi.get('M5', {})
+
 
                     indicators_dict = calculate_indicators_multi(candles_dict)
                     self.indicators_M1 = indicators_dict.get("M1")
