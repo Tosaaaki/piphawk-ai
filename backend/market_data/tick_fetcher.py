@@ -7,14 +7,19 @@ OANDA_API_URL = env_loader.get_env('OANDA_API_URL', 'https://api-fxtrade.oanda.c
 OANDA_API_KEY = env_loader.get_env('OANDA_API_KEY')
 OANDA_ACCOUNT_ID = env_loader.get_env('OANDA_ACCOUNT_ID')
 
-def fetch_tick_data(instrument: str | None = None, count: int = 1):
-    """
-    Fetch tick (pricing) data for a given instrument from the OANDA API.
-    Args:
-        instrument (str): The instrument to fetch (e.g. "USD_JPY").
-        count (int): Number of price points to fetch (default: 1).
-    Returns:
-        dict: JSON response from OANDA API with tick data, or None on error.
+def fetch_tick_data(instrument: str | None = None):
+    """Fetch the latest tick (pricing) data from the OANDA API.
+
+    Parameters
+    ----------
+    instrument : str | None
+        The instrument to fetch (e.g. ``"USD_JPY"``). If ``None`` the value of
+        ``DEFAULT_PAIR`` from the environment is used.
+
+    Returns
+    -------
+    dict | None
+        JSON response from the OANDA API with tick data, or ``None`` on error.
     """
     if instrument is None:
         instrument = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
