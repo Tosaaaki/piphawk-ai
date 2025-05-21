@@ -6,7 +6,11 @@ from backend.utils import env_loader
 
 from backend.market_data.tick_fetcher import fetch_tick_data
 from backend.market_data.candle_fetcher import fetch_multiple_timeframes
+
 from backend.indicators.calculate_indicators import calculate_indicators_multi
+
+from backend.indicators.calculate_indicators import calculate_indicators
+
 from backend.strategy.entry_logic import process_entry, _pending_limits
 from backend.strategy.exit_logic import process_exit
 from backend.orders.position_manager import check_current_position
@@ -226,6 +230,7 @@ class JobRunner:
                         # if structure unexpected, fall back to old check
                         pass
 
+
                     # ローソク足データ取得（複数タイムフレーム）
                     candles_dict = fetch_multiple_timeframes(DEFAULT_PAIR)
                     candles_M1 = candles_dict.get("M1", [])
@@ -234,6 +239,18 @@ class JobRunner:
                     candles = candles_M5  # backward compatibility
                     logger.info(
                         f"Candle M5 last: {candles_M5[-1] if candles_M5 else 'No candles'}"
+
+                    # ローソク足データ取得（指標計算用）
+                    candles_dict = fetch_multiple_timeframes(DEFAULT_PAIR)
+                    candles_m1 = candles_dict.get("M1", [])
+                    candles_m5 = candles_dict.get("M5", [])
+                    candles_d1 = candles_dict.get("D", [])
+                    logger.info(
+                        f"M5 candle data fetched: {candles_m5[-1] if candles_m5 else 'No candles'}"
+                    )
+                    logger.info(
+                        f"Last M5 candle details: {candles_m5[-1] if candles_m5 else 'No candles retrieved'}"
+
                     )
 
                     # -------- Higher‑timeframe reference levels --------
@@ -243,15 +260,19 @@ class JobRunner:
                         logger.debug(f"Higher‑TF levels: {higher_tf}")
 
                     # 指標計算
+
                     indicators_dict = calculate_indicators_multi(candles_dict)
                     self.indicators_M1 = indicators_dict.get("M1")
                     self.indicators_M5 = indicators_dict.get("M5")
                     self.indicators_D = indicators_dict.get("D")
                     indicators = self.indicators_M5
+
+                    indicators = calculate_indicators(candles_m5)
+
                     logger.info("Indicators calculation successful.")
 
                     # チェック：保留LIMIT注文の更新
-                    self._manage_pending_limits(DEFAULT_PAIR, indicators, candles, tick_data)
+                    self._manage_pending_limits(DEFAULT_PAIR, indicators, candles_m5, tick_data)
 
 
                     # ポジション確認
@@ -308,7 +329,13 @@ class JobRunner:
                             if pass_exit_filter(indicators, position_side):
                                 logger.info("Filter OK → Processing exit decision with AI.")
                                 self.last_ai_call = datetime.now()
-                                market_cond = get_market_condition(indicators, candles)
+                                market_cond = get_market_condition({
+                                    "indicators": {key: float(val.iloc[-1]) if hasattr(val, 'iloc') else float(val)
+                                                   for key, val in indicators.items()},
+                                    "candles_m1": candles_m1,
+                                    "candles_m5": candles_m5,
+                                    "candles_d1": candles_d1,
+                                })
                                 logger.debug(f"Market condition (exit): {market_cond}")
                                 exit_executed = process_exit(indicators, tick_data, market_cond)
                                 if exit_executed:
@@ -358,8 +385,13 @@ class JobRunner:
                             logger.info("Filter OK → Processing periodic exit decision with AI.")
                             self.last_ai_call = datetime.now()
                             market_cond = get_market_condition({
-                                "indicators": {key: float(val.iloc[-1]) if hasattr(val, 'iloc') else float(val) for key, val in indicators.items()},
-                                "candles": candles
+                                "indicators": {
+                                    key: float(val.iloc[-1]) if hasattr(val, 'iloc') else float(val)
+                                    for key, val in indicators.items()
+                                },
+                                "candles_m1": candles_m1,
+                                "candles_m5": candles_m5,
+                                "candles_d1": candles_d1,
                             })
                             logger.debug(f"Market condition (review): {market_cond}")
                             exit_executed = process_exit(indicators, tick_data, market_cond)
@@ -402,11 +434,16 @@ class JobRunner:
                             logger.info("Filter OK → Processing entry decision with AI.")
                             self.last_ai_call = datetime.now()  # record AI call time *before* the call
                             market_cond = get_market_condition({
-                                "indicators": {key: float(val.iloc[-1]) if hasattr(val, 'iloc') else float(val) for key, val in indicators.items()},
-                                "candles": candles
+                                "indicators": {
+                                    key: float(val.iloc[-1]) if hasattr(val, 'iloc') else float(val)
+                                    for key, val in indicators.items()
+                                },
+                                "candles_m1": candles_m1,
+                                "candles_m5": candles_m5,
+                                "candles_d1": candles_d1,
                             })
                             logger.debug(f"Market condition (post‑filter): {market_cond}")
-                            result = process_entry(indicators, candles, tick_data, market_cond)
+                            result = process_entry(indicators, candles_m5, tick_data, market_cond)
                             if not result:
                                 logger.info("process_entry returned False → aborting entry and continuing loop")
                                 self.last_run = now
