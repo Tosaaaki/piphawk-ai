@@ -41,7 +41,9 @@ def process_entry(indicators, candles, market_data, market_cond: dict | None = N
     # ------------------------------------------------------------
     #  Step 1: call unified LLM helper
     # ------------------------------------------------------------
-    plan = get_trade_plan(market_data, indicators or {}, candles or [])
+    candles_dict = {"M5": candles}
+    indicators_multi = {"M5": indicators}
+    plan = get_trade_plan(market_data, indicators_multi, candles_dict)
 
     # Raw JSON for audit log
     ai_raw = json.dumps(plan, ensure_ascii=False)

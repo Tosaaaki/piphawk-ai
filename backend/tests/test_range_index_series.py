@@ -65,7 +65,9 @@ class TestSeriesHandling(unittest.TestCase):
         # provide minimal attributes for imported names
         sys.modules["backend.market_data.tick_fetcher"].fetch_tick_data = lambda *a, **k: None
         sys.modules["backend.market_data.candle_fetcher"].fetch_candles = lambda *a, **k: []
+        sys.modules["backend.market_data.candle_fetcher"].fetch_multiple_timeframes = lambda *a, **k: {"M5": []}
         sys.modules["backend.indicators.calculate_indicators"].calculate_indicators = lambda *a, **k: {}
+        sys.modules["backend.indicators.calculate_indicators"].calculate_indicators_multi = lambda *a, **k: {"M5": {}}
         sys.modules["backend.strategy.entry_logic"].process_entry = lambda *a, **k: None
         sys.modules["backend.strategy.entry_logic"]._pending_limits = {}
         sys.modules["backend.strategy.exit_logic"].process_exit = lambda *a, **k: None
@@ -97,7 +99,7 @@ class TestSeriesHandling(unittest.TestCase):
             "atr": FakeSeries([1, 1, 1]),
             "adx": FakeSeries([25, 25, 25]),
         }
-        plan = self.oa.get_trade_plan({}, indicators, [])
+        plan = self.oa.get_trade_plan({}, {"M5": indicators}, {"M5": []})
         self.assertIn("entry", plan)
 
     def test_build_exit_context_range_index(self):

@@ -87,3 +87,11 @@ def calculate_indicators(
         indicators['atr_pct'] = None
 
     return indicators
+
+
+def calculate_indicators_multi(market_data_dict: dict[str, list], *, pair: str | None = None, history_days: int = 90) -> dict[str, dict]:
+    """Calculate indicators for multiple timeframes."""
+    result = {}
+    for tf, data in market_data_dict.items():
+        result[tf] = calculate_indicators(data, pair=pair, history_days=history_days)
+    return result

@@ -61,12 +61,13 @@ def fetch_multiple_timeframes(instrument=None, timeframes=None):
         timeframes = {
             "M5": 50,    # Medium-term trend analysis
             "M1": 20,    # Short-term entry analysis
-            "D": 60      # Long-term trend (approx. 3 months)
+            "D1": 60     # Long-term trend (approx. 3 months)
         }
 
     candles_by_timeframe = {}
     for granularity, count in timeframes.items():
-        candles = fetch_candles(instrument, granularity, count)
+        fetch_gran = "D" if granularity == "D1" else granularity
+        candles = fetch_candles(instrument, fetch_gran, count)
         candles_by_timeframe[granularity] = candles
     
     return candles_by_timeframe

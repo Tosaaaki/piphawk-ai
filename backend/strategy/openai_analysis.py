@@ -78,8 +78,8 @@ def get_market_condition(context: dict) -> str:
 # ----------------------------------------------------------------------
 # Entry decision
 # ----------------------------------------------------------------------
-def get_entry_decision(market_data, strategy_params, indicators=None, candles=None, market_cond=None, higher_tf=None):
-    plan = get_trade_plan(market_data, indicators or {}, candles or [], strategy_params)
+def get_entry_decision(market_data, strategy_params, indicators=None, candles_dict=None, market_cond=None, higher_tf=None):
+    plan = get_trade_plan(market_data, indicators or {}, candles_dict or {}, strategy_params)
     return plan.get("entry", {"side": "no"})
 
 
@@ -219,8 +219,8 @@ def get_tp_sl_adjustment(market_data, current_tp, current_sl):
 # ----------------------------------------------------------------------
 def get_trade_plan(
     market_data: dict,
-    indicators: dict,
-    candles: list[dict],
+    indicators: dict[str, dict],
+    candles_dict: dict[str, list],
     hist_stats: dict | None = None,
 ) -> dict:
     """
@@ -230,11 +230,22 @@ def get_trade_plan(
           "entry":  {...},
           "risk":   {...}
         }
+    ``indicators`` should map timeframe labels (e.g. "M5", "M1") to their
+    respective indicator dictionaries. ``candles_dict`` likewise contains a
+    list of candles for each timeframe.
+
     The function also performs local guards:
         • tp_prob ≥ MIN_TP_PROB
         • expected value (tp*tp_prob – sl*sl_prob) > 0
-      If either guard fails, it forces side:"no".
+      If either guard fails, it forces ``side:"no"``.
     """
+    ind_m5 = indicators.get("M5", {})
+    ind_m1 = indicators.get("M1", {})
+    ind_d1 = indicators.get("D1", indicators.get("D", {}))
+    candles_m5 = candles_dict.get("M5", [])
+    candles_m1 = candles_dict.get("M1", [])
+    candles_d1 = candles_dict.get("D1", candles_dict.get("D", []))
+
     prompt = f"""
 ⚠️【Market Regime Classification – Flexible Criteria】
 Classify as "TREND" if ANY TWO of the following conditions are met:
@@ -274,19 +285,41 @@ If these are not all met, HOLD the position even if RSI is extreme or price brie
 If a stop-loss is triggered but original trend conditions remain intact (ADX≥20, clear EMA slope, MACD confirms trend), immediately re-enter in the same direction upon the next valid signal.
 
 ### Recent Indicators (last 20 values each)
-RSI  : {indicators.get('rsi', [])[-20:]}
-ATR  : {indicators.get('atr', [])[-20:]}
-ADX  : {indicators.get('adx', [])[-20:]}
-BB_hi: {indicators.get('bb_upper', [])[-20:]}
-BB_lo: {indicators.get('bb_lower', [])[-20:]}
-EMA_f: {indicators.get('ema_fast', [])[-20:]}
-EMA_s: {indicators.get('ema_slow', [])[-20:]}
+## M5
+RSI  : {ind_m5.get('rsi', [])[-20:]}
+ATR  : {ind_m5.get('atr', [])[-20:]}
+ADX  : {ind_m5.get('adx', [])[-20:]}
+BB_hi: {ind_m5.get('bb_upper', [])[-20:]}
+BB_lo: {ind_m5.get('bb_lower', [])[-20:]}
+EMA_f: {ind_m5.get('ema_fast', [])[-20:]}
+EMA_s: {ind_m5.get('ema_slow', [])[-20:]}
 
-### Recent Candles (Medium-term view, last 50 candles, OANDA format)
-{candles[-50:]}
+## M1
+RSI  : {ind_m1.get('rsi', [])[-20:]}
+ATR  : {ind_m1.get('atr', [])[-20:]}
+ADX  : {ind_m1.get('adx', [])[-20:]}
+BB_hi: {ind_m1.get('bb_upper', [])[-20:]}
+BB_lo: {ind_m1.get('bb_lower', [])[-20:]}
+EMA_f: {ind_m1.get('ema_fast', [])[-20:]}
+EMA_s: {ind_m1.get('ema_slow', [])[-20:]}
 
-### Recent Candles (Short-term view, last 20 candles, OANDA format)
-{candles[-20:]}
+## D1
+RSI  : {ind_d1.get('rsi', [])[-20:]}
+ATR  : {ind_d1.get('atr', [])[-20:]}
+ADX  : {ind_d1.get('adx', [])[-20:]}
+BB_hi: {ind_d1.get('bb_upper', [])[-20:]}
+BB_lo: {ind_d1.get('bb_lower', [])[-20:]}
+EMA_f: {ind_d1.get('ema_fast', [])[-20:]}
+EMA_s: {ind_d1.get('ema_slow', [])[-20:]}
+
+### M5 Candles
+{candles_m5[-50:]}
+
+### M1 Candles
+{candles_m1[-20:]}
+
+### D1 Candles
+{candles_d1[-60:]}
 
 ### How to use the provided candles:
 - Use the medium-term view (50 candles) to understand the general market trend, key support/resistance levels, and to avoid noisy, short-lived moves.
@@ -342,9 +375,9 @@ Respond with **one-line valid JSON** exactly as:
 
     # Over-cool filter using Bollinger Band width and ATR
     try:
-        bb_upper = indicators.get("bb_upper")
-        bb_lower = indicators.get("bb_lower")
-        atr_series = indicators.get("atr")
+        bb_upper = ind_m5.get("bb_upper")
+        bb_lower = ind_m5.get("bb_lower")
+        atr_series = ind_m5.get("atr")
         if hasattr(bb_upper, "iloc"):
             bb_upper = bb_upper.iloc[-1]
         else:
@@ -365,7 +398,7 @@ Respond with **one-line valid JSON** exactly as:
 
     # ADX no-trade zone enforcement
     try:
-        adx_series = indicators.get("adx")
+        adx_series = ind_m5.get("adx")
         if hasattr(adx_series, "iloc"):
             adx_val = float(adx_series.iloc[-1])
         else:

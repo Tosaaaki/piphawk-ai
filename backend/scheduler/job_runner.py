@@ -5,8 +5,8 @@ import logging
 from backend.utils import env_loader
 
 from backend.market_data.tick_fetcher import fetch_tick_data
-from backend.market_data.candle_fetcher import fetch_candles
-from backend.indicators.calculate_indicators import calculate_indicators
+from backend.market_data.candle_fetcher import fetch_candles, fetch_multiple_timeframes
+from backend.indicators.calculate_indicators import calculate_indicators, calculate_indicators_multi
 from backend.strategy.entry_logic import process_entry, _pending_limits
 from backend.strategy.exit_logic import process_exit
 from backend.orders.position_manager import check_current_position
@@ -143,7 +143,9 @@ class JobRunner:
 
         # consult AI for potential renewal
         try:
-            plan = get_trade_plan(tick_data, indicators or {}, candles or [])
+            candles_dict = {"M5": candles}
+            indicators_multi = {"M5": indicators}
+            plan = get_trade_plan(tick_data, indicators_multi or {}, candles_dict or {})
         except Exception as exc:
             logger.warning(f"get_trade_plan failed: {exc}")
             return
@@ -223,7 +225,8 @@ class JobRunner:
                         pass
 
                     # ローソク足データ取得（指標計算用）
-                    candles = fetch_candles(DEFAULT_PAIR, granularity='M5', count=50)
+                    candles_dict = fetch_multiple_timeframes(DEFAULT_PAIR)
+                    candles = candles_dict.get('M5', [])
                     logger.info(f"Candle data fetched: {candles[-1] if candles else 'No candles'}")
                     logger.info(f"Last candle details: {candles[-1] if candles else 'No candles retrieved'}")
 
@@ -234,7 +237,8 @@ class JobRunner:
                         logger.debug(f"Higher‑TF levels: {higher_tf}")
 
                     # 指標計算
-                    indicators = calculate_indicators(candles)
+                    indicators_multi = calculate_indicators_multi(candles_dict)
+                    indicators = indicators_multi.get('M5', {})
                     logger.info("Indicators calculation successful.")
 
                     # チェック：保留LIMIT注文の更新
