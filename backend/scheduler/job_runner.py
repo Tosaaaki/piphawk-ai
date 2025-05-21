@@ -6,14 +6,11 @@ from backend.utils import env_loader
 
 from backend.market_data.tick_fetcher import fetch_tick_data
 
-from backend.market_data.candle_fetcher import fetch_candles, fetch_multiple_timeframes
-from backend.indicators.calculate_indicators import calculate_indicators, calculate_indicators_multi
-
 from backend.market_data.candle_fetcher import fetch_multiple_timeframes
-
-from backend.indicators.calculate_indicators import calculate_indicators_multi
-
-from backend.indicators.calculate_indicators import calculate_indicators
+from backend.indicators.calculate_indicators import (
+    calculate_indicators,
+    calculate_indicators_multi,
+)
 
 
 from backend.strategy.entry_logic import process_entry, _pending_limits
@@ -34,9 +31,14 @@ from backend.utils.notification import send_line_message
 try:
     from backend.utils.oanda_client import get_pending_entry_order  # type: ignore
 except ModuleNotFoundError:
+
     def get_pending_entry_order(instrument: str):
         return None
+
+
 from backend.logs.update_oanda_trades import update_oanda_trades
+
+
 def build_exit_context(position, tick_data, indicators) -> dict:
     """Compose a minimal context dict for AI exit evaluation."""
     bid = float(tick_data["prices"][0]["bids"][0]["price"])
@@ -46,26 +48,32 @@ def build_exit_context(position, tick_data, indicators) -> dict:
     context = {
         "side": "long" if position.get("long") else "short",
         "units": abs(int(position["long"]["units"] if position.get("long") else position["short"]["units"])),
-        "avg_price": float(position["long"]["averagePrice"] if position.get("long") else position["short"]["averagePrice"]),
+        "avg_price": float(
+            position["long"]["averagePrice"] if position.get("long") else position["short"]["averagePrice"]
+        ),
         "unrealized_pl_pips": unrealized_pl_pips,
         "bid": bid,
         "ask": ask,
         "spread_pips": (ask - bid) / pip_size,
         "atr_pips": indicators["atr"].iloc[-1] if hasattr(indicators["atr"], "iloc") else indicators["atr"][-1],
         "rsi": indicators["rsi"].iloc[-1] if hasattr(indicators["rsi"], "iloc") else indicators["rsi"][-1],
-        "ema_slope": indicators["ema_slope"].iloc[-1] if hasattr(indicators["ema_slope"], "iloc") else indicators["ema_slope"][-1],
+        "ema_slope": (
+            indicators["ema_slope"].iloc[-1]
+            if hasattr(indicators["ema_slope"], "iloc")
+            else indicators["ema_slope"][-1]
+        ),
     }
     return context
 
+
 log_level = env_loader.get_env("LOG_LEVEL", "INFO").upper()
-logging.basicConfig(level=getattr(logging, log_level, logging.INFO),
-                    format="%(levelname)s:%(name)s:%(message)s")
+logging.basicConfig(level=getattr(logging, log_level, logging.INFO), format="%(levelname)s:%(name)s:%(message)s")
 logger = logging.getLogger(__name__)
 
 order_mgr = OrderManager()
 
 
-DEFAULT_PAIR = env_loader.get_env('DEFAULT_PAIR', 'USD_JPY')
+DEFAULT_PAIR = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
 
 OANDA_API_KEY = env_loader.get_env("OANDA_API_KEY")
 OANDA_ACCOUNT_ID = env_loader.get_env("OANDA_ACCOUNT_ID")
@@ -75,7 +83,8 @@ MAX_LIMIT_AGE_SEC = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))  # secon
 # POSITION_REVIEW_ENABLED : "true" | "false"  – enable/disable periodic position reviews (default "true")
 # POSITION_REVIEW_SEC     : seconds between AI reviews while holding a position   (default 60)
 # AIに利益確定を問い合わせる閾値（TP目標の何割以上で問い合わせるか）
-AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env('AI_PROFIT_TRIGGER_RATIO', '0.5'))
+AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.5"))
+
 
 # ───────────────────────────────────────────────────────────
 #  Check if the instrument is currently tradeable via OANDA
@@ -96,6 +105,7 @@ def instrument_is_tradeable(instrument: str) -> bool:
     except requests.RequestException as exc:
         logger.warning(f"instrument_is_tradeable: {exc}")
     return False
+
 
 class JobRunner:
     def __init__(self, interval_seconds=1):
@@ -126,6 +136,7 @@ class JobRunner:
         self.indicators_M1: dict | None = None
         self.indicators_M5: dict | None = None
         self.indicators_D: dict | None = None
+
     # ────────────────────────────────────────────────────────────
     #  Poll & renew pending LIMIT orders
     # ────────────────────────────────────────────────────────────
@@ -227,8 +238,9 @@ class JobRunner:
 
                     # ---- Market closed guard (price feed says non‑tradeable) ----
                     try:
-                        if (not tick_data["prices"][0].get("tradeable", True)) \
-                                or tick_data["prices"][0].get("status") == "non-tradeable":
+                        if (not tick_data["prices"][0].get("tradeable", True)) or tick_data["prices"][0].get(
+                            "status"
+                        ) == "non-tradeable":
                             logger.info(f"{DEFAULT_PAIR} price feed marked non‑tradeable – sleeping 120 s")
                             time.sleep(120)
                             self.last_run = datetime.utcnow()
@@ -237,9 +249,9 @@ class JobRunner:
                         # if structure unexpected, fall back to old check
                         pass
 
-
                     # ローソク足データ取得（複数タイムフレーム）
                     candles_dict = fetch_multiple_timeframes(DEFAULT_PAIR)
+
                     candles_M1 = candles_dict.get("M1", [])
                     candles_M5 = candles_dict.get("M5", [])
                     candles_D = candles_dict.get("D", [])
@@ -258,14 +270,8 @@ class JobRunner:
                     candles_m1 = candles_dict.get("M1", [])
                     candles_m5 = candles_dict.get("M5", [])
                     candles_d1 = candles_dict.get("D", [])
-                    logger.info(
-                        f"M5 candle data fetched: {candles_m5[-1] if candles_m5 else 'No candles'}"
-                    )
-                    logger.info(
-                        f"Last M5 candle details: {candles_m5[-1] if candles_m5 else 'No candles retrieved'}"
-
-                    )
-
+                    candles = candles_m5  # backward compatibility
+                    logger.info(f"Candle M5 last: {candles_m5[-1] if candles_m5 else 'No candles'}")
 
                     # -------- Higher‑timeframe reference levels --------
                     higher_tf = {}
@@ -274,24 +280,16 @@ class JobRunner:
                         logger.debug(f"Higher‑TF levels: {higher_tf}")
 
                     # 指標計算
-
                     indicators_multi = calculate_indicators_multi(candles_dict)
-                    indicators = indicators_multi.get('M5', {})
-
-
-                    indicators_dict = calculate_indicators_multi(candles_dict)
-                    self.indicators_M1 = indicators_dict.get("M1")
-                    self.indicators_M5 = indicators_dict.get("M5")
-                    self.indicators_D = indicators_dict.get("D")
+                    self.indicators_M1 = indicators_multi.get("M1")
+                    self.indicators_M5 = indicators_multi.get("M5")
+                    self.indicators_D = indicators_multi.get("D")
                     indicators = self.indicators_M5
-
-                    indicators = calculate_indicators(candles_m5)
 
                     logger.info("Indicators calculation successful.")
 
                     # チェック：保留LIMIT注文の更新
                     self._manage_pending_limits(DEFAULT_PAIR, indicators, candles_m5, tick_data)
-
 
                     # ポジション確認
                     has_position = check_current_position(DEFAULT_PAIR)
@@ -314,11 +312,19 @@ class JobRunner:
 
                     # Inserted logic for dynamic SL management and AI profit-taking consultation
                     if has_position and position_side:
-                        current_price = float(tick_data['prices'][0]['bids'][0]['price']) if position_side == 'long' else float(tick_data['prices'][0]['asks'][0]['price'])
-                        entry_price = float(has_position[position_side]['averagePrice'])
+                        current_price = (
+                            float(tick_data["prices"][0]["bids"][0]["price"])
+                            if position_side == "long"
+                            else float(tick_data["prices"][0]["asks"][0]["price"])
+                        )
+                        entry_price = float(has_position[position_side]["averagePrice"])
 
                         pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-                        current_profit_pips = (current_price - entry_price) / pip_size if position_side == 'long' else (entry_price - current_price) / pip_size
+                        current_profit_pips = (
+                            (current_price - entry_price) / pip_size
+                            if position_side == "long"
+                            else (entry_price - current_price) / pip_size
+                        )
 
                         BE_TRIGGER_PIPS = float(env_loader.get_env("BE_TRIGGER_PIPS", "5"))
                         TP_PIPS = float(env_loader.get_env("INIT_TP_PIPS", "30"))
@@ -332,7 +338,7 @@ class JobRunner:
 
                         if current_profit_pips >= BE_TRIGGER_PIPS:
                             new_sl_price = entry_price
-                            trade_id = has_position[position_side]['tradeIDs'][0]
+                            trade_id = has_position[position_side]["tradeIDs"][0]
                             result = order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
                             if result is None:
                                 logger.warning("SL update failed on first attempt; retrying")
@@ -347,13 +353,17 @@ class JobRunner:
                             if pass_exit_filter(indicators, position_side):
                                 logger.info("Filter OK → Processing exit decision with AI.")
                                 self.last_ai_call = datetime.now()
-                                market_cond = get_market_condition({
-                                    "indicators": {key: float(val.iloc[-1]) if hasattr(val, 'iloc') else float(val)
-                                                   for key, val in indicators.items()},
-                                    "candles_m1": candles_m1,
-                                    "candles_m5": candles_m5,
-                                    "candles_d1": candles_d1,
-                                })
+                                market_cond = get_market_condition(
+                                    {
+                                        "indicators": {
+                                            key: float(val.iloc[-1]) if hasattr(val, "iloc") else float(val)
+                                            for key, val in indicators.items()
+                                        },
+                                        "candles_m1": candles_m1,
+                                        "candles_m5": candles_m5,
+                                        "candles_d1": candles_d1,
+                                    }
+                                )
                                 logger.debug(f"Market condition (exit): {market_cond}")
                                 exit_executed = process_exit(indicators, tick_data, market_cond)
                                 if exit_executed:
@@ -379,7 +389,9 @@ class JobRunner:
                     # --- Cool‑down check ------------------------------------
                     elapsed_seconds = (datetime.now() - self.last_ai_call).total_seconds()
                     if (not due_for_review) and elapsed_seconds < self.ai_cooldown:
-                        logger.info(f"AI cooldown active ({elapsed_seconds:.1f}s < {self.ai_cooldown}s). Skipping AI call.")
+                        logger.info(
+                            f"AI cooldown active ({elapsed_seconds:.1f}s < {self.ai_cooldown}s). Skipping AI call."
+                        )
                         self.last_run = now
                         # Update OANDA trade history every second
                         update_oanda_trades()
@@ -390,27 +402,37 @@ class JobRunner:
                     if has_position and due_for_review:
                         self.last_position_review_ts = now
                         if position_side:
-                            cur_price = float(tick_data['prices'][0]['bids'][0]['price']) if position_side == 'long' else float(tick_data['prices'][0]['asks'][0]['price'])
-                            entry_price = float(has_position[position_side]['averagePrice'])
+                            cur_price = (
+                                float(tick_data["prices"][0]["bids"][0]["price"])
+                                if position_side == "long"
+                                else float(tick_data["prices"][0]["asks"][0]["price"])
+                            )
+                            entry_price = float(has_position[position_side]["averagePrice"])
                             pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-                            profit_pips = (cur_price - entry_price) / pip_size if position_side == 'long' else (entry_price - cur_price) / pip_size
+                            profit_pips = (
+                                (cur_price - entry_price) / pip_size
+                                if position_side == "long"
+                                else (entry_price - cur_price) / pip_size
+                            )
                         else:
-                            cur_price = float(tick_data['prices'][0]['bids'][0]['price'])
+                            cur_price = float(tick_data["prices"][0]["bids"][0]["price"])
                             pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
                             profit_pips = 0.0
 
                         if pass_exit_filter(indicators, position_side):
                             logger.info("Filter OK → Processing periodic exit decision with AI.")
                             self.last_ai_call = datetime.now()
-                            market_cond = get_market_condition({
-                                "indicators": {
-                                    key: float(val.iloc[-1]) if hasattr(val, 'iloc') else float(val)
-                                    for key, val in indicators.items()
-                                },
-                                "candles_m1": candles_m1,
-                                "candles_m5": candles_m5,
-                                "candles_d1": candles_d1,
-                            })
+                            market_cond = get_market_condition(
+                                {
+                                    "indicators": {
+                                        key: float(val.iloc[-1]) if hasattr(val, "iloc") else float(val)
+                                        for key, val in indicators.items()
+                                    },
+                                    "candles_m1": candles_m1,
+                                    "candles_m5": candles_m5,
+                                    "candles_d1": candles_d1,
+                                }
+                            )
                             logger.debug(f"Market condition (review): {market_cond}")
                             exit_executed = process_exit(indicators, tick_data, market_cond)
                             if exit_executed:
@@ -427,8 +449,13 @@ class JobRunner:
                     # AIによるエントリー/エグジット判断
                     if not has_position:
                         # 1) Entry cooldown check
-                        if self.last_close_ts and (datetime.utcnow() - self.last_close_ts).total_seconds() < self.entry_cooldown_sec:
-                            logger.info(f"Entry cooldown active ({(datetime.utcnow() - self.last_close_ts).total_seconds():.1f}s < {self.entry_cooldown_sec}s). Skipping entry.")
+                        if (
+                            self.last_close_ts
+                            and (datetime.utcnow() - self.last_close_ts).total_seconds() < self.entry_cooldown_sec
+                        ):
+                            logger.info(
+                                f"Entry cooldown active ({(datetime.utcnow() - self.last_close_ts).total_seconds():.1f}s < {self.entry_cooldown_sec}s). Skipping entry."
+                            )
                             self.last_run = now
                             update_oanda_trades()
                             time.sleep(self.interval_seconds)
@@ -440,7 +467,9 @@ class JobRunner:
                             pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
                             pivot = higher_tf["pivot_d"]
                             if abs((current_price - pivot) / pip_size) <= 5:
-                                logger.info(f"Pivot suppression: price {current_price} within 5 pips of daily pivot {pivot}. Skipping entry.")
+                                logger.info(
+                                    f"Pivot suppression: price {current_price} within 5 pips of daily pivot {pivot}. Skipping entry."
+                                )
                                 self.last_run = now
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)
@@ -451,15 +480,17 @@ class JobRunner:
                         if pass_entry_filter(indicators, current_price):
                             logger.info("Filter OK → Processing entry decision with AI.")
                             self.last_ai_call = datetime.now()  # record AI call time *before* the call
-                            market_cond = get_market_condition({
-                                "indicators": {
-                                    key: float(val.iloc[-1]) if hasattr(val, 'iloc') else float(val)
-                                    for key, val in indicators.items()
-                                },
-                                "candles_m1": candles_m1,
-                                "candles_m5": candles_m5,
-                                "candles_d1": candles_d1,
-                            })
+                            market_cond = get_market_condition(
+                                {
+                                    "indicators": {
+                                        key: float(val.iloc[-1]) if hasattr(val, "iloc") else float(val)
+                                        for key, val in indicators.items()
+                                    },
+                                    "candles_m1": candles_m1,
+                                    "candles_m5": candles_m5,
+                                    "candles_d1": candles_d1,
+                                }
+                            )
                             logger.debug(f"Market condition (post‑filter): {market_cond}")
                             result = process_entry(indicators, candles_m5, tick_data, market_cond)
                             if not result:
@@ -484,6 +515,7 @@ class JobRunner:
             except Exception as e:
                 logger.error(f"Error occurred during job execution: {e}", exc_info=True)
                 time.sleep(self.interval_seconds)
+
 
 if __name__ == "__main__":
     runner = JobRunner(interval_seconds=1)
