@@ -271,18 +271,16 @@ When a TREND is identified (using the above criteria), allow new entries even if
 🔎【Minor Retracement Clarification】
 Do not interpret short-term retracements as trend reversals. Genuine trend reversals require ALL of the following simultaneously:
 - EMA direction reversal sustained for at least 3 candles.
-- MACD crossover sustained for at least 2 candles.
 - ADX clearly drops below 20, indicating weakening trend momentum.
 
 🎯【Improved Exit Strategy】
 Avoid exiting during normal trend pullbacks. Only exit a trend trade if **ALL** of the following are true:
 - EMA reverses direction and this is sustained for at least 3 consecutive candles.
-- MACD reversal crossover is confirmed and sustained for 2 candles.
 - ADX drops clearly below 20, showing momentum has faded.
 If these are not all met, HOLD the position even if RSI is extreme or price briefly retraces.
 
 ♻️【Immediate Re-entry Policy】
-If a stop-loss is triggered but original trend conditions remain intact (ADX≥20, clear EMA slope, MACD confirms trend), immediately re-enter in the same direction upon the next valid signal.
+If a stop-loss is triggered but original trend conditions remain intact (ADX≥20, clear EMA slope), immediately re-enter in the same direction upon the next valid signal.
 
 ### Recent Indicators (last 20 values each)
 ## M5
