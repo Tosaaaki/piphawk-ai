@@ -326,7 +326,7 @@ class JobRunner:
                             else (entry_price - current_price) / pip_size
                         )
 
-                        BE_TRIGGER_PIPS = float(env_loader.get_env("BE_TRIGGER_PIPS", "5"))
+                        BE_TRIGGER_PIPS = float(env_loader.get_env("BE_TRIGGER_PIPS", "10"))
                         TP_PIPS = float(env_loader.get_env("INIT_TP_PIPS", "30"))
                         AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.3"))
 

@@ -82,6 +82,22 @@ def process_entry(indicators, candles, market_data, market_cond: dict | None = N
 
     tp_pips = risk_info.get("tp_pips")
     sl_pips = risk_info.get("sl_pips")
+    if sl_pips is None:
+        try:
+            atr_series = indicators.get("atr")
+            if atr_series is not None and len(atr_series):
+                if hasattr(atr_series, "iloc"):
+                    atr_val = float(atr_series.iloc[-1])
+                else:
+                    atr_val = float(atr_series[-1])
+                pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+                mult = float(env_loader.get_env("ATR_SL_MULTIPLIER", "2.0"))
+                sl_pips = atr_val / pip_size * mult
+            else:
+                raise ValueError("ATR data unavailable")
+        except Exception as exc:
+            logging.debug(f"[process_entry] ATR-based SL fallback failed: {exc}")
+            sl_pips = float(env_loader.get_env("INIT_SL_PIPS", "20"))
     logging.info(f"AI Entry {side} – tp={tp_pips}  sl={sl_pips} (pips)")
 
     # --- Determine the trading instrument (currency pair) ---
