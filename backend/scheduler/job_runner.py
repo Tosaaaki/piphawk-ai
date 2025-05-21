@@ -36,7 +36,7 @@ except ModuleNotFoundError:
         return None
 
 
-from backend.logs.update_oanda_trades import update_oanda_trades
+from backend.logs.update_oanda_trades import update_oanda_trades, fetch_trade_details
 
 
 def build_exit_context(position, tick_data, indicators) -> dict:
@@ -83,7 +83,7 @@ MAX_LIMIT_AGE_SEC = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))  # secon
 # POSITION_REVIEW_ENABLED : "true" | "false"  – enable/disable periodic position reviews (default "true")
 # POSITION_REVIEW_SEC     : seconds between AI reviews while holding a position   (default 60)
 # AIに利益確定を問い合わせる閾値（TP目標の何割以上で問い合わせるか）
-AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.5"))
+AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.3"))
 
 
 # ───────────────────────────────────────────────────────────
@@ -136,6 +136,9 @@ class JobRunner:
         self.indicators_M1: dict | None = None
         self.indicators_M5: dict | None = None
         self.indicators_D: dict | None = None
+        # Flags for breakeven and SL management
+        self.breakeven_reached: bool = False
+        self.sl_reset_done: bool = False
 
     # ────────────────────────────────────────────────────────────
     #  Poll & renew pending LIMIT orders
@@ -296,6 +299,10 @@ class JobRunner:
                     logger.info(f"Current position status: {has_position}")
                     logger.info(f"Has open position for {DEFAULT_PAIR}: {has_position}")
 
+                    if not has_position:
+                        self.breakeven_reached = False
+                        self.sl_reset_done = False
+
                     # ---- Dynamic cooldown (OPEN / FLAT) ---------------
                     if has_position:
                         self.ai_cooldown = self.ai_cooldown_open
@@ -326,9 +333,9 @@ class JobRunner:
                             else (entry_price - current_price) / pip_size
                         )
 
-                        BE_TRIGGER_PIPS = float(env_loader.get_env("BE_TRIGGER_PIPS", "5"))
+                        BE_TRIGGER_PIPS = float(env_loader.get_env("BE_TRIGGER_PIPS", "10"))
                         TP_PIPS = float(env_loader.get_env("INIT_TP_PIPS", "30"))
-                        AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.5"))
+                        AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.3"))
 
                         logger.info(
                             f"profit_pips={current_profit_pips:.1f}, "
@@ -336,7 +343,7 @@ class JobRunner:
                             f"AI_trigger={TP_PIPS * AI_PROFIT_TRIGGER_RATIO}"
                         )
 
-                        if current_profit_pips >= BE_TRIGGER_PIPS:
+                        if current_profit_pips >= BE_TRIGGER_PIPS and not self.breakeven_reached:
                             new_sl_price = entry_price
                             trade_id = has_position[position_side]["tradeIDs"][0]
                             result = order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
@@ -346,7 +353,35 @@ class JobRunner:
                                 if result is None:
                                     logger.error("SL update failed after retry")
                             if result is not None:
-                                logger.info(f"SL updated to entry price to secure minimum profit: {new_sl_price}")
+                                logger.info(
+                                    f"SL updated to entry price to secure minimum profit: {new_sl_price}"
+                                )
+                                self.breakeven_reached = True
+                                self.sl_reset_done = False
+
+                        if self.breakeven_reached and not self.sl_reset_done:
+                            trade_id = has_position[position_side]["tradeIDs"][0]
+                            sl_missing = True
+                            try:
+                                trade_info = fetch_trade_details(trade_id) or {}
+                                trade = trade_info.get("trade", {})
+                                sl_price = float(trade.get("stopLossOrder", {}).get("price", 0))
+                                sl_missing = sl_price == 0
+                            except Exception as exc:
+                                logger.warning(f"Failed to fetch trade details: {exc}")
+                            if sl_missing:
+                                atr_val = indicators["atr"].iloc[-1] if hasattr(indicators["atr"], "iloc") else indicators["atr"][-1]
+                                if position_side == "long":
+                                    new_sl_price = entry_price - atr_val * 2
+                                else:
+                                    new_sl_price = entry_price + atr_val * 2
+                                result = order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
+                                if result is None:
+                                    logger.warning("SL reapply failed on first attempt; retrying")
+                                    result = order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
+                                if result is not None:
+                                    logger.info(f"SL reapplied at {new_sl_price}")
+                                    self.sl_reset_done = True
 
                         if current_profit_pips >= TP_PIPS * AI_PROFIT_TRIGGER_RATIO:
                             # EXITフィルターを評価し、フィルターNGの場合はAIの決済判断をスキップ
