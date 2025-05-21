@@ -61,6 +61,21 @@ def process_entry(indicators, candles, market_data, market_cond: dict | None = N
     limit_price = entry_info.get("limit_price")
     valid_sec = int(entry_info.get("valid_for_sec", env_loader.get_env("MAX_LIMIT_AGE_SEC", "180")))
 
+    if isinstance(market_data, dict):
+        instrument = market_data["prices"][0]["instrument"]
+        bid = float(market_data["prices"][0]["bids"][0]["price"])
+        ask = float(market_data["prices"][0]["asks"][0]["price"])
+    else:
+        instrument = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
+        bid = ask = None
+
+    if mode == "market":
+        offset = float(env_loader.get_env("PULLBACK_LIMIT_OFFSET_PIPS", "0"))
+        if offset and bid is not None and ask is not None:
+            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+            limit_price = bid - offset * pip_size if side == "long" else ask + offset * pip_size
+            mode = "limit"
+
     # ------------------------------------------------------------
     #  Detect narrow-range market (Bollinger band width < threshold)
     # ------------------------------------------------------------
@@ -99,12 +114,6 @@ def process_entry(indicators, candles, market_data, market_cond: dict | None = N
             logging.debug(f"[process_entry] ATR-based SL fallback failed: {exc}")
             sl_pips = float(env_loader.get_env("INIT_SL_PIPS", "20"))
     logging.info(f"AI Entry {side} – tp={tp_pips}  sl={sl_pips} (pips)")
-
-    # --- Determine the trading instrument (currency pair) ---
-    if isinstance(market_data, dict):
-        instrument = market_data["prices"][0]["instrument"]
-    else:
-        instrument = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
 
     if mode == "limit":
         if limit_price is None:
