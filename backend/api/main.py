@@ -138,10 +138,13 @@ def send_hourly_summary():
     )
     send_line_message(msg)
 
-# Schedule the job to run every hour at minute 0
+
+def schedule_hourly_summary_job():
+    """Register hourly summary job with the scheduler."""
+    scheduler.add_job(send_hourly_summary, 'cron', minute=0)
 
 # Schedule the job to run every hour at minute 0
-scheduler.add_job(send_hourly_summary, 'cron', minute=0)
+schedule_hourly_summary_job()
 
 # Test endpoint: Get trade summary for the last hour (no notification)
 @app.get("/trades/summary")
@@ -202,7 +205,7 @@ def control_scheduler(action: str):
     if scheduler.state == STATE_RUNNING:
         scheduler.shutdown(wait=False)
     scheduler = BackgroundScheduler()
-    scheduler.add_job(send_hourly_summary, 'cron', minute=0)
+    schedule_hourly_summary_job()
     scheduler.start()
     return {"status": "restarted"}
 
