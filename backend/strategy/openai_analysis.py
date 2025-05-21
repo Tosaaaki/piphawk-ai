@@ -42,11 +42,23 @@ def get_ai_cooldown_sec(current_position: dict | None) -> int:
     Return the appropriate cooldown seconds depending on whether we are flat
     or holding an open position.
     """
-    if (
-        current_position
-        and abs(float(current_position.get("units", 0))) > 0
-    ):
-        return AI_COOLDOWN_SEC_OPEN
+    if current_position:
+        try:
+            units_val = float(current_position.get("units", 0))
+        except (TypeError, ValueError):
+            units_val = 0.0
+        if units_val == 0:
+            try:
+                units_val = float(current_position.get("long", {}).get("units", 0))
+            except (TypeError, ValueError):
+                units_val = 0.0
+            if units_val == 0:
+                try:
+                    units_val = float(current_position.get("short", {}).get("units", 0))
+                except (TypeError, ValueError):
+                    units_val = 0.0
+        if abs(units_val) > 0:
+            return AI_COOLDOWN_SEC_OPEN
     return AI_COOLDOWN_SEC_FLAT
 
 logger = logging.getLogger(__name__)
