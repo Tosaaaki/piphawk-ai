@@ -483,16 +483,28 @@ class JobRunner:
                             time.sleep(self.interval_seconds)
                             continue
 
-                        # 2) Pivot-based suppression: avoid entries near the daily pivot
-                        if self.higher_tf_enabled and higher_tf.get("pivot_d") is not None:
+                        # 2) Pivot-based suppression: avoid entries near specified pivots
+                        if self.higher_tf_enabled:
                             current_price = float(tick_data["prices"][0]["bids"][0]["price"])
                             pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-                            pivot = higher_tf["pivot_d"]
                             sup_pips = float(env_loader.get_env("PIVOT_SUPPRESSION_PIPS", "15"))
-                            if abs((current_price - pivot) / pip_size) <= sup_pips:
-                                logger.info(
-                                    f"Pivot suppression: price {current_price} within {sup_pips} pips of daily pivot {pivot}. Skipping entry."
-                                )
+                            tfs = [
+                                tf.strip().upper()
+                                for tf in env_loader.get_env("PIVOT_SUPPRESSION_TFS", "D").split(",")
+                                if tf.strip()
+                            ]
+                            suppress = False
+                            for tf in tfs:
+                                pivot = higher_tf.get(f"pivot_{tf.lower()}")
+                                if pivot is None:
+                                    continue
+                                if abs((current_price - pivot) / pip_size) <= sup_pips:
+                                    logger.info(
+                                        f"Pivot suppression: price {current_price} within {sup_pips} pips of {tf} pivot {pivot}. Skipping entry."
+                                    )
+                                    suppress = True
+                                    break
+                            if suppress:
                                 self.last_run = now
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)

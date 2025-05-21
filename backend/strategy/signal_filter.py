@@ -104,18 +104,26 @@ def pass_entry_filter(
         logger.debug(f"EntryFilter blocked by quiet hours ({quiet_start}-{quiet_end})")
         return False
 
-    # --- Daily pivot suppression ---------------------------------------
+    # --- Pivot suppression for specified timeframes --------------------
     if os.getenv("HIGHER_TF_ENABLED", "true").lower() == "true":
         pair = os.getenv("DEFAULT_PAIR", "USD_JPY")
-        pivot = analyze_higher_tf(pair).get("pivot_d")
-        if pivot is not None:
-            tick = fetch_tick_data(pair)
-            current_price = float(tick["prices"][0]["bids"][0]["price"])
-            pip_size = float(os.getenv("PIP_SIZE", "0.01"))
-            sup_pips = float(os.getenv("PIVOT_SUPPRESSION_PIPS", "15"))
+        tfs = [
+            tf.strip().upper()
+            for tf in os.getenv("PIVOT_SUPPRESSION_TFS", "D").split(",")
+            if tf.strip()
+        ]
+        higher = analyze_higher_tf(pair)
+        tick = fetch_tick_data(pair)
+        current_price = float(tick["prices"][0]["bids"][0]["price"])
+        pip_size = float(os.getenv("PIP_SIZE", "0.01"))
+        sup_pips = float(os.getenv("PIVOT_SUPPRESSION_PIPS", "15"))
+        for tf in tfs:
+            pivot = higher.get(f"pivot_{tf.lower()}")
+            if pivot is None:
+                continue
             if abs((current_price - pivot) / pip_size) <= sup_pips:
                 logger.debug(
-                    f"EntryFilter blocked: within {sup_pips} pips of daily pivot"
+                    f"EntryFilter blocked: within {sup_pips} pips of {tf} pivot"
                 )
                 return False
 
