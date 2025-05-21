@@ -267,7 +267,7 @@ Allow short-term counter-trend trades ONLY when ALL of the following conditions 
 - TP set very conservatively (5-10 pips) with strict risk control.
 
 📈【Trend Entry Clarification】
-When a TREND is identified (using the above criteria), allow new entries even if RSI is overbought (>70 for longs) or oversold (<30 for shorts), **as long as other indicators confirm the trend is likely to continue**. Do NOT block entries just because RSI is extreme if the EMA slope, ADX, and price action all confirm trend continuation.
+When a TREND is identified (using the above criteria), allow new entries even if RSI is overbought (>70 for longs) or oversold (<30 for shorts), **as long as other indicators confirm the trend is likely to continue**. Do NOT block entries just because RSI is extreme if the EMA slope, ADX, and price action all confirm trend continuation. Shorts must enter on pullbacks at least 5 pips above the latest low. Longs must enter on pullbacks at least 5 pips below the latest high.
 
 🔎【Minor Retracement Clarification】
 Do not interpret short-term retracements as trend reversals. Genuine trend reversals require ALL of the following simultaneously:
