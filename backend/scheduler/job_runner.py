@@ -496,14 +496,15 @@ class JobRunner:
                             time.sleep(self.interval_seconds)
                             continue
 
-                        # 2) Pivot-based suppression: avoid entries within 5 pips of daily pivot
+                        # 2) Pivot-based suppression: avoid entries near the daily pivot
                         if self.higher_tf_enabled and higher_tf.get("pivot_d") is not None:
                             current_price = float(tick_data["prices"][0]["bids"][0]["price"])
                             pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
                             pivot = higher_tf["pivot_d"]
-                            if abs((current_price - pivot) / pip_size) <= 5:
+                            sup_pips = float(env_loader.get_env("PIVOT_SUPPRESSION_PIPS", "15"))
+                            if abs((current_price - pivot) / pip_size) <= sup_pips:
                                 logger.info(
-                                    f"Pivot suppression: price {current_price} within 5 pips of daily pivot {pivot}. Skipping entry."
+                                    f"Pivot suppression: price {current_price} within {sup_pips} pips of daily pivot {pivot}. Skipping entry."
                                 )
                                 self.last_run = now
                                 update_oanda_trades()
@@ -512,7 +513,7 @@ class JobRunner:
 
                         # ── Entry side ───────────────────────────────
                         current_price = float(tick_data["prices"][0]["bids"][0]["price"])
-                        if pass_entry_filter(indicators, current_price):
+                        if pass_entry_filter(indicators, current_price, self.indicators_M1):
                             logger.info("Filter OK → Processing entry decision with AI.")
                             self.last_ai_call = datetime.now()  # record AI call time *before* the call
                             market_cond = get_market_condition(
