@@ -21,7 +21,7 @@ MIN_TP_PROB: float = float(env_loader.get_env("MIN_TP_PROB", "0.75"))
 LIMIT_THRESHOLD_ATR_RATIO: float = float(env_loader.get_env("LIMIT_THRESHOLD_ATR_RATIO", "0.3"))
 MAX_LIMIT_AGE_SEC: int = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
 MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "2"))
-BE_TRIGGER_PIPS: int = int(env_loader.get_env("BE_TRIGGER_PIPS", 4))
+BE_TRIGGER_PIPS: int = int(env_loader.get_env("BE_TRIGGER_PIPS", 10))
 
 # --- Volatility and ADX filters ---
 COOL_BBWIDTH_PCT: float = float(env_loader.get_env("COOL_BBWIDTH_PCT", "0"))

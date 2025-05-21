@@ -23,6 +23,7 @@ class FakeSeries:
 class TestSeriesHandling(unittest.TestCase):
     def setUp(self):
         os.environ.setdefault("OPENAI_API_KEY", "dummy")
+        os.environ.setdefault("BE_TRIGGER_PIPS", "10")
 
         # Keep track of modules we stub so they can be cleaned up in tearDown
         self._added_modules: list[str] = []
