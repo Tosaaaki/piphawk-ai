@@ -117,6 +117,18 @@ If `REACT_APP_API_URL` is omitted, the application defaults to
 
 This project is provided as-is under the MIT license.
 
+## Market Data Utilities
+
+Market data helpers are available under `backend/market_data/`.
+`fetch_tick_data` retrieves the latest pricing snapshot for a specified
+instrument.
+
+```python
+from backend.market_data.tick_fetcher import fetch_tick_data
+
+tick = fetch_tick_data("USD_JPY")
+```
+
 ## Frontend Components
 
 Example React components are provided under `docs/examples/` and are styled with `styled-components` for a dark dashboard UI:
