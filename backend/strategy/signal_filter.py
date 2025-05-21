@@ -52,7 +52,25 @@ def _ema_flat_or_cross(
 #  戻り値 True  → AI へ問い合わせる
 #        False → スキップ
 # ────────────────────────────────────────────────
-def pass_entry_filter(indicators: dict, price: float | None = None) -> bool:
+def _rsi_cross_up(series: pd.Series) -> bool:
+    """Return True when RSI crosses up from <30 to ≥35."""
+    try:
+        length = len(series)
+    except Exception:
+        length = len(getattr(series, "_data", []))
+    if length < 2:
+        return False
+    prev = series.iloc[-2] if hasattr(series, "iloc") else series[-2]
+    latest = series.iloc[-1] if hasattr(series, "iloc") else series[-1]
+    try:
+        return float(prev) < 30 and float(latest) >= 35
+    except Exception:
+        return False
+
+
+def pass_entry_filter(
+    indicators: dict, price: float | None = None, indicators_m1: dict | None = None
+) -> bool:
     """
     Pure rule‑based entry filter.
     Returns True when market conditions warrant querying the AI entry decision.
@@ -63,6 +81,9 @@ def pass_entry_filter(indicators: dict, price: float | None = None) -> bool:
         Indicator dictionary returned by ``calculate_indicators``.
     price : float | None
         Latest market price used for Bollinger band deviation checks.
+    indicators_m1 : dict | None
+        Optional M1 timeframe indicator dictionary. If not provided, the
+        function attempts to fetch M1 candles and compute indicators.
     """
     if os.getenv("DISABLE_ENTRY_FILTER", "false").lower() == "true":
         return True
@@ -116,6 +137,26 @@ def pass_entry_filter(indicators: dict, price: float | None = None) -> bool:
         vol_ok = sma_vol >= min_vol
         if not vol_ok:
             logger.debug("EntryFilter blocked: volume below threshold")
+            return False
+
+    # --- M1 RSI cross-up check ----------------------------------------
+    if indicators_m1 is None:
+        try:
+            from backend.market_data.candle_fetcher import fetch_candles
+            from backend.indicators.calculate_indicators import calculate_indicators
+
+            pair = os.getenv("DEFAULT_PAIR", "USD_JPY")
+            candles_m1 = fetch_candles(pair, granularity="M1", count=10)
+            indicators_m1 = calculate_indicators(candles_m1, pair=pair)
+        except Exception as exc:
+            logger.warning("Failed to fetch M1 indicators: %s", exc)
+            indicators_m1 = None
+
+    if indicators_m1 and indicators_m1.get("rsi") is not None:
+        if not _rsi_cross_up(indicators_m1["rsi"]):
+            logger.debug(
+                "EntryFilter blocked: M1 RSI did not cross up from <30 to >=35"
+            )
             return False
 
     ema_fast = indicators["ema_fast"]
