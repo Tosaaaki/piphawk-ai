@@ -189,6 +189,3 @@ def process_entry(indicators, candles, market_data, market_cond: dict | None = N
         )
 
     return True
-
-# TODO: add a routine in JobRunner to poll OANDA pending orders,
-#       check _pending_limits age, and call get_trade_plan() for renew/cancel.
