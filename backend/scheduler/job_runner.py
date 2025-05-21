@@ -527,7 +527,13 @@ class JobRunner:
                                 }
                             )
                             logger.debug(f"Market condition (post‑filter): {market_cond}")
-                            result = process_entry(indicators, candles_m5, tick_data, market_cond)
+                            result = process_entry(
+                                indicators,
+                                candles_m5,
+                                tick_data,
+                                market_cond,
+                                higher_tf=higher_tf,
+                            )
                             if not result:
                                 logger.info("process_entry returned False → aborting entry and continuing loop")
                                 self.last_run = now

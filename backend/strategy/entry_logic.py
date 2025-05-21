@@ -20,7 +20,21 @@ order_manager = OrderManager()
 # In‑memory cache: entry_uuid -> {"instrument": str, "order_id": str, "ts": int}
 _pending_limits: dict[str, dict] = {}
 
-def process_entry(indicators, candles, market_data, market_cond: dict | None = None, strategy_params=None):
+def pullback_limit(side: str, price: float, offset_pips: float) -> float:
+    """Return limit price offset by given pips in the direction of a pullback."""
+    pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+    return price - offset_pips * pip_size if side == "long" else price + offset_pips * pip_size
+
+
+def process_entry(
+    indicators,
+    candles,
+    market_data,
+    market_cond: dict | None = None,
+    strategy_params=None,
+    *,
+    higher_tf: dict | None = None,
+):
     """
     Ask OpenAI whether to enter a trade.
 
@@ -70,10 +84,28 @@ def process_entry(indicators, candles, market_data, market_cond: dict | None = N
         bid = ask = None
 
     if mode == "market":
-        offset = float(env_loader.get_env("PULLBACK_LIMIT_OFFSET_PIPS", "0"))
-        if offset and bid is not None and ask is not None:
+        price_ref = bid if side == "long" else ask
+        offset = 0.0
+        if higher_tf and price_ref is not None:
             pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-            limit_price = bid - offset * pip_size if side == "long" else ask + offset * pip_size
+            sup_pips = float(env_loader.get_env("PIVOT_SUPPRESSION_PIPS", "15"))
+            pullback = float(env_loader.get_env("PULLBACK_PIPS", "3"))
+            tfs = [
+                tf.strip().upper()
+                for tf in env_loader.get_env("PIVOT_SUPPRESSION_TFS", "D").split(",")
+                if tf.strip()
+            ]
+            for tf in tfs:
+                pivot = higher_tf.get(f"pivot_{tf.lower()}")
+                if pivot is None:
+                    continue
+                if abs((price_ref - pivot) / pip_size) <= sup_pips:
+                    offset = pullback
+                    break
+        if offset == 0.0:
+            offset = float(env_loader.get_env("PULLBACK_LIMIT_OFFSET_PIPS", "0"))
+        if offset and price_ref is not None:
+            limit_price = pullback_limit(side, price_ref, offset)
             mode = "limit"
 
     # ------------------------------------------------------------
