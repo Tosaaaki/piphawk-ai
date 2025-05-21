@@ -512,7 +512,7 @@ class JobRunner:
 
                         # ── Entry side ───────────────────────────────
                         current_price = float(tick_data["prices"][0]["bids"][0]["price"])
-                        if pass_entry_filter(indicators, current_price):
+                        if pass_entry_filter(indicators, current_price, self.indicators_M1):
                             logger.info("Filter OK → Processing entry decision with AI.")
                             self.last_ai_call = datetime.now()  # record AI call time *before* the call
                             market_cond = get_market_condition(
