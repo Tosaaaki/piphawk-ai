@@ -236,8 +236,8 @@ class JobRunner:
 
                     # ティックデータ取得（発注用）
                     tick_data = fetch_tick_data(DEFAULT_PAIR)
-                    logger.info(f"Tick data fetched: {tick_data}")
-                    logger.info(f"Tick data details: {tick_data}")
+                    # ティックデータ詳細はDEBUGレベルで出力
+                    logger.debug(f"Tick data fetched: {tick_data}")
 
                     # ---- Market closed guard (price feed says non‑tradeable) ----
                     try:
@@ -252,29 +252,16 @@ class JobRunner:
                         # if structure unexpected, fall back to old check
                         pass
 
-                    # ローソク足データ取得（複数タイムフレーム）
+                    # ローソク足データ取得は一度だけ行い、後続処理で再利用する
                     candles_dict = fetch_multiple_timeframes(DEFAULT_PAIR)
-
-                    candles_M1 = candles_dict.get("M1", [])
-                    candles_M5 = candles_dict.get("M5", [])
-                    candles_D = candles_dict.get("D", [])
-                    candles = candles_M5  # backward compatibility
-                    logger.info(
-                        f"Candle M5 last: {candles_M5[-1] if candles_M5 else 'No candles'}",
-                    )
-
-                    # ローソク足データ取得（指標計算用）
-                    candles_dict = fetch_multiple_timeframes(DEFAULT_PAIR)
-
-                    candles = candles_dict.get('M5', [])
-                    logger.info(f"Candle data fetched: {candles[-1] if candles else 'No candles'}")
-                    logger.info(f"Last candle details: {candles[-1] if candles else 'No candles retrieved'}")
 
                     candles_m1 = candles_dict.get("M1", [])
                     candles_m5 = candles_dict.get("M5", [])
                     candles_d1 = candles_dict.get("D", [])
                     candles = candles_m5  # backward compatibility
-                    logger.info(f"Candle M5 last: {candles_m5[-1] if candles_m5 else 'No candles'}")
+                    logger.info(
+                        f"Candle M5 last: {candles_m5[-1] if candles_m5 else 'No candles'}"
+                    )
 
                     # -------- Higher‑timeframe reference levels --------
                     higher_tf = {}
