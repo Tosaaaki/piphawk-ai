@@ -244,6 +244,7 @@ def get_exit_decision(
             response_json = json.loads(response)
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON response: {e}")
+            logger.error(f"Invalid JSON: {response}")
             return json.dumps({"action": "HOLD", "reason": "Invalid response format"})
 
     return json.dumps(response_json)
