@@ -7,6 +7,12 @@ CANDLE_KEYS = ('o', 'h', 'l', 'c')
 # Pattern detection tunables
 PATTERN_MIN_BARS = int(os.getenv("PATTERN_MIN_BARS", "5"))
 PATTERN_TOLERANCE = float(os.getenv("PATTERN_TOLERANCE", "0.005"))
+# Comma separated timeframes to skip when scanning for patterns
+PATTERN_EXCLUDE_TFS = [
+    tf.strip().upper()
+    for tf in os.getenv("PATTERN_EXCLUDE_TFS", "").split(",")
+    if tf.strip()
+]
 
 def _as_list(data: Iterable[Mapping]) -> list[dict]:
     return [
@@ -237,6 +243,9 @@ def scan(candles_dict: dict[str, list], pattern_names: list[str]) -> dict[str, s
 
     results: dict[str, str | None] = {}
     for tf, candles in candles_dict.items():
+        if tf.upper() in PATTERN_EXCLUDE_TFS:
+            results[tf] = None
+            continue
         try:
             results[tf] = scan_all(candles, pattern_names)
         except Exception:

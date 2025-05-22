@@ -64,6 +64,8 @@ ATR（ボラティリティ指標）の計算期間。
 
 - PATTERN_TOLERANCE:
   高値・安値の許容誤差。デフォルトは0.005。
+- PATTERN_EXCLUDE_TFS:
+  ここで指定したタイムフレーム (例: M1) はパターン検出から除外される。
 
 - ADX_NO_TRADE_MIN / ADX_NO_TRADE_MAX:
   ADXがこの範囲に収まっているとエントリーを見送る。

@@ -38,6 +38,7 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
 `PATTERN_NAMES` lists chart pattern names passed to the AI or local scanner for detection, e.g. `double_bottom,double_top,doji`.
 `USE_LOCAL_PATTERN` を `true` にすると、AI を使わずローカルの `pattern_scanner` でチャートパターンを判定します。デフォルトは `false` です。
 `PATTERN_MIN_BARS` でパターン完成に必要なローソク足の本数を、`PATTERN_TOLERANCE` で高値・安値の許容誤差を調整できます。
+`PATTERN_EXCLUDE_TFS` に `M1` などを指定すると、その時間足ではパターン検出を行いません。
 
 ## Running the API
 
