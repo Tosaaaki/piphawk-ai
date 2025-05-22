@@ -81,6 +81,15 @@ order_mgr = OrderManager()
 
 DEFAULT_PAIR = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
 
+# Comma-separated chart pattern names used for AI analysis
+PATTERN_NAMES = [
+    p.strip()
+    for p in env_loader.get_env(
+        "PATTERN_NAMES", "double_bottom,double_top"
+    ).split(",")
+    if p.strip()
+]
+
 OANDA_API_KEY = env_loader.get_env("OANDA_API_KEY")
 OANDA_ACCOUNT_ID = env_loader.get_env("OANDA_ACCOUNT_ID")
 # ----- limit‑order housekeeping ------------------------------------
@@ -178,7 +187,12 @@ class JobRunner:
         try:
             candles_dict = {"M5": candles}
             indicators_multi = {"M5": indicators}
-            plan = get_trade_plan(tick_data, indicators_multi or {}, candles_dict or {})
+            plan = get_trade_plan(
+                tick_data,
+                indicators_multi or {},
+                candles_dict or {},
+                patterns=PATTERN_NAMES,
+            )
         except Exception as exc:
             logger.warning(f"get_trade_plan failed: {exc}")
             return
@@ -399,6 +413,7 @@ class JobRunner:
                                     market_cond,
                                     higher_tf,
                                     indicators_m1=self.indicators_M1,
+                                    patterns=PATTERN_NAMES,
                                 )
                                 if exit_executed:
                                     self.last_close_ts = datetime.utcnow()
@@ -474,6 +489,7 @@ class JobRunner:
                                 market_cond,
                                 higher_tf,
                                 indicators_m1=self.indicators_M1,
+                                patterns=PATTERN_NAMES,
                             )
                             if exit_executed:
                                 self.last_close_ts = datetime.utcnow()
@@ -551,6 +567,7 @@ class JobRunner:
                                 tick_data,
                                 market_cond,
                                 higher_tf=higher_tf,
+                                patterns=PATTERN_NAMES,
                             )
                             if not result:
                                 logger.info("process_entry returned False → aborting entry and continuing loop")
