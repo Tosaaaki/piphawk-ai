@@ -553,9 +553,14 @@ Respond with **one-line valid JSON** exactly as:
         try:
             tp = float(risk.get("tp_pips", 0))
             sl = float(risk.get("sl_pips", 0))
-            p  = float(risk.get("tp_prob", 0))
-            q  = float(risk.get("sl_prob", 0))
+            p = float(risk.get("tp_prob", 0))
+            q = float(risk.get("sl_prob", 0))
             spread = float(market_data.get("spread_pips", 0))
+
+            noise_sl_mult = float(env_loader.get_env("NOISE_SL_MULT", "1.5"))
+            sl *= noise_sl_mult
+            risk["sl_pips"] = sl
+
             if (tp - spread) < MIN_NET_TP_PIPS:
                 plan["entry"]["side"] = "no"
         except (TypeError, ValueError):
