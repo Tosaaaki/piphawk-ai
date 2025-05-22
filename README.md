@@ -35,7 +35,7 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
 `AI_LIMIT_CONVERT_MODEL` sets the OpenAI model used when asking whether a pending LIMIT should be switched to a market order. The default is `gpt-4o-mini`.
 `PULLBACK_PIPS` defines the offset used specifically when the price is within the pivot suppression range. The defaults are `2` and `3` respectively.
 `想定ノイズ` is automatically computed from ATR and Bollinger Band width and included in the AI prompt to help choose wider stop-loss levels.
-`PATTERN_NAMES` lists chart pattern names passed to the AI for detection, e.g. `double_bottom,double_top`.
+`PATTERN_NAMES` lists chart pattern names passed to the AI or local scanner for detection, e.g. `double_bottom,double_top,doji`.
 `USE_LOCAL_PATTERN` を `true` にすると、AI を使わずローカルの `pattern_scanner` でチャートパターンを判定します。デフォルトは `false` です。
 
 ## Running the API
@@ -189,6 +189,12 @@ print(result)
 - `double_bottom`
 - `double_top`
 - `head_and_shoulders`
+- `doji`
+- `hammer`
+- `bullish_engulfing`
+- `bearish_engulfing`
+- `morning_star`
+- `evening_star`
 
 複数時間足を使う場合は `get_trade_plan` の `pattern_tf` 引数で判定に利用する足を指定します。
 

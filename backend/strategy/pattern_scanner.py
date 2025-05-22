@@ -99,7 +99,90 @@ def detect_inverse_head_and_shoulders(data: list[dict]) -> bool:
         return False
     return True
 
+
+def is_doji(data: list[dict]) -> bool:
+    """Detect a doji candle."""
+    if not data:
+        return False
+    row = data[-1]
+    rng = row["h"] - row["l"]
+    if rng == 0:
+        return False
+    body = abs(row["c"] - row["o"])
+    return body <= rng * 0.1
+
+
+def is_hammer(data: list[dict]) -> bool:
+    """Detect a hammer candle."""
+    if not data:
+        return False
+    row = data[-1]
+    body = abs(row["c"] - row["o"])
+    upper = row["h"] - max(row["o"], row["c"])
+    lower = min(row["o"], row["c"]) - row["l"]
+    if body == 0:
+        body = (row["h"] - row["l"]) * 0.001
+    return lower >= body * 2 and upper <= body
+
+
+def is_bullish_engulfing(data: list[dict]) -> bool:
+    if len(data) < 2:
+        return False
+    prev, curr = data[-2], data[-1]
+    return (
+        prev["c"] < prev["o"]
+        and curr["c"] > curr["o"]
+        and curr["o"] <= prev["c"]
+        and curr["c"] >= prev["o"]
+    )
+
+
+def is_bearish_engulfing(data: list[dict]) -> bool:
+    if len(data) < 2:
+        return False
+    prev, curr = data[-2], data[-1]
+    return (
+        prev["c"] > prev["o"]
+        and curr["c"] < curr["o"]
+        and curr["o"] >= prev["c"]
+        and curr["c"] <= prev["o"]
+    )
+
+
+def is_morning_star(data: list[dict]) -> bool:
+    if len(data) < 3:
+        return False
+    a, b, c = data[-3], data[-2], data[-1]
+    body_a = abs(a["c"] - a["o"])
+    body_b = abs(b["c"] - b["o"])
+    return (
+        a["c"] < a["o"]
+        and body_b <= body_a * 0.5
+        and c["c"] > c["o"]
+        and c["c"] > a["o"] - body_a * 0.5
+    )
+
+
+def is_evening_star(data: list[dict]) -> bool:
+    if len(data) < 3:
+        return False
+    a, b, c = data[-3], data[-2], data[-1]
+    body_a = abs(a["c"] - a["o"])
+    body_b = abs(b["c"] - b["o"])
+    return (
+        a["c"] > a["o"]
+        and body_b <= body_a * 0.5
+        and c["c"] < c["o"]
+        and c["c"] < a["o"] + body_a * 0.5
+    )
+
 PATTERN_FUNCS = {
+    "doji": is_doji,
+    "hammer": is_hammer,
+    "bullish_engulfing": is_bullish_engulfing,
+    "bearish_engulfing": is_bearish_engulfing,
+    "morning_star": is_morning_star,
+    "evening_star": is_evening_star,
     "double_bottom": detect_double_bottom,
     "double_top": detect_double_top,
     "head_and_shoulders": detect_head_and_shoulders,
