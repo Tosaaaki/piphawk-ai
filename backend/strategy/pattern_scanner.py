@@ -194,6 +194,20 @@ PATTERN_FUNCS = {
     "inverse_head_and_shoulders": detect_inverse_head_and_shoulders,
 }
 
+# Mapping of pattern name to directional bias
+PATTERN_DIRECTION: dict[str, str] = {
+    "double_top": "bearish",
+    "double_bottom": "bullish",
+    "head_and_shoulders": "bearish",
+    "inverse_head_and_shoulders": "bullish",
+    "bearish_engulfing": "bearish",
+    "bullish_engulfing": "bullish",
+    "evening_star": "bearish",
+    "morning_star": "bullish",
+    "hammer": "bullish",
+    "doji": "neutral",
+}
+
 
 def scan_all(data: Iterable[Mapping], pattern_names: list[str] | None = None) -> str | None:
     rows = _as_list(data)
