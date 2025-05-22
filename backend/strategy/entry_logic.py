@@ -70,6 +70,7 @@ def process_entry(
     *,
     higher_tf: dict | None = None,
     patterns: list[str] | None = None,
+    pattern_names: dict[str, str | None] | None = None,
 ):
     """
     Ask OpenAI whether to enter a trade.
@@ -98,6 +99,7 @@ def process_entry(
         indicators_multi,
         candles_dict,
         patterns=patterns,
+        detected_patterns=pattern_names,
     )
 
     # Raw JSON for audit log

@@ -1,139 +1,70 @@
+# Local and AI-based chart pattern scanner
 from __future__ import annotations
 
-"""Utility functions for simple chart pattern detection."""
+from typing import Dict, List, Optional
 
-import pandas as pd
+from backend.utils import env_loader
+from backend.strategy.pattern_ai_detection import detect_chart_pattern
+
+PATTERN_SCAN_MODE = env_loader.get_env("PATTERN_SCAN_MODE", "ai").lower()
 
 
-# ----------------------------------------------------------------------
-#  Primitive pattern detectors
-# ----------------------------------------------------------------------
+def _price(candle: dict, key: str) -> Optional[float]:
+    if key in candle:
+        try:
+            return float(candle[key])
+        except (TypeError, ValueError):
+            return None
+    mid = candle.get("mid")
+    if isinstance(mid, dict):
+        try:
+            return float(mid.get(key))
+        except (TypeError, ValueError):
+            return None
+    return None
 
-def is_doji(df: pd.DataFrame, *, body_ratio: float = 0.1) -> pd.Series:
-    """Return a boolean Series marking Doji candles.
 
-    Calculation is done per-row so the function works even when ``pandas`` is
-    stubbed during testing.
-    """
-    open_list = list(df["open"])
-    close_list = list(df["close"])
-    high_list = list(df["high"])
-    low_list = list(df["low"])
+def _detect_double_bottom(candles: List[dict]) -> bool:
+    if len(candles) < 3:
+        return False
+    l1 = _price(candles[-3], "l")
+    l2 = _price(candles[-1], "l")
+    if l1 is None or l2 is None:
+        return False
+    return abs(l1 - l2) <= max(abs(l1), abs(l2)) * 0.002 and _price(candles[-2], "h") is not None
 
-    flags = []
-    for o, c, h, l in zip(open_list, close_list, high_list, low_list):
-        rng = h - l
-        if rng == 0:
-            flags.append(False)
+
+def _detect_double_top(candles: List[dict]) -> bool:
+    if len(candles) < 3:
+        return False
+    h1 = _price(candles[-3], "h")
+    h2 = _price(candles[-1], "h")
+    if h1 is None or h2 is None:
+        return False
+    return abs(h1 - h2) <= max(abs(h1), abs(h2)) * 0.002 and _price(candles[-2], "l") is not None
+
+
+def detect_local_pattern(candles: List[dict], patterns: List[str]) -> Optional[str]:
+    if "double_bottom" in patterns and _detect_double_bottom(candles):
+        return "double_bottom"
+    if "double_top" in patterns and _detect_double_top(candles):
+        return "double_top"
+    return None
+
+
+def scan(candles_dict: Dict[str, List[dict]], patterns: List[str], mode: str | None = None) -> Dict[str, Optional[str]]:
+    """Scan multiple timeframes and return detected pattern names."""
+    mode = (mode or PATTERN_SCAN_MODE).lower()
+    results: Dict[str, Optional[str]] = {}
+    for tf, candles in candles_dict.items():
+        pattern = None
+        if mode == "ai":
+            try:
+                res = detect_chart_pattern(candles, patterns)
+                pattern = res.get("pattern")
+            except Exception:
+                pattern = None
         else:
-            flags.append(abs(c - o) / rng <= body_ratio)
-
-    return pd.Series(flags, index=getattr(df, "index", range(len(flags))))
-
-
-def _local_max(series: pd.Series) -> pd.Series:
-    data = list(series)
-    flags = [False] * len(data)
-    for i in range(1, len(data) - 1):
-        if data[i] is None:
-            continue
-        prev_v = data[i - 1]
-        next_v = data[i + 1]
-        if prev_v is not None and next_v is not None:
-            if data[i] > prev_v and data[i] > next_v:
-                flags[i] = True
-    return pd.Series(flags, index=getattr(series, "index", range(len(flags))))
-
-
-def _local_min(series: pd.Series) -> pd.Series:
-    data = list(series)
-    flags = [False] * len(data)
-    for i in range(1, len(data) - 1):
-        if data[i] is None:
-            continue
-        prev_v = data[i - 1]
-        next_v = data[i + 1]
-        if prev_v is not None and next_v is not None:
-            if data[i] < prev_v and data[i] < next_v:
-                flags[i] = True
-    return pd.Series(flags, index=getattr(series, "index", range(len(flags))))
-
-
-def double_top(
-    df: pd.DataFrame,
-    *,
-    window: int = 5,
-    tolerance: float = 0.03,
-) -> pd.Series:
-    """Detect double-top patterns.
-
-    A signal is True at the second peak if two local maxima within ``window``
-    bars have similar heights (within ``tolerance``).
-    """
-    highs = df["high"]
-    peaks = _local_max(highs)
-    result = pd.Series(False, index=df.index)
-    last_idx = None
-    last_val = None
-    for i in range(len(df)):
-        if not peaks.iloc[i]:
-            continue
-        if last_idx is not None and i - last_idx <= window:
-            if abs(highs.iloc[i] - last_val) / max(highs.iloc[i], last_val) <= tolerance:
-                result.iloc[i] = True
-        last_idx = i
-        last_val = highs.iloc[i]
-    return result
-
-
-def double_bottom(
-    df: pd.DataFrame,
-    *,
-    window: int = 5,
-    tolerance: float = 0.03,
-) -> pd.Series:
-    """Detect double-bottom patterns using local minima."""
-    lows = df["low"]
-    troughs = _local_min(lows)
-    result = pd.Series(False, index=df.index)
-    last_idx = None
-    last_val = None
-    for i in range(len(df)):
-        if not troughs.iloc[i]:
-            continue
-        if last_idx is not None and i - last_idx <= window:
-            if abs(lows.iloc[i] - last_val) / max(lows.iloc[i], last_val) <= tolerance:
-                result.iloc[i] = True
-        last_idx = i
-        last_val = lows.iloc[i]
-    return result
-
-
-# Mapping from pattern name to detector function
-PATTERN_FUNCS = {
-    "doji": is_doji,
-    "double_top": double_top,
-    "double_bottom": double_bottom,
-}
-
-
-def scan_all(df: pd.DataFrame, patterns: list[str] | None = None) -> dict[str, pd.Series]:
-    """Run all detectors and return a mapping of pattern name to Series."""
-    funcs = PATTERN_FUNCS
-    if patterns is not None:
-        funcs = {k: v for k, v in funcs.items() if k in patterns}
-    return {name: func(df) for name, func in funcs.items()}
-
-
-def get_last_pattern_name(df: pd.DataFrame, patterns: list[str] | None = None) -> str | None:
-    """Return the most recently triggered pattern name for ``df``."""
-    last_name = None
-    last_idx = None
-    for name, series in scan_all(df, patterns).items():
-        idx_list = [series.index[i] for i, val in enumerate(series) if val]
-        if idx_list:
-            idx = idx_list[-1]
-            if last_idx is None or idx > last_idx:
-                last_idx = idx
-                last_name = name
-    return last_name
+            pattern = detect_local_pattern(candles, patterns)
+        results[tf] = pattern
+    return results
