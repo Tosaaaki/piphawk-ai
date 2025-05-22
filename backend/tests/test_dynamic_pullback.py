@@ -41,6 +41,7 @@ class TestDynamicPullback(unittest.TestCase):
         oa = types.ModuleType("backend.strategy.openai_analysis")
         oa.get_trade_plan = lambda *a, **k: {"entry": {"side": "long", "mode": "market"}, "risk": {"tp_pips": 10, "sl_pips": 5}}
         oa.get_market_condition = lambda *a, **k: {"market_condition": "trend", "trend_direction": "long"}
+        oa.should_convert_limit_to_market = lambda ctx: True
         add("backend.strategy.openai_analysis", oa)
 
         om = types.ModuleType("backend.orders.order_manager")

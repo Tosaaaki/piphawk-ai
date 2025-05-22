@@ -6,6 +6,7 @@ from backend.strategy.pattern_ai_detection import detect_chart_pattern
 
 # When true, use local pattern scanner instead of OpenAI
 USE_LOCAL_PATTERN = env_loader.get_env("USE_LOCAL_PATTERN", "false").lower() == "true"
+
 # --- Added for AI-based exit decision ---
 # Consolidated exit decision helpers live in exit_ai_decision
 from backend.strategy.exit_ai_decision import AIDecision, evaluate as evaluate_exit
@@ -27,12 +28,16 @@ LIMIT_THRESHOLD_ATR_RATIO: float = float(env_loader.get_env("LIMIT_THRESHOLD_ATR
 MAX_LIMIT_AGE_SEC: int = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
 MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "2"))
 BE_TRIGGER_PIPS: int = int(env_loader.get_env("BE_TRIGGER_PIPS", 10))
+AI_LIMIT_CONVERT_MODEL: str = env_loader.get_env("AI_LIMIT_CONVERT_MODEL", "gpt-4o-mini")
 
 # --- Volatility and ADX filters ---
 COOL_BBWIDTH_PCT: float = float(env_loader.get_env("COOL_BBWIDTH_PCT", "0"))
 COOL_ATR_PCT: float = float(env_loader.get_env("COOL_ATR_PCT", "0"))
 ADX_NO_TRADE_MIN: float = float(env_loader.get_env("ADX_NO_TRADE_MIN", "20"))
 ADX_NO_TRADE_MAX: float = float(env_loader.get_env("ADX_NO_TRADE_MAX", "30"))
+USE_LOCAL_PATTERN: bool = (
+    env_loader.get_env("USE_LOCAL_PATTERN", "false").lower() == "true"
+)
 
 # Global variables to store last AI call timestamps
 # Global variables to store last AI call timestamps
@@ -114,6 +119,7 @@ def get_exit_decision(
     indicators_m1: dict | None = None,
     candles: list | None = None,
     patterns: list[str] | None = None,
+    detected_patterns: dict[str, str | None] | None = None,
 ):
     """
     Ask the LLM whether we should exit an existing position.
@@ -200,6 +206,7 @@ def get_exit_decision(
                 pattern_name = pattern_res.get("pattern")
         except Exception:
             pattern_name = None
+            
     prompt = (
         "You are an expert FX trader AI. Your job is to decide, with clear and concise reasoning, whether to HOLD or EXIT an open position based on the latest market context and indicators.\n\n"
         f"### Position Details\n"
@@ -210,7 +217,7 @@ def get_exit_decision(
         f"- Entry Regime: {entry_regime_json}\n"
         f"- Market Condition: {market_cond_json}\n"
         f"- Higher Timeframe Levels: {higher_tf_json}\n"
-        f"- Chart Pattern: {pattern_name if pattern_name else 'None'}\n"
+        f"- Chart Pattern: {pattern_line if pattern_line else 'None'}\n"
         "\n"
         "### Market Data & Indicators\n"
         f"{json.dumps(market_data, ensure_ascii=False)}\n"
@@ -276,6 +283,7 @@ def get_trade_plan(
     hist_stats: dict | None = None,
     patterns: list[str] | None = None,
     pattern_tf: str = "M5",
+    detected_patterns: dict[str, str | None] | None = None,
 ) -> dict:
     """
     Single‑shot call to the LLM that returns a dict:
@@ -348,7 +356,7 @@ def get_trade_plan(
         noise_pips = None
 
     noise_val = f"{noise_pips:.1f}" if noise_pips is not None else "N/A"
-    pattern_text = f"\n### Detected Chart Pattern\n{pattern_name}\n" if pattern_name else "\n### Detected Chart Pattern\nNone\n"
+    pattern_text = f"\n### Detected Chart Pattern\n{pattern_line}\n" if pattern_line else "\n### Detected Chart Pattern\nNone\n"
 
     prompt = f"""
 ⚠️【Market Regime Classification – Flexible Criteria】
@@ -520,6 +528,27 @@ Respond with **one-line valid JSON** exactly as:
 # Legacy evaluate_exit functionality now lives in ``exit_ai_decision``.
 
 
+def should_convert_limit_to_market(context: dict) -> bool:
+    """Use OpenAI to decide whether to convert a pending LIMIT to a market order."""
+    prompt = (
+        "We placed a limit order that has not filled and price is moving away.\n"
+        f"Context: {json.dumps(context, ensure_ascii=False)}\n\n"
+        "Should we cancel the limit order and place a market order instead?\n"
+        "Respond with YES or NO."
+    )
+    try:
+        result = ask_openai(prompt, model=AI_LIMIT_CONVERT_MODEL)
+    except Exception as exc:
+        logger.warning(f"should_convert_limit_to_market failed: {exc}")
+        return False
+
+    if isinstance(result, dict):
+        text = json.dumps(result)
+    else:
+        text = str(result)
+    return text.strip().upper().startswith("YES")
+
+
 
 logger.info("OpenAI Analysis finished")
 
@@ -533,6 +562,7 @@ __all__ = [
     "get_trade_plan",
     "AIDecision",
     "evaluate_exit",
+    "should_convert_limit_to_market",
     "LIMIT_THRESHOLD_ATR_RATIO",
     "MAX_LIMIT_AGE_SEC",
     "MIN_NET_TP_PIPS",
