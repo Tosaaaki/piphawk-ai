@@ -160,3 +160,20 @@ Example React components are provided under `docs/examples/` and are styled with
 These components are examples only and are not yet integrated into a build setup.
 
 
+
+## AIによるチャートパターン判定
+
+`backend/strategy/pattern_ai_detection.py` に `detect_chart_pattern` 関数が追加されました。ローソク足データと判定したいパターン名のリストを渡すと、OpenAI が該当パターンの有無を返します。
+
+```python
+from backend.strategy.pattern_ai_detection import detect_chart_pattern
+
+candles = [
+    {"o": 1.0, "h": 1.2, "l": 0.9, "c": 1.1},
+    {"o": 1.1, "h": 1.3, "l": 1.0, "c": 1.2},
+]
+result = detect_chart_pattern(candles, ["double_bottom", "head_and_shoulders"])
+print(result)
+```
+
+返り値は `{"pattern": "<一致したパターン名>"}` もしくは `{"pattern": None}` の形式です。
