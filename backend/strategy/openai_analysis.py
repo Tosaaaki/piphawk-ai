@@ -3,6 +3,7 @@ import json
 from backend.utils.openai_client import ask_openai
 from backend.utils import env_loader, parse_json_answer
 from backend.strategy.pattern_ai_detection import detect_chart_pattern
+from backend.strategy.pattern_scanner import pattern_scanner
 # --- Added for AI-based exit decision ---
 # Consolidated exit decision helpers live in exit_ai_decision
 from backend.strategy.exit_ai_decision import AIDecision, evaluate as evaluate_exit
@@ -30,6 +31,9 @@ COOL_BBWIDTH_PCT: float = float(env_loader.get_env("COOL_BBWIDTH_PCT", "0"))
 COOL_ATR_PCT: float = float(env_loader.get_env("COOL_ATR_PCT", "0"))
 ADX_NO_TRADE_MIN: float = float(env_loader.get_env("ADX_NO_TRADE_MIN", "20"))
 ADX_NO_TRADE_MAX: float = float(env_loader.get_env("ADX_NO_TRADE_MAX", "30"))
+USE_LOCAL_PATTERN: bool = (
+    env_loader.get_env("USE_LOCAL_PATTERN", "false").lower() == "true"
+)
 
 # Global variables to store last AI call timestamps
 # Global variables to store last AI call timestamps
@@ -200,6 +204,7 @@ def get_exit_decision(
             except Exception:
                 pattern_name = None
         pattern_line = pattern_name
+
     prompt = (
         "You are an expert FX trader AI. Your job is to decide, with clear and concise reasoning, whether to HOLD or EXIT an open position based on the latest market context and indicators.\n\n"
         f"### Position Details\n"
@@ -300,6 +305,7 @@ def get_trade_plan(
     candles_m5 = candles_dict.get("M5", [])
     candles_m1 = candles_dict.get("M1", [])
     candles_d1 = candles_dict.get("D1", candles_dict.get("D", []))
+
 
     pattern_line = None
     if detected_patterns:
