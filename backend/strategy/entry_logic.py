@@ -226,6 +226,7 @@ def process_entry(
                 "ts": int(datetime.utcnow().timestamp()),
                 "limit_price": limit_price,
                 "side": side,
+                "retry_count": 0,
             }
         return bool(result)
     else:
