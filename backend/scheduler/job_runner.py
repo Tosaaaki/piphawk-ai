@@ -39,7 +39,7 @@ except ModuleNotFoundError:
 from backend.logs.update_oanda_trades import update_oanda_trades, fetch_trade_details
 
 
-def build_exit_context(position, tick_data, indicators) -> dict:
+def build_exit_context(position, tick_data, indicators, indicators_m1=None) -> dict:
     """Compose a minimal context dict for AI exit evaluation."""
     bid = float(tick_data["prices"][0]["bids"][0]["price"])
     ask = float(tick_data["prices"][0]["asks"][0]["price"])
@@ -63,6 +63,12 @@ def build_exit_context(position, tick_data, indicators) -> dict:
             else indicators["ema_slope"][-1]
         ),
     }
+    if indicators_m1:
+        context["indicators_m1"] = {
+            k: (v.iloc[-1] if hasattr(v, "iloc") else v[-1])
+            for k, v in indicators_m1.items()
+            if isinstance(v, (list, tuple)) or hasattr(v, "iloc")
+        }
     return context
 
 
@@ -392,6 +398,7 @@ class JobRunner:
                                     tick_data,
                                     market_cond,
                                     higher_tf,
+                                    indicators_m1=self.indicators_M1,
                                 )
                                 if exit_executed:
                                     self.last_close_ts = datetime.utcnow()
@@ -466,6 +473,7 @@ class JobRunner:
                                 tick_data,
                                 market_cond,
                                 higher_tf,
+                                indicators_m1=self.indicators_M1,
                             )
                             if exit_executed:
                                 self.last_close_ts = datetime.utcnow()

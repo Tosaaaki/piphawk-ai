@@ -115,7 +115,7 @@ class TestSeriesHandling(unittest.TestCase):
             "instrument": "EUR_USD",
         }
         tick = {"prices": [{"bids": [{"price": "1"}], "asks": [{"price": "2"}]}]}
-        context = self.jr.build_exit_context(position, tick, indicators)
+        context = self.jr.build_exit_context(position, tick, indicators, {})
         self.assertEqual(context["atr_pips"], 2)
         self.assertEqual(context["rsi"], 40)
         self.assertEqual(context["ema_slope"], 0.2)

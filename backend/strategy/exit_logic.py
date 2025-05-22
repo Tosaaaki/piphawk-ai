@@ -48,6 +48,7 @@ def decide_exit(
     market_cond: Dict[str, Any] | None = None,
     *,
     higher_tf: Dict[str, Any] | None = None,
+    indicators_m1: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     """
     Use AI to decide whether to exit the given position.
@@ -88,6 +89,7 @@ def decide_exit(
         entry_regime,
         market_cond,
         higher_tf=higher_tf,
+        indicators_m1=indicators_m1,
     )
     raw = ai_response if isinstance(ai_response, str) else json.dumps(ai_response)
 
@@ -131,7 +133,13 @@ def decide_exit(
     # ----- fallback for unknown type -----
     return {"decision": "HOLD", "reason": "Unrecognized AI response", "raw": raw}
 
-def process_exit(indicators, market_data, market_cond=None, higher_tf=None):
+def process_exit(
+    indicators,
+    market_data,
+    market_cond=None,
+    higher_tf=None,
+    indicators_m1=None,
+):
     default_pair = os.getenv("DEFAULT_PAIR", "USD_JPY")
     position = get_position_details(default_pair)
     if position is None:
@@ -192,6 +200,7 @@ def process_exit(indicators, market_data, market_cond=None, higher_tf=None):
                 entry_regime=position.get("entry_regime"),
                 market_cond=market_cond,
                 higher_tf=higher_tf,
+                indicators_m1=indicators_m1,
             )
             logging.info(f"AI early‑exit decision: {exit_decision['decision']} | Reason: {exit_decision['reason']}")
 
@@ -221,6 +230,7 @@ def process_exit(indicators, market_data, market_cond=None, higher_tf=None):
         entry_regime=position.get("entry_regime"),
         market_cond=market_cond,
         higher_tf=higher_tf,
+        indicators_m1=indicators_m1,
     )
     logging.info(f"AI exit decision: {exit_decision['decision']} | Reason: {exit_decision['reason']}")
 
