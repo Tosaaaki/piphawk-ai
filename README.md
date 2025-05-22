@@ -35,6 +35,7 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
  `PULLBACK_PIPS` defines the offset used specifically when the price is within the pivot suppression range. The defaults are `2` and `3` respectively.
 `想定ノイズ` is automatically computed from ATR and Bollinger Band width and included in the AI prompt to help choose wider stop-loss levels.
 `PATTERN_NAMES` lists chart pattern names passed to the AI for detection, e.g. `double_bottom,double_top`.
+`USE_LOCAL_PATTERN` を `true` にすると、AI を使わずローカルの `pattern_scanner` でチャートパターンを判定します。デフォルトは `false` です。
 
 ## Running the API
 
@@ -178,3 +179,24 @@ print(result)
 ```
 
 返り値は `{"pattern": "<一致したパターン名>"}` もしくは `{"pattern": None}` の形式です。
+
+`USE_LOCAL_PATTERN=true` を設定すると、OpenAI を使用せずローカル判定を行います。
+
+対応パターン例:
+- `double_bottom`
+- `double_top`
+- `head_and_shoulders`
+
+複数時間足を使う場合は `get_trade_plan` の `pattern_tf` 引数で判定に利用する足を指定します。
+
+```python
+from backend.strategy.openai_analysis import get_trade_plan
+
+candles_dict = {
+    "M5": [...],   # 5分足
+    "M15": [...],  # 15分足
+}
+plan = get_trade_plan({}, {}, candles_dict,
+                      patterns=["double_bottom", "double_top"],
+                      pattern_tf="M15")
+```
