@@ -34,6 +34,7 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
  `PULLBACK_LIMIT_OFFSET_PIPS` sets how many pips away from the current price to place an automatic pullback limit order when the AI suggests a market entry.
 `PULLBACK_PIPS` defines the offset used specifically when the price is within the pivot suppression range. The defaults are `2` and `3` respectively.
 `想定ノイズ` is automatically computed from ATR and Bollinger Band width and included in the AI prompt to help choose wider stop-loss levels.
+`PATTERN_NAMES` lists chart pattern names passed to the AI for detection, e.g. `double_bottom,double_top`.
 
 ## Running the API
 
