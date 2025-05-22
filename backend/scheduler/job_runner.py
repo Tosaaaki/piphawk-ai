@@ -19,7 +19,11 @@ from backend.orders.position_manager import check_current_position
 from backend.orders.order_manager import OrderManager
 from backend.strategy.signal_filter import pass_entry_filter
 from backend.strategy.signal_filter import pass_exit_filter
-from backend.strategy.openai_analysis import get_market_condition, get_trade_plan
+from backend.strategy.openai_analysis import (
+    get_market_condition,
+    get_trade_plan,
+    should_convert_limit_to_market,
+)
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 import requests
 
@@ -195,20 +199,33 @@ class JobRunner:
             adx_series = indicators.get("adx")
             adx_val = adx_series.iloc[-1] if adx_series is not None and len(adx_series) else 0.0
             if atr_pips and diff_pips >= atr_pips * threshold_ratio and adx_val >= 25:
+                ctx = {
+                    "diff_pips": diff_pips,
+                    "atr_pips": atr_pips,
+                    "adx": adx_val,
+                    "side": local_info.get("side"),
+                }
                 try:
-                    logger.info(
-                        f"Switching LIMIT {pend['order_id']} to market (diff {diff_pips:.1f} pips)"
-                    )
-                    order_mgr.cancel_order(pend["order_id"])
-                    units = int(float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")) * 1000)
-                    if local_info.get("side") == "short":
-                        units = -units
-                    order_mgr.place_market_order(instrument, units)
+                    allow = should_convert_limit_to_market(ctx)
                 except Exception as exc:
-                    logger.warning(f"Failed to convert to market order: {exc}")
-                finally:
-                    _pending_limits.pop(local_info["key"], None)
-                return
+                    logger.warning(f"AI check failed: {exc}")
+                    allow = False
+
+                if allow:
+                    try:
+                        logger.info(
+                            f"Switching LIMIT {pend['order_id']} to market (diff {diff_pips:.1f} pips)"
+                        )
+                        order_mgr.cancel_order(pend["order_id"])
+                        units = int(float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")) * 1000)
+                        if local_info.get("side") == "short":
+                            units = -units
+                        order_mgr.place_market_order(instrument, units)
+                    except Exception as exc:
+                        logger.warning(f"Failed to convert to market order: {exc}")
+                    finally:
+                        _pending_limits.pop(local_info["key"], None)
+                    return
 
         age = time.time() - pend["ts"]
         if age < self.max_limit_age_sec:

@@ -25,6 +25,7 @@ LIMIT_THRESHOLD_ATR_RATIO: float = float(env_loader.get_env("LIMIT_THRESHOLD_ATR
 MAX_LIMIT_AGE_SEC: int = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
 MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "2"))
 BE_TRIGGER_PIPS: int = int(env_loader.get_env("BE_TRIGGER_PIPS", 10))
+AI_LIMIT_CONVERT_MODEL: str = env_loader.get_env("AI_LIMIT_CONVERT_MODEL", "gpt-4o-mini")
 
 # --- Volatility and ADX filters ---
 COOL_BBWIDTH_PCT: float = float(env_loader.get_env("COOL_BBWIDTH_PCT", "0"))
@@ -519,6 +520,27 @@ Respond with **one-line valid JSON** exactly as:
 # Legacy evaluate_exit functionality now lives in ``exit_ai_decision``.
 
 
+def should_convert_limit_to_market(context: dict) -> bool:
+    """Use OpenAI to decide whether to convert a pending LIMIT to a market order."""
+    prompt = (
+        "We placed a limit order that has not filled and price is moving away.\n"
+        f"Context: {json.dumps(context, ensure_ascii=False)}\n\n"
+        "Should we cancel the limit order and place a market order instead?\n"
+        "Respond with YES or NO."
+    )
+    try:
+        result = ask_openai(prompt, model=AI_LIMIT_CONVERT_MODEL)
+    except Exception as exc:
+        logger.warning(f"should_convert_limit_to_market failed: {exc}")
+        return False
+
+    if isinstance(result, dict):
+        text = json.dumps(result)
+    else:
+        text = str(result)
+    return text.strip().upper().startswith("YES")
+
+
 
 logger.info("OpenAI Analysis finished")
 
@@ -532,6 +554,7 @@ __all__ = [
     "get_trade_plan",
     "AIDecision",
     "evaluate_exit",
+    "should_convert_limit_to_market",
     "LIMIT_THRESHOLD_ATR_RATIO",
     "MAX_LIMIT_AGE_SEC",
     "MIN_NET_TP_PIPS",
