@@ -387,7 +387,12 @@ class JobRunner:
                                     }
                                 )
                                 logger.debug(f"Market condition (exit): {market_cond}")
-                                exit_executed = process_exit(indicators, tick_data, market_cond)
+                                exit_executed = process_exit(
+                                    indicators,
+                                    tick_data,
+                                    market_cond,
+                                    higher_tf,
+                                )
                                 if exit_executed:
                                     self.last_close_ts = datetime.utcnow()
                                     logger.info("Position closed based on AI recommendation.")
@@ -456,7 +461,12 @@ class JobRunner:
                                 }
                             )
                             logger.debug(f"Market condition (review): {market_cond}")
-                            exit_executed = process_exit(indicators, tick_data, market_cond)
+                            exit_executed = process_exit(
+                                indicators,
+                                tick_data,
+                                market_cond,
+                                higher_tf,
+                            )
                             if exit_executed:
                                 self.last_close_ts = datetime.utcnow()
                                 logger.info("Position closed based on AI recommendation.")
