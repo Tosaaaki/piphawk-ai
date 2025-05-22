@@ -21,6 +21,7 @@ from backend.strategy.signal_filter import pass_entry_filter
 from backend.strategy.signal_filter import pass_exit_filter
 from backend.strategy.openai_analysis import get_market_condition, get_trade_plan
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
+from backend.strategy import pattern_scanner
 import requests
 
 from backend.utils.notification import send_line_message
@@ -154,6 +155,8 @@ class JobRunner:
         # Flags for breakeven and SL management
         self.breakeven_reached: bool = False
         self.sl_reset_done: bool = False
+        # Latest detected chart patterns by timeframe
+        self.patterns_by_tf: dict[str, str | None] = {}
 
     # ────────────────────────────────────────────────────────────
     #  Poll & renew pending LIMIT orders
@@ -234,6 +237,7 @@ class JobRunner:
                 indicators_multi or {},
                 candles_dict or {},
                 patterns=PATTERN_NAMES,
+                detected_patterns=self.patterns_by_tf,
             )
         except Exception as exc:
             logger.warning(f"get_trade_plan failed: {exc}")
@@ -318,6 +322,9 @@ class JobRunner:
 
                     # ローソク足データ取得は一度だけ行い、後続処理で再利用する
                     candles_dict = fetch_multiple_timeframes(DEFAULT_PAIR)
+
+                    # ---- Chart pattern detection per timeframe ----
+                    self.patterns_by_tf = pattern_scanner.scan(candles_dict, PATTERN_NAMES)
 
                     candles_m1 = candles_dict.get("M1", [])
                     candles_m5 = candles_dict.get("M5", [])
@@ -458,6 +465,7 @@ class JobRunner:
                                     higher_tf,
                                     indicators_m1=self.indicators_M1,
                                     patterns=PATTERN_NAMES,
+                                    pattern_names=self.patterns_by_tf,
                                 )
                                 if exit_executed:
                                     self.last_close_ts = datetime.utcnow()
@@ -534,6 +542,7 @@ class JobRunner:
                                 higher_tf,
                                 indicators_m1=self.indicators_M1,
                                 patterns=PATTERN_NAMES,
+                                pattern_names=self.patterns_by_tf,
                             )
                             if exit_executed:
                                 self.last_close_ts = datetime.utcnow()
@@ -612,6 +621,7 @@ class JobRunner:
                                 market_cond,
                                 higher_tf=higher_tf,
                                 patterns=PATTERN_NAMES,
+                                pattern_names=self.patterns_by_tf,
                             )
                             if not result:
                                 logger.info("process_entry returned False → aborting entry and continuing loop")

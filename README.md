@@ -178,3 +178,10 @@ print(result)
 ```
 
 返り値は `{"pattern": "<一致したパターン名>"}` もしくは `{"pattern": None}` の形式です。
+
+### ローカルパターンスキャナ
+
+`backend/strategy/pattern_scanner.py` では、OpenAI を利用しない簡易的な
+チャートパターン検出ロジックを提供します。環境変数 `PATTERN_SCAN_MODE`
+を `local` に設定すると、このロジックを用いた判定が行われます。
+デフォルトは `ai` で、OpenAI による判定が実行されます。

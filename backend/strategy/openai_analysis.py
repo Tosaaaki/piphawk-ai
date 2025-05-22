@@ -111,6 +111,7 @@ def get_exit_decision(
     indicators_m1: dict | None = None,
     candles: list | None = None,
     patterns: list[str] | None = None,
+    detected_patterns: dict[str, str | None] | None = None,
 ):
     """
     Ask the LLM whether we should exit an existing position.
@@ -186,13 +187,19 @@ def get_exit_decision(
         else {}
     )
 
-    pattern_name = None
-    if patterns:
-        try:
-            pattern_res = detect_chart_pattern(candles or [], patterns)
-            pattern_name = pattern_res.get("pattern")
-        except Exception:
-            pattern_name = None
+    pattern_line = None
+    if detected_patterns:
+        parts = [f"{k}:{v}" for k, v in detected_patterns.items() if v]
+        pattern_line = " ".join(parts) if parts else None
+    else:
+        pattern_name = None
+        if patterns:
+            try:
+                pattern_res = detect_chart_pattern(candles or [], patterns)
+                pattern_name = pattern_res.get("pattern")
+            except Exception:
+                pattern_name = None
+        pattern_line = pattern_name
     prompt = (
         "You are an expert FX trader AI. Your job is to decide, with clear and concise reasoning, whether to HOLD or EXIT an open position based on the latest market context and indicators.\n\n"
         f"### Position Details\n"
@@ -203,7 +210,7 @@ def get_exit_decision(
         f"- Entry Regime: {entry_regime_json}\n"
         f"- Market Condition: {market_cond_json}\n"
         f"- Higher Timeframe Levels: {higher_tf_json}\n"
-        f"- Chart Pattern: {pattern_name if pattern_name else 'None'}\n"
+        f"- Chart Pattern: {pattern_line if pattern_line else 'None'}\n"
         "\n"
         "### Market Data & Indicators\n"
         f"{json.dumps(market_data, ensure_ascii=False)}\n"
@@ -269,6 +276,7 @@ def get_trade_plan(
     hist_stats: dict | None = None,
     patterns: list[str] | None = None,
     pattern_tf: str = "M5",
+    detected_patterns: dict[str, str | None] | None = None,
 ) -> dict:
     """
     Single‑shot call to the LLM that returns a dict:
@@ -293,14 +301,20 @@ def get_trade_plan(
     candles_m1 = candles_dict.get("M1", [])
     candles_d1 = candles_dict.get("D1", candles_dict.get("D", []))
 
-    pattern_name = None
-    if patterns:
-        try:
-            tf_candles = candles_dict.get(pattern_tf, [])
-            pattern_res = detect_chart_pattern(tf_candles, patterns)
-            pattern_name = pattern_res.get("pattern")
-        except Exception:
-            pattern_name = None
+    pattern_line = None
+    if detected_patterns:
+        parts = [f"{k}:{v}" for k, v in detected_patterns.items() if v]
+        pattern_line = " ".join(parts) if parts else None
+    else:
+        pattern_name = None
+        if patterns:
+            try:
+                tf_candles = candles_dict.get(pattern_tf, [])
+                pattern_res = detect_chart_pattern(tf_candles, patterns)
+                pattern_name = pattern_res.get("pattern")
+            except Exception:
+                pattern_name = None
+        pattern_line = pattern_name
 
     # --------------------------------------------------------------
     # Estimate market "noise" from ATR and Bollinger band width
@@ -337,7 +351,7 @@ def get_trade_plan(
         noise_pips = None
 
     noise_val = f"{noise_pips:.1f}" if noise_pips is not None else "N/A"
-    pattern_text = f"\n### Detected Chart Pattern\n{pattern_name}\n" if pattern_name else "\n### Detected Chart Pattern\nNone\n"
+    pattern_text = f"\n### Detected Chart Pattern\n{pattern_line}\n" if pattern_line else "\n### Detected Chart Pattern\nNone\n"
 
     prompt = f"""
 ⚠️【Market Regime Classification – Flexible Criteria】
