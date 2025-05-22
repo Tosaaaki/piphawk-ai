@@ -57,3 +57,14 @@ ATR（ボラティリティ指標）の計算期間。
   発動条件 = ATR × TRAIL_TRIGGER_MULTIPLIER、
   距離 = ATR × TRAIL_DISTANCE_MULTIPLIER で計算される。
 
+■ チャートパターン検出設定
+
+- PATTERN_MIN_BARS:
+  パターン完成判定に必要な最小ローソク足本数。デフォルトは5本。
+
+- PATTERN_TOLERANCE:
+  高値・安値の許容誤差。デフォルトは0.005。
+
+- ADX_NO_TRADE_MIN / ADX_NO_TRADE_MAX:
+  ADXがこの範囲に収まっているとエントリーを見送る。
+

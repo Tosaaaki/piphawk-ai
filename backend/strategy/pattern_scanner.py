@@ -1,7 +1,12 @@
 import math
+import os
 from typing import Iterable, Mapping
 
 CANDLE_KEYS = ('o', 'h', 'l', 'c')
+
+# Pattern detection tunables
+PATTERN_MIN_BARS = int(os.getenv("PATTERN_MIN_BARS", "5"))
+PATTERN_TOLERANCE = float(os.getenv("PATTERN_TOLERANCE", "0.005"))
 
 def _as_list(data: Iterable[Mapping]) -> list[dict]:
     return [
@@ -9,11 +14,11 @@ def _as_list(data: Iterable[Mapping]) -> list[dict]:
         for row in data
     ]
 
-def _is_close(a: float, b: float, tol: float = 0.001) -> bool:
+def _is_close(a: float, b: float, tol: float = PATTERN_TOLERANCE) -> bool:
     return abs(a - b) <= tol
 
 def detect_double_bottom(data: list[dict]) -> bool:
-    if len(data) < 4:
+    if len(data) < PATTERN_MIN_BARS:
         return False
     lows = [row['l'] for row in data]
     highs = [row['h'] for row in data]
@@ -32,7 +37,7 @@ def detect_double_bottom(data: list[dict]) -> bool:
     return hi_after > hi_between
 
 def detect_double_top(data: list[dict]) -> bool:
-    if len(data) < 4:
+    if len(data) < PATTERN_MIN_BARS:
         return False
     highs = [row['h'] for row in data]
     lows = [row['l'] for row in data]
@@ -56,7 +61,7 @@ def _find_min_index(seq: list[float]) -> int:
 
 def detect_head_and_shoulders(data: list[dict]) -> bool:
     """Very naive head-and-shoulders detection."""
-    if len(data) < 5:
+    if len(data) < max(PATTERN_MIN_BARS, 5):
         return False
     highs = [row['h'] for row in data]
     head_idx = _find_max_index(highs)
@@ -79,7 +84,7 @@ def detect_head_and_shoulders(data: list[dict]) -> bool:
 
 def detect_inverse_head_and_shoulders(data: list[dict]) -> bool:
     """Inverse head-and-shoulders pattern."""
-    if len(data) < 5:
+    if len(data) < max(PATTERN_MIN_BARS, 5):
         return False
     lows = [row['l'] for row in data]
     head_idx = _find_min_index(lows)

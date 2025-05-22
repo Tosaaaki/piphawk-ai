@@ -71,6 +71,8 @@ class FakePandas(types.ModuleType):
 class TestPatternScanner(unittest.TestCase):
     def setUp(self):
         os.environ.setdefault("OPENAI_API_KEY", "dummy")
+        os.environ.setdefault("PATTERN_MIN_BARS", "4")
+        os.environ.setdefault("PATTERN_TOLERANCE", "0.001")
         self._added = []
 
         def add(name, mod):
@@ -89,6 +91,8 @@ class TestPatternScanner(unittest.TestCase):
     def tearDown(self):
         for name in getattr(self, "_added", []):
             sys.modules.pop(name, None)
+        os.environ.pop("PATTERN_MIN_BARS", None)
+        os.environ.pop("PATTERN_TOLERANCE", None)
 
     def test_double_bottom(self):
         data = [
