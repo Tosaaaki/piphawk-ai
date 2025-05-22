@@ -171,22 +171,34 @@ def process_entry(
 
     tp_pips = risk_info.get("tp_pips")
     sl_pips = risk_info.get("sl_pips")
-    if sl_pips is None:
-        try:
-            atr_series = indicators.get("atr")
-            if atr_series is not None and len(atr_series):
-                if hasattr(atr_series, "iloc"):
-                    atr_val = float(atr_series.iloc[-1])
-                else:
-                    atr_val = float(atr_series[-1])
-                pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-                mult = float(env_loader.get_env("ATR_SL_MULTIPLIER", "2.0"))
-                sl_pips = atr_val / pip_size * mult
+
+    min_sl = float(env_loader.get_env("MIN_SL_PIPS", "0"))
+    fallback_sl = None
+    try:
+        atr_series = indicators.get("atr")
+        if atr_series is not None and len(atr_series):
+            if hasattr(atr_series, "iloc"):
+                atr_val = float(atr_series.iloc[-1])
             else:
-                raise ValueError("ATR data unavailable")
-        except Exception as exc:
-            logging.debug(f"[process_entry] ATR-based SL fallback failed: {exc}")
+                atr_val = float(atr_series[-1])
+            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+            mult = float(env_loader.get_env("ATR_SL_MULTIPLIER", "2.0"))
+            fallback_sl = atr_val / pip_size * mult
+    except Exception as exc:
+        logging.debug(f"[process_entry] ATR-based SL calc failed: {exc}")
+
+    if sl_pips is None:
+        sl_pips = fallback_sl if fallback_sl is not None else float(env_loader.get_env("INIT_SL_PIPS", "20"))
+    else:
+        try:
+            sl_pips = float(sl_pips)
+        except Exception:
             sl_pips = float(env_loader.get_env("INIT_SL_PIPS", "20"))
+
+    if fallback_sl is not None:
+        sl_pips = max(sl_pips, fallback_sl)
+    if sl_pips < min_sl:
+        sl_pips = min_sl
     logging.info(f"AI Entry {side} – tp={tp_pips}  sl={sl_pips} (pips)")
 
     if mode == "limit":
