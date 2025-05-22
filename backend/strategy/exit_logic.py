@@ -40,11 +40,15 @@ def generate_position_condition_prompt(position: Dict[str, Any], market_data: Di
     return prompt
 
 
-def decide_exit(position: Dict[str, Any],
-                market_data: Dict[str, Any],
-                indicators: Dict[str, Any],
-                entry_regime: Dict[str, Any] | None = None,
-                market_cond: Dict[str, Any] | None = None) -> Dict[str, Any]:
+def decide_exit(
+    position: Dict[str, Any],
+    market_data: Dict[str, Any],
+    indicators: Dict[str, Any],
+    entry_regime: Dict[str, Any] | None = None,
+    market_cond: Dict[str, Any] | None = None,
+    *,
+    higher_tf: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
     """
     Use AI to decide whether to exit the given position.
     Returns a dict: {'decision': 'EXIT' or 'HOLD', 'reason': str}
@@ -77,7 +81,14 @@ def decide_exit(position: Dict[str, Any],
     context_data["secs_since_entry"] = secs_since_entry
     context_data["pips_from_entry"] = pips_from_entry
 
-    ai_response = get_exit_decision(context_data, position, indicators, entry_regime, market_cond)
+    ai_response = get_exit_decision(
+        context_data,
+        position,
+        indicators,
+        entry_regime,
+        market_cond,
+        higher_tf=higher_tf,
+    )
     raw = ai_response if isinstance(ai_response, str) else json.dumps(ai_response)
 
     # --- Robustly parse AI response (dict or JSON string) ---
@@ -120,7 +131,7 @@ def decide_exit(position: Dict[str, Any],
     # ----- fallback for unknown type -----
     return {"decision": "HOLD", "reason": "Unrecognized AI response", "raw": raw}
 
-def process_exit(indicators, market_data, market_cond=None):
+def process_exit(indicators, market_data, market_cond=None, higher_tf=None):
     default_pair = os.getenv("DEFAULT_PAIR", "USD_JPY")
     position = get_position_details(default_pair)
     if position is None:
@@ -174,9 +185,14 @@ def process_exit(indicators, market_data, market_cond=None):
 
         if early_exit:
             logging.info("Early‑exit criteria met — consulting AI before action.")
-            exit_decision = decide_exit(position, market_data, indicators,
-                                        entry_regime=position.get("entry_regime"),
-                                        market_cond=market_cond)
+            exit_decision = decide_exit(
+                position,
+                market_data,
+                indicators,
+                entry_regime=position.get("entry_regime"),
+                market_cond=market_cond,
+                higher_tf=higher_tf,
+            )
             logging.info(f"AI early‑exit decision: {exit_decision['decision']} | Reason: {exit_decision['reason']}")
 
             if exit_decision["decision"] == "EXIT":
@@ -198,9 +214,14 @@ def process_exit(indicators, market_data, market_cond=None):
                 logging.info("AI advised HOLD; early‑exit aborted.")
                 # fall through to trailing‑stop / normal processing
 
-    exit_decision = decide_exit(position, market_data, indicators,
-                                entry_regime=position.get("entry_regime"),
-                                market_cond=market_cond)
+    exit_decision = decide_exit(
+        position,
+        market_data,
+        indicators,
+        entry_regime=position.get("entry_regime"),
+        market_cond=market_cond,
+        higher_tf=higher_tf,
+    )
     logging.info(f"AI exit decision: {exit_decision['decision']} | Reason: {exit_decision['reason']}")
 
     if exit_decision["decision"] == "EXIT":
