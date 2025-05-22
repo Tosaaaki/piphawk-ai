@@ -1,6 +1,7 @@
 import os
 import requests
 from backend.logs.log_manager import log_trade, log_error
+from backend.utils.price import format_price
 from datetime import datetime, timedelta
 import time
 import json
@@ -32,9 +33,6 @@ def get_pip_size(instrument: str) -> float:
     """Return pip size for the instrument; fallback to DEFAULT_PAIR mapping."""
     return PIP_SIZES.get(instrument, PIP_SIZES.get(DEFAULT_PAIR, 0.01))
 
-def _price_precision(instrument: str) -> int:
-    """Return 3 for JPY pairs, else 5."""
-    return 3 if instrument.endswith("JPY") else 5
 
 class OrderManager:
 
@@ -57,15 +55,14 @@ class OrderManager:
         Submit a LIMIT order with optional TP/SL. Returns API JSON.
         """
         pip = get_pip_size(instrument)
-        precision = _price_precision(instrument)
         tp_price = sl_price = None
         if tp_pips and sl_pips:
             if side == "long":
-                tp_price = round(limit_price + tp_pips * pip, precision)
-                sl_price = round(limit_price - sl_pips * pip, precision)
+                tp_price = limit_price + tp_pips * pip
+                sl_price = limit_price - sl_pips * pip
             else:
-                tp_price = round(limit_price - tp_pips * pip, precision)
-                sl_price = round(limit_price + sl_pips * pip, precision)
+                tp_price = limit_price - tp_pips * pip
+                sl_price = limit_price + sl_pips * pip
 
         comment_dict = {"entry_uuid": entry_uuid, "mode": "limit"}
         if risk_info:
@@ -82,7 +79,7 @@ class OrderManager:
         payload = {
             "order": {
                 "units": str(units),
-                "price": str(limit_price),
+                "price": format_price(instrument, limit_price),
                 "instrument": instrument,
                 "timeInForce": "GTD",
                 "type": "LIMIT",
@@ -96,8 +93,12 @@ class OrderManager:
             }
         }
         if tp_price and sl_price:
-            payload["order"]["takeProfitOnFill"] = {"price": str(tp_price)}
-            payload["order"]["stopLossOnFill"] = {"price": str(sl_price)}
+            payload["order"]["takeProfitOnFill"] = {
+                "price": format_price(instrument, tp_price)
+            }
+            payload["order"]["stopLossOnFill"] = {
+                "price": format_price(instrument, sl_price)
+            }
 
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
         r = requests.post(url, json=payload, headers=HEADERS)
@@ -114,11 +115,13 @@ class OrderManager:
         r.raise_for_status()
         return r.json()
 
-    def modify_order_price(self, order_id: str, new_price: float, valid_sec: int = 180) -> dict:
+    def modify_order_price(
+        self, order_id: str, instrument: str, new_price: float, valid_sec: int = 180
+    ) -> dict:
         payload = {
             "order": {
-                "price": str(new_price),
-                "gtdTime": (datetime.utcnow() + 
+                "price": format_price(instrument, new_price),
+                "gtdTime": (datetime.utcnow() +
                             timedelta(seconds=valid_sec)).isoformat("T") + "Z"
             }
         }
@@ -148,9 +151,13 @@ class OrderManager:
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}/orders"
         body = {"order": {}}
         if new_tp:
-            body["order"]["takeProfit"] = {"price": str(new_tp)}
+            body["order"]["takeProfit"] = {
+                "price": format_price(instrument, new_tp)
+            }
         if new_sl:
-            body["order"]["stopLoss"] = {"price": str(new_sl)}
+            body["order"]["stopLoss"] = {
+                "price": format_price(instrument, new_sl)
+            }
 
         for attempt in range(3):
             response = requests.put(url, json=body, headers=HEADERS)
@@ -255,16 +262,19 @@ class OrderManager:
             order_body["order"]["clientExtensions"] = {"comment": comment_json}
 
         if tp_pips and sl_pips:
-            precision = 3 if instrument.endswith("JPY") else 5
             if side == "long":
-                tp_price = round(entry_price + float(tp_pips) * pip, precision)
-                sl_price = round(entry_price - float(sl_pips) * pip, precision)
+                tp_price = entry_price + float(tp_pips) * pip
+                sl_price = entry_price - float(sl_pips) * pip
             else:
-                tp_price = round(entry_price - float(tp_pips) * pip, precision)
-                sl_price = round(entry_price + float(sl_pips) * pip, precision)
+                tp_price = entry_price - float(tp_pips) * pip
+                sl_price = entry_price + float(sl_pips) * pip
 
-            order_body["order"]["takeProfitOnFill"] = {"price": str(tp_price)}
-            order_body["order"]["stopLossOnFill"] = {"price": str(sl_price)}
+            order_body["order"]["takeProfitOnFill"] = {
+                "price": format_price(instrument, tp_price)
+            }
+            order_body["order"]["stopLossOnFill"] = {
+                "price": format_price(instrument, sl_price)
+            }
 
         response = requests.post(url, json=order_body, headers=HEADERS)
         logger.debug(f"Order placement response: {response.status_code} - {response.text}")
@@ -377,13 +387,13 @@ class OrderManager:
 
         # Convert pips to price distance (JPY pairs use 0.01, most majors 0.0001)
         pip_factor = 0.01 if instrument.endswith("JPY") else 0.0001
-        distance_price = round(distance_pips * pip_factor, 5)
+        distance_price = distance_pips * pip_factor
 
         order_spec = {
             "order": {
                 "type": "TRAILING_STOP_LOSS",
                 "tradeID": trade_id,
-                "distance": str(distance_price),
+                "distance": format_price(instrument, distance_price),
                 "timeInForce": "GTC",
             }
         }
@@ -395,7 +405,14 @@ class OrderManager:
 
     def update_trade_sl(self, trade_id, instrument, new_sl_price):
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}/orders"
-        body = {"order": {"stopLoss": {"price": str(new_sl_price), "timeInForce": "GTC"}}}
+        body = {
+            "order": {
+                "stopLoss": {
+                    "price": format_price(instrument, new_sl_price),
+                    "timeInForce": "GTC",
+                }
+            }
+        }
 
         response = requests.put(url, json=body, headers=HEADERS)
 
