@@ -34,6 +34,7 @@ def process_entry(
     strategy_params=None,
     *,
     higher_tf: dict | None = None,
+    patterns: list[str] | None = None,
 ):
     """
     Ask OpenAI whether to enter a trade.
@@ -57,7 +58,12 @@ def process_entry(
     # ------------------------------------------------------------
     candles_dict = {"M5": candles}
     indicators_multi = {"M5": indicators}
-    plan = get_trade_plan(market_data, indicators_multi, candles_dict)
+    plan = get_trade_plan(
+        market_data,
+        indicators_multi,
+        candles_dict,
+        patterns=patterns,
+    )
 
     # Raw JSON for audit log
     ai_raw = json.dumps(plan, ensure_ascii=False)

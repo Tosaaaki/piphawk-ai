@@ -49,6 +49,7 @@ def decide_exit(
     *,
     higher_tf: Dict[str, Any] | None = None,
     indicators_m1: Dict[str, Any] | None = None,
+    patterns: list[str] | None = None,
 ) -> Dict[str, Any]:
     """
     Use AI to decide whether to exit the given position.
@@ -90,6 +91,7 @@ def decide_exit(
         market_cond,
         higher_tf=higher_tf,
         indicators_m1=indicators_m1,
+        patterns=patterns,
     )
     raw = ai_response if isinstance(ai_response, str) else json.dumps(ai_response)
 
@@ -139,6 +141,7 @@ def process_exit(
     market_cond=None,
     higher_tf=None,
     indicators_m1=None,
+    patterns=None,
 ):
     default_pair = os.getenv("DEFAULT_PAIR", "USD_JPY")
     position = get_position_details(default_pair)
@@ -201,6 +204,7 @@ def process_exit(
                 market_cond=market_cond,
                 higher_tf=higher_tf,
                 indicators_m1=indicators_m1,
+                patterns=patterns,
             )
             logging.info(f"AI early‑exit decision: {exit_decision['decision']} | Reason: {exit_decision['reason']}")
 
@@ -231,6 +235,7 @@ def process_exit(
         market_cond=market_cond,
         higher_tf=higher_tf,
         indicators_m1=indicators_m1,
+        patterns=patterns,
     )
     logging.info(f"AI exit decision: {exit_decision['decision']} | Reason: {exit_decision['reason']}")
 
