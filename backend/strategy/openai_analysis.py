@@ -18,6 +18,7 @@ AI_REGIME_COOLDOWN_SEC: int = int(env_loader.get_env("AI_REGIME_COOLDOWN_SEC", A
 
 # --- Threshold for AI‑proposed TP probability ---
 MIN_TP_PROB: float = float(env_loader.get_env("MIN_TP_PROB", "0.75"))
+TP_PROB_HOURS: int = int(env_loader.get_env("TP_PROB_HOURS", "24"))
 LIMIT_THRESHOLD_ATR_RATIO: float = float(env_loader.get_env("LIMIT_THRESHOLD_ATR_RATIO", "0.3"))
 MAX_LIMIT_AGE_SEC: int = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
 MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "2"))
@@ -400,7 +401,7 @@ Use this as a baseline for setting wider stop-loss levels.
 Your task:
 1. Clearly classify the current regime as "trend" or "range". If "trend", specify direction as "long" or "short". Output this at JSON key "regime".
 2. Decide whether to open a trade now, strictly adhering to the above criteria. Return JSON key "entry" with: {{ "side":"long"|"short"|"no", "rationale":"…" }}
-3. If side is not "no", propose TP/SL distances **in pips** along with their 24-hour hit probabilities: {{ "tp_pips":int, "sl_pips":int, "tp_prob":float, "sl_prob":float }}. Output this at JSON key "risk".
+3. If side is not "no", propose TP/SL distances **in pips** along with their {TP_PROB_HOURS}-hour hit probabilities: {{ "tp_pips":int, "sl_pips":int, "tp_prob":float, "sl_prob":float }}. Output this at JSON key "risk".
    - Constraints:
      • tp_prob must be ≥ {MIN_TP_PROB:.2f}
      • Expected value (tp_pips*tp_prob - sl_pips*sl_prob) must be positive
