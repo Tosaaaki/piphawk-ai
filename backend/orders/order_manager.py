@@ -101,7 +101,11 @@ class OrderManager:
 
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
         r = requests.post(url, json=payload, headers=HEADERS)
-        r.raise_for_status()
+        if not r.ok:
+            logger.error(
+                "Limit order failed: %s %s", r.status_code, r.text
+            )
+            r.raise_for_status()
         return r.json()
 
     def cancel_order(self, order_id: str) -> dict:
