@@ -293,6 +293,42 @@ def get_exit_decision(
     except Exception as exc:
         logger.error(f"pattern check failed: {exc}")
 
+    # --- Trend consistency check -------------------------------------------
+    try:
+        if response_json.get("action", "").upper() == "EXIT":
+            adx_series = indicators.get("adx")
+            ema_fast_series = indicators.get("ema_fast")
+            ema_slow_series = indicators.get("ema_slow")
+            if adx_series is not None and ema_fast_series is not None:
+                last_adx = (
+                    float(adx_series.iloc[-1]) if hasattr(adx_series, "iloc") else float(adx_series[-1])
+                )
+                if last_adx >= 25:
+                    # Determine EMA slope over last 3 candles
+                    if hasattr(ema_fast_series, "iloc") and len(ema_fast_series) >= 3:
+                        ema_last = float(ema_fast_series.iloc[-1])
+                        ema_prev = float(ema_fast_series.iloc[-3])
+                    elif isinstance(ema_fast_series, (list, tuple)) and len(ema_fast_series) >= 3:
+                        ema_last = float(ema_fast_series[-1])
+                        ema_prev = float(ema_fast_series[-3])
+                    else:
+                        ema_last = None
+                        ema_prev = None
+                    if ema_last is not None and ema_prev is not None:
+                        slope = ema_last - ema_prev
+                        trend_cont = False
+                        if side == "LONG" and slope > 0:
+                            trend_cont = True
+                        elif side == "SHORT" and slope < 0:
+                            trend_cont = True
+                        if trend_cont:
+                            logger.warning(
+                                "AI EXIT overridden: strong trend indicators in favor of current position"
+                            )
+                            response_json["action"] = "HOLD"
+    except Exception as exc:
+        logger.error(f"trend consistency check failed: {exc}")
+
     return json.dumps(response_json)
 
 
