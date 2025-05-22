@@ -2,6 +2,7 @@ import logging
 import json
 from backend.utils.openai_client import ask_openai
 from backend.utils import env_loader
+from backend.strategy.pattern_ai_detection import detect_chart_pattern
 # --- Added for AI-based exit decision ---
 # Consolidated exit decision helpers live in exit_ai_decision
 from backend.strategy.exit_ai_decision import AIDecision, evaluate as evaluate_exit
@@ -108,6 +109,8 @@ def get_exit_decision(
     market_cond=None,
     higher_tf=None,
     indicators_m1: dict | None = None,
+    candles: list | None = None,
+    patterns: list[str] | None = None,
 ):
     """
     Ask the LLM whether we should exit an existing position.
@@ -182,6 +185,14 @@ def get_exit_decision(
         if indicators_m1
         else {}
     )
+
+    pattern_name = None
+    if patterns:
+        try:
+            pattern_res = detect_chart_pattern(candles or [], patterns)
+            pattern_name = pattern_res.get("pattern")
+        except Exception:
+            pattern_name = None
     prompt = (
         "You are an expert FX trader AI. Your job is to decide, with clear and concise reasoning, whether to HOLD or EXIT an open position based on the latest market context and indicators.\n\n"
         f"### Position Details\n"
@@ -192,6 +203,7 @@ def get_exit_decision(
         f"- Entry Regime: {entry_regime_json}\n"
         f"- Market Condition: {market_cond_json}\n"
         f"- Higher Timeframe Levels: {higher_tf_json}\n"
+        f"- Chart Pattern: {pattern_name if pattern_name else 'None'}\n"
         "\n"
         "### Market Data & Indicators\n"
         f"{json.dumps(market_data, ensure_ascii=False)}\n"
@@ -254,6 +266,8 @@ def get_trade_plan(
     indicators: dict[str, dict],
     candles_dict: dict[str, list],
     hist_stats: dict | None = None,
+    patterns: list[str] | None = None,
+    pattern_tf: str = "M5",
 ) -> dict:
     """
     Single‑shot call to the LLM that returns a dict:
@@ -277,6 +291,15 @@ def get_trade_plan(
     candles_m5 = candles_dict.get("M5", [])
     candles_m1 = candles_dict.get("M1", [])
     candles_d1 = candles_dict.get("D1", candles_dict.get("D", []))
+
+    pattern_name = None
+    if patterns:
+        try:
+            tf_candles = candles_dict.get(pattern_tf, [])
+            pattern_res = detect_chart_pattern(tf_candles, patterns)
+            pattern_name = pattern_res.get("pattern")
+        except Exception:
+            pattern_name = None
 
     # --------------------------------------------------------------
     # Estimate market "noise" from ATR and Bollinger band width
@@ -313,6 +336,7 @@ def get_trade_plan(
         noise_pips = None
 
     noise_val = f"{noise_pips:.1f}" if noise_pips is not None else "N/A"
+    pattern_text = f"\n### Detected Chart Pattern\n{pattern_name}\n" if pattern_name else "\n### Detected Chart Pattern\nNone\n"
 
     prompt = f"""
 ⚠️【Market Regime Classification – Flexible Criteria】
@@ -386,6 +410,8 @@ EMA_s: {ind_d1.get('ema_slow', [])[-20:]}
 
 ### D1 Candles
 {candles_d1[-60:]}
+
+{pattern_text}
 
 ### How to use the provided candles:
 - Use the medium-term view (50 candles) to understand the general market trend, key support/resistance levels, and to avoid noisy, short-lived moves.
