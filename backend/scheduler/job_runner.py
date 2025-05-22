@@ -496,7 +496,7 @@ class JobRunner:
                                     self.last_close_ts = datetime.utcnow()
                                     logger.info("Position closed based on AI recommendation.")
                                     send_line_message(
-                                        f"【EXIT】{DEFAULT_PAIR} {current_price} で決済しました。PL={current_profit_pips * pip_size:.2f}"
+                                        f"【EXIT】{DEFAULT_PAIR} {current_price} で決済しました。PL={current_profit_pips:.1f}pips"
                                     )
                                 else:
                                     logger.info("AI decision was HOLD → No exit executed.")
