@@ -45,9 +45,9 @@ class TestExitDecisionCooldown(unittest.TestCase):
             return "{}"
         self.oa.ask_openai = dummy_ask
         pos = {"units": "1", "average_price": "1"}
-        self.oa.get_exit_decision({}, pos)
+        self.oa.get_exit_decision({}, pos, indicators_m1={})
         self.assertEqual(len(calls), 1)
-        result = self.oa.get_exit_decision({}, pos)
+        result = self.oa.get_exit_decision({}, pos, indicators_m1={})
         self.assertEqual(len(calls), 1, "ask_openai should not be called during cooldown")
         self.assertIn("Cooldown active", result)
 

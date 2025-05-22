@@ -99,9 +99,15 @@ def get_entry_decision(market_data, strategy_params, indicators=None, candles_di
 # ----------------------------------------------------------------------
 # Exit decision
 # ----------------------------------------------------------------------
-def get_exit_decision(market_data, current_position,
-                      indicators=None, entry_regime=None,
-                      market_cond=None, higher_tf=None):
+def get_exit_decision(
+    market_data,
+    current_position,
+    indicators=None,
+    entry_regime=None,
+    market_cond=None,
+    higher_tf=None,
+    indicators_m1: dict | None = None,
+):
     """
     Ask the LLM whether we should exit an existing position.
     Returns a JSON-formatted string like:
@@ -163,7 +169,18 @@ def get_exit_decision(market_data, current_position,
     breakeven_reached = pips_from_entry >= BE_TRIGGER_PIPS
 
     # Ensure all indicator values are JSON serializable (e.g., pandas Series to list)
-    indicators_serializable = {key: value.tolist() if hasattr(value, 'tolist') else value for key, value in indicators.items()}
+    indicators_serializable = {
+        key: value.tolist() if hasattr(value, "tolist") else value
+        for key, value in indicators.items()
+    }
+    indicators_m1_serializable = (
+        {
+            key: value.tolist() if hasattr(value, "tolist") else value
+            for key, value in indicators_m1.items()
+        }
+        if indicators_m1
+        else {}
+    )
     prompt = (
         "You are an expert FX trader AI. Your job is to decide, with clear and concise reasoning, whether to HOLD or EXIT an open position based on the latest market context and indicators.\n\n"
         f"### Position Details\n"
@@ -178,6 +195,7 @@ def get_exit_decision(market_data, current_position,
         "### Market Data & Indicators\n"
         f"{json.dumps(market_data, ensure_ascii=False)}\n"
         f"{json.dumps(indicators_serializable, ensure_ascii=False)}\n"
+        f"{json.dumps(indicators_m1_serializable, ensure_ascii=False)}\n"
         "\n"
         "### Decision Framework\n"
         "1. **Classify the market state as 'trend' or 'range'** using ADX, EMA, RSI, and Bollinger Bands:\n"
