@@ -149,7 +149,6 @@ def process_entry(
             offset = calculate_pullback_offset(indicators, market_cond)
         if offset and price_ref is not None:
             limit_price = pullback_limit(side, price_ref, offset)
-            mode = "limit"
 
     # ------------------------------------------------------------
     #  Detect narrow-range market (Bollinger band width < threshold)
@@ -218,7 +217,7 @@ def process_entry(
             lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
             market_data=market_data,
             strategy_params=params_limit,
-            force_limit_only=narrow_range,
+            force_limit_only=False,
         )
         if result:
             _pending_limits[entry_uuid] = {
@@ -247,7 +246,7 @@ def process_entry(
         lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
         market_data=market_data,
         strategy_params=params,
-        force_limit_only=narrow_range
+        force_limit_only=False
     )
 
     if trade_result and mode == "market":

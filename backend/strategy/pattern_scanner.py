@@ -45,12 +45,158 @@ def detect_double_top(data: list[dict]) -> bool:
                 return True
     return False
 
-def scan_all(data: Iterable[Mapping]) -> str | None:
+
+def _find_max_index(seq: list[float]) -> int:
+    return seq.index(max(seq)) if seq else -1
+
+
+def _find_min_index(seq: list[float]) -> int:
+    return seq.index(min(seq)) if seq else -1
+
+
+def detect_head_and_shoulders(data: list[dict]) -> bool:
+    """Very naive head-and-shoulders detection."""
+    if len(data) < 5:
+        return False
+    highs = [row['h'] for row in data]
+    head_idx = _find_max_index(highs)
+    if head_idx in (0, len(highs) - 1):
+        return False
+    left_idx = _find_max_index(highs[:head_idx])
+    right_idx = _find_max_index(highs[head_idx + 1:])
+    if left_idx < 0 or right_idx < 0:
+        return False
+    right_idx += head_idx + 1
+    left = highs[left_idx]
+    right = highs[right_idx]
+    head = highs[head_idx]
+    if head <= left or head <= right:
+        return False
+    if not _is_close(left, right, tol=head * 0.05):
+        return False
+    return True
+
+
+def detect_inverse_head_and_shoulders(data: list[dict]) -> bool:
+    """Inverse head-and-shoulders pattern."""
+    if len(data) < 5:
+        return False
+    lows = [row['l'] for row in data]
+    head_idx = _find_min_index(lows)
+    if head_idx in (0, len(lows) - 1):
+        return False
+    left_idx = _find_min_index(lows[:head_idx])
+    right_idx = _find_min_index(lows[head_idx + 1:])
+    if left_idx < 0 or right_idx < 0:
+        return False
+    right_idx += head_idx + 1
+    left = lows[left_idx]
+    right = lows[right_idx]
+    head = lows[head_idx]
+    if head >= left or head >= right:
+        return False
+    if not _is_close(left, right, tol=abs(head) * 0.05):
+        return False
+    return True
+
+
+def is_doji(data: list[dict]) -> bool:
+    """Detect a doji candle."""
+    if not data:
+        return False
+    row = data[-1]
+    rng = row["h"] - row["l"]
+    if rng == 0:
+        return False
+    body = abs(row["c"] - row["o"])
+    return body <= rng * 0.1
+
+
+def is_hammer(data: list[dict]) -> bool:
+    """Detect a hammer candle."""
+    if not data:
+        return False
+    row = data[-1]
+    body = abs(row["c"] - row["o"])
+    upper = row["h"] - max(row["o"], row["c"])
+    lower = min(row["o"], row["c"]) - row["l"]
+    if body == 0:
+        body = (row["h"] - row["l"]) * 0.001
+    return lower >= body * 2 and upper <= body
+
+
+def is_bullish_engulfing(data: list[dict]) -> bool:
+    if len(data) < 2:
+        return False
+    prev, curr = data[-2], data[-1]
+    return (
+        prev["c"] < prev["o"]
+        and curr["c"] > curr["o"]
+        and curr["o"] <= prev["c"]
+        and curr["c"] >= prev["o"]
+    )
+
+
+def is_bearish_engulfing(data: list[dict]) -> bool:
+    if len(data) < 2:
+        return False
+    prev, curr = data[-2], data[-1]
+    return (
+        prev["c"] > prev["o"]
+        and curr["c"] < curr["o"]
+        and curr["o"] >= prev["c"]
+        and curr["c"] <= prev["o"]
+    )
+
+
+def is_morning_star(data: list[dict]) -> bool:
+    if len(data) < 3:
+        return False
+    a, b, c = data[-3], data[-2], data[-1]
+    body_a = abs(a["c"] - a["o"])
+    body_b = abs(b["c"] - b["o"])
+    return (
+        a["c"] < a["o"]
+        and body_b <= body_a * 0.5
+        and c["c"] > c["o"]
+        and c["c"] > a["o"] - body_a * 0.5
+    )
+
+
+def is_evening_star(data: list[dict]) -> bool:
+    if len(data) < 3:
+        return False
+    a, b, c = data[-3], data[-2], data[-1]
+    body_a = abs(a["c"] - a["o"])
+    body_b = abs(b["c"] - b["o"])
+    return (
+        a["c"] > a["o"]
+        and body_b <= body_a * 0.5
+        and c["c"] < c["o"]
+        and c["c"] < a["o"] + body_a * 0.5
+    )
+
+PATTERN_FUNCS = {
+    "doji": is_doji,
+    "hammer": is_hammer,
+    "bullish_engulfing": is_bullish_engulfing,
+    "bearish_engulfing": is_bearish_engulfing,
+    "morning_star": is_morning_star,
+    "evening_star": is_evening_star,
+    "double_bottom": detect_double_bottom,
+    "double_top": detect_double_top,
+    "head_and_shoulders": detect_head_and_shoulders,
+    "inverse_head_and_shoulders": detect_inverse_head_and_shoulders,
+}
+
+
+def scan_all(data: Iterable[Mapping], pattern_names: list[str] | None = None) -> str | None:
     rows = _as_list(data)
-    if detect_double_bottom(rows):
-        return "double_bottom"
-    if detect_double_top(rows):
-        return "double_top"
+    names = pattern_names or list(PATTERN_FUNCS.keys())
+    for name in names:
+        func = PATTERN_FUNCS.get(name)
+        if func and func(rows):
+            return name
     return None
 
 
@@ -62,8 +208,7 @@ def scan(candles_dict: dict[str, list], pattern_names: list[str]) -> dict[str, s
     candles_dict : dict[str, list]
         Mapping of timeframe labels to candle lists.
     pattern_names : list[str]
-        Names of patterns to check. Currently unused but kept for
-        compatibility with the AI interface.
+        Names of patterns to check. If empty, all available patterns are tested.
 
     Returns
     -------
@@ -74,7 +219,7 @@ def scan(candles_dict: dict[str, list], pattern_names: list[str]) -> dict[str, s
     results: dict[str, str | None] = {}
     for tf, candles in candles_dict.items():
         try:
-            results[tf] = scan_all(candles)
+            results[tf] = scan_all(candles, pattern_names)
         except Exception:
             results[tf] = None
     return results
