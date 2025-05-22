@@ -3,6 +3,7 @@ import json
 from backend.utils.openai_client import ask_openai
 from backend.utils import env_loader, parse_json_answer
 from backend.strategy.pattern_ai_detection import detect_chart_pattern
+from backend.strategy.pattern_scanner import PATTERN_DIRECTION
 
 # --- Added for AI-based exit decision ---
 # Consolidated exit decision helpers live in exit_ai_decision
@@ -268,6 +269,29 @@ def get_exit_decision(
             logger.error(f"Failed to parse JSON response: {e}")
             logger.error(f"Invalid JSON: {response}")
             return json.dumps({"action": "HOLD", "reason": "Invalid response format"})
+
+    # --- Pattern direction consistency check -----------------------------
+    try:
+        action = str(response_json.get("action", "")).upper()
+        reason_text = str(response_json.get("reason", "")).lower()
+        if action == "EXIT":
+            for pat, direction in PATTERN_DIRECTION.items():
+                if pat in reason_text:
+                    pos_dir = "bullish" if side == "LONG" else "bearish"
+                    logger.info(
+                        "exit_reason pattern=%s dir=%s pos_side=%s",
+                        pat,
+                        direction,
+                        side,
+                    )
+                    if direction == pos_dir:
+                        logger.warning(
+                            "AI EXIT contradicted by pattern orientation; overriding to HOLD"
+                        )
+                        response_json["action"] = "HOLD"
+                    break
+    except Exception as exc:
+        logger.error(f"pattern check failed: {exc}")
 
     return json.dumps(response_json)
 
