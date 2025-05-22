@@ -168,6 +168,48 @@ class JobRunner:
                     _pending_limits.pop(key, None)
             return
 
+        local_info = None
+        for key, info in _pending_limits.items():
+            if info.get("order_id") == pend.get("order_id"):
+                local_info = info | {"key": key}
+                break
+
+        if local_info:
+            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+            price = (
+                float(tick_data["prices"][0]["bids"][0]["price"])
+                if local_info.get("side") == "long"
+                else float(tick_data["prices"][0]["asks"][0]["price"])
+            )
+            limit_price = float(local_info.get("limit_price", price))
+            diff_pips = abs(price - limit_price) / pip_size
+
+            atr_series = indicators.get("atr")
+            if atr_series is not None and len(atr_series):
+                atr_val = atr_series.iloc[-1] if hasattr(atr_series, "iloc") else atr_series[-1]
+                atr_pips = float(atr_val) / pip_size
+            else:
+                atr_pips = 0.0
+
+            threshold_ratio = float(env_loader.get_env("LIMIT_THRESHOLD_ATR_RATIO", "0.3"))
+            adx_series = indicators.get("adx")
+            adx_val = adx_series.iloc[-1] if adx_series is not None and len(adx_series) else 0.0
+            if atr_pips and diff_pips >= atr_pips * threshold_ratio and adx_val >= 25:
+                try:
+                    logger.info(
+                        f"Switching LIMIT {pend['order_id']} to market (diff {diff_pips:.1f} pips)"
+                    )
+                    order_mgr.cancel_order(pend["order_id"])
+                    units = int(float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")) * 1000)
+                    if local_info.get("side") == "short":
+                        units = -units
+                    order_mgr.place_market_order(instrument, units)
+                except Exception as exc:
+                    logger.warning(f"Failed to convert to market order: {exc}")
+                finally:
+                    _pending_limits.pop(local_info["key"], None)
+                return
+
         age = time.time() - pend["ts"]
         if age < self.max_limit_age_sec:
             return
@@ -232,6 +274,8 @@ class JobRunner:
                 "instrument": instrument,
                 "order_id": result.get("order_id"),
                 "ts": int(datetime.utcnow().timestamp()),
+                "limit_price": limit_price,
+                "side": side,
             }
             logger.info(f"Renewed LIMIT order {result.get('order_id')}")
 

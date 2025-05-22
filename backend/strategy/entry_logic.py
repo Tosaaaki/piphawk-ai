@@ -26,6 +26,41 @@ def pullback_limit(side: str, price: float, offset_pips: float) -> float:
     return price - offset_pips * pip_size if side == "long" else price + offset_pips * pip_size
 
 
+def calculate_pullback_offset(indicators: dict, market_cond: dict | None) -> float:
+    """Return dynamic pullback offset in pips.
+
+    The base value comes from ``PULLBACK_LIMIT_OFFSET_PIPS`` and is adjusted
+    according to the latest ATR value and trend strength (ADX).
+    """
+    offset = float(env_loader.get_env("PULLBACK_LIMIT_OFFSET_PIPS", "2"))
+    try:
+        pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+
+        atr_series = indicators.get("atr")
+        if atr_series is not None and len(atr_series):
+            atr_val = atr_series.iloc[-1] if hasattr(atr_series, "iloc") else atr_series[-1]
+            atr_pips = float(atr_val) / pip_size
+            ratio = float(env_loader.get_env("PULLBACK_ATR_RATIO", "0.5"))
+            offset = offset + atr_pips * ratio
+
+        adx_series = indicators.get("adx")
+        if (
+            market_cond
+            and market_cond.get("market_condition") == "trend"
+            and adx_series is not None
+            and len(adx_series)
+        ):
+            adx_val = adx_series.iloc[-1] if hasattr(adx_series, "iloc") else adx_series[-1]
+            if float(adx_val) >= 30:
+                offset *= 1.5
+            elif float(adx_val) < 20:
+                offset *= 0.7
+    except Exception as exc:
+        logging.debug(f"[calculate_pullback_offset] failed: {exc}")
+
+    return offset
+
+
 def process_entry(
     indicators,
     candles,
@@ -109,7 +144,7 @@ def process_entry(
                     offset = pullback
                     break
         if offset == 0.0:
-            offset = float(env_loader.get_env("PULLBACK_LIMIT_OFFSET_PIPS", "0"))
+            offset = calculate_pullback_offset(indicators, market_cond)
         if offset and price_ref is not None:
             limit_price = pullback_limit(side, price_ref, offset)
             mode = "limit"
@@ -188,6 +223,8 @@ def process_entry(
                 "instrument": instrument,
                 "order_id": result.get("order_id"),
                 "ts": int(datetime.utcnow().timestamp()),
+                "limit_price": limit_price,
+                "side": side,
             }
         return bool(result)
     else:
