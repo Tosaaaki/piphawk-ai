@@ -244,6 +244,7 @@ def get_exit_decision(
             response_json = json.loads(response)
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON response: {e}")
+            logger.error(f"Invalid JSON: {response}")
             return json.dumps({"action": "HOLD", "reason": "Invalid response format"})
 
     return json.dumps(response_json)
@@ -444,7 +445,8 @@ Respond with **one-line valid JSON** exactly as:
         try:
             plan = json.loads(raw.strip())
         except json.JSONDecodeError:
-            logger.error("Invalid JSON from LLM → fallback no‑trade")
+            logger.error(f"Invalid JSON: {raw}")
+            logger.error(f"Invalid JSON from LLM → fallback no‑trade: {raw}")
             return {"entry": {"side": "no"}}
 
     # ---- local guards -------------------------------------------------
