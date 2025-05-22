@@ -84,7 +84,7 @@ class OrderManager:
                 "units": str(units),
                 "price": str(limit_price),
                 "instrument": instrument,
-                "timeInForce": "GTC",
+                "timeInForce": "GTD",
                 "type": "LIMIT",
                 "positionFill": "DEFAULT",
                 "clientExtensions": {
