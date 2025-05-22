@@ -167,6 +167,7 @@ class JobRunner:
     # ────────────────────────────────────────────────────────────
     def _manage_pending_limits(self, instrument: str, indicators: dict, candles: list, tick_data: dict):
         """Cancel stale LIMIT orders and optionally renew them."""
+        MAX_LIMIT_RETRY = int(env_loader.get_env("MAX_LIMIT_RETRY", "3"))
         pend = get_pending_entry_order(instrument)
         if not pend:
             # purge any local record if OANDA reports none
@@ -241,9 +242,15 @@ class JobRunner:
             logger.warning(f"Failed to cancel LIMIT order: {exc}")
             return
 
+        retry_count = 0
         for key, info in list(_pending_limits.items()):
             if info.get("order_id") == pend["order_id"]:
+                retry_count = info.get("retry_count", 0)
                 _pending_limits.pop(key, None)
+        
+        if retry_count >= MAX_LIMIT_RETRY:
+            logger.info("LIMIT retry count exceeded – not placing new order.")
+            return
 
         # consult AI for potential renewal
         try:
@@ -297,6 +304,7 @@ class JobRunner:
                 "ts": int(datetime.utcnow().timestamp()),
                 "limit_price": limit_price,
                 "side": side,
+                "retry_count": retry_count + 1,
             }
             logger.info(f"Renewed LIMIT order {result.get('order_id')}")
 

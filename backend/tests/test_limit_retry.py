@@ -14,15 +14,11 @@ class FakeSeries:
                 return self._outer._data[idx]
         self.iloc = _ILoc(self)
     def __getitem__(self, idx):
-        if isinstance(idx, slice):
-            return self._data[idx]
-        if isinstance(idx, int) and idx < 0:
-            raise KeyError(idx)
         return self._data[idx]
     def __len__(self):
         return len(self._data)
 
-class TestDynamicPullback(unittest.TestCase):
+class TestLimitRetry(unittest.TestCase):
     def setUp(self):
         self._added = []
         def add(name, mod):
@@ -39,32 +35,32 @@ class TestDynamicPullback(unittest.TestCase):
         add("dotenv", dotenv_stub)
 
         oa = types.ModuleType("backend.strategy.openai_analysis")
-        oa.get_trade_plan = lambda *a, **k: {"entry": {"side": "long", "mode": "market"}, "risk": {"tp_pips": 10, "sl_pips": 5}}
+        oa.get_trade_plan = lambda *a, **k: {"entry": {"side": "long", "mode": "limit", "limit_price": 1.1}, "risk": {}}
         oa.get_market_condition = lambda *a, **k: {"market_condition": "trend", "trend_direction": "long"}
-        oa.should_convert_limit_to_market = lambda ctx: True
+        oa.should_convert_limit_to_market = lambda ctx: False
         add("backend.strategy.openai_analysis", oa)
 
         om = types.ModuleType("backend.orders.order_manager")
         class DummyMgr:
             def __init__(self):
-                self.market_called = False
+                self.enter_calls = 0
             def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False):
+                self.enter_calls += 1
                 return {"order_id": "1"}
             def place_market_order(self, instrument, units):
-                self.market_called = True
-                return {"order_id": "m1"}
+                pass
             def cancel_order(self, oid):
                 pass
         om.OrderManager = DummyMgr
         add("backend.orders.order_manager", om)
 
-        log_mod = types.ModuleType("backend.logs.log_manager")
-        log_mod.log_trade = lambda *a, **k: None
-        add("backend.logs.log_manager", log_mod)
-
         oc = types.ModuleType("backend.utils.oanda_client")
         oc.get_pending_entry_order = lambda instrument: {"order_id": "1", "ts": 0}
         add("backend.utils.oanda_client", oc)
+
+        log_mod = types.ModuleType("backend.logs.log_manager")
+        log_mod.log_trade = lambda *a, **k: None
+        add("backend.logs.log_manager", log_mod)
 
         stub_names = [
             "backend.market_data.tick_fetcher",
@@ -97,9 +93,8 @@ class TestDynamicPullback(unittest.TestCase):
         sys.modules["backend.logs.log_manager"].get_db_connection = lambda *a, **k: None
         sys.modules["backend.logs.log_manager"].log_trade = lambda *a, **k: None
 
-        os.environ["PULLBACK_LIMIT_OFFSET_PIPS"] = "2"
-        os.environ["PULLBACK_ATR_RATIO"] = "0.5"
         os.environ["PIP_SIZE"] = "0.01"
+        os.environ["MAX_LIMIT_RETRY"] = "1"
 
         import backend.strategy.entry_logic as el
         import backend.scheduler.job_runner as jr
@@ -113,18 +108,13 @@ class TestDynamicPullback(unittest.TestCase):
         for name in self._added:
             sys.modules.pop(name, None)
 
-    def test_calculate_offset_atr(self):
-        indicators = {"atr": FakeSeries([0.2]), "adx": FakeSeries([40])}
-        offset = self.el.calculate_pullback_offset(indicators, {"market_condition": "trend"})
-        self.assertGreater(offset, 2)
-
-    def test_switch_limit_to_market(self):
+    def test_no_second_retry(self):
         self.el._pending_limits.clear()
-        self.el._pending_limits["a"] = {"instrument": "USD_JPY", "order_id": "1", "ts": 0, "limit_price": 1.0, "side": "long", "retry_count": 0}
-        indicators = {"atr": FakeSeries([0.1]), "adx": FakeSeries([40])}
+        self.el._pending_limits["a"] = {"instrument": "USD_JPY", "order_id": "1", "ts": 0, "limit_price": 1.0, "side": "long", "retry_count": 1}
+        indicators = {"atr": FakeSeries([0.1]), "adx": FakeSeries([30])}
         tick = {"prices": [{"instrument": "USD_JPY", "bids": [{"price": "1.05"}], "asks": [{"price": "1.06"}]}]}
         self.runner._manage_pending_limits("USD_JPY", indicators, [], tick)
-        self.assertTrue(self.jr.order_mgr.market_called)
+        self.assertEqual(self.jr.order_mgr.enter_calls, 0)
 
 if __name__ == "__main__":
     unittest.main()
