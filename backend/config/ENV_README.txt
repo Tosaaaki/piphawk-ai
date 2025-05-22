@@ -43,3 +43,11 @@ ATR（ボラティリティ指標）の計算期間。
 
 - OVERSHOOT_ATR_MULT:
   BB下限をATR×この倍率だけ下回った場合はエントリーをブロック
+
+■ TRAIL_TRIGGER_PIPS / TRAIL_DISTANCE_PIPS
+トレーリングストップが作動する利益幅と、追随幅（単位:pips）。
+デフォルト値はそれぞれ10 / 6。
+
+■ TRAIL_TRIGGER_MULTIPLIER / TRAIL_DISTANCE_MULTIPLIER
+ATRベースのトレーリングストップで使われる倍率。
+デフォルト値は1.5 / 1.0。
