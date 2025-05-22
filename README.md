@@ -130,6 +130,23 @@ from backend.market_data.tick_fetcher import fetch_tick_data
 tick = fetch_tick_data("USD_JPY")
 ```
 
+## Price Formatting Utilities
+
+Order prices must have the correct number of decimal places or OANDA will reject
+the request.  The helpers under `backend.utils.price` round values to the
+allowed precision and return them as strings.  `format_price()` performs this
+lookup for you and preserves trailing zeros.
+
+```python
+from backend.utils.price import format_price
+
+price_str = format_price("USD_JPY", 143.25099999999998)
+print(price_str)  # "143.251"
+```
+
+JPY pairs use three decimal places while most other instruments use five.
+Extend the module's map if additional pairs are needed.
+
 ## Frontend Components
 
 Example React components are provided under `docs/examples/` and are styled with `styled-components` for a dark dashboard UI:
