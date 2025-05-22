@@ -73,6 +73,7 @@ class TestPatternScanner(unittest.TestCase):
         os.environ.setdefault("OPENAI_API_KEY", "dummy")
         os.environ.setdefault("PATTERN_MIN_BARS", "4")
         os.environ.setdefault("PATTERN_TOLERANCE", "0.001")
+        os.environ.pop("PATTERN_EXCLUDE_TFS", None)
         self._added = []
 
         def add(name, mod):
@@ -93,6 +94,7 @@ class TestPatternScanner(unittest.TestCase):
             sys.modules.pop(name, None)
         os.environ.pop("PATTERN_MIN_BARS", None)
         os.environ.pop("PATTERN_TOLERANCE", None)
+        os.environ.pop("PATTERN_EXCLUDE_TFS", None)
 
     def test_double_bottom(self):
         data = [
