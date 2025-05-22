@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import Any, Dict
 
 from backend.utils.openai_client import ask_openai  # existing helper that wraps OpenAI ChatCompletion
+from backend.utils import parse_json_answer
 
 __all__ = ["AIDecision", "evaluate"]
 
@@ -84,14 +85,10 @@ def _build_prompt(context: Dict[str, Any]) -> str:
 def _parse_answer(raw: str | dict) -> AIDecision:
     """Parse the model answer which may be a dict or JSON string."""
 
-    if isinstance(raw, dict):
-        data = raw
-    else:
-        try:
-            data = json.loads(raw.strip())
-        except json.JSONDecodeError as exc:
-            # Fallback – treat as HOLD with low confidence
-            return AIDecision(action="HOLD", confidence=0.0, reason=f"json_error:{exc}")
+    data, err = parse_json_answer(raw)
+    if data is None:
+        # Fallback – treat as HOLD with low confidence
+        return AIDecision(action="HOLD", confidence=0.0, reason=f"json_error:{err}")
 
     action = str(data.get("action", "HOLD")).upper()
     if action not in _ALLOWED_ACTIONS:

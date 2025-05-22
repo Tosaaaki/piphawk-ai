@@ -1,7 +1,7 @@
 import logging
 import json
 from backend.utils.openai_client import ask_openai
-from backend.utils import env_loader
+from backend.utils import env_loader, parse_json_answer
 from backend.strategy.pattern_ai_detection import detect_chart_pattern
 # --- Added for AI-based exit decision ---
 # Consolidated exit decision helpers live in exit_ai_decision
@@ -438,14 +438,10 @@ Respond with **one-line valid JSON** exactly as:
 {{"regime":{{...}},"entry":{{...}},"risk":{{...}}}}
 """
     raw = ask_openai(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4o-mini"))
-    if isinstance(raw, dict):
-        plan = raw
-    else:
-        try:
-            plan = json.loads(raw.strip())
-        except json.JSONDecodeError:
-            logger.error("Invalid JSON from LLM → fallback no‑trade")
-            return {"entry": {"side": "no"}}
+
+    plan, err = parse_json_answer(raw)
+    if plan is None:
+        return {"entry": {"side": "no"}, "raw": raw}
 
     # ---- local guards -------------------------------------------------
     risk = plan.get("risk", {})
