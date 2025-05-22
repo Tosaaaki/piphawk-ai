@@ -206,6 +206,17 @@ def get_exit_decision(
                 pattern_name = pattern_res.get("pattern")
         except Exception:
             pattern_name = None
+
+    pattern_line = None
+    if detected_patterns:
+        try:
+            pattern_line = ", ".join(
+                f"{tf}:{p}" for tf, p in detected_patterns.items() if p
+            ) or None
+        except Exception:
+            pattern_line = str(detected_patterns)
+    elif pattern_name:
+        pattern_line = pattern_name
             
     prompt = (
         "You are an expert FX trader AI. Your job is to decide, with clear and concise reasoning, whether to HOLD or EXIT an open position based on the latest market context and indicators.\n\n"
@@ -320,6 +331,17 @@ def get_trade_plan(
                 pattern_name = pattern_res.get("pattern")
         except Exception:
             pattern_name = None
+
+    pattern_line = None
+    if detected_patterns:
+        try:
+            pattern_line = ", ".join(
+                f"{tf}:{p}" for tf, p in detected_patterns.items() if p
+            ) or None
+        except Exception:
+            pattern_line = str(detected_patterns)
+    elif pattern_name:
+        pattern_line = pattern_name
 
     # --------------------------------------------------------------
     # Estimate market "noise" from ATR and Bollinger band width

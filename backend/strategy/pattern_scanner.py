@@ -52,3 +52,29 @@ def scan_all(data: Iterable[Mapping]) -> str | None:
     if detect_double_top(rows):
         return "double_top"
     return None
+
+
+def scan(candles_dict: dict[str, list], pattern_names: list[str]) -> dict[str, str | None]:
+    """Scan candle data for chart patterns per timeframe.
+
+    Parameters
+    ----------
+    candles_dict : dict[str, list]
+        Mapping of timeframe labels to candle lists.
+    pattern_names : list[str]
+        Names of patterns to check. Currently unused but kept for
+        compatibility with the AI interface.
+
+    Returns
+    -------
+    dict[str, str | None]
+        Detected pattern name for each timeframe, or ``None`` if no match.
+    """
+
+    results: dict[str, str | None] = {}
+    for tf, candles in candles_dict.items():
+        try:
+            results[tf] = scan_all(candles)
+        except Exception:
+            results[tf] = None
+    return results
