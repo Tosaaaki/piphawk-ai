@@ -259,6 +259,42 @@ def get_trade_plan(
     candles_m1 = candles_dict.get("M1", [])
     candles_d1 = candles_dict.get("D1", candles_dict.get("D", []))
 
+    # --------------------------------------------------------------
+    # Estimate market "noise" from ATR and Bollinger band width
+    # --------------------------------------------------------------
+    noise_pips = None
+    try:
+        pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+        atr_series = ind_m5.get("atr")
+        bb_upper = ind_m5.get("bb_upper")
+        bb_lower = ind_m5.get("bb_lower")
+
+        atr_val = None
+        if atr_series is not None:
+            if hasattr(atr_series, "iloc"):
+                atr_val = float(atr_series.iloc[-1])
+            else:
+                atr_val = float(atr_series[-1])
+        bw_val = None
+        if bb_upper is not None and bb_lower is not None:
+            if hasattr(bb_upper, "iloc"):
+                bb_u = float(bb_upper.iloc[-1])
+            else:
+                bb_u = float(bb_upper[-1])
+            if hasattr(bb_lower, "iloc"):
+                bb_l = float(bb_lower.iloc[-1])
+            else:
+                bb_l = float(bb_lower[-1])
+            bw_val = bb_u - bb_l
+
+        atr_pips = atr_val / pip_size if atr_val is not None else 0.0
+        bw_pips = bw_val / pip_size if bw_val is not None else 0.0
+        noise_pips = max(atr_pips, bw_pips)
+    except Exception:
+        noise_pips = None
+
+    noise_val = f"{noise_pips:.1f}" if noise_pips is not None else "N/A"
+
     prompt = f"""
 ⚠️【Market Regime Classification – Flexible Criteria】
 Classify as "TREND" if ANY TWO of the following conditions are met:
@@ -338,6 +374,10 @@ EMA_s: {ind_d1.get('ema_slow', [])[-20:]}
 
 ### 90-day Historical Stats
 {json.dumps(hist_stats or {}, separators=(',', ':'))}
+
+### 想定ノイズ (Estimated Noise)
+{noise_val} pips is the approximate short-term market noise.
+Use this as a baseline for setting wider stop-loss levels.
 
 Your task:
 1. Clearly classify the current regime as "trend" or "range". If "trend", specify direction as "long" or "short". Output this at JSON key "regime".
