@@ -70,14 +70,14 @@ class TestPullbackLimit(unittest.TestCase):
         for name in self._added:
             sys.modules.pop(name, None)
 
-    def test_market_to_limit_near_pivot(self):
+    def test_market_order_when_ai_says_market(self):
         indicators = {"atr": FakeSeries([0.1, 0.1])}
         candles = []
         market_data = {"prices": [{"instrument": "USD_JPY", "bids": [{"price": "1.0"}], "asks": [{"price": "1.01"}]}]}
         higher_tf = {"pivot_d": 1.0}
         result = self.el.process_entry(indicators, candles, market_data, higher_tf=higher_tf)
         self.assertTrue(result)
-        self.assertEqual(self.el.order_manager.last_params["mode"], "limit")
+        self.assertEqual(self.el.order_manager.last_params["mode"], "market")
 
 
 if __name__ == "__main__":
