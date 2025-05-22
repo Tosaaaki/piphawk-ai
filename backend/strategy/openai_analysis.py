@@ -3,6 +3,7 @@ import json
 from backend.utils.openai_client import ask_openai
 from backend.utils import env_loader, parse_json_answer
 from backend.strategy.pattern_ai_detection import detect_chart_pattern
+from backend.strategy.pattern_scanner import pattern_scanner
 # --- Added for AI-based exit decision ---
 # Consolidated exit decision helpers live in exit_ai_decision
 from backend.strategy.exit_ai_decision import AIDecision, evaluate as evaluate_exit
@@ -30,6 +31,9 @@ COOL_BBWIDTH_PCT: float = float(env_loader.get_env("COOL_BBWIDTH_PCT", "0"))
 COOL_ATR_PCT: float = float(env_loader.get_env("COOL_ATR_PCT", "0"))
 ADX_NO_TRADE_MIN: float = float(env_loader.get_env("ADX_NO_TRADE_MIN", "20"))
 ADX_NO_TRADE_MAX: float = float(env_loader.get_env("ADX_NO_TRADE_MAX", "30"))
+USE_LOCAL_PATTERN: bool = (
+    env_loader.get_env("USE_LOCAL_PATTERN", "false").lower() == "true"
+)
 
 # Global variables to store last AI call timestamps
 # Global variables to store last AI call timestamps
@@ -189,7 +193,10 @@ def get_exit_decision(
     pattern_name = None
     if patterns:
         try:
-            pattern_res = detect_chart_pattern(candles or [], patterns)
+            if USE_LOCAL_PATTERN:
+                pattern_res = pattern_scanner(candles or [], patterns)
+            else:
+                pattern_res = detect_chart_pattern(candles or [], patterns)
             pattern_name = pattern_res.get("pattern")
         except Exception:
             pattern_name = None
@@ -297,7 +304,10 @@ def get_trade_plan(
     if patterns:
         try:
             tf_candles = candles_dict.get(pattern_tf, [])
-            pattern_res = detect_chart_pattern(tf_candles, patterns)
+            if USE_LOCAL_PATTERN:
+                pattern_res = pattern_scanner(tf_candles, patterns)
+            else:
+                pattern_res = detect_chart_pattern(tf_candles, patterns)
             pattern_name = pattern_res.get("pattern")
         except Exception:
             pattern_name = None
