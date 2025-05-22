@@ -4,9 +4,6 @@ from backend.utils.openai_client import ask_openai
 from backend.utils import env_loader, parse_json_answer
 from backend.strategy.pattern_ai_detection import detect_chart_pattern
 
-# When true, use local pattern scanner instead of OpenAI
-USE_LOCAL_PATTERN = env_loader.get_env("USE_LOCAL_PATTERN", "false").lower() == "true"
-
 # --- Added for AI-based exit decision ---
 # Consolidated exit decision helpers live in exit_ai_decision
 from backend.strategy.exit_ai_decision import AIDecision, evaluate as evaluate_exit
