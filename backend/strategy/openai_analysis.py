@@ -3,7 +3,10 @@ import json
 from backend.utils.openai_client import ask_openai
 from backend.utils import env_loader, parse_json_answer
 from backend.strategy.pattern_ai_detection import detect_chart_pattern
-from backend.strategy.pattern_scanner import pattern_scanner
+
+# When true, use local pattern scanner instead of OpenAI
+USE_LOCAL_PATTERN = env_loader.get_env("USE_LOCAL_PATTERN", "false").lower() == "true"
+
 # --- Added for AI-based exit decision ---
 # Consolidated exit decision helpers live in exit_ai_decision
 from backend.strategy.exit_ai_decision import AIDecision, evaluate as evaluate_exit
@@ -192,20 +195,18 @@ def get_exit_decision(
         else {}
     )
 
-    pattern_line = None
-    if detected_patterns:
-        parts = [f"{k}:{v}" for k, v in detected_patterns.items() if v]
-        pattern_line = " ".join(parts) if parts else None
-    else:
-        pattern_name = None
-        if patterns:
-            try:
+    pattern_name = None
+    if patterns:
+        try:
+            if USE_LOCAL_PATTERN:
+                from backend.strategy.pattern_scanner import scan_all
+                pattern_name = scan_all(candles or [])
+            else:
                 pattern_res = detect_chart_pattern(candles or [], patterns)
                 pattern_name = pattern_res.get("pattern")
-            except Exception:
-                pattern_name = None
-        pattern_line = pattern_name
-
+        except Exception:
+            pattern_name = None
+            
     prompt = (
         "You are an expert FX trader AI. Your job is to decide, with clear and concise reasoning, whether to HOLD or EXIT an open position based on the latest market context and indicators.\n\n"
         f"### Position Details\n"
@@ -307,21 +308,18 @@ def get_trade_plan(
     candles_m1 = candles_dict.get("M1", [])
     candles_d1 = candles_dict.get("D1", candles_dict.get("D", []))
 
-
-    pattern_line = None
-    if detected_patterns:
-        parts = [f"{k}:{v}" for k, v in detected_patterns.items() if v]
-        pattern_line = " ".join(parts) if parts else None
-    else:
-        pattern_name = None
-        if patterns:
-            try:
-                tf_candles = candles_dict.get(pattern_tf, [])
+    pattern_name = None
+    if patterns:
+        try:
+            tf_candles = candles_dict.get(pattern_tf, [])
+            if USE_LOCAL_PATTERN:
+                from backend.strategy.pattern_scanner import scan_all
+                pattern_name = scan_all(tf_candles)
+            else:
                 pattern_res = detect_chart_pattern(tf_candles, patterns)
                 pattern_name = pattern_res.get("pattern")
-            except Exception:
-                pattern_name = None
-        pattern_line = pattern_name
+        except Exception:
+            pattern_name = None
 
     # --------------------------------------------------------------
     # Estimate market "noise" from ATR and Bollinger band width
