@@ -37,7 +37,6 @@ USE_LOCAL_PATTERN: bool = (
 )
 
 # Global variables to store last AI call timestamps
-# Global variables to store last AI call timestamps
 _last_entry_ai_call_time = 0.0
 _last_exit_ai_call_time = 0.0
 # Regime‑AI cache
