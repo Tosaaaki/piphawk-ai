@@ -182,6 +182,8 @@ print(result)
 返り値は `{"pattern": "<一致したパターン名>"}` もしくは `{"pattern": None}` の形式です。
 
 `USE_LOCAL_PATTERN=true` を設定すると、OpenAI を使用せずローカル判定を行います。
+ローカル判定時は `pattern_scanner.scan()` を使うことで複数時間足のローソク足データ
+から時間足ごとの検出結果を得られます。
 
 対応パターン例:
 - `double_bottom`
