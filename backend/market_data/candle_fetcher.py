@@ -6,7 +6,7 @@ OANDA_API_URL = "https://api-fxtrade.oanda.com/v3/instruments/{instrument}/candl
 OANDA_API_KEY = os.getenv("OANDA_API_KEY")
 OANDA_ACCOUNT_ID = os.getenv("OANDA_ACCOUNT_ID")
 
-def fetch_candles(instrument=None, granularity="M1", count=500):
+def fetch_candles(instrument=None, granularity="M1", count=500, timeout=10):
     """
     Fetch candlestick data from OANDA API.
     
@@ -14,6 +14,7 @@ def fetch_candles(instrument=None, granularity="M1", count=500):
         instrument (str): The instrument to fetch data for (e.g. "USD_JPY").
         granularity (str): The granularity of the candles (e.g. "M1", "H1").
         count (int): Number of candles to fetch (max 5000).
+        timeout (int | float): Timeout in seconds for the HTTP request.
         
     Returns:
         list: List of candle data dictionaries.
@@ -32,7 +33,9 @@ def fetch_candles(instrument=None, granularity="M1", count=500):
     }
     url = OANDA_API_URL.format(instrument=instrument)
     try:
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.get(
+            url, headers=headers, params=params, timeout=timeout
+        )
         response.raise_for_status()
         data = response.json()
         if "candles" in data:
@@ -40,6 +43,9 @@ def fetch_candles(instrument=None, granularity="M1", count=500):
         else:
             print(f"No candles found in response for {instrument}")
             return []
+    except requests.Timeout:
+        print(f"Request timed out while fetching candles for {instrument}")
+        return []
     except requests.RequestException as e:
         print(f"Error fetching candles for {instrument}: {e}")
         return []
