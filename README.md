@@ -29,8 +29,12 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    `RANGE_CENTER_BLOCK_PCT` controls how close to the Bollinger band center price
    can be when ADX is below `ADX_RANGE_THRESHOLD`. Set to `0.3` (30%) to block
    entries near the middle of a range, helping suppress counter-trend trades.
- `AI_PROFIT_TRIGGER_RATIO` defines what portion of the take-profit target must
- be reached before an AI exit check occurs. The default value is `0.3` (30%).
+`AI_PROFIT_TRIGGER_RATIO` defines what portion of the take-profit target must
+be reached before an AI exit check occurs. The default value is `0.3` (30%).
+`STAGNANT_EXIT_SEC` sets how long a profitable position can stagnate before the
+system asks the AI to close it. If `STAGNANT_ATR_PIPS` is greater than zero and
+ATR falls below this value, the position is considered stagnant once the time
+threshold passes.
 `PULLBACK_LIMIT_OFFSET_PIPS` is the base distance for a pullback LIMIT order when the AI proposes a market entry. The actual offset is derived from ATR and ADX, and if price runs away while the trend persists the order can be switched to a market order under AI control.
 `AI_LIMIT_CONVERT_MODEL` sets the OpenAI model used when asking whether a pending LIMIT should be switched to a market order. The default is `gpt-4.1-nano`.
 `PULLBACK_PIPS` defines the offset used specifically when the price is within the pivot suppression range. The defaults are `2` and `3` respectively.

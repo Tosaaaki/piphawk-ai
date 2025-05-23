@@ -40,6 +40,8 @@
     "NOISE_SL_MULT": 1.5,
     "AI_PROFIT_TRIGGER_RATIO": 0.5,
     "AI_PROFIT_DECISION_ENABLED": true,
+    "STAGNANT_EXIT_SEC": 0,
+    "STAGNANT_ATR_PIPS": 0,
     "AI_REGIME_MODEL": "gpt-4.1-nano",
     "AI_ENTRY_MODEL": "gpt-4.1-nano",
     "AI_EXIT_MODEL": "gpt-4.1-nano",
