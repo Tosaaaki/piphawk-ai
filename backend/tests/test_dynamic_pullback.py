@@ -126,5 +126,15 @@ class TestDynamicPullback(unittest.TestCase):
         self.runner._manage_pending_limits("USD_JPY", indicators, [], tick)
         self.assertTrue(self.jr.order_mgr.market_called)
 
+    def test_calculate_dynamic_pullback(self):
+        from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
+        indicators = {
+            "atr": FakeSeries([0.2]),
+            "adx": FakeSeries([25]),
+            "noise": FakeSeries([4.0]),
+        }
+        result = calculate_dynamic_pullback(indicators, 1.2, 1.0)
+        self.assertEqual(result, 15.0)
+
 if __name__ == "__main__":
     unittest.main()

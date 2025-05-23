@@ -1,4 +1,5 @@
 from backend.strategy.openai_analysis import get_trade_plan
+from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
 from datetime import datetime
@@ -118,6 +119,44 @@ def process_entry(
     limit_price = entry_info.get("limit_price")
     valid_sec = int(entry_info.get("valid_for_sec", env_loader.get_env("MAX_LIMIT_AGE_SEC", "180")))
 
+    # --- dynamic pullback threshold ---------------------------------
+    pullback_needed = None
+    try:
+        pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+        atr_series = indicators.get("atr")
+        bb_upper = indicators.get("bb_upper")
+        bb_lower = indicators.get("bb_lower")
+        atr_val = atr_series.iloc[-1] if atr_series is not None else None
+        if atr_val is not None:
+            atr_val = float(atr_val)
+        bw_val = None
+        if bb_upper is not None and bb_lower is not None:
+            bw_val = float(bb_upper.iloc[-1]) - float(bb_lower.iloc[-1])
+        atr_pips = atr_val / pip_size if atr_val is not None else 0.0
+        bw_pips = bw_val / pip_size if bw_val is not None else 0.0
+        class _OneVal:
+            def __init__(self, val):
+                class _IL:
+                    def __getitem__(self, idx):
+                        return val
+                self.iloc = _IL()
+
+        noise_series = _OneVal(max(atr_pips, bw_pips))
+        highs = []
+        lows = []
+        for c in candles[-20:]:
+            if 'mid' in c:
+                highs.append(float(c['mid']['h']))
+                lows.append(float(c['mid']['l']))
+            else:
+                highs.append(float(c.get('h')))
+                lows.append(float(c.get('l')))
+        recent_high = max(highs) if highs else 0.0
+        recent_low = min(lows) if lows else 0.0
+        pullback_needed = calculate_dynamic_pullback({**indicators, 'noise': noise_series}, recent_high, recent_low)
+    except Exception:
+        pass
+
     if isinstance(market_data, dict):
         instrument = market_data["prices"][0]["instrument"]
         bid = float(market_data["prices"][0]["bids"][0]["price"])
@@ -132,7 +171,8 @@ def process_entry(
         if higher_tf and price_ref is not None:
             pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
             sup_pips = float(env_loader.get_env("PIVOT_SUPPRESSION_PIPS", "15"))
-            pullback = float(env_loader.get_env("PULLBACK_PIPS", "3"))
+            base_pullback = float(env_loader.get_env("PULLBACK_PIPS", "3"))
+            pullback = pullback_needed if pullback_needed is not None else base_pullback
             tfs = [
                 tf.strip().upper()
                 for tf in env_loader.get_env("PIVOT_SUPPRESSION_TFS", "D").split(",")
@@ -147,6 +187,8 @@ def process_entry(
                     break
         if offset == 0.0:
             offset = calculate_pullback_offset(indicators, market_cond)
+        if pullback_needed is not None:
+            offset = max(offset, pullback_needed)
         if offset and price_ref is not None:
             limit_price = pullback_limit(side, price_ref, offset)
 

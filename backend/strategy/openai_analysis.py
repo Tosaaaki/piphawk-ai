@@ -4,6 +4,8 @@ from backend.utils.openai_client import ask_openai
 from backend.utils import env_loader, parse_json_answer
 from backend.strategy.pattern_ai_detection import detect_chart_pattern
 from backend.strategy.pattern_scanner import PATTERN_DIRECTION
+from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
+import pandas as pd
 
 # --- Added for AI-based exit decision ---
 # Consolidated exit decision helpers live in exit_ai_decision
@@ -619,6 +621,35 @@ def get_trade_plan(
         noise_pips = None
 
     noise_val = f"{noise_pips:.1f}" if noise_pips is not None else "N/A"
+    # --- calculate dynamic pullback threshold ----------------------------
+    recent_high = None
+    recent_low = None
+    try:
+        highs = []
+        lows = []
+        for c in candles_m5[-20:]:
+            if not isinstance(c, dict):
+                continue
+            if 'mid' in c:
+                highs.append(float(c['mid']['h']))
+                lows.append(float(c['mid']['l']))
+            else:
+                highs.append(float(c.get('h')))
+                lows.append(float(c.get('l')))
+        if highs and lows:
+            recent_high = max(highs)
+            recent_low = min(lows)
+    except Exception:
+        pass
+    class _OneVal:
+        def __init__(self, val):
+            class _IL:
+                def __getitem__(self, idx):
+                    return val
+            self.iloc = _IL()
+
+    noise_series = _OneVal(noise_pips) if noise_pips is not None else None
+    pullback_needed = calculate_dynamic_pullback({**ind_m5, 'noise': noise_series}, recent_high or 0.0, recent_low or 0.0)
     pattern_text = f"\n### Detected Chart Pattern\n{pattern_line}\n" if pattern_line else "\n### Detected Chart Pattern\nNone\n"
 
     prompt = f"""
@@ -641,7 +672,7 @@ Allow short-term counter-trend trades ONLY when ALL of the following conditions 
 - TP set very conservatively (5-10 pips) with strict risk control.
 
 📈【Trend Entry Clarification】
-When a TREND is identified (using the above criteria), allow new entries even if RSI is overbought (>70 for longs) or oversold (<30 for shorts), **as long as other indicators confirm the trend is likely to continue**. Do NOT block entries just because RSI is extreme if the EMA slope, ADX, and price action all confirm trend continuation. Shorts must enter on pullbacks at least 5 pips above the latest low. Longs must enter on pullbacks at least 5 pips below the latest high.
+When a TREND is identified (using the above criteria), allow new entries even if RSI is overbought (>70 for longs) or oversold (<30 for shorts), **as long as other indicators confirm the trend is likely to continue**. Do NOT block entries just because RSI is extreme if the EMA slope, ADX, and price action all confirm trend continuation. Shorts must enter on pullbacks at least {pullback_needed:.1f} pips above the latest low. Longs must enter on pullbacks at least {pullback_needed:.1f} pips below the latest high.
 
 🔎【Minor Retracement Clarification】
 Do not interpret short-term retracements as trend reversals. Genuine trend reversals require ALL of the following simultaneously:
