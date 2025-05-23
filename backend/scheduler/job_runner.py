@@ -705,7 +705,24 @@ class JobRunner:
                                 pattern_names=self.patterns_by_tf,
                             )
                             if not result:
-                                logger.info("process_entry returned False → aborting entry and continuing loop")
+                                pend = get_pending_entry_order(DEFAULT_PAIR)
+                                if pend and pend.get("order_id"):
+                                    try:
+                                        order_mgr.cancel_order(pend["order_id"])
+                                        logger.info(
+                                            f"AI declined entry; canceled pending LIMIT {pend['order_id']}"
+                                        )
+                                    except Exception as exc:
+                                        logger.warning(
+                                            f"Failed to cancel pending LIMIT {pend['order_id']}: {exc}"
+                                        )
+                                    for key, info in list(_pending_limits.items()):
+                                        if info.get("order_id") == pend["order_id"]:
+                                            _pending_limits.pop(key, None)
+                                            break
+                                logger.info(
+                                    "process_entry returned False → aborting entry and continuing loop"
+                                )
                                 self.last_run = now
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)
