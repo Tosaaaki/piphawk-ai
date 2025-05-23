@@ -59,12 +59,12 @@ class TestUpdateTradeSL(unittest.TestCase):
         for name in self._added:
             sys.modules.pop(name, None)
 
-    def test_payload_contains_stop_loss_type(self):
+    def test_payload_contains_stop_loss_block(self):
         self.om.update_trade_sl("t1", "USD_JPY", 150.1234)
         body = self.captured.get('body')
         self.assertIsNotNone(body)
-        self.assertEqual(body['order']['type'], 'STOP_LOSS')
-        self.assertEqual(body['order']['price'], '150.123')
+        self.assertIn('stopLoss', body)
+        self.assertEqual(body['stopLoss']['price'], '150.123')
 
     def test_error_logging_records_details(self):
         def error_put(url, json=None, headers=None):
@@ -77,6 +77,11 @@ class TestUpdateTradeSL(unittest.TestCase):
         sys.modules['requests'].put = error_put
         self.om.update_trade_sl("t1", "USD_JPY", 150.1234)
         self.assertEqual(self.log_calls, [("Failed to update SL: ERR bad", "bad")])
+
+    def test_success_returns_json(self):
+        result = self.om.update_trade_sl("t1", "USD_JPY", 150.1234)
+        self.assertEqual(result, {"ok": True})
+        self.assertEqual(self.log_calls, [])
 
 
 if __name__ == '__main__':
