@@ -11,8 +11,10 @@ class TestHigherTFPivot(unittest.TestCase):
                 sys.modules[name] = mod
                 self._added.append(name)
         fetcher = types.ModuleType("backend.market_data.candle_fetcher")
+        self.day_count = None
         def fake_fetch_candles(pair, granularity="M1", count=0):
             if granularity == "D":
+                self.day_count = count
                 return [{"complete": True, "mid": {"h": "2", "l": "1", "c": "1.5"}}]
             if granularity == "H4":
                 return [
@@ -38,6 +40,7 @@ class TestHigherTFPivot(unittest.TestCase):
         self.assertEqual(res["pivot_d"], 1.5)
         self.assertEqual(res["pivot_h4"], 1.0)
         self.assertEqual(res["pivot_h1"], 1.0)
+        self.assertEqual(self.day_count, 201)
 
 if __name__ == "__main__":
     unittest.main()

@@ -42,7 +42,7 @@ def _sma(values: List[float], period: int) -> Union[float, None]:
 def analyze_higher_tf(
     pair: str,
     *,
-    day_lookback: int = 200,
+    day_lookback: int = 201,
     h4_lookback: int = 90,
     h1_lookback: int = 50,
 ) -> Dict[str, float]:
@@ -51,7 +51,7 @@ def analyze_higher_tf(
 
     Args:
         pair: Instrument code, e.g. "USD_JPY".
-        day_lookback: How many daily candles to pull (for SMA200).
+        day_lookback: How many daily candles to pull (>=200 for SMA200).
         h4_lookback: How many H4 candles to pull (~15 days).
 
     Returns:
