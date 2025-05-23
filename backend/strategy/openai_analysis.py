@@ -704,6 +704,7 @@ def get_trade_plan(
     noise_series = _OneVal(noise_pips) if noise_pips is not None else None
     pullback_needed = calculate_dynamic_pullback({**ind_m5, 'noise': noise_series}, recent_high or 0.0, recent_low or 0.0)
     pattern_text = f"\n### Detected Chart Pattern\n{pattern_line}\n" if pattern_line else "\n### Detected Chart Pattern\nNone\n"
+    # ここからAIへの英語プロンプト
 
     prompt = f"""
 ⚠️【Market Regime Classification – Flexible Criteria】
@@ -715,7 +716,7 @@ Classify as "TREND" if ANY TWO of the following conditions are met:
 If these conditions are not clearly met, classify the market as "RANGE".
 
 🚫【Counter-trend Trade Prohibition】
-Under clearly identified TREND conditions, strictly prohibit any counter-trend trades. Never initiate trades solely based on RSI extremes if trend conditions are met.
+Under clearly identified TREND conditions, strictly prohibit any counter-trend trades. Never initiate trades solely based on RSI extremes. If the pullback requirement is satisfied, treat the setup as trend continuation, not counter-trend.
 
 🔄【Counter-Trend Trade Allowance】
 Allow short-term counter-trend trades ONLY when ALL of the following conditions are met:
@@ -725,7 +726,7 @@ Allow short-term counter-trend trades ONLY when ALL of the following conditions 
 - TP set very conservatively (5-10 pips) with strict risk control.
 
 📈【Trend Entry Clarification】
-When a TREND is identified (using the above criteria), allow new entries even if RSI is overbought (>70 for longs) or oversold (<30 for shorts), **as long as other indicators confirm the trend is likely to continue**. Do NOT block entries just because RSI is extreme if the EMA slope, ADX, and price action all confirm trend continuation. Shorts must enter on pullbacks at least {pullback_needed:.1f} pips above the latest low. Longs must enter on pullbacks at least {pullback_needed:.1f} pips below the latest high.
+Once a TREND is confirmed, prioritize entries on pullbacks. Shorts enter after price rises {pullback_needed:.1f} pips above the latest low, longs after price drops {pullback_needed:.1f} pips below the latest high. This pullback rule overrides RSI extremes.
 
 🔎【Minor Retracement Clarification】
 Do not interpret short-term retracements as trend reversals. Genuine trend reversals require ALL of the following simultaneously:
