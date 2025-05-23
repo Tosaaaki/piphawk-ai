@@ -480,7 +480,8 @@ class JobRunner:
                                         "candles_m1": candles_m1,
                                         "candles_m5": candles_m5,
                                         "candles_d1": candles_d1,
-                                    }
+                                    },
+                                    higher_tf,
                                 )
                                 logger.debug(f"Market condition (exit): {market_cond}")
                                 exit_executed = process_exit(
@@ -557,7 +558,8 @@ class JobRunner:
                                     "candles_m1": candles_m1,
                                     "candles_m5": candles_m5,
                                     "candles_d1": candles_d1,
-                                }
+                                },
+                                higher_tf,
                             )
                             logger.debug(f"Market condition (review): {market_cond}")
                             exit_executed = process_exit(
@@ -636,7 +638,8 @@ class JobRunner:
                                     "candles_m1": candles_m1,
                                     "candles_m5": candles_m5,
                                     "candles_d1": candles_d1,
-                                }
+                                },
+                                higher_tf,
                             )
                             logger.debug(f"Market condition (post‑filter): {market_cond}")
                             result = process_entry(
