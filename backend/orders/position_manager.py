@@ -149,13 +149,13 @@ def update_stop_loss_if_needed(position: Dict[str, Any], new_sl_price: float) ->
     if not position:
         return
 
-    # Determine side and extract trade IDs
-    if int(position.get("long", {}).get("units", "0")) != 0:
-        side_key = "long"
-        comparison = lambda current, new: new > current  # tighten upwards for longs
-    elif int(position.get("short", {}).get("units", "0")) != 0:
+    # ショートポジションを先に評価する
+    if int(position.get("short", {}).get("units", "0")) != 0:
         side_key = "short"
         comparison = lambda current, new: new < current  # tighten downwards for shorts
+    elif int(position.get("long", {}).get("units", "0")) != 0:
+        side_key = "long"
+        comparison = lambda current, new: new > current  # tighten upwards for longs
     else:
         return  # flat – nothing to do
 
