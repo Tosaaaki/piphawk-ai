@@ -65,6 +65,11 @@ def calculate_indicators(
         'adx': adx_series,
     }
 
+    # 各指標の欠損値を前後の値で補完
+    for key, series in indicators.items():
+        if isinstance(series, pd.Series):
+            indicators[key] = series.ffill().bfill()
+
     # --- Percentile stats from historical daily data --------------------
     if pair is None:
         pair = os.getenv("DEFAULT_PAIR")

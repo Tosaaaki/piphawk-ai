@@ -240,7 +240,19 @@ def pass_entry_filter(
                 )
                 return False
 
-    if None in [latest_rsi, latest_atr, latest_ema_fast, latest_ema_slow, prev_ema_fast, prev_ema_slow]:
+    def _is_nan(v):
+        try:
+            return v != v
+        except Exception:
+            return False
+
+    if _is_nan(latest_atr) or _is_nan(latest_adx):
+        logger.debug(
+            "EntryFilter bypassed: ATR/ADX history insufficient"
+        )
+        return True
+
+    if None in [latest_rsi, latest_ema_fast, latest_ema_slow, prev_ema_fast, prev_ema_slow]:
         return False  # insufficient data
 
     # --- Composite conditions ------------------------------------------

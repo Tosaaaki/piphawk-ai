@@ -132,6 +132,14 @@ class TestEntryFilterRSICross(unittest.TestCase):
         result = pass_entry_filter(ind, price=1.2, indicators_m1=m1)
         self.assertTrue(result)
 
+    def test_pass_entry_filter_allows_when_atr_adx_nan(self):
+        ind = self._base_indicators()
+        ind["atr"] = FakeSeries([0.1, float('nan')])
+        ind["adx"] = FakeSeries([30, float('nan')])
+        m1 = {"rsi": FakeSeries([29, 35])}
+        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1)
+        self.assertTrue(result)
+
 
 if __name__ == "__main__":
     unittest.main()
