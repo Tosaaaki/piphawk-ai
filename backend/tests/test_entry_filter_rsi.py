@@ -74,6 +74,7 @@ class TestEntryFilterRSICross(unittest.TestCase):
         os.environ["RSI_ENTRY_LOWER"] = "20"
         os.environ["RSI_ENTRY_UPPER"] = "80"
         os.environ["DISABLE_ENTRY_FILTER"] = "false"
+        os.environ.pop("RSI_CROSS_LOOKBACK", None)
 
     def tearDown(self):
         for name in getattr(self, "_added_modules", []):
@@ -95,6 +96,7 @@ class TestEntryFilterRSICross(unittest.TestCase):
         self.assertTrue(_rsi_cross_up_or_down(FakeSeries([25, 35])))
         self.assertTrue(_rsi_cross_up_or_down(FakeSeries([75, 65])))
         self.assertFalse(_rsi_cross_up_or_down(FakeSeries([31, 33])))
+        self.assertTrue(_rsi_cross_up_or_down(FakeSeries([25, 32, 36]), lookback=2))
 
     def test_pass_entry_filter_blocks_without_cross(self):
         ind = self._base_indicators()
@@ -111,6 +113,13 @@ class TestEntryFilterRSICross(unittest.TestCase):
     def test_pass_entry_filter_allows_with_cross_down(self):
         ind = self._base_indicators()
         m1 = {"rsi": FakeSeries([75, 65])}
+        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1)
+        self.assertTrue(result)
+
+    def test_pass_entry_filter_lookback_env(self):
+        os.environ["RSI_CROSS_LOOKBACK"] = "3"
+        ind = self._base_indicators()
+        m1 = {"rsi": FakeSeries([28, 31, 32, 36])}
         result = pass_entry_filter(ind, price=1.2, indicators_m1=m1)
         self.assertTrue(result)
 
