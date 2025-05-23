@@ -26,7 +26,7 @@ LIMIT_THRESHOLD_ATR_RATIO: float = float(env_loader.get_env("LIMIT_THRESHOLD_ATR
 MAX_LIMIT_AGE_SEC: int = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
 MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "2"))
 BE_TRIGGER_PIPS: int = int(env_loader.get_env("BE_TRIGGER_PIPS", 10))
-AI_LIMIT_CONVERT_MODEL: str = env_loader.get_env("AI_LIMIT_CONVERT_MODEL", "gpt-4o-mini")
+AI_LIMIT_CONVERT_MODEL: str = env_loader.get_env("AI_LIMIT_CONVERT_MODEL", "gpt-4.1-nano")
 
 # --- Volatility and ADX filters ---
 COOL_BBWIDTH_PCT: float = float(env_loader.get_env("COOL_BBWIDTH_PCT", "0"))
@@ -537,7 +537,7 @@ Your task:
 Respond with **one-line valid JSON** exactly as:
 {{"regime":{{...}},"entry":{{...}},"risk":{{...}}}}
 """
-    raw = ask_openai(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4o-mini"))
+    raw = ask_openai(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano"))
 
     plan, err = parse_json_answer(raw)
     if plan is None:
