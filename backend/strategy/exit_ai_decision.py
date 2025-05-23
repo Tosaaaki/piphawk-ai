@@ -126,7 +126,7 @@ def evaluate(context: Dict[str, Any]) -> AIDecision:
 
     prompt = _build_prompt(context)
 
-    model = get_setting("AI_EXIT_MODEL", default="gpt-4o-mini")
+    model = get_setting("AI_EXIT_MODEL", default="gpt-4.1-nano")
     temperature = float(get_setting("AI_EXIT_TEMPERATURE", default="0.0"))
     max_tokens = int(get_setting("AI_EXIT_MAX_TOKENS", default="128"))
 

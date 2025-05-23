@@ -32,7 +32,7 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
  `AI_PROFIT_TRIGGER_RATIO` defines what portion of the take-profit target must
  be reached before an AI exit check occurs. The default value is `0.3` (30%).
 `PULLBACK_LIMIT_OFFSET_PIPS` is the base distance for a pullback LIMIT order when the AI proposes a market entry. The actual offset is derived from ATR and ADX, and if price runs away while the trend persists the order can be switched to a market order under AI control.
-`AI_LIMIT_CONVERT_MODEL` sets the OpenAI model used when asking whether a pending LIMIT should be switched to a market order. The default is `gpt-4o-mini`.
+`AI_LIMIT_CONVERT_MODEL` sets the OpenAI model used when asking whether a pending LIMIT should be switched to a market order. The default is `gpt-4.1-nano`.
 `PULLBACK_PIPS` defines the offset used specifically when the price is within the pivot suppression range. The defaults are `2` and `3` respectively.
 `想定ノイズ` is automatically computed from ATR and Bollinger Band width and included in the AI prompt to help choose wider stop-loss levels.
 `NOISE_SL_MULT` は AI が算出した SL をこの倍率で拡大します (default `1.5`).
