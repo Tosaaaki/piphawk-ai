@@ -14,6 +14,9 @@ TRAIL_ENABLED = os.getenv("TRAIL_ENABLED", "true").lower() == "true"
 # --- Early‑exit & breakeven settings ------------------------------------
 EARLY_EXIT_ENABLED    = os.getenv("EARLY_EXIT_ENABLED", "true").lower() == "true"
 BREAKEVEN_BUFFER_PIPS = float(os.getenv("BREAKEVEN_BUFFER_PIPS", "2"))  # pips offset from BE
+# 低ボラ停滞時の早期利確設定
+STAGNANT_EXIT_SEC   = int(os.getenv("STAGNANT_EXIT_SEC", "0"))
+STAGNANT_ATR_PIPS   = float(os.getenv("STAGNANT_ATR_PIPS", "0"))
 
 # Dynamic ATR‑based trailing‑stop (always enabled)
 TRAIL_TRIGGER_MULTIPLIER  = float(os.getenv("TRAIL_TRIGGER_MULTIPLIER", "1.2"))
@@ -196,6 +199,19 @@ def process_exit(
                 if (current_price > ema_fast) and (profit_pips > 0) and \
                    (current_price >= entry_price - be_buffer):
                     early_exit = True
+
+        # 低ボラで利益が伸びない場合の撤退チェック
+        if not early_exit and STAGNANT_EXIT_SEC > 0 and STAGNANT_ATR_PIPS > 0:
+            if atr_val is not None and (atr_val / pip_size) <= STAGNANT_ATR_PIPS:
+                entry_ts = position.get("entry_time") or position.get("openTime")
+                if entry_ts:
+                    try:
+                        et = datetime.fromisoformat(entry_ts.replace("Z", "+00:00"))
+                        held_sec = (datetime.utcnow() - et).total_seconds()
+                        if held_sec >= STAGNANT_EXIT_SEC and profit_pips > 0:
+                            early_exit = True
+                    except Exception:
+                        pass
 
         if early_exit:
             logging.info("Early‑exit criteria met — consulting AI before action.")
