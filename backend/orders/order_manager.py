@@ -407,18 +407,31 @@ class OrderManager:
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}/orders"
         body = {
             "order": {
-                "stopLoss": {
-                    "price": format_price(instrument, new_sl_price),
-                    "timeInForce": "GTC",
-                }
+                "type": "STOP_LOSS",
+                "price": format_price(instrument, new_sl_price),
+                "timeInForce": "GTC",
             }
         }
 
         response = requests.put(url, json=body, headers=HEADERS)
 
         if response.status_code != 200:
-            log_error("order_manager", f"Failed to update SL: {response.text}")
+            try:
+                err = response.json()
+                code = err.get("errorCode")
+                msg = err.get("errorMessage")
+            except Exception:
+                code = None
+                msg = response.text
+            log_error("order_manager", code, msg)
             return None
 
-        log_trade(instrument, datetime.utcnow().isoformat(), new_sl_price, 0, "SL dynamically updated", "SL_UPDATE")
+        log_trade(
+            instrument,
+            datetime.utcnow().isoformat(),
+            new_sl_price,
+            0,
+            "SL dynamically updated",
+            "SL_UPDATE",
+        )
         return response.json()
