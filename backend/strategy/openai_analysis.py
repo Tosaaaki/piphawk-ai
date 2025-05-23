@@ -46,7 +46,22 @@ _last_entry_ai_call_time = 0.0
 _last_exit_ai_call_time = 0.0
 # Regime‑AI cache
 _last_regime_ai_call_time = 0.0
+
 _cached_regime_result: dict | None = None
+
+
+def _series_tail_list(series, n: int = 20) -> list:
+    """Return the last ``n`` values from a pandas Series or list."""
+    if series is None:
+        return []
+    try:
+        if hasattr(series, "iloc"):
+            return series.iloc[-n:].tolist()
+        if isinstance(series, (list, tuple)):
+            return list(series)[-n:]
+        return [series]
+    except Exception:
+        return []
 
 def get_ai_cooldown_sec(current_position: dict | None) -> int:
     """
@@ -644,31 +659,31 @@ If a stop-loss is triggered but original trend conditions remain intact (ADX≥2
 
 ### Recent Indicators (last 20 values each)
 ## M5
-RSI  : {ind_m5.get('rsi', [])[-20:]}
-ATR  : {ind_m5.get('atr', [])[-20:]}
-ADX  : {ind_m5.get('adx', [])[-20:]}
-BB_hi: {ind_m5.get('bb_upper', [])[-20:]}
-BB_lo: {ind_m5.get('bb_lower', [])[-20:]}
-EMA_f: {ind_m5.get('ema_fast', [])[-20:]}
-EMA_s: {ind_m5.get('ema_slow', [])[-20:]}
+RSI  : {_series_tail_list(ind_m5.get('rsi'), 20)}
+ATR  : {_series_tail_list(ind_m5.get('atr'), 20)}
+ADX  : {_series_tail_list(ind_m5.get('adx'), 20)}
+BB_hi: {_series_tail_list(ind_m5.get('bb_upper'), 20)}
+BB_lo: {_series_tail_list(ind_m5.get('bb_lower'), 20)}
+EMA_f: {_series_tail_list(ind_m5.get('ema_fast'), 20)}
+EMA_s: {_series_tail_list(ind_m5.get('ema_slow'), 20)}
 
 ## M1
-RSI  : {ind_m1.get('rsi', [])[-20:]}
-ATR  : {ind_m1.get('atr', [])[-20:]}
-ADX  : {ind_m1.get('adx', [])[-20:]}
-BB_hi: {ind_m1.get('bb_upper', [])[-20:]}
-BB_lo: {ind_m1.get('bb_lower', [])[-20:]}
-EMA_f: {ind_m1.get('ema_fast', [])[-20:]}
-EMA_s: {ind_m1.get('ema_slow', [])[-20:]}
+RSI  : {_series_tail_list(ind_m1.get('rsi'), 20)}
+ATR  : {_series_tail_list(ind_m1.get('atr'), 20)}
+ADX  : {_series_tail_list(ind_m1.get('adx'), 20)}
+BB_hi: {_series_tail_list(ind_m1.get('bb_upper'), 20)}
+BB_lo: {_series_tail_list(ind_m1.get('bb_lower'), 20)}
+EMA_f: {_series_tail_list(ind_m1.get('ema_fast'), 20)}
+EMA_s: {_series_tail_list(ind_m1.get('ema_slow'), 20)}
 
 ## D1
-RSI  : {ind_d1.get('rsi', [])[-20:]}
-ATR  : {ind_d1.get('atr', [])[-20:]}
-ADX  : {ind_d1.get('adx', [])[-20:]}
-BB_hi: {ind_d1.get('bb_upper', [])[-20:]}
-BB_lo: {ind_d1.get('bb_lower', [])[-20:]}
-EMA_f: {ind_d1.get('ema_fast', [])[-20:]}
-EMA_s: {ind_d1.get('ema_slow', [])[-20:]}
+RSI  : {_series_tail_list(ind_d1.get('rsi'), 20)}
+ATR  : {_series_tail_list(ind_d1.get('atr'), 20)}
+ADX  : {_series_tail_list(ind_d1.get('adx'), 20)}
+BB_hi: {_series_tail_list(ind_d1.get('bb_upper'), 20)}
+BB_lo: {_series_tail_list(ind_d1.get('bb_lower'), 20)}
+EMA_f: {_series_tail_list(ind_d1.get('ema_fast'), 20)}
+EMA_s: {_series_tail_list(ind_d1.get('ema_slow'), 20)}
 
 ### M5 Candles
 {candles_m5[-50:]}
