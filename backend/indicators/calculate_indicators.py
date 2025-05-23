@@ -46,10 +46,17 @@ def calculate_indicators(
     # --- ADX (trend strength) ---
     adx_series = calculate_adx(high_prices, low_prices, close_prices)
 
+    # EMAの計算
+    ema_fast_series = calculate_ema(close_prices, period=ema_fast_period)
+    ema_slow_series = calculate_ema(close_prices, period=ema_slow_period)
+    # EMAの傾き計算
+    ema_slope_series = ema_fast_series.diff()
+
     indicators = {
         'rsi': calculate_rsi(close_prices),
-        'ema_fast': calculate_ema(close_prices, period=ema_fast_period),
-        'ema_slow': calculate_ema(close_prices, period=ema_slow_period),
+        'ema_fast': ema_fast_series,
+        'ema_slow': ema_slow_series,
+        'ema_slope': ema_slope_series,
         'atr': calculate_atr(high_prices, low_prices, close_prices),
         # Spread Bollinger components so filters can access them directly
         'bb_upper': bb_df['upper_band'],
