@@ -88,11 +88,7 @@ DEFAULT_PAIR = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
 
 # Comma-separated chart pattern names used for AI analysis
 PATTERN_NAMES = [
-    p.strip()
-    for p in env_loader.get_env(
-        "PATTERN_NAMES", "double_bottom,double_top"
-    ).split(",")
-    if p.strip()
+    p.strip() for p in env_loader.get_env("PATTERN_NAMES", "double_bottom,double_top").split(",") if p.strip()
 ]
 
 OANDA_API_KEY = env_loader.get_env("OANDA_API_KEY")
@@ -217,9 +213,7 @@ class JobRunner:
 
                 if allow:
                     try:
-                        logger.info(
-                            f"Switching LIMIT {pend['order_id']} to market (diff {diff_pips:.1f} pips)"
-                        )
+                        logger.info(f"Switching LIMIT {pend['order_id']} to market (diff {diff_pips:.1f} pips)")
                         order_mgr.cancel_order(pend["order_id"])
                         units = int(float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")) * 1000)
                         if local_info.get("side") == "short":
@@ -247,7 +241,7 @@ class JobRunner:
             if info.get("order_id") == pend["order_id"]:
                 retry_count = info.get("retry_count", 0)
                 _pending_limits.pop(key, None)
-        
+
         if retry_count >= MAX_LIMIT_RETRY:
             logger.info("LIMIT retry count exceeded – not placing new order.")
             return
@@ -320,7 +314,7 @@ class JobRunner:
                     self.last_run = datetime.utcnow()
                     continue
                 # Refresh POSITION_REVIEW_SEC dynamically each loop
-                self.review_sec = int(env_loader.get_env("POSITION_REVIEW_SEC", self.review_sec))
+                self.review_sec = int(env_loader.get_env("POSITION_REVIEW_SEC", str(self.review_sec)))
                 logger.debug(f"review_sec={self.review_sec}")
                 # Refresh HIGHER_TF_ENABLED dynamically
                 self.higher_tf_enabled = env_loader.get_env("HIGHER_TF_ENABLED", "true").lower() == "true"
@@ -355,9 +349,7 @@ class JobRunner:
                     candles_m5 = candles_dict.get("M5", [])
                     candles_d1 = candles_dict.get("D", [])
                     candles = candles_m5  # backward compatibility
-                    logger.info(
-                        f"Candle M5 last: {candles_m5[-1] if candles_m5 else 'No candles'}"
-                    )
+                    logger.info(f"Candle M5 last: {candles_m5[-1] if candles_m5 else 'No candles'}")
 
                     # -------- Higher‑timeframe reference levels --------
                     higher_tf = {}
@@ -436,9 +428,7 @@ class JobRunner:
                                 if result is None:
                                     logger.error("SL update failed after retry")
                             if result is not None:
-                                logger.info(
-                                    f"SL updated to entry price to secure minimum profit: {new_sl_price}"
-                                )
+                                logger.info(f"SL updated to entry price to secure minimum profit: {new_sl_price}")
                                 self.breakeven_reached = True
                                 self.sl_reset_done = False
 
@@ -453,7 +443,11 @@ class JobRunner:
                             except Exception as exc:
                                 logger.warning(f"Failed to fetch trade details: {exc}")
                             if sl_missing:
-                                atr_val = indicators["atr"].iloc[-1] if hasattr(indicators["atr"], "iloc") else indicators["atr"][-1]
+                                atr_val = (
+                                    indicators["atr"].iloc[-1]
+                                    if hasattr(indicators["atr"], "iloc")
+                                    else indicators["atr"][-1]
+                                )
                                 if position_side == "long":
                                     new_sl_price = entry_price - atr_val * 2
                                 else:
@@ -506,12 +500,20 @@ class JobRunner:
 
                     # ---- Position‑review timing -----------------------------
                     due_for_review = False
+                    elapsed_review = None
                     if has_position and self.review_enabled:
                         if self.last_position_review_ts is None:
                             due_for_review = True
                         else:
                             elapsed_review = (now - self.last_position_review_ts).total_seconds()
                             due_for_review = elapsed_review >= self.review_sec
+                        logger.debug(
+                            "review check: ts=%s elapsed=%s review_sec=%s due=%s",
+                            self.last_position_review_ts,
+                            f"{elapsed_review:.1f}" if elapsed_review is not None else "N/A",
+                            self.review_sec,
+                            due_for_review,
+                        )
 
                     # --- Cool‑down check ------------------------------------
                     elapsed_seconds = (datetime.now() - self.last_ai_call).total_seconds()
@@ -528,6 +530,10 @@ class JobRunner:
                     # Periodic exit review
                     if has_position and due_for_review:
                         self.last_position_review_ts = now
+                        logger.debug(
+                            "last_position_review_ts updated to %s",
+                            self.last_position_review_ts,
+                        )
                         if position_side:
                             cur_price = (
                                 float(tick_data["prices"][0]["bids"][0]["price"])
