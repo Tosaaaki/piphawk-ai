@@ -106,19 +106,14 @@ def suggest_parameter_adjustments(settings, summary_text: str):
     )
     response = ask_openai(prompt)
     logger.info(f"Strategy optimizer AI response: {response}")
-    try:
-        changes = json.loads(response)
-        if isinstance(changes, dict) and changes:
-            logger.info("[戦略分析AI] 提案されたパラメータ変更: %s", changes)
-            apply_param_changes(changes)
-            logger.info("[戦略分析AI] settings.env を更新しました。次サイクルから有効になります。")
-        else:
-            logger.info("[戦略分析AI] 有効な変更提案はありません。")
-    except json.JSONDecodeError:
-        logger.warning(
-            "[戦略分析AI] OpenAI からの応答を JSON として解析できませんでした。応答:\n%s",
-            response,
-        )
+
+    changes = response if isinstance(response, dict) else None
+    if isinstance(changes, dict) and changes:
+        logger.info("[戦略分析AI] 提案されたパラメータ変更: %s", changes)
+        apply_param_changes(changes)
+        logger.info("[戦略分析AI] settings.env を更新しました。次サイクルから有効になります。")
+    else:
+        logger.info("[戦略分析AI] 有効な変更提案はありません。")
 
 def fetch_recent_trades(hours=1):
     since = datetime.utcnow() - timedelta(hours=hours)

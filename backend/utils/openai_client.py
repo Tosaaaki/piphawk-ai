@@ -1,6 +1,7 @@
 from openai import OpenAI, APIError
 from backend.utils import env_loader
 import json
+import logging
 
 # env_loader automatically loads default .env files at import time
 
@@ -12,12 +13,19 @@ if not OPENAI_API_KEY:
 # Initialize the OpenAI client
 client = OpenAI(api_key=OPENAI_API_KEY)
 
+logger = logging.getLogger(__name__)
+
 # Default model can be overridden via settings.env → AI_MODEL
 AI_MODEL = env_loader.get_env("AI_MODEL", "gpt-4.1-nano")
 
-def ask_openai(prompt: str,
-               system_prompt: str = "You are a helpful assistant.",
-               model: str | None = None) -> str:
+def ask_openai(
+    prompt: str,
+    system_prompt: str = "You are a helpful assistant.",
+    model: str | None = None,
+    *,
+    max_tokens: int = 512,
+    temperature: float = 0.7,
+) -> dict:
     """
     Send a prompt to OpenAI's API and return the response text.
     Args:
@@ -25,7 +33,7 @@ def ask_openai(prompt: str,
         system_prompt (str): The system message (instructions for the assistant).
         model (str): The OpenAI model to use.
     Returns:
-        str: The assistant's reply.
+        dict: Parsed JSON object returned by the assistant.
     Raises:
         Exception: If the API request fails.
     """
@@ -39,14 +47,14 @@ def ask_openai(prompt: str,
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt},
             ],
-            max_tokens=512,
-            temperature=0.7,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            response_format={"type": "json_object"},
         )
         response_content = response.choices[0].message.content.strip()
-        try:
-            return json.loads(response_content)
-        except json.JSONDecodeError:
-            return response_content
+        return json.loads(response_content)
+    except json.JSONDecodeError as exc:
+        logger.error("Malformed JSON from OpenAI: %s", response_content)
+        raise RuntimeError("Invalid JSON response") from exc
     except APIError as e:
-        # Log or handle API errors as needed
-        raise RuntimeError(f"OpenAI API request failed: {e}")
+        raise RuntimeError(f"OpenAI API request failed: {e}") from e

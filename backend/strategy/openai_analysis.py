@@ -77,10 +77,27 @@ logger.info("OpenAI Analysis started")
 # ----------------------------------------------------------------------
 # Market‑regime classification helper (OpenAI direct, enhanced English prompt)
 # ----------------------------------------------------------------------
-def get_market_condition(context: dict) -> str:
+def get_market_condition(context: dict) -> dict:
+    """
+    Determine whether the market is in a 'trend' or 'range' state.
+        The function combines a heuristic, indicator‑based assessment
+    (ADX + EMA slope) with an LLM assessment.  
+    If both disagree, the local heuristic wins.
+
+    Returns
+    -------
+    dict
+        {"market_condition": "trend" | "range"}
+    """
+    import json
+    import logging
+
+    logger = logging.getLogger(__name__)
     indicators = context.get("indicators", {})
 
-    # --- Local regime assessment -----------------------------------------
+    # ------------------------------------------------------------------
+    # 1) Local regime assessment (ADX + EMA slope consistency)
+    # ------------------------------------------------------------------
     adx_vals = indicators.get("adx")
     ema_vals = indicators.get("ema_slope")
 
@@ -96,6 +113,7 @@ def get_market_condition(context: dict) -> str:
         except Exception:
             return []
 
+    # latest ADX value
     adx_latest = None
     if adx_vals is not None:
         try:
@@ -108,42 +126,68 @@ def get_market_condition(context: dict) -> str:
         except Exception:
             adx_latest = None
 
+    # EMA slope direction consistency for the last three points
     ema_series = _extract_latest(ema_vals)
     ema_sign_consistent = False
     if len(ema_series) >= 3:
         pos = [v > 0 for v in ema_series]
         neg = [v < 0 for v in ema_series]
-        if all(pos) or all(neg):
-            ema_sign_consistent = True
+        ema_sign_consistent = all(pos) or all(neg)
 
     local_regime = None
     if adx_latest is not None and ema_sign_consistent:
         local_regime = "trend" if adx_latest >= 20 else "range"
 
+    # ------------------------------------------------------------------
+    # 2) LLM assessment (JSON‑only response)
+    # ------------------------------------------------------------------
     prompt = (
-        "Based on the current market data and indicators provided below, determine whether the market is in a 'trend' or 'range' state.\n\n"
+        "Based on the current market data and indicators provided below, "
+        "determine whether the market is in a 'trend' or 'range' state.\n\n"
         "### Evaluation Criteria:\n"
-        "- Short-term price action: consecutive candles strongly moving in one direction suggest a trend.\n"
-        "- EMA slope and price relationship: prices consistently above or below EMA indicate a trending market.\n"
+        "- Short‑term price action: consecutive candles strongly moving in one "
+        "  direction suggest a trend.\n"
+        "- EMA slope and price relationship: prices consistently above or below "
+        "  EMA indicate a trending market.\n"
         "- ADX value: a value above 25 typically indicates a trending market.\n"
-        "- RSI extremes: extremely low or high RSI values can suggest range-bound conditions but must be evaluated alongside short-term price movements.\n\n"
-        "If RSI stays consistently near or below 30 for multiple candles, this indicates a strong bearish (downward) trend rather than oversold range conditions.\n"
-        "Conversely, if RSI stays consistently near or above 70 for multiple candles, this indicates a strong bullish (upward) trend rather than overbought range conditions.\n"
+        "- RSI extremes: extremely low or high RSI values can suggest range‑bound "
+        "  conditions but must be evaluated alongside short‑term price movements.\n\n"
+        "If RSI stays consistently near or below 30 for multiple candles, this "
+        "indicates a strong bearish trend rather than oversold range conditions.\n"
+        "Conversely, if RSI stays consistently near or above 70 for multiple "
+        "candles, this indicates a strong bullish trend rather than overbought "
+        "range conditions.\n"
         f"### Market Data and Indicators:\n{json.dumps(context, ensure_ascii=False)}\n\n"
-        "Respond strictly with either 'trend' or 'range'."
+        "Respond with JSON: {\"market_condition\":\"trend|range\"}"
     )
-    response = ask_openai(prompt).strip().lower()
-    llm_regime = response if response in ["trend", "range"] else "range"
 
+    try:
+        # Request JSON‑object response if the client supports it
+        llm_raw = ask_openai(
+            prompt,
+            response_format={"type": "json_object"},
+        )
+        if isinstance(llm_raw, dict):        # already parsed
+            llm_regime = llm_raw.get("market_condition", "range")
+        else:
+            llm_regime = json.loads(llm_raw).get("market_condition", "range")
+    except Exception as exc:
+        logger.error("get_market_condition ‑ LLM failure: %s", exc)
+        llm_regime = "range"
+
+    # ------------------------------------------------------------------
+    # 3) Reconcile local vs LLM assessments
+    # ------------------------------------------------------------------
+    final_regime = local_regime or llm_regime
     if local_regime and llm_regime != local_regime:
         logger.warning(
-            "LLM regime '%s' conflicts with local regime '%s'. Using local value.",
+            "LLM regime '%s' conflicts with local regime '%s'; using local.",
             llm_regime,
             local_regime,
         )
-        return local_regime
 
-    return llm_regime
+    return {"market_condition": final_regime}
+
 
 
 # ----------------------------------------------------------------------
@@ -182,7 +226,7 @@ def get_exit_decision(
     cooldown = get_ai_cooldown_sec(current_position)
     if now - _last_exit_ai_call_time < cooldown:
         logger.info("Exit decision skipped (cooldown)")
-        return json.dumps({"action": "HOLD", "reason": "Cooldown active"})
+        return {"action": "HOLD", "reason": "Cooldown active"}
 
     if indicators is None:
         indicators = {}
@@ -306,21 +350,10 @@ def get_exit_decision(
         "- Example: {\"action\":\"HOLD\",\"reason\":\"Upward EMA and strong ADX; trend likely to continue.\"}\n"
         "- Example: {\"action\":\"EXIT\",\"reason\":\"RSI overbought and price stalling at upper Bollinger Band.\"}\n"
     )
-    response = ask_openai(prompt)
+    response_json = ask_openai(prompt)
     _last_exit_ai_call_time = now
     logger.debug(f"[get_exit_decision] prompt sent:\n{prompt}")
-    logger.info(f"OpenAI response: {response}")
-
-    # 返値が dict ならそのまま、文字列なら JSON とみなしてパース
-    if isinstance(response, dict):
-        response_json = response
-    else:
-        try:
-            response_json = json.loads(response)
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {e}")
-            logger.error(f"Invalid JSON: {response}")
-            return json.dumps({"action": "HOLD", "reason": "Invalid response format"})
+    logger.info(f"OpenAI response: {response_json}")
 
     # --- Pattern direction consistency check -----------------------------
     try:
@@ -381,7 +414,7 @@ def get_exit_decision(
     except Exception as exc:
         logger.error(f"trend consistency check failed: {exc}")
 
-    return json.dumps(response_json)
+    return response_json
 
 
 
@@ -679,10 +712,7 @@ def should_convert_limit_to_market(context: dict) -> bool:
         logger.warning(f"should_convert_limit_to_market failed: {exc}")
         return False
 
-    if isinstance(result, dict):
-        text = json.dumps(result)
-    else:
-        text = str(result)
+    text = json.dumps(result) if isinstance(result, dict) else str(result)
     return text.strip().upper().startswith("YES")
 
 

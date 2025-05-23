@@ -3,6 +3,7 @@ import sys
 import types
 import importlib
 import unittest
+import json
 
 class TestExitDecisionCooldown(unittest.TestCase):
     def setUp(self):
@@ -42,14 +43,15 @@ class TestExitDecisionCooldown(unittest.TestCase):
         calls = []
         def dummy_ask(prompt, **kwargs):
             calls.append(prompt)
-            return "{}"
+            return {}
         self.oa.ask_openai = dummy_ask
         pos = {"units": "1", "average_price": "1"}
         self.oa.get_exit_decision({}, pos, indicators_m1={})
         self.assertEqual(len(calls), 1)
         result = self.oa.get_exit_decision({}, pos, indicators_m1={})
         self.assertEqual(len(calls), 1, "ask_openai should not be called during cooldown")
-        self.assertIn("Cooldown active", result)
+        text = json.dumps(result) if isinstance(result, dict) else str(result)
+        self.assertIn("Cooldown active", text)
 
 if __name__ == "__main__":
     unittest.main()
