@@ -169,25 +169,27 @@ def pass_entry_filter(
             return False
 
     # --- M1 RSI cross-up/down check ----------------------------------
-    if indicators_m1 is None:
-        try:
-            from backend.market_data.candle_fetcher import fetch_candles
-            from backend.indicators.calculate_indicators import calculate_indicators
+    strict = os.getenv("STRICT_ENTRY_FILTER", "true").lower() == "true"
+    if strict:
+        if indicators_m1 is None:
+            try:
+                from backend.market_data.candle_fetcher import fetch_candles
+                from backend.indicators.calculate_indicators import calculate_indicators
 
-            pair = os.getenv("DEFAULT_PAIR", "USD_JPY")
-            candles_m1 = fetch_candles(pair, granularity="M1", count=10)
-            indicators_m1 = calculate_indicators(candles_m1, pair=pair)
-        except Exception as exc:
-            logger.warning("Failed to fetch M1 indicators: %s", exc)
-            indicators_m1 = None
+                pair = os.getenv("DEFAULT_PAIR", "USD_JPY")
+                candles_m1 = fetch_candles(pair, granularity="M1", count=10)
+                indicators_m1 = calculate_indicators(candles_m1, pair=pair)
+            except Exception as exc:
+                logger.warning("Failed to fetch M1 indicators: %s", exc)
+                indicators_m1 = None
 
-    if indicators_m1 and indicators_m1.get("rsi") is not None:
-        lookback = int(os.getenv("RSI_CROSS_LOOKBACK", "1"))
-        if not _rsi_cross_up_or_down(indicators_m1["rsi"], lookback=lookback):
-            logger.debug(
-                "EntryFilter blocked: M1 RSI did not show cross up/down signal"
-            )
-            return False
+        if indicators_m1 and indicators_m1.get("rsi") is not None:
+            lookback = int(os.getenv("RSI_CROSS_LOOKBACK", "1"))
+            if not _rsi_cross_up_or_down(indicators_m1["rsi"], lookback=lookback):
+                logger.debug(
+                    "EntryFilter blocked: M1 RSI did not show cross up/down signal"
+                )
+                return False
 
     ema_fast = indicators["ema_fast"]
     ema_slow = indicators["ema_slow"]
