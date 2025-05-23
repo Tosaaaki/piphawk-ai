@@ -78,6 +78,48 @@ logger.info("OpenAI Analysis started")
 # Market‑regime classification helper (OpenAI direct, enhanced English prompt)
 # ----------------------------------------------------------------------
 def get_market_condition(context: dict) -> str:
+    indicators = context.get("indicators", {})
+
+    # --- Local regime assessment -----------------------------------------
+    adx_vals = indicators.get("adx")
+    ema_vals = indicators.get("ema_slope")
+
+    def _extract_latest(series):
+        if series is None:
+            return []
+        try:
+            if hasattr(series, "iloc"):
+                return [float(x) for x in series.iloc[-3:]]
+            if isinstance(series, (list, tuple)):
+                return [float(x) for x in series[-3:]]
+            return [float(series)]
+        except Exception:
+            return []
+
+    adx_latest = None
+    if adx_vals is not None:
+        try:
+            if hasattr(adx_vals, "iloc"):
+                adx_latest = float(adx_vals.iloc[-1])
+            elif isinstance(adx_vals, (list, tuple)):
+                adx_latest = float(adx_vals[-1]) if adx_vals else None
+            else:
+                adx_latest = float(adx_vals)
+        except Exception:
+            adx_latest = None
+
+    ema_series = _extract_latest(ema_vals)
+    ema_sign_consistent = False
+    if len(ema_series) >= 3:
+        pos = [v > 0 for v in ema_series]
+        neg = [v < 0 for v in ema_series]
+        if all(pos) or all(neg):
+            ema_sign_consistent = True
+
+    local_regime = None
+    if adx_latest is not None and ema_sign_consistent:
+        local_regime = "trend" if adx_latest >= 20 else "range"
+
     prompt = (
         "Based on the current market data and indicators provided below, determine whether the market is in a 'trend' or 'range' state.\n\n"
         "### Evaluation Criteria:\n"
@@ -91,7 +133,17 @@ def get_market_condition(context: dict) -> str:
         "Respond strictly with either 'trend' or 'range'."
     )
     response = ask_openai(prompt).strip().lower()
-    return response if response in ['trend', 'range'] else 'range'
+    llm_regime = response if response in ["trend", "range"] else "range"
+
+    if local_regime and llm_regime != local_regime:
+        logger.warning(
+            "LLM regime '%s' conflicts with local regime '%s'. Using local value.",
+            llm_regime,
+            local_regime,
+        )
+        return local_regime
+
+    return llm_regime
 
 
 # ----------------------------------------------------------------------
