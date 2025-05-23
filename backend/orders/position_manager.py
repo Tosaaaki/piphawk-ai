@@ -1,6 +1,7 @@
 import requests
 from backend.utils import env_loader
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 import json
@@ -19,8 +20,28 @@ if not OANDA_API_KEY or not OANDA_ACCOUNT_ID:
 
 HEADERS = {
     "Authorization": f"Bearer {OANDA_API_KEY}",
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
 }
+
+
+def get_margin_used(retries: int = 2, delay: float = 1.0) -> Optional[float]:
+    """Return current marginUsed from account summary."""
+    url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/summary"
+    for attempt in range(retries + 1):
+        try:
+            response = requests.get(url, headers=HEADERS, timeout=10)
+            response.raise_for_status()
+            account = response.json().get("account", {})
+            return float(account.get("marginUsed", 0.0))
+        except Exception as exc:
+            if attempt < retries:
+                logger.warning(
+                    f"get_margin_used attempt {attempt + 1} failed: {exc}; retrying"
+                )
+                time.sleep(delay)
+            else:
+                logger.warning(f"get_margin_used failed: {exc}")
+    return None
 
 def get_open_positions() -> Optional[List[Dict[str, Any]]]:
     """

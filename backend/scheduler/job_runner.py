@@ -15,7 +15,13 @@ from backend.indicators.calculate_indicators import (
 
 from backend.strategy.entry_logic import process_entry, _pending_limits
 from backend.strategy.exit_logic import process_exit
-from backend.orders.position_manager import check_current_position
+try:
+    from backend.orders.position_manager import check_current_position, get_margin_used
+except ImportError:  # tests may stub position_manager without get_margin_used
+    from backend.orders.position_manager import check_current_position
+
+    def get_margin_used(*_args, **_kwargs):
+        return None
 from backend.orders.order_manager import OrderManager
 from backend.strategy.signal_filter import pass_entry_filter
 from backend.strategy.signal_filter import pass_exit_filter
@@ -93,6 +99,7 @@ PATTERN_NAMES = [
 
 OANDA_API_KEY = env_loader.get_env("OANDA_API_KEY")
 OANDA_ACCOUNT_ID = env_loader.get_env("OANDA_ACCOUNT_ID")
+MARGIN_WARNING_THRESHOLD = float(env_loader.get_env("MARGIN_WARNING_THRESHOLD", "0"))
 # ----- limit‑order housekeeping ------------------------------------
 MAX_LIMIT_AGE_SEC = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))  # seconds before a pending LIMIT is cancelled
 
@@ -648,6 +655,16 @@ class JobRunner:
                                 higher_tf,
                             )
                             logger.debug(f"Market condition (post‑filter): {market_cond}")
+
+                            margin_used = get_margin_used()
+                            logger.info(f"marginUsed={margin_used}")
+                            if margin_used is None:
+                                logger.warning("Failed to obtain marginUsed")
+                            elif MARGIN_WARNING_THRESHOLD > 0 and margin_used > MARGIN_WARNING_THRESHOLD:
+                                logger.warning(
+                                    f"marginUsed {margin_used} exceeds threshold {MARGIN_WARNING_THRESHOLD}"
+                                )
+
                             result = process_entry(
                                 indicators,
                                 candles_m5,
