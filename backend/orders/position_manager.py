@@ -117,24 +117,18 @@ def check_current_position(pair: str) -> Optional[Dict[str, Any]]:
         return None
 
 def move_stop_loss(trade_id: str, new_sl: float) -> bool:
-    """
-    Move (modify) the Stop‑Loss price for an open trade via the OANDA REST API.
-
-    Args:
-        trade_id (str): The trade ID whose SL should be modified.
-        new_sl (float): The new stop‑loss price.
-
-    Returns:
-        bool: True on success, False otherwise.
-    """
-    url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}/orders"
+    """Move the stop loss for an open trade via a STOP_LOSS order."""
+    url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
     data = {
-        "stopLoss": {
-            "price": f"{new_sl:.3f}"
+        "order": {
+            "type": "STOP_LOSS",
+            "tradeID": trade_id,
+            "price": f"{new_sl:.3f}",
+            "timeInForce": "GTC",
         }
     }
     try:
-        response = requests.put(url, json=data, headers=HEADERS, timeout=10)
+        response = requests.post(url, json=data, headers=HEADERS, timeout=10)
         response.raise_for_status()
         logging.info(f"Moved stop‑loss for trade {trade_id} → {new_sl:.3f}")
         return True
