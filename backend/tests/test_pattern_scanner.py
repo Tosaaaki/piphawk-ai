@@ -105,6 +105,15 @@ class TestPatternScanner(unittest.TestCase):
         ]
         self.assertEqual(self.ps.scan_all(data, ["double_bottom"]), "double_bottom")
 
+    def test_double_bottom_oanda(self):
+        data = [
+            {"mid": {"o": "1.2", "h": "1.25", "l": "1.0", "c": "1.1"}},
+            {"mid": {"o": "1.1", "h": "1.3", "l": "1.1", "c": "1.2"}},
+            {"mid": {"o": "1.2", "h": "1.24", "l": "1.0", "c": "1.1"}},
+            {"mid": {"o": "1.1", "h": "1.35", "l": "1.1", "c": "1.3"}},
+        ]
+        self.assertEqual(self.ps.scan_all(data, ["double_bottom"]), "double_bottom")
+
     def test_head_and_shoulders(self):
         data = [
             {"o":1.0,"h":1.1,"l":0.9,"c":1.0},
@@ -180,6 +189,23 @@ class TestPatternScanner(unittest.TestCase):
 
         result2 = self.ps.scan({"M1": data_bottom, "M5": data_top}, ["double_top"])
         self.assertEqual(result2, {"M1": None, "M5": "double_top"})
+
+    def test_scan_multi_timeframes_mixed(self):
+        data_bottom = [
+            {"mid": {"o": "1.2", "h": "1.25", "l": "1.0", "c": "1.1"}},
+            {"mid": {"o": "1.1", "h": "1.3", "l": "1.1", "c": "1.2"}},
+            {"mid": {"o": "1.2", "h": "1.24", "l": "1.0", "c": "1.1"}},
+            {"mid": {"o": "1.1", "h": "1.35", "l": "1.1", "c": "1.3"}},
+        ]
+        data_top = [
+            {"o": 1.0, "h": 1.4, "l": 0.9, "c": 1.3},
+            {"o": 1.3, "h": 1.4, "l": 1.2, "c": 1.3},
+            {"o": 1.3, "h": 1.2, "l": 1.0, "c": 1.1},
+            {"o": 1.1, "h": 1.4, "l": 1.1, "c": 1.3},
+            {"o": 1.3, "h": 1.1, "l": 0.8, "c": 0.9},
+        ]
+        result = self.ps.scan({"M1": data_bottom, "M5": data_top}, ["double_bottom", "double_top"])
+        self.assertEqual(result, {"M1": "double_bottom", "M5": "double_top"})
 
 if __name__ == "__main__":
     unittest.main()

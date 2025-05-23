@@ -15,10 +15,17 @@ PATTERN_EXCLUDE_TFS = [
 ]
 
 def _as_list(data: Iterable[Mapping]) -> list[dict]:
-    return [
-        {k: float(row.get(k, 0)) for k in CANDLE_KEYS}
-        for row in data
-    ]
+    """Convert candle data to a standard list of OHLC dictionaries.
+
+    OANDA 形式の ``{"mid": {"o": ..., "h": ..., "l": ..., "c": ...}}`` と
+    既存形式の ``{"o": ..., "h": ..., "l": ..., "c": ...}`` のどちらにも対応する。
+    """
+
+    rows: list[dict] = []
+    for row in data:
+        base = row.get("mid") if isinstance(row.get("mid"), Mapping) else row
+        rows.append({k: float(base.get(k, row.get(k, 0))) for k in CANDLE_KEYS})
+    return rows
 
 def _is_close(a: float, b: float, tol: float = PATTERN_TOLERANCE) -> bool:
     return abs(a - b) <= tol
