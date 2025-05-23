@@ -18,6 +18,15 @@ HEADERS = {
     "Content-Type": "application/json"
 }
 
+
+def _extract_error_details(response) -> tuple[str | None, str | None]:
+    """Extract errorCode and errorMessage from a requests.Response."""
+    try:
+        data = response.json()
+        return data.get("errorCode"), data.get("errorMessage")
+    except Exception:
+        return None, None
+
 # ----------------------------------------------------------------------
 #  Pip‑size table (extend as needed) and helper
 # ----------------------------------------------------------------------
@@ -103,16 +112,27 @@ class OrderManager:
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
         r = requests.post(url, json=payload, headers=HEADERS)
         if not r.ok:
-            logger.error(
-                "Limit order failed: %s %s", r.status_code, r.text
+            code, msg = _extract_error_details(r)
+            log_error(
+                "order_manager",
+                f"Limit order failed: {code} {msg}",
+                r.text,
             )
+            logger.error("Limit order failed: %s %s", r.status_code, r.text)
             r.raise_for_status()
         return r.json()
 
     def cancel_order(self, order_id: str) -> dict:
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{order_id}/cancel"
         r = requests.put(url, headers=HEADERS)
-        r.raise_for_status()
+        if not r.ok:
+            code, msg = _extract_error_details(r)
+            log_error(
+                "order_manager",
+                f"Cancel order failed: {code} {msg}",
+                r.text,
+            )
+            r.raise_for_status()
         return r.json()
 
     def modify_order_price(
@@ -127,7 +147,14 @@ class OrderManager:
         }
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{order_id}"
         r = requests.put(url, json=payload, headers=HEADERS)
-        r.raise_for_status()
+        if not r.ok:
+            code, msg = _extract_error_details(r)
+            log_error(
+                "order_manager",
+                f"Modify order price failed: {code} {msg}",
+                r.text,
+            )
+            r.raise_for_status()
         return r.json()
 
     def place_market_order(self, instrument, units):
@@ -142,8 +169,16 @@ class OrderManager:
             }
         }
         response = requests.post(url, json=data, headers=HEADERS)
-        logger.debug(f"Market order response: {response.status_code} {response.text}")
+        logger.debug(
+            f"Market order response: {response.status_code} {response.text}"
+        )
         if response.status_code != 201:
+            code, msg = _extract_error_details(response)
+            log_error(
+                "order_manager",
+                f"Failed to place order: {code} {msg}",
+                response.text,
+            )
             raise Exception(f"Failed to place order: {response.text}")
         return response.json()
 
@@ -161,12 +196,21 @@ class OrderManager:
                     "timeInForce": "GTC",
                 }
             }
-            for _ in range(3):
-                resp = requests.post(url, json=tp_payload, headers=HEADERS)
-                if resp.status_code == 201:
-                    results["tp"] = resp.json()
-                    break
-                time.sleep(1)
+
+        for attempt in range(3):
+            response = requests.put(url, json=body, headers=HEADERS)
+            if response.status_code == 200:
+                return response.json()
+
+            code, msg = _extract_error_details(response)
+            err_msg = f"TP/SL adjustment failed: {code} {msg}"
+
+            if code in ("NO_SUCH_TRADE", "ORDER_DOESNT_EXIST") or (
+                "NO_SUCH_TRADE" in response.text or "ORDER_DOESNT_EXIST" in response.text
+            ):
+                log_error("order_manager", err_msg, response.text)
+                break
+
             else:
                 log_error("order_manager", "TP adjustment failed", resp.text)
 
@@ -185,10 +229,9 @@ class OrderManager:
                     results["sl"] = resp.json()
                     break
                 time.sleep(1)
-            else:
-                log_error("order_manager", "SL adjustment failed", resp.text)
 
-        return results if results else None
+        log_error("order_manager", f"TP/SL adjustment failed after retries: {code} {msg}", response.text)
+        return None
 
     def market_close_position(self, instrument):
         # delegate to unified close_position() helper
@@ -325,6 +368,12 @@ class OrderManager:
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/positions/{instrument}"
         response = requests.get(url, headers=HEADERS)
         if response.status_code != 200:
+            code, msg = _extract_error_details(response)
+            log_error(
+                "order_manager",
+                f"Failed to fetch position details: {code} {msg}",
+                response.text,
+            )
             raise Exception(f"Failed to fetch position details: {response.text}")
 
         position_data = response.json()['position']
@@ -378,6 +427,12 @@ class OrderManager:
         response = requests.put(url, json=payload, headers=HEADERS)
 
         if not response.ok:
+            code, msg = _extract_error_details(response)
+            log_error(
+                "order_manager",
+                f"Failed to close position: {code} {msg}",
+                response.text,
+            )
             raise Exception(f"Failed to close position: {response.text}")
 
         return response.json()
@@ -419,7 +474,14 @@ class OrderManager:
 
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
         response = requests.post(url, json=order_spec, headers=HEADERS)
-        response.raise_for_status()
+        if not response.ok:
+            code, msg = _extract_error_details(response)
+            log_error(
+                "order_manager",
+                f"Failed to place trailing stop: {code} {msg}",
+                response.text,
+            )
+            response.raise_for_status()
         return response.json()
 
     def update_trade_sl(self, trade_id, instrument, new_sl_price):
@@ -438,14 +500,13 @@ class OrderManager:
         response = requests.post(url, json=body, headers=HEADERS)
 
         if response.status_code != 200:
-            try:
-                err = response.json()
-                code = err.get("errorCode")
-                msg = err.get("errorMessage")
-            except Exception:
-                code = None
-                msg = response.text
-            log_error("order_manager", code, msg)
+
+            code, msg = _extract_error_details(response)
+            log_error(
+                "order_manager",
+                f"Failed to update SL: {code} {msg}",
+                response.text,
+            )
 
             return None
 
