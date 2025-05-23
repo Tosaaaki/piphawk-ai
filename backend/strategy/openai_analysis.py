@@ -78,31 +78,116 @@ logger.info("OpenAI Analysis started")
 # Market‑regime classification helper (OpenAI direct, enhanced English prompt)
 # ----------------------------------------------------------------------
 def get_market_condition(context: dict) -> dict:
+    """
+    Determine whether the market is in a 'trend' or 'range' state.
+        The function combines a heuristic, indicator‑based assessment
+    (ADX + EMA slope) with an LLM assessment.  
+    If both disagree, the local heuristic wins.
+
+    Returns
+    -------
+    dict
+        {"market_condition": "trend" | "range"}
+    """
+    import json
+    import logging
+
+    logger = logging.getLogger(__name__)
+    indicators = context.get("indicators", {})
+
+    # ------------------------------------------------------------------
+    # 1) Local regime assessment (ADX + EMA slope consistency)
+    # ------------------------------------------------------------------
+    adx_vals = indicators.get("adx")
+    ema_vals = indicators.get("ema_slope")
+
+    def _extract_latest(series):
+        if series is None:
+            return []
+        try:
+            if hasattr(series, "iloc"):
+                return [float(x) for x in series.iloc[-3:]]
+            if isinstance(series, (list, tuple)):
+                return [float(x) for x in series[-3:]]
+            return [float(series)]
+        except Exception:
+            return []
+
+    # latest ADX value
+    adx_latest = None
+    if adx_vals is not None:
+        try:
+            if hasattr(adx_vals, "iloc"):
+                adx_latest = float(adx_vals.iloc[-1])
+            elif isinstance(adx_vals, (list, tuple)):
+                adx_latest = float(adx_vals[-1]) if adx_vals else None
+            else:
+                adx_latest = float(adx_vals)
+        except Exception:
+            adx_latest = None
+
+    # EMA slope direction consistency for the last three points
+    ema_series = _extract_latest(ema_vals)
+    ema_sign_consistent = False
+    if len(ema_series) >= 3:
+        pos = [v > 0 for v in ema_series]
+        neg = [v < 0 for v in ema_series]
+        ema_sign_consistent = all(pos) or all(neg)
+
+    local_regime = None
+    if adx_latest is not None and ema_sign_consistent:
+        local_regime = "trend" if adx_latest >= 20 else "range"
+
+    # ------------------------------------------------------------------
+    # 2) LLM assessment (JSON‑only response)
+    # ------------------------------------------------------------------
     prompt = (
-        "Based on the current market data and indicators provided below, determine whether the market is in a 'trend' or 'range' state.\n\n"
+        "Based on the current market data and indicators provided below, "
+        "determine whether the market is in a 'trend' or 'range' state.\n\n"
         "### Evaluation Criteria:\n"
-        "- Short-term price action: consecutive candles strongly moving in one direction suggest a trend.\n"
-        "- EMA slope and price relationship: prices consistently above or below EMA indicate a trending market.\n"
+        "- Short‑term price action: consecutive candles strongly moving in one "
+        "  direction suggest a trend.\n"
+        "- EMA slope and price relationship: prices consistently above or below "
+        "  EMA indicate a trending market.\n"
         "- ADX value: a value above 25 typically indicates a trending market.\n"
-        "- RSI extremes: extremely low or high RSI values can suggest range-bound conditions but must be evaluated alongside short-term price movements.\n\n"
-        "If RSI stays consistently near or below 30 for multiple candles, this indicates a strong bearish (downward) trend rather than oversold range conditions.\n"
-        "Conversely, if RSI stays consistently near or above 70 for multiple candles, this indicates a strong bullish (upward) trend rather than overbought range conditions.\n"
+        "- RSI extremes: extremely low or high RSI values can suggest range‑bound "
+        "  conditions but must be evaluated alongside short‑term price movements.\n\n"
+        "If RSI stays consistently near or below 30 for multiple candles, this "
+        "indicates a strong bearish trend rather than oversold range conditions.\n"
+        "Conversely, if RSI stays consistently near or above 70 for multiple "
+        "candles, this indicates a strong bullish trend rather than overbought "
+        "range conditions.\n"
         f"### Market Data and Indicators:\n{json.dumps(context, ensure_ascii=False)}\n\n"
         "Respond with JSON: {\"market_condition\":\"trend|range\"}"
     )
-    try:
-        result = ask_openai(prompt)
-    except Exception as exc:
-        logger.error(f"get_market_condition failed: {exc}")
-        return {"market_condition": "range"}
 
-    if isinstance(result, dict):
-        return result
     try:
-        return json.loads(result)
-    except Exception:
-        logger.error(f"Invalid market condition response: {result}")
-        return {"market_condition": "range"}
+        # Request JSON‑object response if the client supports it
+        llm_raw = ask_openai(
+            prompt,
+            response_format={"type": "json_object"},
+        )
+        if isinstance(llm_raw, dict):        # already parsed
+            llm_regime = llm_raw.get("market_condition", "range")
+        else:
+            llm_regime = json.loads(llm_raw).get("market_condition", "range")
+    except Exception as exc:
+        logger.error("get_market_condition ‑ LLM failure: %s", exc)
+        llm_regime = "range"
+
+    # ------------------------------------------------------------------
+    # 3) Reconcile local vs LLM assessments
+    # ------------------------------------------------------------------
+    final_regime = local_regime or llm_regime
+    if local_regime and llm_regime != local_regime:
+        logger.warning(
+            "LLM regime '%s' conflicts with local regime '%s'; using local.",
+            llm_regime,
+            local_regime,
+        )
+
+    return {"market_condition": final_regime}
+
 
 
 # ----------------------------------------------------------------------
