@@ -59,7 +59,7 @@ class TestNoiseInPrompt(unittest.TestCase):
         }
         self.oa.get_trade_plan({}, {"M5": indicators}, {"M5": []})
         self.assertTrue(captured)
-        self.assertIn("想定ノイズ", captured[0])
+        self.assertIn("Estimated Noise", captured[0])
 
 if __name__ == "__main__":
     unittest.main()
