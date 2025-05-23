@@ -52,22 +52,39 @@ def _ema_flat_or_cross(
 #  戻り値 True  → AI へ問い合わせる
 #        False → スキップ
 # ────────────────────────────────────────────────
-def _rsi_cross_up_or_down(series: pd.Series) -> bool:
-    """Return True when RSI crosses up from <30 to ≥35 or down from >70 to ≤65."""
+def _rsi_cross_up_or_down(series: pd.Series, *, lookback: int = 1) -> bool:
+    """Return True when RSI crosses up from <30 to ≥35 or down from >70 to ≤65.
+
+    Parameters
+    ----------
+    series : pandas.Series
+        RSI series ordered oldest → newest.
+    lookback : int, default 1
+        How many candles back to search for the opposite state.
+        ``lookback=1`` reproduces the previous behaviour where only the
+        immediately preceding candle is inspected.
+    """
     try:
         length = len(series)
     except Exception:
         length = len(getattr(series, "_data", []))
-    if length < 2:
+
+    if length < lookback + 1:
         return False
 
-    prev = series.iloc[-2] if hasattr(series, "iloc") else series[-2]
     latest = series.iloc[-1] if hasattr(series, "iloc") else series[-1]
-
     try:
-        cross_up = float(prev) < 30 and float(latest) >= 35
-        cross_down = float(prev) > 70 and float(latest) <= 65
-        return cross_up or cross_down
+        latest_f = float(latest)
+    except Exception:
+        return False
+
+    prev_values = (
+        series.iloc[-(lookback + 1):-1] if hasattr(series, "iloc") else series[-(lookback + 1):-1]
+    )
+    try:
+        crossed_up = any(float(p) < 30 for p in prev_values) and latest_f >= 35
+        crossed_down = any(float(p) > 70 for p in prev_values) and latest_f <= 65
+        return crossed_up or crossed_down
     except Exception:
         return False
 
@@ -165,7 +182,8 @@ def pass_entry_filter(
             indicators_m1 = None
 
     if indicators_m1 and indicators_m1.get("rsi") is not None:
-        if not _rsi_cross_up_or_down(indicators_m1["rsi"]):
+        lookback = int(os.getenv("RSI_CROSS_LOOKBACK", "1"))
+        if not _rsi_cross_up_or_down(indicators_m1["rsi"], lookback=lookback):
             logger.debug(
                 "EntryFilter blocked: M1 RSI did not show cross up/down signal"
             )
