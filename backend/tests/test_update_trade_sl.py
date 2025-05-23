@@ -31,11 +31,11 @@ class TestUpdateTradeSL(unittest.TestCase):
         # mock requests
         req = types.ModuleType("requests")
         self.captured = {}
-        def post(url, json=None, headers=None):
+        def put(url, json=None, headers=None):
             self.captured['body'] = json
             return DummyResponse(status_code=200, json_data={"ok": True})
-        req.post = post
-        req.put = lambda *a, **k: DummyResponse()
+        req.post = lambda *a, **k: DummyResponse()
+        req.put = put
         req.get = lambda *a, **k: DummyResponse()
         add("requests", req)
 
@@ -67,14 +67,14 @@ class TestUpdateTradeSL(unittest.TestCase):
         self.assertEqual(body['order']['price'], '150.123')
 
     def test_error_logging_records_details(self):
-        def error_post(url, json=None, headers=None):
+        def error_put(url, json=None, headers=None):
             self.captured['body'] = json
             return DummyResponse(
                 status_code=400,
                 json_data={"errorCode": "ERR", "errorMessage": "bad"},
                 text='bad'
             )
-        sys.modules['requests'].post = error_post
+        sys.modules['requests'].put = error_put
         self.om.update_trade_sl("t1", "USD_JPY", 150.1234)
         self.assertEqual(self.log_calls, [("Failed to update SL: ERR bad", "bad")])
 

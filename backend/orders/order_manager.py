@@ -506,7 +506,7 @@ class OrderManager:
             }
         }
 
-        response = requests.post(url, json=body, headers=HEADERS)
+        response = requests.put(url, json=body, headers=HEADERS)
 
         if response.status_code != 200:
 
