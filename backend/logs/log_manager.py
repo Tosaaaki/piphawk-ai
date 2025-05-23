@@ -115,12 +115,21 @@ def log_ai_decision(decision_type, instrument, ai_response):
         ''', (datetime.utcnow().isoformat(), decision_type, instrument, ai_response))
 
 def log_error(module, error_message, additional_info=None):
+    """Record an error event.
+
+    `error_message` can include values like errorCode and errorMessage from
+    HTTP responses. Anything passed in `additional_info` is stored verbatim for
+    later inspection.
+    """
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
-        cursor.execute('''
+        cursor.execute(
+            '''
             INSERT INTO errors (timestamp, module, error_message, additional_info)
             VALUES (?, ?, ?, ?)
-        ''', (datetime.utcnow().isoformat(), module, error_message, additional_info))
+        ''',
+            (datetime.utcnow().isoformat(), module, error_message, additional_info),
+        )
 
 def log_param_change(param_name, old_value, new_value):
     """
