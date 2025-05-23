@@ -428,6 +428,7 @@ class OrderManager:
         body = {
             "order": {
                 "type": "STOP_LOSS",
+
                 "tradeID": trade_id,
                 "price": format_price(instrument, new_sl_price),
                 "timeInForce": "GTC",
@@ -436,9 +437,24 @@ class OrderManager:
 
         response = requests.post(url, json=body, headers=HEADERS)
 
-        if response.status_code != 201:
-            log_error("order_manager", f"Failed to update SL: {response.text}")
+        if response.status_code != 200:
+            try:
+                err = response.json()
+                code = err.get("errorCode")
+                msg = err.get("errorMessage")
+            except Exception:
+                code = None
+                msg = response.text
+            log_error("order_manager", code, msg)
+
             return None
 
-        log_trade(instrument, datetime.utcnow().isoformat(), new_sl_price, 0, "SL dynamically updated", "SL_UPDATE")
+        log_trade(
+            instrument,
+            datetime.utcnow().isoformat(),
+            new_sl_price,
+            0,
+            "SL dynamically updated",
+            "SL_UPDATE",
+        )
         return response.json()
