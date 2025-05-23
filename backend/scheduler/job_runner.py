@@ -158,6 +158,8 @@ class JobRunner:
         # Storage for latest indicators by timeframe
         self.indicators_M1: dict | None = None
         self.indicators_M5: dict | None = None
+        self.indicators_H1: dict | None = None
+        self.indicators_H4: dict | None = None
         self.indicators_D: dict | None = None
         # Flags for breakeven and SL management
         self.breakeven_reached: bool = False
@@ -354,6 +356,8 @@ class JobRunner:
 
                     candles_m1 = candles_dict.get("M1", [])
                     candles_m5 = candles_dict.get("M5", [])
+                    candles_h1 = candles_dict.get("H1", [])
+                    candles_h4 = candles_dict.get("H4", [])
                     candles_d1 = candles_dict.get("D", [])
                     candles = candles_m5  # backward compatibility
                     logger.info(f"Candle M5 last: {candles_m5[-1] if candles_m5 else 'No candles'}")
@@ -368,6 +372,8 @@ class JobRunner:
                     indicators_multi = calculate_indicators_multi(candles_dict)
                     self.indicators_M1 = indicators_multi.get("M1")
                     self.indicators_M5 = indicators_multi.get("M5")
+                    self.indicators_H1 = indicators_multi.get("H1")
+                    self.indicators_H4 = indicators_multi.get("H4")
                     self.indicators_D = indicators_multi.get("D")
                     indicators = self.indicators_M5
 
@@ -478,6 +484,14 @@ class JobRunner:
                                             key: float(val.iloc[-1]) if hasattr(val, "iloc") else float(val)
                                             for key, val in indicators.items()
                                         },
+                                        "indicators_h1": {
+                                            key: float(v.iloc[-1]) if hasattr(v, "iloc") else float(v)
+                                            for key, v in (self.indicators_H1 or {}).items()
+                                        },
+                                        "indicators_h4": {
+                                            key: float(v.iloc[-1]) if hasattr(v, "iloc") else float(v)
+                                            for key, v in (self.indicators_H4 or {}).items()
+                                        },
                                         "candles_m1": candles_m1,
                                         "candles_m5": candles_m5,
                                         "candles_d1": candles_d1,
@@ -568,6 +582,14 @@ class JobRunner:
                                         key: float(val.iloc[-1]) if hasattr(val, "iloc") else float(val)
                                         for key, val in indicators.items()
                                     },
+                                    "indicators_h1": {
+                                        key: float(v.iloc[-1]) if hasattr(v, "iloc") else float(v)
+                                        for key, v in (self.indicators_H1 or {}).items()
+                                    },
+                                    "indicators_h4": {
+                                        key: float(v.iloc[-1]) if hasattr(v, "iloc") else float(v)
+                                        for key, v in (self.indicators_H4 or {}).items()
+                                    },
                                     "candles_m1": candles_m1,
                                     "candles_m5": candles_m5,
                                     "candles_d1": candles_d1,
@@ -647,6 +669,14 @@ class JobRunner:
                                     "indicators": {
                                         key: float(val.iloc[-1]) if hasattr(val, "iloc") else float(val)
                                         for key, val in indicators.items()
+                                    },
+                                    "indicators_h1": {
+                                        key: float(v.iloc[-1]) if hasattr(v, "iloc") else float(v)
+                                        for key, v in (self.indicators_H1 or {}).items()
+                                    },
+                                    "indicators_h4": {
+                                        key: float(v.iloc[-1]) if hasattr(v, "iloc") else float(v)
+                                        for key, v in (self.indicators_H4 or {}).items()
                                     },
                                     "candles_m1": candles_m1,
                                     "candles_m5": candles_m5,
