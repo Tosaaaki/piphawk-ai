@@ -77,7 +77,7 @@ logger.info("OpenAI Analysis started")
 # ----------------------------------------------------------------------
 # Market‑regime classification helper (OpenAI direct, enhanced English prompt)
 # ----------------------------------------------------------------------
-def get_market_condition(context: dict) -> str:
+def get_market_condition(context: dict) -> dict:
     prompt = (
         "Based on the current market data and indicators provided below, determine whether the market is in a 'trend' or 'range' state.\n\n"
         "### Evaluation Criteria:\n"
@@ -88,10 +88,21 @@ def get_market_condition(context: dict) -> str:
         "If RSI stays consistently near or below 30 for multiple candles, this indicates a strong bearish (downward) trend rather than oversold range conditions.\n"
         "Conversely, if RSI stays consistently near or above 70 for multiple candles, this indicates a strong bullish (upward) trend rather than overbought range conditions.\n"
         f"### Market Data and Indicators:\n{json.dumps(context, ensure_ascii=False)}\n\n"
-        "Respond strictly with either 'trend' or 'range'."
+        "Respond with JSON: {\"market_condition\":\"trend|range\"}"
     )
-    response = ask_openai(prompt).strip().lower()
-    return response if response in ['trend', 'range'] else 'range'
+    try:
+        result = ask_openai(prompt)
+    except Exception as exc:
+        logger.error(f"get_market_condition failed: {exc}")
+        return {"market_condition": "range"}
+
+    if isinstance(result, dict):
+        return result
+    try:
+        return json.loads(result)
+    except Exception:
+        logger.error(f"Invalid market condition response: {result}")
+        return {"market_condition": "range"}
 
 
 # ----------------------------------------------------------------------
@@ -130,7 +141,7 @@ def get_exit_decision(
     cooldown = get_ai_cooldown_sec(current_position)
     if now - _last_exit_ai_call_time < cooldown:
         logger.info("Exit decision skipped (cooldown)")
-        return json.dumps({"action": "HOLD", "reason": "Cooldown active"})
+        return {"action": "HOLD", "reason": "Cooldown active"}
 
     if indicators is None:
         indicators = {}
@@ -254,21 +265,10 @@ def get_exit_decision(
         "- Example: {\"action\":\"HOLD\",\"reason\":\"Upward EMA and strong ADX; trend likely to continue.\"}\n"
         "- Example: {\"action\":\"EXIT\",\"reason\":\"RSI overbought and price stalling at upper Bollinger Band.\"}\n"
     )
-    response = ask_openai(prompt)
+    response_json = ask_openai(prompt)
     _last_exit_ai_call_time = now
     logger.debug(f"[get_exit_decision] prompt sent:\n{prompt}")
-    logger.info(f"OpenAI response: {response}")
-
-    # 返値が dict ならそのまま、文字列なら JSON とみなしてパース
-    if isinstance(response, dict):
-        response_json = response
-    else:
-        try:
-            response_json = json.loads(response)
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {e}")
-            logger.error(f"Invalid JSON: {response}")
-            return json.dumps({"action": "HOLD", "reason": "Invalid response format"})
+    logger.info(f"OpenAI response: {response_json}")
 
     # --- Pattern direction consistency check -----------------------------
     try:
@@ -329,7 +329,7 @@ def get_exit_decision(
     except Exception as exc:
         logger.error(f"trend consistency check failed: {exc}")
 
-    return json.dumps(response_json)
+    return response_json
 
 
 
@@ -627,10 +627,7 @@ def should_convert_limit_to_market(context: dict) -> bool:
         logger.warning(f"should_convert_limit_to_market failed: {exc}")
         return False
 
-    if isinstance(result, dict):
-        text = json.dumps(result)
-    else:
-        text = str(result)
+    text = json.dumps(result) if isinstance(result, dict) else str(result)
     return text.strip().upper().startswith("YES")
 
 

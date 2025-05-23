@@ -37,17 +37,17 @@ class TestExitPatternOverride(unittest.TestCase):
             sys.modules.pop(name, None)
 
     def test_override_on_matching_pattern(self):
-        self.oa.ask_openai = lambda *a, **k: json.dumps({"action": "EXIT", "reason": "double_top detected"})
+        self.oa.ask_openai = lambda *a, **k: {"action": "EXIT", "reason": "double_top detected"}
         pos = {"units": "-1", "average_price": "1"}
         res = self.oa.get_exit_decision({}, pos, indicators_m1={})
-        data = json.loads(res)
+        data = res if isinstance(res, dict) else json.loads(res)
         self.assertEqual(data.get("action"), "HOLD")
 
     def test_no_override_on_opposite_pattern(self):
-        self.oa.ask_openai = lambda *a, **k: json.dumps({"action": "EXIT", "reason": "double_top detected"})
+        self.oa.ask_openai = lambda *a, **k: {"action": "EXIT", "reason": "double_top detected"}
         pos = {"units": "1", "average_price": "1"}
         res = self.oa.get_exit_decision({}, pos, indicators_m1={})
-        data = json.loads(res)
+        data = res if isinstance(res, dict) else json.loads(res)
         self.assertEqual(data.get("action"), "EXIT")
 
 if __name__ == "__main__":
