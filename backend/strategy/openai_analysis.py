@@ -342,10 +342,26 @@ def get_exit_decision(
 
     units_val = float(current_position.get("units", 0))
     side = "SHORT" if units_val < 0 else "LONG"
-    unreal_pnl = current_position.get("unrealized_pl", "N/A")
+
+    # --- 現在値とエントリ価格からサイド別の差分を算出する ---
+    try:
+        bid = float(market_data.get("bid")) if isinstance(market_data, dict) else None
+        ask = float(market_data.get("ask")) if isinstance(market_data, dict) else None
+        avg_price = float(current_position.get("average_price"))
+        if side == "LONG" and bid is not None:
+            pips_from_entry = (bid - avg_price) * 100
+            unreal_pnl = (bid - avg_price) * units_val
+        elif side == "SHORT" and ask is not None:
+            pips_from_entry = (avg_price - ask) * 100
+            unreal_pnl = (avg_price - ask) * -units_val
+        else:
+            pips_from_entry = 0
+            unreal_pnl = 0
+    except (ValueError, TypeError):
+        pips_from_entry = 0
+        unreal_pnl = 0
 
     secs_since_entry = market_data.get("secs_since_entry")
-    pips_from_entry = market_data.get("pips_from_entry")
 
     if secs_since_entry is None:
         try:
@@ -357,7 +373,7 @@ def get_exit_decision(
             secs_since_entry = None
 
     # --------------------------------------------------------------
-    # Break‑even trigger
+    # Break‑even trigger (fallback)
     # --------------------------------------------------------------
     if pips_from_entry is None:
         try:
