@@ -519,10 +519,10 @@ EMA_s: {ind_d1.get('ema_slow', [])[-20:]}
 ### 90-day Historical Stats
 {json.dumps(hist_stats or {}, separators=(',', ':'))}
 
-### 想定ノイズ (Estimated Noise)
+### Estimated Noise
 {noise_val} pips is the approximate short-term market noise.
 Use this as a baseline for setting wider stop-loss levels.
-TP到達確率を算出した後、SLを少なくとも {env_loader.get_env("NOISE_SL_MULT", "1.5")} 倍に広げること。
+After calculating TP hit probability, widen the SL by at least {env_loader.get_env("NOISE_SL_MULT", "1.5")} times.
 
 Your task:
 1. Clearly classify the current regime as "trend" or "range". If "trend", specify direction as "long" or "short". Output this at JSON key "regime".
