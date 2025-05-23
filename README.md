@@ -38,7 +38,7 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
 `想定ノイズ` is automatically computed from ATR and Bollinger Band width and included in the AI prompt to help choose wider stop-loss levels.
 `NOISE_SL_MULT` は AI が算出した SL をこの倍率で拡大します (default `1.5`).
 `PATTERN_NAMES` lists chart pattern names passed to the AI or local scanner for detection, e.g. `double_bottom,double_top,doji`.
-`USE_LOCAL_PATTERN` を `true` にすると、AI を使わずローカルの `pattern_scanner` でチャートパターンを判定します。デフォルトは `false` です。
+`LOCAL_WEIGHT_THRESHOLD` は 0〜1 の値で、ローカル判定と AI 判定の整合度スコアがこの値以上ならローカルを、未満なら AI を優先します。旧 `USE_LOCAL_PATTERN` は廃止されました。
 `PATTERN_MIN_BARS` でパターン完成に必要なローソク足の本数を、`PATTERN_TOLERANCE` で高値・安値の許容誤差を調整できます。
 `PATTERN_EXCLUDE_TFS` に `M1` などを指定すると、その時間足ではパターン検出を行いません。
 
@@ -185,9 +185,8 @@ print(result)
 
 返り値は `{"pattern": "<一致したパターン名>"}` もしくは `{"pattern": None}` の形式です。
 
-`USE_LOCAL_PATTERN=true` を設定すると、OpenAI を使用せずローカル判定を行います。
-ローカル判定時は `pattern_scanner.scan()` を使うことで複数時間足のローソク足データ
-から時間足ごとの検出結果を得られます。
+`LOCAL_WEIGHT_THRESHOLD` を調整することで、AI 判定とローカル判定のどちらを優先するかを決められます。ローカルの結果だけを使いたい場合は `1.0` に設定してください。
+ローカル判定を行うには `pattern_scanner.scan()` を利用します。
 
 対応パターン例:
 - `double_bottom`

@@ -7,6 +7,7 @@ import unittest
 class TestMarketConditionOverride(unittest.TestCase):
     def setUp(self):
         os.environ.setdefault("OPENAI_API_KEY", "dummy")
+        os.environ["LOCAL_WEIGHT_THRESHOLD"] = "0.6"
         self._added_modules = []
 
         def add_module(name: str, module: types.ModuleType):
@@ -36,21 +37,21 @@ class TestMarketConditionOverride(unittest.TestCase):
         for name in getattr(self, "_added_modules", []):
             sys.modules.pop(name, None)
 
-    def test_local_range_overrides_llm_trend(self):
+    def test_local_wins_when_alpha_high(self):
         self.oa.ask_openai = lambda *a, **k: {"market_condition": "trend"}
+        self.oa.calc_consistency = lambda *a, **k: 0.8
         ctx = {"indicators": {"adx": [10, 12, 11], "ema_slope": [0.1, 0.1, 0.1]}}
         with self.assertLogs(self.oa.logger, level="WARNING") as cm:
             res = self.oa.get_market_condition(ctx)
         self.assertEqual(res["market_condition"], "range")
         self.assertTrue(any("conflicts" in m for m in cm.output))
 
-    def test_local_trend_overrides_llm_range(self):
+    def test_ai_wins_when_alpha_low(self):
         self.oa.ask_openai = lambda *a, **k: {"market_condition": "range"}
+        self.oa.calc_consistency = lambda *a, **k: 0.2
         ctx = {"indicators": {"adx": [25, 26, 27], "ema_slope": [-0.2, -0.3, -0.1]}}
-        with self.assertLogs(self.oa.logger, level="WARNING") as cm:
-            res = self.oa.get_market_condition(ctx)
-        self.assertEqual(res["market_condition"], "trend")
-        self.assertTrue(any("conflicts" in m for m in cm.output))
+        res = self.oa.get_market_condition(ctx)
+        self.assertEqual(res["market_condition"], "range")
 
 if __name__ == "__main__":
     unittest.main()

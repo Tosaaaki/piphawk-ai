@@ -36,6 +36,10 @@ ADX_NO_TRADE_MAX: float = float(env_loader.get_env("ADX_NO_TRADE_MAX", "30"))
 USE_LOCAL_PATTERN: bool = (
     env_loader.get_env("USE_LOCAL_PATTERN", "false").lower() == "true"
 )
+# Local/AI blending threshold for market regime decision
+LOCAL_WEIGHT_THRESHOLD: float = float(
+    env_loader.get_env("LOCAL_WEIGHT_THRESHOLD", "0.6")
+)
 
 # Global variables to store last AI call timestamps
 _last_entry_ai_call_time = 0.0
@@ -71,6 +75,18 @@ def get_ai_cooldown_sec(current_position: dict | None) -> int:
 logger = logging.getLogger(__name__)
 
 logger.info("OpenAI Analysis started")
+
+
+# ----------------------------------------------------------------------
+# Consistency scoring
+# ----------------------------------------------------------------------
+def calc_consistency(local: str | None, ai: str | None) -> float:
+    """Return a 0-1 consistency score between local and AI results."""
+    if not local or not ai:
+        return 0.5
+    if local == ai:
+        return 1.0
+    return 0.5
 
 
 
@@ -176,14 +192,27 @@ def get_market_condition(context: dict) -> dict:
         llm_regime = "range"
 
     # ------------------------------------------------------------------
-    # 3) Reconcile local vs LLM assessments
+    # 3) Reconcile local vs LLM assessments using consistency score
     # ------------------------------------------------------------------
-    final_regime = local_regime or llm_regime
+    alpha = calc_consistency(local_regime, llm_regime)
+    local_score = 1.0 if local_regime == "trend" else 0.0
+    ai_score = 1.0 if llm_regime == "trend" else 0.0
+    blended = alpha * local_score + (1 - alpha) * ai_score
+    final_regime = "trend" if blended >= 0.5 else "range"
+
+    if local_regime and llm_regime != local_regime:
+        if alpha >= LOCAL_WEIGHT_THRESHOLD:
+            final_regime = local_regime
+        elif (1 - alpha) >= LOCAL_WEIGHT_THRESHOLD:
+            final_regime = llm_regime
+
     if local_regime and llm_regime != local_regime:
         logger.warning(
-            "LLM regime '%s' conflicts with local regime '%s'; using local.",
+            "LLM regime '%s' conflicts with local regime '%s'; alpha=%.2f -> %s",
             llm_regime,
             local_regime,
+            alpha,
+            final_regime,
         )
 
     return {"market_condition": final_regime}
@@ -737,4 +766,6 @@ __all__ = [
     "COOL_ATR_PCT",
     "ADX_NO_TRADE_MIN",
     "ADX_NO_TRADE_MAX",
+    "LOCAL_WEIGHT_THRESHOLD",
+    "calc_consistency",
 ]
