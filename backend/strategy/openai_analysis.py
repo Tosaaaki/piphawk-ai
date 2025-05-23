@@ -93,7 +93,10 @@ def calc_consistency(local: str | None, ai: str | None) -> float:
 # ----------------------------------------------------------------------
 # Market‑regime classification helper (OpenAI direct, enhanced English prompt)
 # ----------------------------------------------------------------------
-def get_market_condition(context: dict) -> dict:
+from backend.strategy.range_break import detect_range_break, classify_breakout
+
+
+def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     """
     Determine whether the market is in a 'trend' or 'range' state.
         The function combines a heuristic, indicator‑based assessment
@@ -103,7 +106,11 @@ def get_market_condition(context: dict) -> dict:
     Returns
     -------
     dict
-        {"market_condition": "trend" | "range"}
+        {
+            "market_condition": "trend" | "range",
+            "range_break": "up" | "down" | None,
+            "break_class": "trend" | "range" | None,
+        }
     """
     import json
     import logging
@@ -215,7 +222,28 @@ def get_market_condition(context: dict) -> dict:
             final_regime,
         )
 
-    return {"market_condition": final_regime}
+    # ------------------------------------------------------------------
+    # 4) Optional range‑break analysis
+    # ------------------------------------------------------------------
+    range_break = None
+    break_class = None
+    candles = context.get("candles_m5")
+    if candles:
+        pivot = None
+        if higher_tf:
+            pivot = higher_tf.get("pivot_h1") or higher_tf.get("pivot_h4") or higher_tf.get("pivot_d")
+        br = detect_range_break(candles, pivot=pivot)
+        if br["break"]:
+            range_break = br["direction"]
+            break_class = classify_breakout(indicators)
+            if break_class == "trend":
+                final_regime = "trend"
+
+    return {
+        "market_condition": final_regime,
+        "range_break": range_break,
+        "break_class": break_class,
+    }
 
 
 
