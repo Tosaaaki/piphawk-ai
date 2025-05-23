@@ -139,6 +139,8 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
             "range_break": "up" | "down" | None,
             "break_class": "trend" | "range" | None,
         }
+    ``context`` may include ``indicators_h1`` and ``indicators_h4`` to
+    improve the local regime decision.
     """
     import json
     import logging
@@ -152,6 +154,8 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     adx_vals = indicators.get("adx")
     ema_vals = indicators.get("ema_slope")
     ind_m1 = context.get("indicators_m1") or {}
+    ind_h1 = context.get("indicators_h1") or {}
+    ind_h4 = context.get("indicators_h4") or {}
 
     def _extract_latest(series):
         if series is None:
@@ -202,6 +206,34 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     local_regime = None
     if adx_latest is not None and ema_sign_consistent:
         local_regime = "trend" if adx_latest >= 20 else "range"
+
+    def _is_trend(ind: dict) -> bool | None:
+        adx = ind.get("adx")
+        ema = ind.get("ema_slope")
+        if adx is None or ema is None:
+            return None
+        try:
+            if hasattr(adx, "iloc"):
+                adx_val = float(adx.iloc[-1])
+            elif isinstance(adx, (list, tuple)):
+                adx_val = float(adx[-1]) if adx else None
+            else:
+                adx_val = float(adx)
+        except Exception:
+            adx_val = None
+        ema_series = _extract_latest(ema)
+        ema_ok_local = len(ema_series) >= 3 and (
+            all(v > 0 for v in ema_series) or all(v < 0 for v in ema_series)
+        )
+        if adx_val is None or not ema_ok_local:
+            return None
+        return adx_val >= 20
+
+    if local_regime != "trend":
+        for ind in (ind_h4, ind_h1):
+            if _is_trend(ind):
+                local_regime = "trend"
+                break
 
     # ------------------------------------------------------------------
     # 2) LLM assessment (JSON‑only response)
