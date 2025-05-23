@@ -472,22 +472,25 @@ class OrderManager:
         pip_factor = 0.01 if instrument.endswith("JPY") else 0.0001
         distance_price = distance_pips * pip_factor
 
-        order_spec = {
-            "order": {
-                "type": "TRAILING_STOP_LOSS",
-                "tradeID": trade_id,
+        # 既存のストップロス注文を置き換える必要があるため
+        # PUT /trades/{tradeID}/orders を使用する
+        body = {
+            "trailingStopLoss": {
                 "distance": format_price(instrument, distance_price),
                 "timeInForce": "GTC",
             }
         }
 
-        url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
-        response = requests.post(url, json=order_spec, headers=HEADERS)
-        if not response.ok:
+        url = (
+            f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/"
+            f"{trade_id}/orders"
+        )
+        response = requests.put(url, json=body, headers=HEADERS)
+        if response.status_code != 200:
             code, msg = _extract_error_details(response)
             log_error(
                 "order_manager",
-                f"Failed to place trailing stop: {code} {msg}",
+                f"Failed to update trailing stop: {code} {msg}",
                 response.text,
             )
             response.raise_for_status()
