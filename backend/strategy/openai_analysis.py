@@ -716,14 +716,15 @@ Classify as "TREND" if ANY TWO of the following conditions are met:
 If these conditions are not clearly met, classify the market as "RANGE".
 
 🚫【Counter-trend Trade Prohibition】
-Under clearly identified TREND conditions, strictly prohibit any counter-trend trades. Never initiate trades solely based on RSI extremes. If the pullback requirement is satisfied, treat the setup as trend continuation, not counter-trend.
+Under clearly identified TREND conditions, avoid counter-trend trades and never rely solely on RSI extremes. Treat pullbacks as trend continuation. However, if a strong reversal pattern such as a double top/bottom or head-and-shoulders is detected and ADX is turning down, a small counter-trend position is acceptable.
 
 🔄【Counter-Trend Trade Allowance】
-Allow short-term counter-trend trades ONLY when ALL of the following conditions are met:
+Allow short-term counter-trend trades only when all of the following are true:
 - ADX ≤ 20 or clearly declining.
-- RSI ≤ 30 for LONG entries or ≥ 70 for SHORT entries, indicating potential exhaustion.
-- Price action shows clear signs of stabilization (e.g., price stopped making new highs/lows, minor reversal candles present).
-- TP set very conservatively (5-10 pips) with strict risk control.
+- A clear reversal pattern (double top/bottom, head-and-shoulders) is present.
+- RSI ≤ 30 for LONG or ≥ 70 for SHORT, showing potential exhaustion.
+- Price action has stabilized with minor reversal candles.
+- TP kept small (5–10 pips) and risk tightly controlled.
 
 📈【Trend Entry Clarification】
 Once a TREND is confirmed, prioritize entries on pullbacks. Shorts enter after price rises {pullback_needed:.1f} pips above the latest low, longs after price drops {pullback_needed:.1f} pips below the latest high. This pullback rule overrides RSI extremes.
@@ -873,7 +874,7 @@ Respond with **one-line valid JSON** exactly as:
             adx_val = float(adx_series.iloc[-1])
         else:
             adx_val = float(adx_series[-1])
-        if ADX_NO_TRADE_MIN <= adx_val <= ADX_NO_TRADE_MAX:
+        if ADX_NO_TRADE_MIN <= adx_val <= ADX_NO_TRADE_MAX and not pattern_name:
             plan["entry"]["side"] = "no"
     except (TypeError, ValueError, IndexError):
         pass
