@@ -197,22 +197,25 @@ class OrderManager:
                 }
             }
 
-        for attempt in range(3):
-            response = requests.put(url, json=body, headers=HEADERS)
-            if response.status_code == 200:
-                return response.json()
+        if new_tp is not None:
+            for attempt in range(3):
+                response = requests.put(url, json=tp_payload, headers=HEADERS)
+                if response.status_code == 200:
+                    results["tp"] = response.json()
+                    break
 
-            code, msg = _extract_error_details(response)
-            err_msg = f"TP/SL adjustment failed: {code} {msg}"
+                code, msg = _extract_error_details(response)
+                err_msg = f"TP adjustment failed: {code} {msg}"
 
-            if code in ("NO_SUCH_TRADE", "ORDER_DOESNT_EXIST") or (
-                "NO_SUCH_TRADE" in response.text or "ORDER_DOESNT_EXIST" in response.text
-            ):
-                log_error("order_manager", err_msg, response.text)
-                break
+                if code in ("NO_SUCH_TRADE", "ORDER_DOESNT_EXIST") or (
+                    "NO_SUCH_TRADE" in response.text or "ORDER_DOESNT_EXIST" in response.text
+                ):
+                    log_error("order_manager", err_msg, response.text)
+                    break
 
-            else:
-                log_error("order_manager", "TP adjustment failed", resp.text)
+                if attempt == 2:
+                    log_error("order_manager", err_msg, response.text)
+                time.sleep(1)
 
         if new_sl is not None:
             sl_payload = {
@@ -223,15 +226,21 @@ class OrderManager:
                     "timeInForce": "GTC",
                 }
             }
-            for _ in range(3):
+            for attempt in range(3):
                 resp = requests.post(url, json=sl_payload, headers=HEADERS)
                 if resp.status_code == 201:
                     results["sl"] = resp.json()
                     break
+                if attempt == 2:
+                    code, msg = _extract_error_details(resp)
+                    log_error(
+                        "order_manager",
+                        f"SL adjustment failed: {code} {msg}",
+                        resp.text,
+                    )
                 time.sleep(1)
 
-        log_error("order_manager", f"TP/SL adjustment failed after retries: {code} {msg}", response.text)
-        return None
+        return results if results else None
 
     def market_close_position(self, instrument):
         # delegate to unified close_position() helper
