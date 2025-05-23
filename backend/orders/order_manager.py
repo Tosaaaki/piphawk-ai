@@ -148,28 +148,47 @@ class OrderManager:
         return response.json()
 
     def adjust_tp_sl(self, instrument, trade_id, new_tp=None, new_sl=None):
-        url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}/orders"
-        body = {"order": {}}
-        if new_tp:
-            body["order"]["takeProfit"] = {
-                "price": format_price(instrument, new_tp)
-            }
-        if new_sl:
-            body["order"]["stopLoss"] = {
-                "price": format_price(instrument, new_sl)
-            }
+        """Adjust TP and/or SL using individual STOP_LOSS/TAKE_PROFIT orders."""
+        url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
+        results = {}
 
-        for attempt in range(3):
-            response = requests.put(url, json=body, headers=HEADERS)
-            if response.status_code == 200:
-                return response.json()
-            elif "NO_SUCH_TRADE" in response.text or "ORDER_DOESNT_EXIST" in response.text:
-                log_error("order_manager", f"TP/SL adjustment failed: trade not found", response.text)
-                break
-            else:
+        if new_tp is not None:
+            tp_payload = {
+                "order": {
+                    "type": "TAKE_PROFIT",
+                    "tradeID": trade_id,
+                    "price": format_price(instrument, new_tp),
+                    "timeInForce": "GTC",
+                }
+            }
+            for _ in range(3):
+                resp = requests.post(url, json=tp_payload, headers=HEADERS)
+                if resp.status_code == 201:
+                    results["tp"] = resp.json()
+                    break
                 time.sleep(1)
-        log_error("order_manager", "TP/SL adjustment failed after retries", response.text)
-        return None
+            else:
+                log_error("order_manager", "TP adjustment failed", resp.text)
+
+        if new_sl is not None:
+            sl_payload = {
+                "order": {
+                    "type": "STOP_LOSS",
+                    "tradeID": trade_id,
+                    "price": format_price(instrument, new_sl),
+                    "timeInForce": "GTC",
+                }
+            }
+            for _ in range(3):
+                resp = requests.post(url, json=sl_payload, headers=HEADERS)
+                if resp.status_code == 201:
+                    results["sl"] = resp.json()
+                    break
+                time.sleep(1)
+            else:
+                log_error("order_manager", "SL adjustment failed", resp.text)
+
+        return results if results else None
 
     def market_close_position(self, instrument):
         # delegate to unified close_position() helper
@@ -404,16 +423,19 @@ class OrderManager:
         return response.json()
 
     def update_trade_sl(self, trade_id, instrument, new_sl_price):
-        url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}/orders"
+        """Create or modify a Stop Loss order for the given trade."""
+        url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
         body = {
             "order": {
                 "type": "STOP_LOSS",
+
+                "tradeID": trade_id,
                 "price": format_price(instrument, new_sl_price),
                 "timeInForce": "GTC",
             }
         }
 
-        response = requests.put(url, json=body, headers=HEADERS)
+        response = requests.post(url, json=body, headers=HEADERS)
 
         if response.status_code != 200:
             try:
@@ -424,6 +446,7 @@ class OrderManager:
                 code = None
                 msg = response.text
             log_error("order_manager", code, msg)
+
             return None
 
         log_trade(
