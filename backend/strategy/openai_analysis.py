@@ -182,10 +182,15 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         except Exception:
             adx_latest = None
 
-    # EMA slope direction consistency for the last three points
+    # EMAの傾きが無い場合はema_fastから代用の傾きを算出
     ema_series = _extract_latest(ema_vals)
+    if not ema_series:
+        fast_vals = indicators.get("ema_fast")
+        fast_series = _extract_latest(fast_vals)
+        if len(fast_series) >= 2:
+            ema_series = [fast_series[i] - fast_series[i - 1] for i in range(1, len(fast_series))]
     ema_sign_consistent = False
-    if len(ema_series) >= 3:
+    if len(ema_series) >= 2:
         pos = [v > 0 for v in ema_series]
         neg = [v < 0 for v in ema_series]
         ema_sign_consistent = all(pos) or all(neg)
