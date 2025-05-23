@@ -37,19 +37,19 @@ class TestMarketConditionOverride(unittest.TestCase):
             sys.modules.pop(name, None)
 
     def test_local_range_overrides_llm_trend(self):
-        self.oa.ask_openai = lambda *a, **k: "trend"
+        self.oa.ask_openai = lambda *a, **k: {"market_condition": "trend"}
         ctx = {"indicators": {"adx": [10, 12, 11], "ema_slope": [0.1, 0.1, 0.1]}}
         with self.assertLogs(self.oa.logger, level="WARNING") as cm:
             res = self.oa.get_market_condition(ctx)
-        self.assertEqual(res, "range")
+        self.assertEqual(res["market_condition"], "range")
         self.assertTrue(any("conflicts" in m for m in cm.output))
 
     def test_local_trend_overrides_llm_range(self):
-        self.oa.ask_openai = lambda *a, **k: "range"
+        self.oa.ask_openai = lambda *a, **k: {"market_condition": "range"}
         ctx = {"indicators": {"adx": [25, 26, 27], "ema_slope": [-0.2, -0.3, -0.1]}}
         with self.assertLogs(self.oa.logger, level="WARNING") as cm:
             res = self.oa.get_market_condition(ctx)
-        self.assertEqual(res, "trend")
+        self.assertEqual(res["market_condition"], "trend")
         self.assertTrue(any("conflicts" in m for m in cm.output))
 
 if __name__ == "__main__":

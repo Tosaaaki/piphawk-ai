@@ -25,6 +25,7 @@ def ask_openai(
     *,
     max_tokens: int = 512,
     temperature: float = 0.7,
+    response_format: dict | None = None,
 ) -> dict:
     """
     Send a prompt to OpenAI's API and return the response text.
@@ -32,6 +33,9 @@ def ask_openai(
         prompt (str): The user prompt/question.
         system_prompt (str): The system message (instructions for the assistant).
         model (str): The OpenAI model to use.
+        response_format (dict | None): Optional response_format passed directly
+            to ``client.chat.completions.create``. Defaults to requesting a
+            JSON object when not provided.
     Returns:
         dict: Parsed JSON object returned by the assistant.
     Raises:
@@ -41,6 +45,9 @@ def ask_openai(
     if model is None:
         model = AI_MODEL
     try:
+        if response_format is None:
+            response_format = {"type": "json_object"}
+
         response = client.chat.completions.create(
             model=model,
             messages=[
@@ -49,7 +56,7 @@ def ask_openai(
             ],
             max_tokens=max_tokens,
             temperature=temperature,
-            response_format={"type": "json_object"},
+            response_format=response_format,
         )
         response_content = response.choices[0].message.content.strip()
         return json.loads(response_content)
