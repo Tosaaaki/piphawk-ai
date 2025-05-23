@@ -165,6 +165,30 @@ def process_entry(
     except Exception as exc:
         logging.debug(f"[process_entry] narrow-range detection failed: {exc}")
 
+    # ------------------------------------------------------------
+    #  Range market handling: switch to LIMIT if near BB center
+    # ------------------------------------------------------------
+    try:
+        if (
+            (market_cond and market_cond.get("market_condition") == "range")
+            or narrow_range
+        ) and bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
+            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+            price_ref = bid if side == "long" else ask
+            if price_ref is not None:
+                center = (bb_upper.iloc[-1] + bb_lower.iloc[-1]) / 2
+                distance_pips = abs(price_ref - center) / pip_size
+                offset_threshold = float(
+                    env_loader.get_env("RANGE_ENTRY_OFFSET_PIPS", "3")
+                )
+                if distance_pips <= offset_threshold:
+                    target = bb_lower.iloc[-1] if side == "long" else bb_upper.iloc[-1]
+                    offset_pips = abs(price_ref - target) / pip_size
+                    limit_price = pullback_limit(side, price_ref, offset_pips)
+                    mode = "limit"
+    except Exception as exc:
+        logging.debug(f"[process_entry] range-limit conversion failed: {exc}")
+
     if mode == "wait":
         logging.info("AI suggests WAIT – re‑evaluate next loop.")
         return False
