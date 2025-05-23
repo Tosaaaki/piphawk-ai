@@ -495,12 +495,12 @@ class OrderManager:
 
     def update_trade_sl(self, trade_id, instrument, new_sl_price):
         """Create or modify a Stop Loss order for the given trade."""
-        url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
+        url = (
+            f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/"
+            f"{trade_id}/orders"
+        )
         body = {
-            "order": {
-                "type": "STOP_LOSS",
-
-                "tradeID": trade_id,
+            "stopLoss": {
                 "price": format_price(instrument, new_sl_price),
                 "timeInForce": "GTC",
             }
@@ -519,12 +519,14 @@ class OrderManager:
 
             return None
 
+        result = response.json()
         log_trade(
             instrument,
             datetime.utcnow().isoformat(),
             new_sl_price,
             0,
             "SL dynamically updated",
-            "SL_UPDATE",
+            json.dumps(result),
         )
-        return response.json()
+        logger.debug(f"SL update response: {result}")
+        return result
