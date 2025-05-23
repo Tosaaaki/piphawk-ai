@@ -102,6 +102,7 @@ class TestSeriesHandling(unittest.TestCase):
         }
         plan = self.oa.get_trade_plan({}, {"M5": indicators}, {"M5": []})
         self.assertIn("entry", plan)
+        self.assertEqual(plan.get("risk"), {})
 
     def test_build_exit_context_range_index(self):
         indicators = {

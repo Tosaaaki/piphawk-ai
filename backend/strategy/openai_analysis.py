@@ -780,10 +780,14 @@ Respond with **one-line valid JSON** exactly as:
                 plan["entry"]["side"] = "no"
         except (TypeError, ValueError):
             plan["entry"]["side"] = "no"
+            plan["risk"] = {}
             return plan
 
         if p < MIN_TP_PROB or (tp * p - sl * q) <= 0:
             plan["entry"]["side"] = "no"
+
+    if plan.get("entry", {}).get("side") == "no":
+        plan["risk"] = {}
 
     # Over-cool filter using Bollinger Band width and ATR
     try:
