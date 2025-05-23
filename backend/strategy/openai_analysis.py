@@ -80,13 +80,24 @@ logger.info("OpenAI Analysis started")
 # ----------------------------------------------------------------------
 # Consistency scoring
 # ----------------------------------------------------------------------
-def calc_consistency(local: str | None, ai: str | None) -> float:
-    """Return a 0-1 consistency score between local and AI results."""
+def calc_consistency(
+    local: str | None,
+    ai: str | None,
+    ema_ok: float = 0.0,
+    adx_ok: float = 0.0,
+    rsi_cross_ok: float = 0.0,
+) -> float:
+    """Return a blended consistency score between local indicators and AI."""
+
     if not local or not ai:
-        return 0.5
-    if local == ai:
-        return 1.0
-    return 0.5
+        ai_score = 0.5
+    else:
+        ai_score = 1.0 if local == ai else 0.0
+
+    local_score = ema_ok * 0.4 + adx_ok * 0.3 + rsi_cross_ok * 0.3
+
+    alpha = LOCAL_WEIGHT_THRESHOLD * local_score + (1 - LOCAL_WEIGHT_THRESHOLD) * ai_score
+    return alpha
 
 
 
@@ -123,6 +134,7 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     # ------------------------------------------------------------------
     adx_vals = indicators.get("adx")
     ema_vals = indicators.get("ema_slope")
+    ind_m1 = context.get("indicators_m1") or {}
 
     def _extract_latest(series):
         if series is None:
@@ -156,6 +168,19 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         pos = [v > 0 for v in ema_series]
         neg = [v < 0 for v in ema_series]
         ema_sign_consistent = all(pos) or all(neg)
+    ema_ok = 1.0 if ema_sign_consistent else 0.0
+
+    adx_ok = 1.0 if adx_latest is not None and adx_latest >= 20 else 0.0
+
+    rsi_cross_ok = 0.0
+    rsi_m1 = ind_m1.get("rsi")
+    if rsi_m1 is not None:
+        try:
+            from backend.strategy.signal_filter import _rsi_cross_up_or_down
+            if _rsi_cross_up_or_down(rsi_m1):
+                rsi_cross_ok = 1.0
+        except Exception:
+            rsi_cross_ok = 0.0
 
     local_regime = None
     if adx_latest is not None and ema_sign_consistent:
@@ -201,7 +226,9 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     # ------------------------------------------------------------------
     # 3) Reconcile local vs LLM assessments using consistency score
     # ------------------------------------------------------------------
-    alpha = calc_consistency(local_regime, llm_regime)
+    alpha = calc_consistency(
+        local_regime, llm_regime, ema_ok=ema_ok, adx_ok=adx_ok, rsi_cross_ok=rsi_cross_ok
+    )
     local_score = 1.0 if local_regime == "trend" else 0.0
     ai_score = 1.0 if llm_regime == "trend" else 0.0
     blended = alpha * local_score + (1 - alpha) * ai_score
