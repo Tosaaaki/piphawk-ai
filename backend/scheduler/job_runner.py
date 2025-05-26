@@ -481,15 +481,18 @@ class JobRunner:
                                 market_cond = get_market_condition(
                                     {
                                         "indicators": {
-                                            key: float(val.iloc[-1]) if hasattr(val, "iloc") else float(val)
+                                            key: float(val.iloc[-1]) if hasattr(val, "iloc") and val.iloc[-1] is not None
+                                            else float(val) if val is not None else None
                                             for key, val in indicators.items()
                                         },
                                         "indicators_h1": {
-                                            key: float(v.iloc[-1]) if hasattr(v, "iloc") else float(v)
+                                            key: float(v.iloc[-1]) if hasattr(v, "iloc") and v.iloc[-1] is not None
+                                            else float(v) if v is not None else None
                                             for key, v in (self.indicators_H1 or {}).items()
                                         },
                                         "indicators_h4": {
-                                            key: float(v.iloc[-1]) if hasattr(v, "iloc") else float(v)
+                                            key: float(v.iloc[-1]) if hasattr(v, "iloc") and v.iloc[-1] is not None
+                                            else float(v) if v is not None else None
                                             for key, v in (self.indicators_H4 or {}).items()
                                         },
                                         "candles_m1": candles_m1,
@@ -579,15 +582,18 @@ class JobRunner:
                             market_cond = get_market_condition(
                                 {
                                     "indicators": {
-                                        key: float(val.iloc[-1]) if hasattr(val, "iloc") else float(val)
+                                        key: float(val.iloc[-1]) if hasattr(val, "iloc") and val.iloc[-1] is not None
+                                        else float(val) if val is not None else None
                                         for key, val in indicators.items()
                                     },
                                     "indicators_h1": {
-                                        key: float(v.iloc[-1]) if hasattr(v, "iloc") else float(v)
+                                        key: float(v.iloc[-1]) if hasattr(v, "iloc") and v.iloc[-1] is not None
+                                        else float(v) if v is not None else None
                                         for key, v in (self.indicators_H1 or {}).items()
                                     },
                                     "indicators_h4": {
-                                        key: float(v.iloc[-1]) if hasattr(v, "iloc") else float(v)
+                                        key: float(v.iloc[-1]) if hasattr(v, "iloc") and v.iloc[-1] is not None
+                                        else float(v) if v is not None else None
                                         for key, v in (self.indicators_H4 or {}).items()
                                     },
                                     "candles_m1": candles_m1,
@@ -667,15 +673,18 @@ class JobRunner:
                             market_cond = get_market_condition(
                                 {
                                     "indicators": {
-                                        key: float(val.iloc[-1]) if hasattr(val, "iloc") else float(val)
+                                        key: float(val.iloc[-1]) if hasattr(val, "iloc") and val.iloc[-1] is not None
+                                        else float(val) if val is not None else None
                                         for key, val in indicators.items()
                                     },
                                     "indicators_h1": {
-                                        key: float(v.iloc[-1]) if hasattr(v, "iloc") else float(v)
+                                        key: float(v.iloc[-1]) if hasattr(v, "iloc") and v.iloc[-1] is not None
+                                        else float(v) if v is not None else None
                                         for key, v in (self.indicators_H1 or {}).items()
                                     },
                                     "indicators_h4": {
-                                        key: float(v.iloc[-1]) if hasattr(v, "iloc") else float(v)
+                                        key: float(v.iloc[-1]) if hasattr(v, "iloc") and v.iloc[-1] is not None
+                                        else float(v) if v is not None else None
                                         for key, v in (self.indicators_H4 or {}).items()
                                     },
                                     "candles_m1": candles_m1,
