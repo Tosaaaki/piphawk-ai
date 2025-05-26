@@ -335,8 +335,8 @@ def process_exit(
                     f"trigger={trigger_pips:.1f}p"
                 )
 
-                # 利益が正負どちらの場合でもトレーリングストップを発動させるため絶対値で比較
-                if abs(profit_pips) >= trigger_pips:
+                # 利益が正の場合のみトレーリングストップを発動する
+                if profit_pips >= trigger_pips:
                     # --- attach trailing stop to the first open trade ID ---
                     trade_ids = position.get(position_side, {}).get("tradeIDs", [])
                     if trade_ids:

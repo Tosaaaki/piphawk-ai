@@ -70,20 +70,32 @@ class TestTrailingStopAbsProfit(unittest.TestCase):
         for name in self._added:
             sys.modules.pop(name, None)
 
-    def test_short_position_triggers_on_abs_profit(self):
+    def test_long_position_triggers_on_positive_profit(self):
         self.position.update({
             "instrument": "EUR_USD",
-            "short": {"units": "-1", "averagePrice": "1.2345", "tradeIDs": ["t1"]},
+            "long": {"units": "1", "averagePrice": "1.2345", "tradeIDs": ["t1"]},
             "pl": "0",
             "entry_time": "2024-01-01T00:00:00Z",
         })
-        market = {"prices": [{"bids": [{"price": "1.2330"}], "asks": [{"price": "1.2330"}]}]}
+        market = {"prices": [{"bids": [{"price": "1.2355"}], "asks": [{"price": "1.2355"}]}]}
         self.el.process_exit({}, market)
         calls = self.el.order_manager.calls
         self.assertEqual(len(calls), 1)
         self.assertEqual(calls[0][0], "t1")
         self.assertEqual(calls[0][1], "EUR_USD")
         self.assertEqual(calls[0][2], 6)
+
+    def test_trailing_stop_not_triggered_on_negative_profit(self):
+        self.position.update({
+            "instrument": "EUR_USD",
+            "long": {"units": "1", "averagePrice": "1.2345", "tradeIDs": ["t1"]},
+            "pl": "0",
+            "entry_time": "2024-01-01T00:00:00Z",
+        })
+        market = {"prices": [{"bids": [{"price": "1.2330"}], "asks": [{"price": "1.2330"}]}]}
+        self.el.process_exit({}, market)
+        calls = self.el.order_manager.calls
+        self.assertEqual(len(calls), 0)
 
 if __name__ == "__main__":
     unittest.main()
