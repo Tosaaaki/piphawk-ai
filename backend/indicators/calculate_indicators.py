@@ -9,6 +9,8 @@ from backend.indicators.ema import calculate_ema
 from backend.indicators.atr import calculate_atr
 from backend.indicators.bollinger import calculate_bollinger_bands
 from backend.indicators.adx import calculate_adx
+from backend.indicators.pivot import calculate_pivots
+from backend.indicators.n_wave import calculate_n_wave_target
 from backend.market_data.candle_fetcher import fetch_candles
 
 
@@ -58,12 +60,25 @@ def calculate_indicators(
         'ema_slow': ema_slow_series,
         'ema_slope': ema_slope_series,
         'atr': calculate_atr(high_prices, low_prices, close_prices),
+        'n_wave_target': calculate_n_wave_target(close_prices),
         # Spread Bollinger components so filters can access them directly
         'bb_upper': bb_df['upper_band'],
         'bb_lower': bb_df['lower_band'],
         'bb_middle': bb_df['middle_band'],
         'adx': adx_series,
     }
+
+    if high_prices and low_prices and close_prices:
+        piv = calculate_pivots(high_prices[-1], low_prices[-1], close_prices[-1])
+        indicators.update(
+            {
+                'pivot': piv['pivot'],
+                'pivot_r1': piv['r1'],
+                'pivot_s1': piv['s1'],
+                'pivot_r2': piv['r2'],
+                'pivot_s2': piv['s2'],
+            }
+        )
 
     # 各指標の欠損値を前後の値で補完
     for key, series in indicators.items():

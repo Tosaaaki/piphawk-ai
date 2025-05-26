@@ -237,6 +237,7 @@ def process_entry(
 
     tp_pips = risk_info.get("tp_pips")
     sl_pips = risk_info.get("sl_pips")
+    fallback_tp = None
 
     min_sl = float(env_loader.get_env("MIN_SL_PIPS", "0"))
     fallback_sl = None
@@ -250,8 +251,30 @@ def process_entry(
             pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
             mult = float(env_loader.get_env("ATR_SL_MULTIPLIER", "2.0"))
             fallback_sl = atr_val / pip_size * mult
+            tp_ratio = float(env_loader.get_env("SHORT_TP_ATR_RATIO", "0.6"))
+            fallback_tp = atr_val / pip_size * tp_ratio
+        price_ref = bid if side == "long" else ask
+        pivot_key = "pivot_r1" if side == "long" else "pivot_s1"
+        pivot_val = indicators.get(pivot_key)
+        if pivot_val is not None and price_ref is not None:
+            dist = abs(pivot_val - price_ref) / pip_size
+            if fallback_tp is None or dist < fallback_tp:
+                fallback_tp = dist
+        n_target = indicators.get("n_wave_target")
+        if n_target is not None and price_ref is not None:
+            dist = abs(n_target - price_ref) / pip_size
+            if fallback_tp is None or dist < fallback_tp:
+                fallback_tp = dist
     except Exception as exc:
         logging.debug(f"[process_entry] ATR-based SL calc failed: {exc}")
+
+    if tp_pips is None:
+        tp_pips = fallback_tp if fallback_tp is not None else float(env_loader.get_env("INIT_TP_PIPS", "30"))
+    else:
+        try:
+            tp_pips = float(tp_pips)
+        except Exception:
+            tp_pips = float(env_loader.get_env("INIT_TP_PIPS", "30"))
 
     if sl_pips is None:
         sl_pips = fallback_sl if fallback_sl is not None else float(env_loader.get_env("INIT_SL_PIPS", "20"))
