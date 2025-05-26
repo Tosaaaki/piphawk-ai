@@ -163,6 +163,47 @@ def process_exit(
         logging.info("No active position found.")
         return False
 
+    # -------- Market regime shift check --------------------------------
+    entry_regime = None
+    try:
+        er_raw = position.get("entry_regime")
+        if er_raw:
+            entry_regime = json.loads(er_raw)
+    except Exception:
+        entry_regime = None
+
+    regime_action = None
+    if entry_regime and isinstance(market_cond, dict):
+        curr_cond = market_cond.get("market_condition")
+        curr_dir = market_cond.get("trend_direction")
+        prev_cond = entry_regime.get("market_condition")
+        prev_dir = entry_regime.get("trend_direction")
+        if curr_cond != prev_cond or curr_dir != prev_dir:
+            favorable = (
+                curr_cond == "trend"
+                and curr_dir is not None
+                and ((curr_dir == "long" and position_side == "long") or (curr_dir == "short" and position_side == "short"))
+            )
+            regime_action = "HOLD" if favorable else "EXIT"
+
+    if regime_action == "EXIT":
+        logging.info("Regime shift unfavorable → closing position early.")
+        order_manager.exit_trade(position)
+        exit_time = datetime.utcnow().isoformat()
+        units = int(position["long"]["units"]) if position_side == "long" else -int(position["short"]["units"])
+        log_trade(
+            position["instrument"],
+            exit_time=exit_time,
+            entry_time=position.get("entry_time", exit_time),
+            entry_price=float(position[position_side]["averagePrice"]),
+            units=units,
+            profit_loss=float(position["pl"]),
+            ai_reason="regime shift exit",
+        )
+        return True
+    elif regime_action == "HOLD":
+        logging.info("Regime shift favors current position → HOLD")
+
 
     # -------- Early‑exit / break‑even logic ----------------------------
     if EARLY_EXIT_ENABLED:
