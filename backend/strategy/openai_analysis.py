@@ -794,6 +794,12 @@ EMA_s: {_series_tail_list(ind_d1.get('ema_slow'), 20)}
 Use this as a baseline for setting wider stop-loss levels.
 After calculating TP hit probability, widen the SL by at least {env_loader.get_env("NOISE_SL_MULT", "1.5")} times.
 
+### Pivot Levels
+Pivot: {ind_m5.get('pivot')}, R1: {ind_m5.get('pivot_r1')}, S1: {ind_m5.get('pivot_s1')}
+
+### N-Wave Target
+{ind_m5.get('n_wave_target')}
+
 Your task:
 1. Clearly classify the current regime as "trend" or "range". If "trend", specify direction as "long" or "short". Output this at JSON key "regime".
 2. Decide whether to open a trade now, strictly adhering to the above criteria. Return JSON key "entry" with: {{ "side":"long"|"short"|"no", "rationale":"…" }}
