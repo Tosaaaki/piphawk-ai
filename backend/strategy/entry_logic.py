@@ -312,6 +312,7 @@ def process_entry(
             "entry_uuid": entry_uuid,
             "valid_for_sec": valid_sec,
             "ai_response": ai_raw,
+            "market_cond": market_cond,
         }
         result = order_manager.enter_trade(
             side=side,
@@ -341,6 +342,7 @@ def process_entry(
             "mode": "market",
             "limit_price": limit_price,
             "ai_response": ai_raw,
+            "market_cond": market_cond,
         }
 
     trade_result = order_manager.enter_trade(
