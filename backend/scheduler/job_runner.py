@@ -110,6 +110,10 @@ AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0
 TP_EXTENSION_ENABLED = env_loader.get_env("TP_EXTENSION_ENABLED", "false").lower() == "true"
 TP_EXTENSION_ADX_MIN = float(env_loader.get_env("TP_EXTENSION_ADX_MIN", "25"))
 TP_EXTENSION_ATR_MULT = float(env_loader.get_env("TP_EXTENSION_ATR_MULT", "1.0"))
+TP_REDUCTION_ENABLED = env_loader.get_env("TP_REDUCTION_ENABLED", "false").lower() == "true"
+TP_REDUCTION_ADX_MAX = float(env_loader.get_env("TP_REDUCTION_ADX_MAX", "20"))
+TP_REDUCTION_MIN_SEC = int(env_loader.get_env("TP_REDUCTION_MIN_SEC", "900"))
+TP_REDUCTION_ATR_MULT = float(env_loader.get_env("TP_REDUCTION_ATR_MULT", "1.0"))
 
 
 # ───────────────────────────────────────────────────────────
@@ -168,6 +172,7 @@ class JobRunner:
         self.breakeven_reached: bool = False
         self.sl_reset_done: bool = False
         self.tp_extended: bool = False
+        self.tp_reduced: bool = False
         # Latest detected chart patterns by timeframe
         self.patterns_by_tf: dict[str, str | None] = {}
 
@@ -343,6 +348,43 @@ class JobRunner:
         except Exception as exc:
             logger.warning(f"TP extension failed: {exc}")
 
+    def _maybe_reduce_tp(self, position: dict, indicators: dict, side: str, pip_size: float):
+        if self.tp_reduced or not TP_REDUCTION_ENABLED:
+            return
+        adx_series = indicators.get("adx")
+        atr_series = indicators.get("atr")
+        if adx_series is None or atr_series is None:
+            return
+        adx_val = adx_series.iloc[-1] if hasattr(adx_series, "iloc") else adx_series[-1]
+        if adx_val > TP_REDUCTION_ADX_MAX:
+            return
+        entry_ts = position.get("entry_time") or position.get("openTime")
+        if entry_ts:
+            try:
+                et = datetime.fromisoformat(entry_ts.replace("Z", "+00:00"))
+                held_sec = (datetime.utcnow() - et).total_seconds()
+                if held_sec < TP_REDUCTION_MIN_SEC:
+                    return
+            except Exception:
+                pass
+        atr_val = atr_series.iloc[-1] if hasattr(atr_series, "iloc") else atr_series[-1]
+        red_pips = (atr_val / pip_size) * TP_REDUCTION_ATR_MULT
+        try:
+            entry_price = float(position[side]["averagePrice"])
+            trade_id = position[side]["tradeIDs"][0]
+        except Exception:
+            return
+        new_tp = entry_price + red_pips * pip_size if side == "long" else entry_price - red_pips * pip_size
+        try:
+            res = order_mgr.adjust_tp_sl(DEFAULT_PAIR, trade_id, new_tp=new_tp)
+            if res is not None:
+                logger.info(
+                    f"TP reduced to {new_tp} ({red_pips:.1f}pips) due to weak trend"
+                )
+                self.tp_reduced = True
+        except Exception as exc:
+            logger.warning(f"TP reduction failed: {exc}")
+
     def run(self):
         logger.info("Job Runner started.")
         while True:
@@ -423,6 +465,7 @@ class JobRunner:
                         self.breakeven_reached = False
                         self.sl_reset_done = False
                         self.tp_extended = False
+                        self.tp_reduced = False
 
                     # ---- Dynamic cooldown (OPEN / FLAT) ---------------
                     # ポジション保有時はエグジット用、未保有時はエントリー用
@@ -508,6 +551,7 @@ class JobRunner:
                                     self.sl_reset_done = True
 
                         self._maybe_extend_tp(has_position, indicators, position_side, pip_size)
+                        self._maybe_reduce_tp(has_position, indicators, position_side, pip_size)
 
                         if current_profit_pips >= TP_PIPS * AI_PROFIT_TRIGGER_RATIO:
                             # EXITフィルターを評価し、フィルターNGの場合はAIの決済判断をスキップ
@@ -662,6 +706,7 @@ class JobRunner:
                     # AIによるエントリー/エグジット判断
                     if not has_position:
                         self.tp_extended = False
+                        self.tp_reduced = False
                         # 1) Entry cooldown check
                         if (
                             self.last_close_ts
