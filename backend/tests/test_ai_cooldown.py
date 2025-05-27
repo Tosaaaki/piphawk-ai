@@ -39,11 +39,11 @@ class TestGetAICooldownSec(unittest.TestCase):
     def test_nested_units_long_or_short(self):
         self.assertEqual(
             self.oa.get_ai_cooldown_sec({"long": {"units": "1"}}),
-            self.oa.AI_COOLDOWN_SEC_OPEN,
+            self.oa.AI_COOLDOWN_SEC_FLAT,
         )
         self.assertEqual(
             self.oa.get_ai_cooldown_sec({"short": {"units": "-2"}}),
-            self.oa.AI_COOLDOWN_SEC_OPEN,
+            self.oa.AI_COOLDOWN_SEC_FLAT,
         )
 
 if __name__ == "__main__":

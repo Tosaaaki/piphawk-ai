@@ -67,8 +67,8 @@ def _series_tail_list(series, n: int = 20) -> list:
 
 def get_ai_cooldown_sec(current_position: dict | None) -> int:
     """
-    Return the appropriate cooldown seconds depending on whether we are flat
-    or holding an open position.
+    現在ポジションがある場合は ``AI_COOLDOWN_SEC_FLAT``、
+    ポジションが無い場合は ``AI_COOLDOWN_SEC_OPEN`` を返す。
     """
     if current_position:
         try:
@@ -86,8 +86,8 @@ def get_ai_cooldown_sec(current_position: dict | None) -> int:
                 except (TypeError, ValueError):
                     units_val = 0.0
         if abs(units_val) > 0:
-            return AI_COOLDOWN_SEC_OPEN
-    return AI_COOLDOWN_SEC_FLAT
+            return AI_COOLDOWN_SEC_FLAT
+    return AI_COOLDOWN_SEC_OPEN
 
 logger = logging.getLogger(__name__)
 
