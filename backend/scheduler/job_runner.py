@@ -107,6 +107,9 @@ MAX_LIMIT_AGE_SEC = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))  # secon
 # POSITION_REVIEW_SEC     : seconds between AI reviews while holding a position   (default 60)
 # AIに利益確定を問い合わせる閾値（TP目標の何割以上で問い合わせるか）
 AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.3"))
+TP_EXTENSION_ENABLED = env_loader.get_env("TP_EXTENSION_ENABLED", "false").lower() == "true"
+TP_EXTENSION_ADX_MIN = float(env_loader.get_env("TP_EXTENSION_ADX_MIN", "25"))
+TP_EXTENSION_ATR_MULT = float(env_loader.get_env("TP_EXTENSION_ATR_MULT", "1.0"))
 
 
 # ───────────────────────────────────────────────────────────
@@ -164,6 +167,7 @@ class JobRunner:
         # Flags for breakeven and SL management
         self.breakeven_reached: bool = False
         self.sl_reset_done: bool = False
+        self.tp_extended: bool = False
         # Latest detected chart patterns by timeframe
         self.patterns_by_tf: dict[str, str | None] = {}
 
@@ -311,6 +315,34 @@ class JobRunner:
             }
             logger.info(f"Renewed LIMIT order {result.get('order_id')}")
 
+    def _maybe_extend_tp(self, position: dict, indicators: dict, side: str, pip_size: float):
+        if self.tp_extended or not TP_EXTENSION_ENABLED:
+            return
+        adx_series = indicators.get("adx")
+        atr_series = indicators.get("atr")
+        if adx_series is None or atr_series is None:
+            return
+        adx_val = adx_series.iloc[-1] if hasattr(adx_series, "iloc") else adx_series[-1]
+        if adx_val < TP_EXTENSION_ADX_MIN:
+            return
+        atr_val = atr_series.iloc[-1] if hasattr(atr_series, "iloc") else atr_series[-1]
+        ext_pips = (atr_val / pip_size) * TP_EXTENSION_ATR_MULT
+        try:
+            entry_price = float(position[side]["averagePrice"])
+            trade_id = position[side]["tradeIDs"][0]
+        except Exception:
+            return
+        new_tp = entry_price + ext_pips * pip_size if side == "long" else entry_price - ext_pips * pip_size
+        try:
+            res = order_mgr.adjust_tp_sl(DEFAULT_PAIR, trade_id, new_tp=new_tp)
+            if res is not None:
+                logger.info(
+                    f"TP extended to {new_tp} ({ext_pips:.1f}pips) due to strong trend"
+                )
+                self.tp_extended = True
+        except Exception as exc:
+            logger.warning(f"TP extension failed: {exc}")
+
     def run(self):
         logger.info("Job Runner started.")
         while True:
@@ -390,6 +422,7 @@ class JobRunner:
                     if not has_position:
                         self.breakeven_reached = False
                         self.sl_reset_done = False
+                        self.tp_extended = False
 
                     # ---- Dynamic cooldown (OPEN / FLAT) ---------------
                     if has_position:
@@ -472,6 +505,8 @@ class JobRunner:
                                 if result is not None:
                                     logger.info(f"SL reapplied at {new_sl_price}")
                                     self.sl_reset_done = True
+
+                        self._maybe_extend_tp(has_position, indicators, position_side, pip_size)
 
                         if current_profit_pips >= TP_PIPS * AI_PROFIT_TRIGGER_RATIO:
                             # EXITフィルターを評価し、フィルターNGの場合はAIの決済判断をスキップ
@@ -625,6 +660,7 @@ class JobRunner:
 
                     # AIによるエントリー/エグジット判断
                     if not has_position:
+                        self.tp_extended = False
                         # 1) Entry cooldown check
                         if (
                             self.last_close_ts
