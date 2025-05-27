@@ -376,23 +376,29 @@ def process_exit(
                     f"trigger={trigger_pips:.1f}p"
                 )
 
-                # 利益が正の場合のみトレーリングストップを発動する
+                # 利益が十分にある場合のみトレーリングストップを検討する
                 if profit_pips >= trigger_pips:
-                    # --- attach trailing stop to the first open trade ID ---
-                    trade_ids = position.get(position_side, {}).get("tradeIDs", [])
-                    if trade_ids:
-                        order_manager.place_trailing_stop(
-                            trade_id=trade_ids[0],
-                            instrument=position["instrument"],
-                            distance_pips=int(distance_pips)
+                    # 利益より距離が大きい場合は発注しない
+                    if profit_pips - distance_pips <= 0:
+                        logging.warning(
+                            "Trailing-stop skipped: distance exceeds current profit"
                         )
                     else:
-                        logging.warning("Trailing-stop placement skipped: missing trade IDs")
-                    logging.info(
-                        f"Trailing stop placed on {position['instrument']} "
-                        f"({position_side}) profit={profit_pips:.1f}p, "
-                        f"trigger={trigger_pips:.1f}p, distance={distance_pips:.1f}p"
-                    )
+                        # --- attach trailing stop to the first open trade ID ---
+                        trade_ids = position.get(position_side, {}).get("tradeIDs", [])
+                        if trade_ids:
+                            order_manager.place_trailing_stop(
+                                trade_id=trade_ids[0],
+                                instrument=position["instrument"],
+                                distance_pips=int(distance_pips)
+                            )
+                        else:
+                            logging.warning("Trailing-stop placement skipped: missing trade IDs")
+                        logging.info(
+                            f"Trailing stop placed on {position['instrument']} "
+                            f"({position_side}) profit={profit_pips:.1f}p, "
+                            f"trigger={trigger_pips:.1f}p, distance={distance_pips:.1f}p"
+                        )
                 else:
                     logging.debug(
                         f"Trailing stop not triggered: profit={profit_pips:.1f}p < "
