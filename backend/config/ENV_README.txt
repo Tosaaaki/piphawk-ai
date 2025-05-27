@@ -53,6 +53,9 @@ ATR（ボラティリティ指標）の計算期間。
 
 - TRAIL_TRIGGER_PIPS / TRAIL_DISTANCE_PIPS:
   ATRが取得できない場合に使用する固定幅（pips）。
+  利益からTRAIL_DISTANCE_PIPSを引いた値が0以下の場合、
+  トレーリングストップは発注されず警告のみが出ます。
+  TRAIL_TRIGGER_PIPSはTRAIL_DISTANCE_PIPS以上に設定することを推奨します。
 
 - TRAIL_TRIGGER_MULTIPLIER / TRAIL_DISTANCE_MULTIPLIER:
   ATR値を基準にした倍率。ATRが利用可能なときは

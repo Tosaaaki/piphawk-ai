@@ -97,5 +97,18 @@ class TestTrailingStopAbsProfit(unittest.TestCase):
         calls = self.el.order_manager.calls
         self.assertEqual(len(calls), 0)
 
+    def test_no_trailing_when_distance_exceeds_profit(self):
+        self.position.update({
+            "instrument": "EUR_USD",
+            "long": {"units": "1", "averagePrice": "1.2345", "tradeIDs": ["t1"]},
+            "pl": "0",
+            "entry_time": "2024-01-01T00:00:00Z",
+        })
+        # distance_pips は 15 とする
+        self.el.TRAIL_DISTANCE_PIPS = 15.0
+        market = {"prices": [{"bids": [{"price": "1.2357"}], "asks": [{"price": "1.2357"}]}]}
+        self.el.process_exit({}, market)
+        self.assertEqual(len(self.el.order_manager.calls), 0)
+
 if __name__ == "__main__":
     unittest.main()
