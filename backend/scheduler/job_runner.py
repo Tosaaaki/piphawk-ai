@@ -138,12 +138,12 @@ class JobRunner:
         self.interval_seconds = interval_seconds
         self.last_run = None
         # --- AI cooldown values ---------------------------------------
-        #   * AI_COOLDOWN_SEC_OPEN : seconds between AI calls while holding a position
-        #   * AI_COOLDOWN_SEC_FLAT : seconds between AI calls while flat (no position)
+        #   * AI_COOLDOWN_SEC_OPEN : エントリー用クールダウン時間
+        #   * AI_COOLDOWN_SEC_FLAT : エグジット用クールダウン時間
         self.ai_cooldown_open = int(env_loader.get_env("AI_COOLDOWN_SEC_OPEN", "30"))
         self.ai_cooldown_flat = int(env_loader.get_env("AI_COOLDOWN_SEC_FLAT", "60"))
-        # Current effective cooldown (updated each loop iteration)
-        self.ai_cooldown = self.ai_cooldown_flat
+        # 現在のクールダウン（ループ毎に更新）
+        self.ai_cooldown = self.ai_cooldown_open
         # --- position review (巡回) settings ----------------------------
         self.review_enabled = env_loader.get_env("POSITION_REVIEW_ENABLED", "true").lower() == "true"
         self.review_sec = int(env_loader.get_env("POSITION_REVIEW_SEC", "60"))
@@ -425,10 +425,11 @@ class JobRunner:
                         self.tp_extended = False
 
                     # ---- Dynamic cooldown (OPEN / FLAT) ---------------
+                    # ポジション保有時はエグジット用、未保有時はエントリー用
                     if has_position:
-                        self.ai_cooldown = self.ai_cooldown_open
-                    else:
                         self.ai_cooldown = self.ai_cooldown_flat
+                    else:
+                        self.ai_cooldown = self.ai_cooldown_open
 
                     # Determine position_side for further logic
                     if has_position and has_position.get("long") and int(has_position["long"]["units"]) > 0:
