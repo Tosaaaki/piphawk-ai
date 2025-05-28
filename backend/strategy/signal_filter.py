@@ -15,6 +15,7 @@ import logging
 import datetime
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from backend.market_data.tick_fetcher import fetch_tick_data
+from backend.indicators.adx import calculate_adx_slope
 logger = logging.getLogger(__name__)
 
 # ────────────────────────────────────────────────
@@ -155,6 +156,10 @@ def pass_entry_filter(
     latest_adx = adx_series.iloc[-1] if adx_series is not None and len(adx_series) else None
     adx_thresh = float(os.getenv("ADX_RANGE_THRESHOLD", "25"))
     range_mode = latest_adx is not None and latest_adx < adx_thresh
+    lookback = int(os.getenv("ADX_SLOPE_LOOKBACK", "3"))
+    adx_slope = calculate_adx_slope(adx_series, lookback) if adx_series is not None else 0.0
+    if adx_slope < 0:
+        range_mode = True
 
     # --- Volume check ---------------------------------------------------
     vol_series = indicators.get("volume")
