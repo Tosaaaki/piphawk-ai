@@ -135,54 +135,67 @@ def process_entry(
     logging.info(f"AI trade plan raw: {ai_raw}")
 
     entry_info = plan.get("entry", {})
-    risk_info  = plan.get("risk", {})
+    risk_info = plan.get("risk", {})
 
     side = entry_info.get("side", "no").lower()
+    mode = entry_info.get("mode", "market")
+    limit_price = entry_info.get("limit_price")
+    valid_sec = int(
+        entry_info.get("valid_for_sec", env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
+    )
+
+    is_break = market_cond and market_cond.get("market_condition") == "break"
+    if is_break:
+        direction = market_cond.get("break_direction")
+        if direction == "up":
+            side = "long"
+        elif direction == "down":
+            side = "short"
+        mode = "market"
+        limit_price = None
+
     if side not in ("long", "short"):
         logging.info("AI says no trade entry → early exit")
         return False
 
-    mode = entry_info.get("mode", "market")
-    limit_price = entry_info.get("limit_price")
-    valid_sec = int(entry_info.get("valid_for_sec", env_loader.get_env("MAX_LIMIT_AGE_SEC", "180")))
-
     # --- dynamic pullback threshold ---------------------------------
     pullback_needed = None
-    try:
-        pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-        atr_series = indicators.get("atr")
-        bb_upper = indicators.get("bb_upper")
-        bb_lower = indicators.get("bb_lower")
-        atr_val = atr_series.iloc[-1] if atr_series is not None else None
-        if atr_val is not None:
-            atr_val = float(atr_val)
-        bw_val = None
-        if bb_upper is not None and bb_lower is not None:
-            bw_val = float(bb_upper.iloc[-1]) - float(bb_lower.iloc[-1])
-        atr_pips = atr_val / pip_size if atr_val is not None else 0.0
-        bw_pips = bw_val / pip_size if bw_val is not None else 0.0
-        class _OneVal:
-            def __init__(self, val):
-                class _IL:
-                    def __getitem__(self, idx):
-                        return val
-                self.iloc = _IL()
+    if not is_break:
+        try:
+            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+            atr_series = indicators.get("atr")
+            bb_upper = indicators.get("bb_upper")
+            bb_lower = indicators.get("bb_lower")
+            atr_val = atr_series.iloc[-1] if atr_series is not None else None
+            if atr_val is not None:
+                atr_val = float(atr_val)
+            bw_val = None
+            if bb_upper is not None and bb_lower is not None:
+                bw_val = float(bb_upper.iloc[-1]) - float(bb_lower.iloc[-1])
+            atr_pips = atr_val / pip_size if atr_val is not None else 0.0
+            bw_pips = bw_val / pip_size if bw_val is not None else 0.0
+            class _OneVal:
+                def __init__(self, val):
+                    class _IL:
+                        def __getitem__(self, idx):
+                            return val
+                    self.iloc = _IL()
 
-        noise_series = _OneVal(max(atr_pips, bw_pips))
-        highs = []
-        lows = []
-        for c in candles[-20:]:
-            if 'mid' in c:
-                highs.append(float(c['mid']['h']))
-                lows.append(float(c['mid']['l']))
-            else:
-                highs.append(float(c.get('h')))
-                lows.append(float(c.get('l')))
-        recent_high = max(highs) if highs else 0.0
-        recent_low = min(lows) if lows else 0.0
-        pullback_needed = calculate_dynamic_pullback({**indicators, 'noise': noise_series}, recent_high, recent_low)
-    except Exception:
-        pass
+            noise_series = _OneVal(max(atr_pips, bw_pips))
+            highs = []
+            lows = []
+            for c in candles[-20:]:
+                if 'mid' in c:
+                    highs.append(float(c['mid']['h']))
+                    lows.append(float(c['mid']['l']))
+                else:
+                    highs.append(float(c.get('h')))
+                    lows.append(float(c.get('l')))
+            recent_high = max(highs) if highs else 0.0
+            recent_low = min(lows) if lows else 0.0
+            pullback_needed = calculate_dynamic_pullback({**indicators, 'noise': noise_series}, recent_high, recent_low)
+        except Exception:
+            pass
 
     if isinstance(market_data, dict):
         instrument = market_data["prices"][0]["instrument"]
@@ -192,7 +205,7 @@ def process_entry(
         instrument = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
         bid = ask = None
 
-    if mode == "market":
+    if mode == "market" and not is_break:
         price_ref = bid if side == "long" else ask
         offset = 0.0
         if higher_tf and price_ref is not None:
@@ -223,40 +236,42 @@ def process_entry(
     #  Detect narrow-range market (Bollinger band width < threshold)
     # ------------------------------------------------------------
     narrow_range = False
-    try:
-        bb_upper = indicators.get("bb_upper")
-        bb_lower = indicators.get("bb_lower")
-        if bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
-            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-            bw_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
-            bw_thresh = float(env_loader.get_env("BAND_WIDTH_THRESH_PIPS", "4"))
-            narrow_range = bw_pips < bw_thresh
-    except Exception as exc:
-        logging.debug(f"[process_entry] narrow-range detection failed: {exc}")
+    if not is_break:
+        try:
+            bb_upper = indicators.get("bb_upper")
+            bb_lower = indicators.get("bb_lower")
+            if bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
+                pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+                bw_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
+                bw_thresh = float(env_loader.get_env("BAND_WIDTH_THRESH_PIPS", "4"))
+                narrow_range = bw_pips < bw_thresh
+        except Exception as exc:
+            logging.debug(f"[process_entry] narrow-range detection failed: {exc}")
 
     # ------------------------------------------------------------
     #  Range market handling: switch to LIMIT if near BB center
     # ------------------------------------------------------------
-    try:
-        if (
-            (market_cond and market_cond.get("market_condition") == "range")
-            or narrow_range
-        ) and bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
-            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-            price_ref = bid if side == "long" else ask
-            if price_ref is not None:
-                center = (bb_upper.iloc[-1] + bb_lower.iloc[-1]) / 2
-                distance_pips = abs(price_ref - center) / pip_size
-                offset_threshold = float(
-                    env_loader.get_env("RANGE_ENTRY_OFFSET_PIPS", "3")
-                )
-                if distance_pips <= offset_threshold:
-                    target = bb_lower.iloc[-1] if side == "long" else bb_upper.iloc[-1]
-                    offset_pips = abs(price_ref - target) / pip_size
-                    limit_price = pullback_limit(side, price_ref, offset_pips)
-                    mode = "limit"
-    except Exception as exc:
-        logging.debug(f"[process_entry] range-limit conversion failed: {exc}")
+    if not is_break:
+        try:
+            if (
+                (market_cond and market_cond.get("market_condition") == "range")
+                or narrow_range
+            ) and bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
+                pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+                price_ref = bid if side == "long" else ask
+                if price_ref is not None:
+                    center = (bb_upper.iloc[-1] + bb_lower.iloc[-1]) / 2
+                    distance_pips = abs(price_ref - center) / pip_size
+                    offset_threshold = float(
+                        env_loader.get_env("RANGE_ENTRY_OFFSET_PIPS", "3")
+                    )
+                    if distance_pips <= offset_threshold:
+                        target = bb_lower.iloc[-1] if side == "long" else bb_upper.iloc[-1]
+                        offset_pips = abs(price_ref - target) / pip_size
+                        limit_price = pullback_limit(side, price_ref, offset_pips)
+                        mode = "limit"
+        except Exception as exc:
+            logging.debug(f"[process_entry] range-limit conversion failed: {exc}")
 
     if mode == "wait":
         logging.info("AI suggests WAIT – re‑evaluate next loop.")
