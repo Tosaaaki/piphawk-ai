@@ -30,6 +30,7 @@ MAX_LIMIT_AGE_SEC: int = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
 MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "2"))
 BE_TRIGGER_PIPS: int = int(env_loader.get_env("BE_TRIGGER_PIPS", 10))
 AI_LIMIT_CONVERT_MODEL: str = env_loader.get_env("AI_LIMIT_CONVERT_MODEL", "gpt-4.1-nano")
+MIN_RRR: float = float(env_loader.get_env("MIN_RRR", "0.8"))
 # --- Exit bias factor ---
 EXIT_BIAS_FACTOR: float = float(env_loader.get_env("EXIT_BIAS_FACTOR", "1.0"))
 
@@ -893,10 +894,11 @@ Your task:
 2. Decide whether to open a trade now, strictly adhering to the above criteria. Return JSON key "entry" with: {{ "side":"long"|"short"|"no", "rationale":"…" }}
 3. If side is not "no", propose TP/SL distances **in pips** along with their {TP_PROB_HOURS}-hour hit probabilities: {{ "tp_pips":int, "sl_pips":int, "tp_prob":float, "sl_prob":float }}. Output this at JSON key "risk".
    - Constraints:
-     • tp_prob must be ≥ {MIN_TP_PROB:.2f}
-     • Expected value (tp_pips*tp_prob - sl_pips*sl_prob) must be positive
-     • (tp_pips - spread_pips) must be ≥ {env_loader.get_env("MIN_NET_TP_PIPS","2")} pips
-     • If constraints are not met, set side to "no".
+    • tp_prob must be ≥ {MIN_TP_PROB:.2f}
+    • Expected value (tp_pips*tp_prob - sl_pips*sl_prob) must be positive
+    • Choose the take-profit level that maximises expected value = probability × pips, subject to RRR ≥ {MIN_RRR}
+    • (tp_pips - spread_pips) must be ≥ {env_loader.get_env("MIN_NET_TP_PIPS","2")} pips
+    • If constraints are not met, set side to "no".
 
 Respond with **one-line valid JSON** exactly as:
 {{"regime":{{...}},"entry":{{...}},"risk":{{...}}}}

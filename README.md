@@ -37,7 +37,10 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    treats the market as ranging and the AI prompt notes that *BB width is
    contracting*.
 `AI_PROFIT_TRIGGER_RATIO` defines what portion of the take-profit target must
-be reached before an AI exit check occurs. The default value is `0.3` (30%).
+be reached before an AI exit check occurs. The default value is `0.5` (50%).
+`MIN_RRR` sets the minimum reward-to-risk ratio allowed when selecting a
+take-profit. The TP level is now chosen to maximise expected value while
+keeping the ratio at or above this threshold.
 `STAGNANT_EXIT_SEC` sets how long a profitable position can stagnate before the
 system asks the AI to close it. If `STAGNANT_ATR_PIPS` is greater than zero and
 ATR falls below this value, the position is considered stagnant once the time
