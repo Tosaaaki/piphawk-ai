@@ -157,17 +157,22 @@ class OrderManager:
             r.raise_for_status()
         return r.json()
 
-    def place_market_order(self, instrument, units):
+    def place_market_order(self, instrument, units, comment_json: str | None = None):
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
-        data = {
-            "order": {
-                "units": str(units),
-                "instrument": instrument,
-                "timeInForce": "FOK",
-                "type": "MARKET",
-                "positionFill": "DEFAULT"
+        tag = str(int(time.time()))
+        order = {
+            "units": str(units),
+            "instrument": instrument,
+            "timeInForce": "FOK",
+            "type": "MARKET",
+            "positionFill": "DEFAULT",
+            "clientExtensions": {
+                "tag": tag
             }
         }
+        if comment_json:
+            order["clientExtensions"]["comment"] = comment_json
+        data = {"order": order}
         response = requests.post(url, json=data, headers=HEADERS)
         logger.debug(
             f"Market order response: {response.status_code} {response.text}"
@@ -320,17 +325,20 @@ class OrderManager:
             logger.debug(f"[enter_trade] building comment JSON failed: {exc}")
 
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
+        tag = str(int(time.time()))
+        client_ext = {"tag": tag}
+        if comment_json:
+            client_ext["comment"] = comment_json
         order_body = {
             "order": {
                 "units": str(units),
                 "instrument": instrument,
                 "timeInForce": "FOK",
                 "type": "MARKET",
-                "positionFill": "DEFAULT"
+                "positionFill": "DEFAULT",
+                "clientExtensions": client_ext,
             }
         }
-        if comment_json:
-            order_body["order"]["clientExtensions"] = {"comment": comment_json}
 
         if tp_pips and sl_pips:
             if side == "long":
