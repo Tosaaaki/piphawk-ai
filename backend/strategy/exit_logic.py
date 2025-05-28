@@ -32,6 +32,9 @@ STAGNANT_ATR_PIPS = float(os.getenv("STAGNANT_ATR_PIPS", "0"))
 # Dynamic ATR‑based trailing‑stop (always enabled)
 TRAIL_TRIGGER_MULTIPLIER = float(os.getenv("TRAIL_TRIGGER_MULTIPLIER", "1.2"))
 TRAIL_DISTANCE_MULTIPLIER = float(os.getenv("TRAIL_DISTANCE_MULTIPLIER", "1.0"))
+# カレンダーイベント時の追加距離倍率
+CALENDAR_VOL_THRESHOLD = int(os.getenv("CALENDAR_VOL_THRESHOLD", "3"))
+CALENDAR_TRAIL_MULTIPLIER = float(os.getenv("CALENDAR_TRAIL_MULTIPLIER", "1.5"))
 from backend.orders.position_manager import get_position_details
 import json
 
@@ -451,6 +454,14 @@ def process_exit(
                     elif isinstance(atr_val, (list, tuple)):
                         atr_val = atr_val[-1]
                     pip_sz = 0.01 if position["instrument"].endswith("_JPY") else 0.0001
+
+                    atr_pips      = atr_val / pip_sz
+                    trigger_pips  = atr_pips * TRAIL_TRIGGER_MULTIPLIER
+                    distance_pips = atr_pips * TRAIL_DISTANCE_MULTIPLIER
+                    # 高ボラ指標発表時は距離を広げる
+                    if int(os.getenv("CALENDAR_VOLATILITY_LEVEL", "0")) >= CALENDAR_VOL_THRESHOLD:
+                        distance_pips *= CALENDAR_TRAIL_MULTIPLIER
+
                     atr_pips = atr_val / pip_sz
                     trigger_pips = max(
                         atr_pips * TRAIL_TRIGGER_MULTIPLIER,
@@ -460,6 +471,7 @@ def process_exit(
                         atr_pips * TRAIL_DISTANCE_MULTIPLIER,
                         TRAIL_DISTANCE_PIPS,
                     )
+
 
                 logging.info(
                     f"Trailing stop check: profit={profit_pips:.1f}p "
