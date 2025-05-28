@@ -43,6 +43,7 @@ class TestTpBbRatio(unittest.TestCase):
             "entry": {"side": "long", "mode": "market"},
             "risk": {"tp_pips": None, "sl_pips": 5}
         }
+        oa.get_market_condition = lambda *a, **k: {"market_condition": "trend", "trend_direction": "long"}
         oa.should_convert_limit_to_market = lambda ctx: True
         oa.evaluate_exit = lambda *a, **k: types.SimpleNamespace(action="HOLD", confidence=0.0, reason="")
         oa.EXIT_BIAS_FACTOR = 1.0
@@ -87,7 +88,12 @@ class TestTpBbRatio(unittest.TestCase):
         market_data = {
             "prices": [{"instrument": "USD_JPY", "bids": [{"price": "1.0"}], "asks": [{"price": "1.01"}]}]
         }
-        result = self.el.process_entry(indicators, candles, market_data)
+        result = self.el.process_entry(
+            indicators,
+            candles,
+            market_data,
+            candles_dict={"M5": candles},
+        )
         self.assertTrue(result)
         self.assertAlmostEqual(self.el.order_manager.last_params["tp_pips"], 5.0)
 
