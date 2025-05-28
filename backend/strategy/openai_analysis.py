@@ -4,6 +4,7 @@ from backend.utils.openai_client import ask_openai
 from backend.utils import env_loader, parse_json_answer
 from backend.strategy.pattern_ai_detection import detect_chart_pattern
 from backend.strategy.pattern_scanner import PATTERN_DIRECTION
+from backend.indicators.ema import get_ema_gradient
 from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 import pandas as pd
 
@@ -149,6 +150,14 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
 
     logger = logging.getLogger(__name__)
     indicators = context.get("indicators", {})
+    ema_trend = None
+    try:
+        fast_vals = indicators.get("ema_fast")
+        if fast_vals is not None:
+            ema_trend = get_ema_gradient(fast_vals)
+    except Exception:
+        ema_trend = None
+    context["ema_trend"] = ema_trend
 
     # ------------------------------------------------------------------
     # 1) Local regime assessment (ADX + EMA slope consistency)
@@ -196,7 +205,9 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         pos = [v > 0 for v in ema_series]
         neg = [v < 0 for v in ema_series]
         ema_sign_consistent = all(pos) or all(neg)
-    ema_ok = 1.0 if ema_sign_consistent else 0.0
+    if ema_trend == "flat":
+        ema_sign_consistent = False
+    ema_ok = 1.0 if ema_sign_consistent and ema_trend != "flat" else 0.0
 
     adx_ok = 1.0 if adx_latest is not None and adx_latest >= 20 else 0.0
 
@@ -232,6 +243,12 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         ema_ok_local = len(ema_series) >= 3 and (
             all(v > 0 for v in ema_series) or all(v < 0 for v in ema_series)
         )
+        try:
+            ema_dir = get_ema_gradient(ind.get("ema_fast"))
+            if ema_dir == "flat":
+                ema_ok_local = False
+        except Exception:
+            pass
         if adx_val is None or not ema_ok_local:
             return None
         return adx_val >= 20

@@ -165,6 +165,14 @@ class TestEntryFilterRSICross(unittest.TestCase):
         self.assertIn("ATR", msg)
         self.assertIn("RSI", msg)
 
+    def test_ema_convergence_blocks_entry(self):
+        ind = self._base_indicators()
+        ind["ema_fast"] = FakeSeries([1.0, 1.2, 1.1])
+        ind["ema_slow"] = FakeSeries([0.9, 1.0, 1.05])
+        m1 = {"rsi": FakeSeries([29, 35])}
+        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1)
+        self.assertFalse(result)
+
 
 if __name__ == "__main__":
     unittest.main()
