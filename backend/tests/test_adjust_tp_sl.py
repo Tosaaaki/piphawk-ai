@@ -59,6 +59,17 @@ class TestAdjustTpSl(unittest.TestCase):
         body = self.sent[0]
         self.assertEqual(body["order"]["type"], "TAKE_PROFIT")
 
+    def test_comment_contains_uuid(self):
+        res = self.om.adjust_tp_sl(
+            "USD_JPY",
+            "t1",
+            new_tp=150.0,
+            entry_uuid="abc123",
+        )
+        self.assertEqual(res, {"tp": {"ok": True}})
+        body = self.sent[0]
+        self.assertEqual(body["order"]["clientExtensions"]["comment"], "abc123")
+
     def test_error_logging_on_failure(self):
         def fail_put(url, json=None, headers=None):
             return DummyResponse(

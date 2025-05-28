@@ -97,6 +97,7 @@ def get_position_details(instrument: str) -> Optional[Dict[str, Any]]:
 
         # ---- extract entry_regime JSON from clientExtensions.comment ----
         entry_regime = None
+        tp_comment = None
         for tr in trades:
             comment = tr.get("clientExtensions", {}).get("comment")
             if comment:
@@ -105,7 +106,16 @@ def get_position_details(instrument: str) -> Optional[Dict[str, Any]]:
                 except json.JSONDecodeError:
                     entry_regime = {"regime": "unknown"}
                 break
+        for tr in trades:
+            tp_comment = (
+                tr.get("takeProfitOrder", {})
+                .get("clientExtensions", {})
+                .get("comment")
+            )
+            if tp_comment:
+                break
         position_data["entry_regime"] = json.dumps(entry_regime) if entry_regime else None
+        position_data["tp_comment"] = tp_comment
 
         return position_data
 

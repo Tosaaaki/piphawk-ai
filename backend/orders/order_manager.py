@@ -187,8 +187,8 @@ class OrderManager:
             raise Exception(f"Failed to place order: {response.text}")
         return response.json()
 
-    def adjust_tp_sl(self, instrument, trade_id, new_tp=None, new_sl=None):
-        """Adjust TP and/or SL using individual STOP_LOSS/TAKE_PROFIT orders."""
+    def adjust_tp_sl(self, instrument, trade_id, new_tp=None, new_sl=None, *, entry_uuid: str | None = None):
+        """Adjust TP/SL for a trade and store entry_uuid in comment if given."""
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
         results = {}
 
@@ -201,6 +201,8 @@ class OrderManager:
                     "timeInForce": "GTC",
                 }
             }
+            if entry_uuid:
+                tp_payload["order"]["clientExtensions"] = {"comment": entry_uuid}
 
         if new_tp is not None:
             for attempt in range(3):

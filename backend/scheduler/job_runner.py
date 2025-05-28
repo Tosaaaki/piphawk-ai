@@ -17,11 +17,18 @@ from backend.indicators.calculate_indicators import (
 from backend.strategy.entry_logic import process_entry, _pending_limits
 from backend.strategy.exit_logic import process_exit
 try:
-    from backend.orders.position_manager import check_current_position, get_margin_used
-except ImportError:  # tests may stub position_manager without get_margin_used
+    from backend.orders.position_manager import (
+        check_current_position,
+        get_margin_used,
+        get_position_details,
+    )
+except ImportError:  # tests may stub position_manager without helpers
     from backend.orders.position_manager import check_current_position
 
     def get_margin_used(*_args, **_kwargs):
+        return None
+
+    def get_position_details(*_args, **_kwargs):
         return None
 from backend.orders.order_manager import OrderManager
 from backend.strategy.signal_filter import pass_entry_filter
@@ -177,6 +184,21 @@ class JobRunner:
         self.tp_reduced: bool = False
         # Latest detected chart patterns by timeframe
         self.patterns_by_tf: dict[str, str | None] = {}
+
+        # Restore TP adjustment flags based on existing TP order comment
+        try:
+            pos = get_position_details(DEFAULT_PAIR)
+            if pos:
+                er_raw = pos.get("entry_regime")
+                tp_comment = pos.get("tp_comment")
+                if er_raw and tp_comment:
+                    er = json.loads(er_raw)
+                    entry_uuid = er.get("entry_uuid")
+                    if entry_uuid and entry_uuid in tp_comment:
+                        self.tp_extended = True
+                        self.tp_reduced = True
+        except Exception as exc:  # pragma: no cover - ignore init failures
+            logger.debug(f"TP flag restore failed: {exc}")
 
     # ────────────────────────────────────────────────────────────
     #  Poll & renew pending LIMIT orders
@@ -390,11 +412,23 @@ class JobRunner:
         try:
             entry_price = float(position[side]["averagePrice"])
             trade_id = position[side]["tradeIDs"][0]
+            er_raw = position.get("entry_regime")
+            entry_uuid = None
+            if er_raw:
+                try:
+                    entry_uuid = json.loads(er_raw).get("entry_uuid")
+                except Exception:
+                    entry_uuid = None
         except Exception:
             return
         new_tp = entry_price + ext_pips * pip_size if side == "long" else entry_price - ext_pips * pip_size
         try:
-            res = order_mgr.adjust_tp_sl(DEFAULT_PAIR, trade_id, new_tp=new_tp)
+            res = order_mgr.adjust_tp_sl(
+                DEFAULT_PAIR,
+                trade_id,
+                new_tp=new_tp,
+                entry_uuid=entry_uuid,
+            )
             if res is not None:
                 logger.info(
                     f"TP extended to {new_tp} ({ext_pips:.1f}pips) due to strong trend"
@@ -427,11 +461,23 @@ class JobRunner:
         try:
             entry_price = float(position[side]["averagePrice"])
             trade_id = position[side]["tradeIDs"][0]
+            er_raw = position.get("entry_regime")
+            entry_uuid = None
+            if er_raw:
+                try:
+                    entry_uuid = json.loads(er_raw).get("entry_uuid")
+                except Exception:
+                    entry_uuid = None
         except Exception:
             return
         new_tp = entry_price + red_pips * pip_size if side == "long" else entry_price - red_pips * pip_size
         try:
-            res = order_mgr.adjust_tp_sl(DEFAULT_PAIR, trade_id, new_tp=new_tp)
+            res = order_mgr.adjust_tp_sl(
+                DEFAULT_PAIR,
+                trade_id,
+                new_tp=new_tp,
+                entry_uuid=entry_uuid,
+            )
             if res is not None:
                 logger.info(
                     f"TP reduced to {new_tp} ({red_pips:.1f}pips) due to weak trend"
