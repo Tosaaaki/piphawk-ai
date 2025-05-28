@@ -62,6 +62,7 @@ class TestEntryFilterRSICross(unittest.TestCase):
         importlib.reload(sf)
         pass_entry_filter = sf.pass_entry_filter
         _rsi_cross_up_or_down = sf._rsi_cross_up_or_down
+        self.sf_logger = sf.logger
         now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
         start = (now.hour + 1) % 24
         end = (start + 1) % 24
@@ -139,6 +140,30 @@ class TestEntryFilterRSICross(unittest.TestCase):
         m1 = {"rsi": FakeSeries([29, 35])}
         result = pass_entry_filter(ind, price=1.2, indicators_m1=m1)
         self.assertTrue(result)
+
+    def test_bandwidth_block_logs(self):
+        ind = self._base_indicators()
+        ind["bb_upper"] = FakeSeries([1.01, 1.02])
+        ind["bb_lower"] = FakeSeries([1.0, 1.0])
+        ind["rsi"] = FakeSeries([85, 85])
+        m1 = {"rsi": FakeSeries([29, 35])}
+        with self.assertLogs(self.sf_logger, level="DEBUG") as cm:
+            result = pass_entry_filter(ind, price=1.02, indicators_m1=m1)
+        self.assertFalse(result)
+        self.assertTrue(any("Bollinger band width" in m for m in cm.output))
+
+    def test_rsi_atr_block_logs(self):
+        ind = self._base_indicators()
+        ind["rsi"] = FakeSeries([50, 50])
+        ind["atr"] = FakeSeries([0.05, 0.05])
+        ind["ema_fast"] = FakeSeries([1, 1])
+        ind["ema_slow"] = FakeSeries([1, 1])
+        with self.assertLogs(self.sf_logger, level="DEBUG") as cm:
+            result = pass_entry_filter(ind, price=1.2, indicators_m1={"rsi": FakeSeries([29, 35])})
+        self.assertFalse(result)
+        msg = " ".join(cm.output)
+        self.assertIn("ATR", msg)
+        self.assertIn("RSI", msg)
 
 
 if __name__ == "__main__":
