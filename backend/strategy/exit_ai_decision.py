@@ -75,10 +75,48 @@ def get_setting(key: str, default: str | None = None) -> str | None:
     return os.getenv(key, default)
 
 
+def to_serializable(obj: Any):
+    """Recursively convert pandas Series or numpy arrays to lists."""
+    try:
+        import pandas as pd  # type: ignore
+    except Exception:  # pragma: no cover - pandas may be absent
+        pd = None
+    try:
+        import numpy as np  # type: ignore
+    except Exception:  # pragma: no cover - numpy may be absent
+        np = None
+
+    if pd is not None and isinstance(obj, getattr(pd, "Series", ())):
+        try:
+            return [to_serializable(x) for x in obj.tolist()]
+        except Exception:
+            return []
+    if np is not None and isinstance(obj, getattr(np, "ndarray", ())):
+        try:
+            return [to_serializable(x) for x in obj.tolist()]
+        except Exception:
+            return []
+    if isinstance(obj, dict):
+        return {k: to_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple, set)):
+        return [to_serializable(v) for v in obj]
+    if hasattr(obj, "tolist") and not isinstance(obj, (str, bytes)):
+        try:
+            return [to_serializable(v) for v in obj.tolist()]
+        except Exception:
+            try:
+                return obj.tolist()
+            except Exception:
+                pass
+    return obj
+
+
 def _build_prompt(context: Dict[str, Any], bias_factor: float = 1.0) -> str:
     """Compose the prompt including the bias factor."""
 
-    user_json = json.dumps(context, separators=(",", ":"), ensure_ascii=False)
+    user_json = json.dumps(
+        to_serializable(context), separators=(",", ":"), ensure_ascii=False
+    )
     bias_line = f"BIAS_FACTOR={bias_factor} (>1 favors EXIT, <1 favors HOLD)."
     return f"{_SYSTEM_PROMPT}\n{bias_line}\nUSER_CONTEXT:\n{user_json}"
 
