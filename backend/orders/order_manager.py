@@ -446,6 +446,24 @@ class OrderManager:
 
         return response.json()
 
+    def close_partial(self, trade_id: str, units: int) -> dict:
+        """Close a portion of a trade by specifying units."""
+        url = (
+            f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}/close"
+        )
+        payload = {"units": str(units)}
+        logger.debug(f"[close_partial] trade_id={trade_id} units={units}")
+        resp = requests.put(url, json=payload, headers=HEADERS)
+        if not resp.ok:
+            code, msg = _extract_error_details(resp)
+            log_error(
+                "order_manager",
+                f"Partial close failed: {code} {msg}",
+                resp.text,
+            )
+            resp.raise_for_status()
+        return resp.json()
+
     # --- Trailing‑Stop helper -------------------------------------------------
     def place_trailing_stop(
         self,
