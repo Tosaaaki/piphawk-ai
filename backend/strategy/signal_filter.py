@@ -154,6 +154,7 @@ def pass_entry_filter(
     atr_series = indicators["atr"]
     adx_series = indicators.get("adx")
     latest_adx = adx_series.iloc[-1] if adx_series is not None and len(adx_series) else None
+
     adx_thresh = float(os.getenv("ADX_RANGE_THRESHOLD", "25"))
     range_mode = latest_adx is not None and latest_adx < adx_thresh
     lookback = int(os.getenv("ADX_SLOPE_LOOKBACK", "3"))
@@ -205,6 +206,18 @@ def pass_entry_filter(
     latest_ema_slow = ema_slow.iloc[-1] if len(ema_slow) else None
     prev_ema_fast = ema_fast.iloc[-2] if len(ema_fast) > 1 else None
     prev_ema_slow = ema_slow.iloc[-2] if len(ema_slow) > 1 else None
+    ema_flat_thresh = float(os.getenv("EMA_FLAT_PIPS", "0.05")) * float(os.getenv("PIP_SIZE", "0.01"))
+
+    if len(ema_fast) >= 3 and len(ema_slow) >= 2:
+        prev_slope = prev_ema_fast - ema_fast.iloc[-3]
+        curr_slope = latest_ema_fast - prev_ema_fast
+        diff_prev = prev_ema_fast - prev_ema_slow
+        diff_curr = latest_ema_fast - latest_ema_slow
+        narrowing = abs(diff_curr) < abs(diff_prev)
+        rev_or_flat = (curr_slope * prev_slope < 0) or abs(curr_slope) <= ema_flat_thresh
+        if narrowing and rev_or_flat:
+            logger.debug("EntryFilter blocked: EMA convergence with slope reversal/flat")
+            return False
 
     # --- Bollinger Band width check ------------------------------------
     bb_upper = indicators.get("bb_upper")
@@ -217,6 +230,9 @@ def pass_entry_filter(
         pip_size = float(os.getenv("PIP_SIZE", "0.01"))
         bw_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
         band_width_ok = bw_pips >= bw_thresh
+        if bw_pips <= bw_thresh:
+            # バンド幅が閾値以下ならレンジモード扱い
+            range_mode = True
 
         # Overshoot check --------------------------------------------------
         overshoot_mult = float(os.getenv("OVERSHOOT_ATR_MULT", "1.0"))
@@ -224,6 +240,13 @@ def pass_entry_filter(
         if price is not None and price <= threshold:
             logger.debug("EntryFilter blocked: price overshoot below lower BB")
             return False
+
+    # --- Dynamic ADX threshold based on BB width -----------------------
+    adx_base = float(os.getenv("ADX_RANGE_THRESHOLD", "25"))
+    coeff = float(os.getenv("ADX_DYNAMIC_COEFF", "0"))
+    width_ratio = ((bw_pips - bw_thresh) / bw_thresh) if bw_pips is not None else 0.0
+    adx_thresh = adx_base * (1 + coeff * width_ratio)
+    range_mode = latest_adx is not None and latest_adx < adx_thresh
 
     # --- Range center block --------------------------------------------
     block_pct = float(os.getenv("RANGE_CENTER_BLOCK_PCT", "0.3"))
