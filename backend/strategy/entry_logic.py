@@ -323,6 +323,20 @@ def process_entry(
             bb_tp = width_pips * bb_ratio
             if fallback_tp is None or bb_tp < fallback_tp:
                 fallback_tp = bb_tp
+
+        # 上位足ピボットとの距離を TP 候補として追加
+        if (
+            env_loader.get_env("HIGHER_TF_ENABLED", "true").lower() == "true"
+            and higher_tf
+            and price_ref is not None
+        ):
+            for key in ("pivot_h1", "pivot_h4", "pivot_d"):
+                pivot_val = higher_tf.get(key)
+                if pivot_val is None:
+                    continue
+                dist = abs(pivot_val - price_ref) / pip_size
+                if fallback_tp is None or dist < fallback_tp:
+                    fallback_tp = dist
     except Exception as exc:
         logging.debug(f"[process_entry] ATR-based SL calc failed: {exc}")
 
