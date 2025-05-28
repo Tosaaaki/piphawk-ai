@@ -16,6 +16,10 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    source .venv/bin/activate
    pip install -r backend/requirements.txt
    ```
+   The indicator modules require **pandas**. If it is not installed, add it with:
+   ```bash
+   pip install pandas
+   ```
 3. **Environment variables**
    Copy the sample configuration files and edit them with your credentials:
    ```bash
