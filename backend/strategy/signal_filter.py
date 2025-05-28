@@ -206,10 +206,11 @@ def pass_entry_filter(
     bb_lower = indicators.get("bb_lower")
     bb_middle = indicators.get("bb_middle")
     band_width_ok = False
+    bw_pips = None
+    bw_thresh = float(os.getenv("BAND_WIDTH_THRESH_PIPS", "4"))
     if bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
         pip_size = float(os.getenv("PIP_SIZE", "0.01"))
         bw_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
-        bw_thresh = float(os.getenv("BAND_WIDTH_THRESH_PIPS", "4"))
         band_width_ok = bw_pips >= bw_thresh
 
         # Overshoot check --------------------------------------------------
@@ -253,6 +254,7 @@ def pass_entry_filter(
         return True
 
     if None in [latest_rsi, latest_ema_fast, latest_ema_slow, prev_ema_fast, prev_ema_slow]:
+        logger.debug("EntryFilter blocked: insufficient indicator history")
         return False  # insufficient data
 
     # --- Composite conditions ------------------------------------------
@@ -276,7 +278,26 @@ def pass_entry_filter(
     score = sum([rsi_condition, atr_condition, ema_condition])
     required = 1  # adjust if you want stricter logic
 
-    return band_width_ok and score >= required
+    if not band_width_ok:
+        logger.debug(
+            f"EntryFilter blocked: Bollinger band width {bw_pips:.2f} pips < {bw_thresh}"
+        )
+        return False
+
+    if score < required:
+        if not atr_condition:
+            logger.debug(
+                f"EntryFilter blocked: ATR {latest_atr:.4f} below {atr_th}"
+            )
+        if not rsi_condition:
+            logger.debug(
+                f"EntryFilter blocked: RSI {latest_rsi:.2f} between {lower} and {upper}"
+            )
+        if not ema_condition:
+            logger.debug("EntryFilter blocked: EMA cross condition not met")
+        return False
+
+    return True
 
 
 # ────────────────────────────────────────────────

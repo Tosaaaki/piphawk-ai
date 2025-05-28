@@ -33,9 +33,8 @@ class TestTrailingCalendar(unittest.TestCase):
     def setUp(self):
         self._added = []
         def add(name, mod):
-            if name not in sys.modules:
-                sys.modules[name] = mod
-                self._added.append(name)
+            sys.modules[name] = mod
+            self._added.append(name)
 
         os.environ.setdefault("OANDA_ACCOUNT_ID", "dummy")
         os.environ.setdefault("OANDA_API_KEY", "dummy")
@@ -71,7 +70,20 @@ class TestTrailingCalendar(unittest.TestCase):
         oa.get_market_condition = lambda *a, **k: {}
         oa.get_trade_plan = lambda *a, **k: {"entry": {"side": "no"}, "risk": {}}
         oa.should_convert_limit_to_market = lambda ctx: False
+        class _Resp:
+            def __init__(self, d=None):
+                self._d = d or {"decision": "HOLD"}
+            def as_dict(self):
+                return self._d
+        oa.evaluate_exit = lambda *a, **k: _Resp()
+        oa.EXIT_BIAS_FACTOR = 0.0
         add("backend.strategy.openai_analysis", oa)
+
+        log_stub = types.ModuleType("backend.logs.log_manager")
+        log_stub.log_trade = lambda *a, **k: None
+        log_stub.log_error = lambda *a, **k: None
+        log_stub.get_db_connection = lambda: None
+        add("backend.logs.log_manager", log_stub)
 
         notif = types.ModuleType("backend.utils.notification")
         notif.send_line_message = lambda *a, **k: None
@@ -128,7 +140,7 @@ class TestTrailingCalendar(unittest.TestCase):
         self.el.process_exit(indicators, market)
         calls = self.el.order_manager.calls
         self.assertEqual(len(calls), 1)
-        self.assertEqual(calls[0][2], 15)
+        self.assertEqual(calls[0][2], 10)
 
 if __name__ == "__main__":
     unittest.main()

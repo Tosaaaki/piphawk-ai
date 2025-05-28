@@ -18,9 +18,8 @@ class TestPartialClose(unittest.TestCase):
     def setUp(self):
         self._added = []
         def add(name, mod):
-            if name not in sys.modules:
-                sys.modules[name] = mod
-                self._added.append(name)
+            sys.modules[name] = mod
+            self._added.append(name)
 
         os.environ.setdefault("OANDA_ACCOUNT_ID", "dummy")
         os.environ.setdefault("OANDA_API_KEY", "dummy")
@@ -54,6 +53,13 @@ class TestPartialClose(unittest.TestCase):
 
         oa = types.ModuleType("backend.strategy.openai_analysis")
         oa.get_exit_decision = lambda *a, **k: {"decision": "HOLD", "reason": ""}
+        class _Resp:
+            def __init__(self, d=None):
+                self._d = d or {"decision": "HOLD"}
+            def as_dict(self):
+                return self._d
+        oa.evaluate_exit = lambda *a, **k: _Resp()
+        oa.EXIT_BIAS_FACTOR = 0.0
         add("backend.strategy.openai_analysis", oa)
 
         import backend.orders.order_manager as om
