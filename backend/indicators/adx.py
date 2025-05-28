@@ -1,5 +1,7 @@
 
 
+from __future__ import annotations
+
 """
 Average Directional Movement Index (ADX) implementation.
 
@@ -14,7 +16,6 @@ Usage:
 """
 
 from typing import Sequence
-import pandas as pd
 
 def calculate_adx(
     high: Sequence[float],
@@ -58,3 +59,31 @@ def calculate_adx(
     adx = dx.rolling(period).mean()
 
     return adx
+
+
+def calculate_adx_slope(adx_values: Sequence[float], lookback: int = 5) -> float:
+    """Return slope of the last ``lookback`` ADX values using linear regression."""
+
+    try:
+        vals = [float(v) for v in adx_values if v is not None]
+    except Exception:
+        return 0.0
+
+    if len(vals) < lookback:
+        return 0.0
+
+    y = vals[-lookback:]
+    n = len(y)
+    if n <= 1:
+        return 0.0
+
+    x = list(range(n))
+    x_mean = sum(x) / n
+    y_mean = sum(y) / n
+    num = sum((xi - x_mean) * (yi - y_mean) for xi, yi in zip(x, y))
+    den = sum((xi - x_mean) ** 2 for xi in x)
+    if den == 0:
+        return 0.0
+
+    slope = num / den
+    return float(slope)

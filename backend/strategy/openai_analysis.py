@@ -6,6 +6,7 @@ from backend.strategy.pattern_ai_detection import detect_chart_pattern
 from backend.strategy.pattern_scanner import PATTERN_DIRECTION
 from backend.indicators.ema import get_ema_gradient
 from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
+from backend.indicators.adx import calculate_adx_slope
 import pandas as pd
 
 # --- Added for AI-based exit decision ---
@@ -38,6 +39,7 @@ COOL_BBWIDTH_PCT: float = float(env_loader.get_env("COOL_BBWIDTH_PCT", "0"))
 COOL_ATR_PCT: float = float(env_loader.get_env("COOL_ATR_PCT", "0"))
 ADX_NO_TRADE_MIN: float = float(env_loader.get_env("ADX_NO_TRADE_MIN", "20"))
 ADX_NO_TRADE_MAX: float = float(env_loader.get_env("ADX_NO_TRADE_MAX", "30"))
+ADX_SLOPE_LOOKBACK: int = int(env_loader.get_env("ADX_SLOPE_LOOKBACK", "3"))
 USE_LOCAL_PATTERN: bool = (
     env_loader.get_env("USE_LOCAL_PATTERN", "false").lower() == "true"
 )
@@ -211,6 +213,13 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         except Exception:
             adx_latest = None
 
+    adx_slope = None
+    if adx_vals is not None:
+        try:
+            adx_slope = calculate_adx_slope(adx_vals, lookback=ADX_SLOPE_LOOKBACK)
+        except Exception:
+            adx_slope = None
+
     # EMAの傾きが無い場合はema_fastから代用の傾きを算出
     ema_series = _extract_latest(ema_vals)
     if not ema_series:
@@ -227,7 +236,9 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         ema_sign_consistent = False
     ema_ok = 1.0 if ema_sign_consistent and ema_trend != "flat" else 0.0
 
-    adx_ok = 1.0 if adx_latest is not None and adx_latest >= adx_dynamic_thresh else 0.0
+    adx_ok = 1.0 if adx_latest is not None and adx_latest >= 20 else 0.0
+    if adx_ok > 0 and adx_slope is not None and adx_slope < 0:
+        adx_ok *= 0.5
 
     rsi_cross_ok = 0.0
     rsi_m1 = ind_m1.get("rsi")
