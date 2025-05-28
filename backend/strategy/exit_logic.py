@@ -1,5 +1,9 @@
 from typing import Dict, Any
-from backend.strategy.openai_analysis import get_exit_decision
+from backend.strategy.openai_analysis import (
+    get_exit_decision,
+    evaluate_exit,
+    EXIT_BIAS_FACTOR,
+)
 from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
 from datetime import datetime
@@ -29,7 +33,6 @@ STAGNANT_ATR_PIPS = float(os.getenv("STAGNANT_ATR_PIPS", "0"))
 TRAIL_TRIGGER_MULTIPLIER = float(os.getenv("TRAIL_TRIGGER_MULTIPLIER", "1.2"))
 TRAIL_DISTANCE_MULTIPLIER = float(os.getenv("TRAIL_DISTANCE_MULTIPLIER", "1.0"))
 from backend.orders.position_manager import get_position_details
-import re
 import json
 
 order_manager = OrderManager()
@@ -96,6 +99,23 @@ def decide_exit(
 
     context_data["secs_since_entry"] = secs_since_entry
     context_data["pips_from_entry"] = pips_from_entry
+
+
+    ai_context = {
+        **context_data,
+        "position": position,
+        "indicators": indicators,
+        "entry_regime": entry_regime,
+        "market_cond": market_cond,
+    }
+    decision_obj = evaluate_exit(ai_context, bias_factor=EXIT_BIAS_FACTOR)
+    ai_response = decision_obj.as_dict()
+    raw = json.dumps(ai_response)
+
+    decision_key = ai_response.get("action") or ai_response.get("decision")
+    decision = decision_key.upper() if decision_key else "HOLD"
+    reason = ai_response.get("reason", "")
+    return {"decision": decision, "reason": reason, "raw": raw}
 
     ai_response = get_exit_decision(
         context_data,

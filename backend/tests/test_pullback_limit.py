@@ -41,6 +41,8 @@ class TestPullbackLimit(unittest.TestCase):
         oa = types.ModuleType("backend.strategy.openai_analysis")
         oa.get_trade_plan = lambda *a, **k: {"entry": {"side": "long", "mode": "market"}, "risk": {"tp_pips": 10, "sl_pips": 5}}
         oa.should_convert_limit_to_market = lambda ctx: True
+        oa.evaluate_exit = lambda ctx, bias_factor=1.0: types.SimpleNamespace(action="HOLD", confidence=0.0, reason="")
+        oa.EXIT_BIAS_FACTOR = 1.0
         add("backend.strategy.openai_analysis", oa)
 
         om = types.ModuleType("backend.orders.order_manager")

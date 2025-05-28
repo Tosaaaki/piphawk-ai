@@ -75,11 +75,12 @@ def get_setting(key: str, default: str | None = None) -> str | None:
     return os.getenv(key, default)
 
 
-def _build_prompt(context: Dict[str, Any]) -> str:
-    """Compose the prompt (system + user JSON)."""
+def _build_prompt(context: Dict[str, Any], bias_factor: float = 1.0) -> str:
+    """Compose the prompt including the bias factor."""
 
     user_json = json.dumps(context, separators=(",", ":"), ensure_ascii=False)
-    return f"{_SYSTEM_PROMPT}\nUSER_CONTEXT:\n{user_json}"
+    bias_line = f"BIAS_FACTOR={bias_factor} (>1 favors EXIT, <1 favors HOLD)."
+    return f"{_SYSTEM_PROMPT}\n{bias_line}\nUSER_CONTEXT:\n{user_json}"
 
 
 def _parse_answer(raw: str | dict) -> AIDecision:
@@ -108,8 +109,8 @@ def _parse_answer(raw: str | dict) -> AIDecision:
 # public API
 # ---------------------------------------------------------------------------
 
-def evaluate(context: Dict[str, Any]) -> AIDecision:
-    """Evaluate whether to exit using the provided *context*.
+def evaluate(context: Dict[str, Any], bias_factor: float = 1.0) -> AIDecision:
+    """Evaluate whether to exit using the provided *context* and bias factor.
 
     Parameters
     ----------
@@ -124,7 +125,7 @@ def evaluate(context: Dict[str, Any]) -> AIDecision:
         Parsed decision from the language model.
     """
 
-    prompt = _build_prompt(context)
+    prompt = _build_prompt(context, bias_factor)
 
     model = get_setting("AI_EXIT_MODEL", default="gpt-4.1-nano")
     temperature = float(get_setting("AI_EXIT_TEMPERATURE", default="0.0"))
@@ -137,4 +138,6 @@ def evaluate(context: Dict[str, Any]) -> AIDecision:
         max_tokens=max_tokens,
     )
 
-    return _parse_answer(raw)
+    decision = _parse_answer(raw)
+    decision.confidence = max(0.0, min(decision.confidence * bias_factor, 1.0))
+    return decision

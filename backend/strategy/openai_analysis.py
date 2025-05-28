@@ -29,6 +29,8 @@ MAX_LIMIT_AGE_SEC: int = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
 MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "2"))
 BE_TRIGGER_PIPS: int = int(env_loader.get_env("BE_TRIGGER_PIPS", 10))
 AI_LIMIT_CONVERT_MODEL: str = env_loader.get_env("AI_LIMIT_CONVERT_MODEL", "gpt-4.1-nano")
+# --- Exit bias factor ---
+EXIT_BIAS_FACTOR: float = float(env_loader.get_env("EXIT_BIAS_FACTOR", "1.0"))
 
 # --- Volatility and ADX filters ---
 COOL_BBWIDTH_PCT: float = float(env_loader.get_env("COOL_BBWIDTH_PCT", "0"))
@@ -466,7 +468,8 @@ def get_exit_decision(
         pattern_line = pattern_name
             
     prompt = (
-        "You are an expert FX trader AI. Your job is to decide, with clear and concise reasoning, whether to HOLD or EXIT an open position based on the latest market context and indicators.\n\n"
+        "You are an expert FX trader AI. Your job is to decide, with clear and concise reasoning, whether to HOLD or EXIT an open position based on the latest market context and indicators.\n"
+        f"EXIT_BIAS_FACTOR={EXIT_BIAS_FACTOR} (>1 favors EXIT, <1 favors HOLD).\n\n"
         f"### Position Details\n"
         f"- Side: {side}\n"
         f"- Time Since Entry: {secs_since_entry if secs_since_entry is not None else 'N/A'} sec\n"
@@ -932,6 +935,7 @@ __all__ = [
     "COOL_ATR_PCT",
     "ADX_NO_TRADE_MIN",
     "ADX_NO_TRADE_MAX",
+    "EXIT_BIAS_FACTOR",
     "LOCAL_WEIGHT_THRESHOLD",
     "calc_consistency",
 ]
