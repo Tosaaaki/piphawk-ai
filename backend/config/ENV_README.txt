@@ -43,6 +43,10 @@ ATR（ボラティリティ指標）の計算期間。
 
 - OVERSHOOT_ATR_MULT:
   BB下限をATR×この倍率だけ下回った場合はエントリーをブロック
+- REVERSAL_EXIT_ATR_MULT / REVERSAL_EXIT_ADX_MIN:
+  価格がボリンジャーバンドの反対側を終値で越えた際、
+  差分がATR×REVERSAL_EXIT_ATR_MULT以上でADXがREVERSAL_EXIT_ADX_MIN
+  以上なら早期決済を検討
 - NOISE_SL_MULT:
   AIが算出したSLをこの倍率で拡大
 

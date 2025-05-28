@@ -1,8 +1,7 @@
 from typing import Dict, Any
-from backend.strategy.openai_analysis import (
-    evaluate_exit,
-    EXIT_BIAS_FACTOR,
-)
+import importlib
+openai_analysis = importlib.import_module("backend.strategy.openai_analysis")
+EXIT_BIAS_FACTOR = getattr(openai_analysis, "EXIT_BIAS_FACTOR", 1.0)
 from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
 from backend.logs.exit_logger import append_exit_log
@@ -30,6 +29,10 @@ BREAKEVEN_BUFFER_PIPS = float(
 # 低ボラ停滞時の早期利確設定
 STAGNANT_EXIT_SEC = int(os.getenv("STAGNANT_EXIT_SEC", "0"))
 STAGNANT_ATR_PIPS = float(os.getenv("STAGNANT_ATR_PIPS", "0"))
+
+# 逆行判定のための閾値設定
+REVERSAL_EXIT_ATR_MULT = float(os.getenv("REVERSAL_EXIT_ATR_MULT", "1.0"))
+REVERSAL_EXIT_ADX_MIN = float(os.getenv("REVERSAL_EXIT_ADX_MIN", "25"))
 
 # Dynamic ATR‑based trailing‑stop (always enabled)
 TRAIL_TRIGGER_MULTIPLIER = float(os.getenv("TRAIL_TRIGGER_MULTIPLIER", "1.2"))
@@ -113,8 +116,13 @@ def decide_exit(
         "entry_regime": entry_regime,
         "market_cond": market_cond,
     }
-    decision_obj = evaluate_exit(ai_context, bias_factor=EXIT_BIAS_FACTOR)
-    ai_response = decision_obj.as_dict()
+    oa = importlib.import_module("backend.strategy.openai_analysis")
+    exit_eval = getattr(oa, "evaluate_exit", None)
+    if exit_eval:
+        decision_obj = exit_eval(ai_context, bias_factor=getattr(oa, "EXIT_BIAS_FACTOR", EXIT_BIAS_FACTOR))
+        ai_response = decision_obj.as_dict()
+    else:
+        ai_response = {"action": "HOLD", "reason": "no evaluator"}
     raw = json.dumps(ai_response)
 
     decision_key = ai_response.get("action") or ai_response.get("decision")
@@ -237,6 +245,39 @@ def process_exit(
                     (current_price > ema_fast)
                     and (profit_pips > 0)
                     and (current_price >= entry_price - be_buffer)
+                ):
+                    early_exit = True
+
+        # ボリンジャーバンドを用いた逆行判定
+        bb_upper = indicators.get("bb_upper")
+        bb_lower = indicators.get("bb_lower")
+        adx_val = indicators.get("adx")
+        if hasattr(bb_upper, "iloc"):
+            bb_upper = float(bb_upper.iloc[-1])
+        if hasattr(bb_lower, "iloc"):
+            bb_lower = float(bb_lower.iloc[-1])
+        if hasattr(adx_val, "iloc"):
+            adx_val = float(adx_val.iloc[-1])
+
+        if (
+            atr_val is not None
+            and bb_upper is not None
+            and bb_lower is not None
+            and adx_val is not None
+        ):
+            atr_pips = atr_val / pip_size
+            if position_side == "long" and current_price < bb_lower:
+                diff_pips = (bb_lower - current_price) / pip_size
+                if (
+                    diff_pips >= atr_pips * REVERSAL_EXIT_ATR_MULT
+                    and adx_val >= REVERSAL_EXIT_ADX_MIN
+                ):
+                    early_exit = True
+            elif position_side == "short" and current_price > bb_upper:
+                diff_pips = (current_price - bb_upper) / pip_size
+                if (
+                    diff_pips >= atr_pips * REVERSAL_EXIT_ATR_MULT
+                    and adx_val >= REVERSAL_EXIT_ADX_MIN
                 ):
                     early_exit = True
 
@@ -411,9 +452,6 @@ def process_exit(
 
                     distance_pips = atr_pips * TRAIL_DISTANCE_MULTIPLIER
                     # 高ボラ指標発表時は距離を広げる
-                    if int(os.getenv("CALENDAR_VOLATILITY_LEVEL", "0")) >= CALENDAR_VOL_THRESHOLD:
-                        distance_pips *= CALENDAR_TRAIL_MULTIPLIER
-
                     atr_pips = atr_val / pip_sz
                     trigger_pips = max(
                         atr_pips * TRAIL_TRIGGER_MULTIPLIER,
@@ -423,6 +461,8 @@ def process_exit(
                         atr_pips * TRAIL_DISTANCE_MULTIPLIER,
                         TRAIL_DISTANCE_PIPS,
                     )
+                    if int(os.getenv("CALENDAR_VOLATILITY_LEVEL", "0")) >= CALENDAR_VOL_THRESHOLD:
+                        distance_pips *= CALENDAR_TRAIL_MULTIPLIER
 
 
                 logging.info(
