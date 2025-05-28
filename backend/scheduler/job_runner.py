@@ -547,6 +547,18 @@ class JobRunner:
                     logger.info(f"Current position status: {has_position}")
                     logger.info(f"Has open position for {DEFAULT_PAIR}: {has_position}")
 
+                    MIN_HOLD_SEC = int(env_loader.get_env("MIN_HOLD_SEC", "0"))
+                    
+                    secs_since_entry = None
+                    if has_position:
+                        ts_raw = has_position.get("entry_time") or has_position.get("openTime")
+                        if ts_raw:
+                            try:
+                                et = datetime.fromisoformat(ts_raw.replace("Z", "+00:00"))
+                                secs_since_entry = (datetime.utcnow() - et).total_seconds()
+                            except Exception:
+                                secs_since_entry = None
+
                     if not has_position:
                         self.breakeven_reached = False
                         self.sl_reset_done = False
@@ -640,16 +652,21 @@ class JobRunner:
                         self._maybe_reduce_tp(has_position, indicators, position_side, pip_size)
 
                         if current_profit_pips >= TP_PIPS * AI_PROFIT_TRIGGER_RATIO:
-                            # EXITフィルターを評価し、フィルターNGの場合はAIの決済判断をスキップ
-                            if pass_exit_filter(indicators, position_side):
-                                logger.info("Filter OK → Processing exit decision with AI.")
-                                self.last_ai_call = datetime.now()
-                                market_cond = get_market_condition(
-                                    {
-                                        "indicators": {
-                                            key: float(val.iloc[-1]) if hasattr(val, "iloc") and val.iloc[-1] is not None
-                                            else float(val) if val is not None else None
-                                            for key, val in indicators.items()
+                            if secs_since_entry is not None and secs_since_entry < MIN_HOLD_SEC:
+                                logger.info(
+                                    f"Hold time {secs_since_entry:.1f}s < {MIN_HOLD_SEC}s → skip exit call"
+                                )
+                            else:
+                                # EXITフィルターを評価し、フィルターNGの場合はAIの決済判断をスキップ
+                                if pass_exit_filter(indicators, position_side):
+                                    logger.info("Filter OK → Processing exit decision with AI.")
+                                    self.last_ai_call = datetime.now()
+                                    market_cond = get_market_condition(
+                                        {
+                                            "indicators": {
+                                                key: float(val.iloc[-1]) if hasattr(val, "iloc") and val.iloc[-1] is not None
+                                                else float(val) if val is not None else None
+                                                for key, val in indicators.items()
                                         },
                                         "indicators_h1": {
                                             key: float(v.iloc[-1]) if hasattr(v, "iloc") and v.iloc[-1] is not None
@@ -665,28 +682,28 @@ class JobRunner:
                                         "candles_m5": candles_m5,
                                         "candles_d1": candles_d1,
                                     },
-                                    higher_tf,
-                                )
-                                logger.debug(f"Market condition (exit): {market_cond}")
-                                exit_executed = process_exit(
-                                    indicators,
-                                    tick_data,
-                                    market_cond,
-                                    higher_tf,
-                                    indicators_m1=self.indicators_M1,
-                                    patterns=PATTERN_NAMES,
-                                    pattern_names=self.patterns_by_tf,
-                                )
-                                if exit_executed:
-                                    self.last_close_ts = datetime.utcnow()
-                                    logger.info("Position closed based on AI recommendation.")
-                                    send_line_message(
-                                        f"【EXIT】{DEFAULT_PAIR} {current_price} で決済しました。PL={current_profit_pips:.1f}pips"
+                                        higher_tf,
                                     )
+                                    logger.debug(f"Market condition (exit): {market_cond}")
+                                    exit_executed = process_exit(
+                                        indicators,
+                                        tick_data,
+                                        market_cond,
+                                        higher_tf,
+                                        indicators_m1=self.indicators_M1,
+                                        patterns=PATTERN_NAMES,
+                                        pattern_names=self.patterns_by_tf,
+                                    )
+                                    if exit_executed:
+                                        self.last_close_ts = datetime.utcnow()
+                                        logger.info("Position closed based on AI recommendation.")
+                                        send_line_message(
+                                            f"【EXIT】{DEFAULT_PAIR} {current_price} で決済しました。PL={current_profit_pips:.1f}pips"
+                                        )
+                                    else:
+                                        logger.info("AI decision was HOLD → No exit executed.")
                                 else:
-                                    logger.info("AI decision was HOLD → No exit executed.")
-                            else:
-                                logger.info("Filter NG → AI exit decision skipped.")
+                                    logger.info("Filter NG → AI exit decision skipped.")
 
                     # ---- Position‑review timing -----------------------------
                     due_for_review = False
@@ -742,7 +759,15 @@ class JobRunner:
                             pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
                             profit_pips = 0.0
 
-                        if pass_exit_filter(indicators, position_side):
+                        if secs_since_entry is not None and secs_since_entry < MIN_HOLD_SEC:
+                            logger.info(
+                                f"Hold time {secs_since_entry:.1f}s < {MIN_HOLD_SEC}s → skip exit call"
+                            )
+                            pass_exit = False
+                        else:
+                            pass_exit = pass_exit_filter(indicators, position_side)
+
+                        if pass_exit:
                             logger.info("Filter OK → Processing periodic exit decision with AI.")
                             self.last_ai_call = datetime.now()
                             market_cond = get_market_condition(

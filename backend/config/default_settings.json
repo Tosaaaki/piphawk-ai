@@ -59,6 +59,7 @@
     "EXIT_BIAS_FACTOR": 1.0,
     "HIGHER_TF_ENABLED": true,
     "ENTRY_COOLDOWN_SEC": 60,
+    "MIN_HOLD_SEC": 60,
     "EXIT_CHECK_SEC": 30,
     "INVERT_ENTRY_SIDE": false,
     "MIN_TP_PROB": 0.75,
