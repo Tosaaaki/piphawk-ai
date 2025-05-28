@@ -824,6 +824,7 @@ class JobRunner:
                                 market_cond,
                                 higher_tf=higher_tf,
                                 patterns=PATTERN_NAMES,
+                                candles_dict={"M1": candles_m1, "M5": candles_m5},
                                 pattern_names=self.patterns_by_tf,
                             )
                             if not result:

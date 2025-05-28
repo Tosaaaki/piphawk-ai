@@ -72,6 +72,7 @@ def process_entry(
     higher_tf: dict | None = None,
     patterns: list[str] | None = None,
     pattern_names: dict[str, str | None] | None = None,
+    candles_dict: dict[str, list] | None = None,
 ):
     """
     Ask OpenAI whether to enter a trade.
@@ -91,16 +92,42 @@ def process_entry(
         strategy_params = {}
 
     # ------------------------------------------------------------
+    #  Chart pattern scan (local) --------------------------------
+    # ------------------------------------------------------------
+    if candles_dict is None:
+        candles_dict = {"M5": candles}
+    else:
+        candles_dict = {k.upper(): v for k, v in candles_dict.items()}
+        candles_dict.setdefault("M5", candles)
+
+    detected = {} if pattern_names is None else dict(pattern_names)
+    try:
+        from backend.strategy.pattern_scanner import scan_all
+
+        tfs = [
+            tf.strip().upper()
+            for tf in env_loader.get_env("PATTERN_TFS", "M1,M5").split(",")
+            if tf.strip()
+        ]
+        for tf in tfs:
+            data_tf = candles_dict.get(tf)
+            if data_tf:
+                detected[tf] = scan_all(data_tf, patterns)
+            elif tf not in detected:
+                detected[tf] = None
+    except Exception as exc:
+        logging.debug(f"[process_entry] pattern scan failed: {exc}")
+
+    # ------------------------------------------------------------
     #  Step 1: call unified LLM helper
     # ------------------------------------------------------------
-    candles_dict = {"M5": candles}
     indicators_multi = {"M5": indicators}
     plan = get_trade_plan(
         market_data,
         indicators_multi,
         candles_dict,
         patterns=patterns,
-        detected_patterns=pattern_names,
+        detected_patterns=detected,
     )
 
     # Raw JSON for audit log
