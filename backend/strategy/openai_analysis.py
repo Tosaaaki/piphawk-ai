@@ -139,8 +139,9 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     -------
     dict
         {
-            "market_condition": "trend" | "range",
+            "market_condition": "trend" | "range" | "break",
             "range_break": "up" | "down" | None,
+            "break_direction": "up" | "down" | None,
             "break_class": "trend" | "range" | None,
         }
     ``context`` may include ``indicators_h1`` and ``indicators_h4`` to
@@ -381,17 +382,21 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     if candles:
         pivot = None
         if higher_tf:
-            pivot = higher_tf.get("pivot_h1") or higher_tf.get("pivot_h4") or higher_tf.get("pivot_d")
+            pivot = (
+                higher_tf.get("pivot_h1")
+                or higher_tf.get("pivot_h4")
+                or higher_tf.get("pivot_d")
+            )
         br = detect_range_break(candles, pivot=pivot)
         if br["break"]:
             range_break = br["direction"]
             break_class = classify_breakout(indicators)
-            if break_class == "trend":
-                final_regime = "trend"
+            final_regime = "break"
 
     return {
         "market_condition": final_regime,
         "range_break": range_break,
+        "break_direction": range_break,
         "break_class": break_class,
     }
 
