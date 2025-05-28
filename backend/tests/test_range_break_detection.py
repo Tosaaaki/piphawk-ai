@@ -30,6 +30,17 @@ class TestRangeBreakDetection(unittest.TestCase):
         self.assertTrue(res["break"])
         self.assertEqual(res["direction"], "up")
 
+    def test_ignore_incomplete_last_candle(self):
+        candles = [
+            {"mid": {"h": "1.0", "l": "0.9", "c": "0.95"}, "complete": True},
+            {"mid": {"h": "1.0", "l": "0.9", "c": "0.92"}, "complete": True},
+            {"mid": {"h": "1.0", "l": "0.9", "c": "0.93"}, "complete": True},
+            {"mid": {"h": "1.1", "l": "0.9", "c": "1.11"}, "complete": False},
+        ]
+        res = detect_range_break(candles, lookback=3)
+        self.assertFalse(res["break"])
+        self.assertIsNone(res["direction"])
+
     def test_classify_trend(self):
         indicators = {"adx": FakeSeries([20, 30]), "ema_slope": FakeSeries([0.1, 0.2])}
         cls = classify_breakout(indicators)
