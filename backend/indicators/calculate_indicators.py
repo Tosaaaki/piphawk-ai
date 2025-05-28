@@ -2,7 +2,13 @@ import os
 from typing import Sequence
 
 import numpy as np
-import pandas as pd
+try:
+    import pandas as pd
+except ImportError as e:
+    raise ImportError(
+        "Pandas is required for indicator calculations."
+        " Install it with 'pip install pandas'."
+    ) from e
 
 from backend.indicators.rsi import calculate_rsi
 from backend.indicators.ema import calculate_ema
