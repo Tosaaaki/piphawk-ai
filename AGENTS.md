@@ -1,6 +1,3 @@
-
-
-
 # AGENTS.md
 
 ## 1. プロジェクト概要（Project Overview）
