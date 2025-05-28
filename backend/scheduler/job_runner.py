@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import time
 import uuid
 import logging
+import json
 from backend.utils import env_loader
 
 from backend.market_data.tick_fetcher import fetch_tick_data
@@ -233,14 +234,67 @@ class JobRunner:
                     try:
                         logger.info(f"Switching LIMIT {pend['order_id']} to market (diff {diff_pips:.1f} pips)")
                         order_mgr.cancel_order(pend["order_id"])
-                        units = int(float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")) * 1000)
-                        if local_info.get("side") == "short":
-                            units = -units
-                        order_mgr.place_market_order(instrument, units)
+                        try:
+                            candles_dict = {"M5": candles}
+                            indicators_multi = {"M5": indicators}
+                            plan = get_trade_plan(
+                                tick_data,
+                                indicators_multi or {},
+                                candles_dict or {},
+                                patterns=PATTERN_NAMES,
+                                detected_patterns=self.patterns_by_tf,
+                            )
+                            risk = plan.get("risk", {})
+                            ai_raw = json.dumps(plan, ensure_ascii=False)
+                        except Exception as exc:
+                            logger.warning(f"get_trade_plan failed: {exc}")
+                            risk = {}
+                            ai_raw = None
+
+                        try:
+                            ctx = {
+                                "indicators": {
+                                    k: float(val.iloc[-1]) if hasattr(val, "iloc") and val.iloc[-1] is not None
+                                    else float(val) if val is not None else None
+                                    for k, val in indicators.items()
+                                },
+                                "indicators_h1": {
+                                    k: float(v.iloc[-1]) if hasattr(v, "iloc") and v.iloc[-1] is not None
+                                    else float(v) if v is not None else None
+                                    for k, v in (self.indicators_H1 or {}).items()
+                                },
+                                "indicators_h4": {
+                                    k: float(v.iloc[-1]) if hasattr(v, "iloc") and v.iloc[-1] is not None
+                                    else float(v) if v is not None else None
+                                    for k, v in (self.indicators_H4 or {}).items()
+                                },
+                            }
+                            market_cond = get_market_condition(ctx, {})
+                        except Exception as exc:
+                            logger.warning(f"get_market_condition failed: {exc}")
+                            market_cond = None
+
+                        params = {
+                            "instrument": instrument,
+                            "side": local_info.get("side"),
+                            "tp_pips": risk.get("tp_pips"),
+                            "sl_pips": risk.get("sl_pips"),
+                            "mode": "market",
+                            "limit_price": None,
+                            "market_cond": market_cond,
+                            "ai_response": ai_raw,
+                        }
+                        result = order_mgr.enter_trade(
+                            side=local_info.get("side"),
+                            lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
+                            market_data=tick_data,
+                            strategy_params=params,
+                        )
                     except Exception as exc:
                         logger.warning(f"Failed to convert to market order: {exc}")
-                    finally:
-                        _pending_limits.pop(local_info["key"], None)
+                    else:
+                        if result:
+                            _pending_limits.pop(local_info["key"], None)
                     return
 
         age = time.time() - pend["ts"]
