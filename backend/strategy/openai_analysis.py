@@ -210,6 +210,20 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         except Exception:
             rsi_cross_ok = 0.0
 
+    # Bollinger Band width check (narrow band implies range)
+    narrow_bw = False
+    bw_pips = None
+    try:
+        bb_upper = indicators.get("bb_upper")
+        bb_lower = indicators.get("bb_lower")
+        if bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
+            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+            bw_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
+            bw_thresh = float(env_loader.get_env("BAND_WIDTH_THRESH_PIPS", "4"))
+            narrow_bw = bw_pips <= bw_thresh
+    except Exception:
+        narrow_bw = False
+
     local_regime = None
     if adx_latest is not None and ema_sign_consistent:
         local_regime = "trend" if adx_latest >= 20 else "range"
@@ -242,6 +256,9 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
                 local_regime = "trend"
                 break
 
+    if narrow_bw:
+        local_regime = "range"
+
     # ------------------------------------------------------------------
     # 2) LLM assessment (JSON‑only response)
     # ------------------------------------------------------------------
@@ -261,7 +278,12 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         "Conversely, if RSI stays consistently near or above 70 for multiple "
         "candles, this indicates a strong bullish trend rather than overbought "
         "range conditions.\n"
-        f"### Market Data and Indicators:\n{json.dumps(context, ensure_ascii=False)}\n\n"
+        + (
+            f"Bollinger band width has contracted to {bw_pips:.1f} pips; range may be forming.\n"
+            if narrow_bw and bw_pips is not None
+            else ""
+        )
+        + f"### Market Data and Indicators:\n{json.dumps(context, ensure_ascii=False)}\n\n"
         "Respond with JSON: {\"market_condition\":\"trend|range\"}"
     )
 

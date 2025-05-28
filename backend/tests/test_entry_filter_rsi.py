@@ -70,7 +70,7 @@ class TestEntryFilterRSICross(unittest.TestCase):
         os.environ["QUIET_END_HOUR_JST"] = str(end)
         os.environ["HIGHER_TF_ENABLED"] = "false"
         os.environ["PIP_SIZE"] = "0.01"
-        os.environ["BAND_WIDTH_THRESH_PIPS"] = "4"
+        os.environ["BAND_WIDTH_THRESH_PIPS"] = "3"
         os.environ["ATR_ENTRY_THRESHOLD"] = "0.09"
         os.environ["RSI_ENTRY_LOWER"] = "20"
         os.environ["RSI_ENTRY_UPPER"] = "80"

@@ -212,6 +212,9 @@ def pass_entry_filter(
         pip_size = float(os.getenv("PIP_SIZE", "0.01"))
         bw_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
         band_width_ok = bw_pips >= bw_thresh
+        if bw_pips <= bw_thresh:
+            # バンド幅が閾値以下ならレンジモード扱い
+            range_mode = True
 
         # Overshoot check --------------------------------------------------
         overshoot_mult = float(os.getenv("OVERSHOOT_ATR_MULT", "1.0"))

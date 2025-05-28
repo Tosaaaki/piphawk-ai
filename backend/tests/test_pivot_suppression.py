@@ -69,7 +69,7 @@ class TestPivotSuppression(unittest.TestCase):
         os.environ["PIVOT_SUPPRESSION_PIPS"] = "15"
         os.environ["PIP_SIZE"] = "0.01"
         os.environ["DISABLE_ENTRY_FILTER"] = "false"
-        os.environ["BAND_WIDTH_THRESH_PIPS"] = "4"
+        os.environ["BAND_WIDTH_THRESH_PIPS"] = "3"
         os.environ["ATR_ENTRY_THRESHOLD"] = "0.09"
         os.environ["RSI_ENTRY_LOWER"] = "20"
         os.environ["RSI_ENTRY_UPPER"] = "80"
