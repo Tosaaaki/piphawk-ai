@@ -399,9 +399,12 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
 
         # --- ATR ブレイク判定 ----------------------------------------
         atr_series = indicators.get("atr")
-        atr_break = detect_atr_breakout(candles, atr_series) if atr_series is not None else None
+        atr_break = (
+            detect_atr_breakout(candles, atr_series) if atr_series is not None else None
+        )
         if atr_break:
             final_regime = "break"
+            range_break = atr_break
 
     return {
         "market_condition": final_regime,
