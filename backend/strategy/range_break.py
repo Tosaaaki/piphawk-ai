@@ -22,7 +22,7 @@ def detect_range_break(candles: List[dict], *, lookback: int = 20, pivot: Option
 
     recent = [c for c in candles[-(lookback + 1):-1] if c.get("complete", True)]
     last = candles[-1]
-    if not recent or "mid" not in last:
+    if not recent or "mid" not in last or not last.get("complete", True):
         return {"break": False, "direction": None}
 
     highs = [float(c["mid"]["h"]) for c in recent]
