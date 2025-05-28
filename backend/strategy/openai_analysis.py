@@ -7,7 +7,6 @@ from backend.strategy.pattern_scanner import PATTERN_DIRECTION
 from backend.indicators.ema import get_ema_gradient
 from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 from backend.indicators.adx import calculate_adx_slope
-import pandas as pd
 
 # --- Added for AI-based exit decision ---
 # Consolidated exit decision helpers live in exit_ai_decision
@@ -1005,5 +1004,6 @@ __all__ = [
     "ADX_NO_TRADE_MAX",
     "EXIT_BIAS_FACTOR",
     "LOCAL_WEIGHT_THRESHOLD",
+    "ADX_SLOPE_LOOKBACK",
     "calc_consistency",
 ]
