@@ -393,11 +393,16 @@ class JobRunner:
         except Exception:
             return
         new_tp = entry_price + ext_pips * pip_size if side == "long" else entry_price - ext_pips * pip_size
+        current_tp = None
+        if hasattr(order_mgr, "get_current_tp"):
+            current_tp = order_mgr.get_current_tp(trade_id)
+        if current_tp is not None and abs(current_tp - new_tp) < pip_size * 0.1:
+            return
         try:
             res = order_mgr.adjust_tp_sl(DEFAULT_PAIR, trade_id, new_tp=new_tp)
             if res is not None:
                 logger.info(
-                    f"TP extended to {new_tp} ({ext_pips:.1f}pips) due to strong trend"
+                    f"TP extended from {current_tp} to {new_tp} ({ext_pips:.1f}pips) due to strong trend"
                 )
                 self.tp_extended = True
         except Exception as exc:
@@ -430,11 +435,16 @@ class JobRunner:
         except Exception:
             return
         new_tp = entry_price + red_pips * pip_size if side == "long" else entry_price - red_pips * pip_size
+        current_tp = None
+        if hasattr(order_mgr, "get_current_tp"):
+            current_tp = order_mgr.get_current_tp(trade_id)
+        if current_tp is not None and abs(current_tp - new_tp) < pip_size * 0.1:
+            return
         try:
             res = order_mgr.adjust_tp_sl(DEFAULT_PAIR, trade_id, new_tp=new_tp)
             if res is not None:
                 logger.info(
-                    f"TP reduced to {new_tp} ({red_pips:.1f}pips) due to weak trend"
+                    f"TP reduced from {current_tp} to {new_tp} ({red_pips:.1f}pips) due to weak trend"
                 )
                 self.tp_reduced = True
         except Exception as exc:

@@ -247,6 +247,22 @@ class OrderManager:
 
         return results if results else None
 
+    def get_current_tp(self, trade_id: str) -> float | None:
+        """現在設定されているTP価格を取得する。"""
+        url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}/orders"
+        try:
+            resp = requests.get(url, headers=HEADERS, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+            tp_info = data.get("takeProfitOrder") or data.get("trade", {}).get("takeProfitOrder")
+            if isinstance(tp_info, dict):
+                price = tp_info.get("price")
+                if price is not None:
+                    return float(price)
+        except Exception as exc:
+            logger.warning(f"get_current_tp failed for {trade_id}: {exc}")
+        return None
+
     def market_close_position(self, instrument):
         # delegate to unified close_position() helper
         logger.debug(f"[market_close_position] closing BOTH sides for {instrument}")
