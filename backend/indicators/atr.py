@@ -1,5 +1,11 @@
 import os
-import pandas as pd
+try:
+    import pandas as pd
+except ImportError as e:
+    raise ImportError(
+        "Pandas is required for indicator calculations."
+        " Install it with 'pip install pandas'."
+    ) from e
 import numpy as np
 
 def calculate_atr(high, low, close, period=None):
