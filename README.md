@@ -238,4 +238,6 @@ plan = get_trade_plan({}, {}, candles_dict,
 
 ## ブレイクアウト追随エントリー
 
-`follow_breakout()` 関数はレンジブレイク後の押し戻しからエントリーすべきか判断する予定ですが、現時点では未実装で常に `False` を返します。詳しくは `docs/momentum_follow.md` を参照してください。
+`follow_breakout()` 関数はレンジをブレイクした直後の押し戻しが十分小さいかどうかを判定します。ADX が設定値以上であることを確認し、ブレイクアウト足と直近足の終値差を ATR と比較します。押し戻し幅が `FOLLOW_PULLBACK_ATR_RATIO` × ATR 以下であれば `True` を返します。
+
+詳しいロジックは `docs/momentum_follow.md` を参照してください。

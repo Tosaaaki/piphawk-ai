@@ -11,6 +11,11 @@ if follow_breakout(candles, indicators, "up"):
     pass
 ```
 
-実装内部では押し戻し量や ADX を用いて判断する想定ですが、現時点では未実装で常に `False` を返します。
+関数は以下の手順で判定を行います。
 
-> **Note**: `follow_breakout()` is currently not implemented and simply returns `False`.
+1. 指標辞書から `adx` と `atr` の最新値を取得します。
+2. `FOLLOW_ADX_MIN` 以上の ADX が確認できなければ `False` を返します。
+3. ブレイクアウト足（直前の足）と現在の足との終値差を計算し、押し戻し幅を求めます。
+4. 押し戻し幅を ATR と比較し、`FOLLOW_PULLBACK_ATR_RATIO` × ATR 以下なら `True` を返します。
+
+戻り値は `True` または `False` で、ポジションを追随させるかどうかの判断に使えます。
