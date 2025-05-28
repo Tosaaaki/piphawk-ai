@@ -385,6 +385,35 @@ class JobRunner:
         except Exception as exc:
             logger.warning(f"TP reduction failed: {exc}")
 
+    # ────────────────────────────────────────────────────────────
+    #  Trailing-stop settings update based on calendar/quiet hours
+    # ────────────────────────────────────────────────────────────
+    def get_calendar_volatility_level(self) -> int:
+        try:
+            return int(env_loader.get_env("CALENDAR_VOLATILITY_LEVEL", "0"))
+        except (TypeError, ValueError):
+            return 0
+
+    def _refresh_trailing_status(self) -> None:
+        """Update trailing-stop enable flag based on time or event level."""
+        from backend.strategy import exit_logic
+        quiet_start = float(env_loader.get_env("QUIET_START_HOUR_JST", "3"))
+        quiet_end = float(env_loader.get_env("QUIET_END_HOUR_JST", "7"))
+
+        now_jst = datetime.utcnow() + timedelta(hours=9)
+        current_time = now_jst.hour + now_jst.minute / 60.0
+
+        in_quiet_hours = (
+            (quiet_start < quiet_end and quiet_start <= current_time < quiet_end)
+            or (quiet_start > quiet_end and (current_time >= quiet_start or current_time < quiet_end))
+            or (quiet_start == quiet_end)
+        )
+
+        if in_quiet_hours or self.get_calendar_volatility_level() >= 3:
+            exit_logic.TRAIL_ENABLED = False
+        else:
+            exit_logic.TRAIL_ENABLED = env_loader.get_env("TRAIL_ENABLED", "true").lower() == "true"
+
     def run(self):
         logger.info("Job Runner started.")
         while True:
@@ -401,6 +430,8 @@ class JobRunner:
                 logger.debug(f"review_sec={self.review_sec}")
                 # Refresh HIGHER_TF_ENABLED dynamically
                 self.higher_tf_enabled = env_loader.get_env("HIGHER_TF_ENABLED", "true").lower() == "true"
+                # Update trailing-stop enable flag each loop
+                self._refresh_trailing_status()
                 if self.last_run is None or (now - self.last_run) >= timedelta(seconds=self.interval_seconds):
                     logger.info(f"Running job at {now.isoformat()}")
 
