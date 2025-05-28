@@ -233,3 +233,7 @@ plan = get_trade_plan({}, {}, candles_dict,
                       patterns=["double_bottom", "double_top"],
                       pattern_tf="M15")
 ```
+
+## ブレイクアウト追随エントリー
+
+`follow_breakout()` 関数はレンジブレイク後の押し戻しからエントリーすべきか判断する予定ですが、現時点では未実装で常に `False` を返します。詳しくは `docs/momentum_follow.md` を参照してください。

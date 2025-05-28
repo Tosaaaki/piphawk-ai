@@ -11,4 +11,6 @@ if follow_breakout(candles, indicators, "up"):
     pass
 ```
 
-実装では直近の押し戻し量が ATR の一定割合以内かつ ADX が閾値以上かを確認してエントリー可否を判定します。
+実装内部では押し戻し量や ADX を用いて判断する想定ですが、現時点では未実装で常に `False` を返します。
+
+> **Note**: `follow_breakout()` is currently not implemented and simply returns `False`.
