@@ -77,7 +77,13 @@ class TestPullbackLimit(unittest.TestCase):
         candles = []
         market_data = {"prices": [{"instrument": "USD_JPY", "bids": [{"price": "1.0"}], "asks": [{"price": "1.01"}]}]}
         higher_tf = {"pivot_d": 1.0}
-        result = self.el.process_entry(indicators, candles, market_data, higher_tf=higher_tf)
+        result = self.el.process_entry(
+            indicators,
+            candles,
+            market_data,
+            higher_tf=higher_tf,
+            candles_dict={"M5": candles},
+        )
         self.assertTrue(result)
         self.assertEqual(self.el.order_manager.last_params["mode"], "market")
 

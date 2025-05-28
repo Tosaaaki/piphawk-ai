@@ -26,3 +26,41 @@ def calculate_ema(
     prices_series = pd.Series(prices)
     ema = prices_series.ewm(span=period, adjust=False).mean()
     return ema
+
+
+def get_ema_gradient(series: Union[List[float], pd.Series], *, pip_size: float = 0.01) -> str:
+    """Return the latest EMA gradient as ``"up"``, ``"down"`` or ``"flat"``.
+
+    Parameters
+    ----------
+    series : list or pandas.Series
+        EMA series ordered oldest → newest.
+    pip_size : float, default 0.01
+        Threshold used to judge a "flat" slope.
+
+    Returns
+    -------
+    str
+        ``"up"`` | ``"down"`` | ``"flat"``
+    """
+
+    try:
+        if hasattr(series, "iloc"):
+            if len(series) < 2:
+                return "flat"
+            latest = float(series.iloc[-1])
+            prev = float(series.iloc[-2])
+        else:
+            if len(series) < 2:
+                return "flat"
+            latest = float(series[-1])
+            prev = float(series[-2])
+    except Exception:
+        return "flat"
+
+    diff = latest - prev
+    if diff > pip_size * 0.05:
+        return "up"
+    if diff < -pip_size * 0.05:
+        return "down"
+    return "flat"

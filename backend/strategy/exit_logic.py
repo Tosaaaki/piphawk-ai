@@ -461,7 +461,7 @@ def process_exit(
                         atr_pips * TRAIL_DISTANCE_MULTIPLIER,
                         TRAIL_DISTANCE_PIPS,
                     )
-                    if int(os.getenv("CALENDAR_VOLATILITY_LEVEL", "0")) >= CALENDAR_VOL_THRESHOLD:
+                    if int(os.getenv("CALENDAR_VOLATILITY_LEVEL", "0")) > CALENDAR_VOL_THRESHOLD:
                         distance_pips *= CALENDAR_TRAIL_MULTIPLIER
 
 

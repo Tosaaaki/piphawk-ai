@@ -29,6 +29,10 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    `RANGE_CENTER_BLOCK_PCT` controls how close to the Bollinger band center price
    can be when ADX is below `ADX_RANGE_THRESHOLD`. Set to `0.3` (30%) to block
    entries near the middle of a range, helping suppress counter-trend trades.
+   `BAND_WIDTH_THRESH_PIPS` defines the Bollinger band width that triggers
+   range mode regardless of ADX. When the width falls below this value the system
+   treats the market as ranging and the AI prompt notes that *BB width is
+   contracting*.
 `AI_PROFIT_TRIGGER_RATIO` defines what portion of the take-profit target must
 be reached before an AI exit check occurs. The default value is `0.3` (30%).
 `STAGNANT_EXIT_SEC` sets how long a profitable position can stagnate before the
@@ -51,6 +55,7 @@ The system derives a dynamic pullback requirement from ATR, ADX and recent price
 `LOCAL_WEIGHT_THRESHOLD` は 0〜1 の値で、ローカル判定と AI 判定の整合度スコアがこの値以上ならローカルを、未満なら AI を優先します。旧 `USE_LOCAL_PATTERN` は廃止されました。
 `PATTERN_MIN_BARS` でパターン完成に必要なローソク足の本数を、`PATTERN_TOLERANCE` で高値・安値の許容誤差を調整できます。
 `PATTERN_EXCLUDE_TFS` に `M1` などを指定すると、その時間足ではパターン検出を行いません。
+`PATTERN_TFS` を `M1,M5` のように設定すると、指定した時間足のみをスキャンします。
 `STRICT_ENTRY_FILTER` controls whether the M1 RSI cross signal is required. Set to `false` to skip the cross check (default `true`).
 
 ## Running the API

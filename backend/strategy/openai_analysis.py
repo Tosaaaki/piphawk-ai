@@ -4,8 +4,9 @@ from backend.utils.openai_client import ask_openai
 from backend.utils import env_loader, parse_json_answer
 from backend.strategy.pattern_ai_detection import detect_chart_pattern
 from backend.strategy.pattern_scanner import PATTERN_DIRECTION
+from backend.indicators.ema import get_ema_gradient
 from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
-import pandas as pd
+from backend.indicators.adx import calculate_adx_slope
 
 # --- Added for AI-based exit decision ---
 # Consolidated exit decision helpers live in exit_ai_decision
@@ -37,6 +38,7 @@ COOL_BBWIDTH_PCT: float = float(env_loader.get_env("COOL_BBWIDTH_PCT", "0"))
 COOL_ATR_PCT: float = float(env_loader.get_env("COOL_ATR_PCT", "0"))
 ADX_NO_TRADE_MIN: float = float(env_loader.get_env("ADX_NO_TRADE_MIN", "20"))
 ADX_NO_TRADE_MAX: float = float(env_loader.get_env("ADX_NO_TRADE_MAX", "30"))
+ADX_SLOPE_LOOKBACK: int = int(env_loader.get_env("ADX_SLOPE_LOOKBACK", "3"))
 USE_LOCAL_PATTERN: bool = (
     env_loader.get_env("USE_LOCAL_PATTERN", "false").lower() == "true"
 )
@@ -149,6 +151,14 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
 
     logger = logging.getLogger(__name__)
     indicators = context.get("indicators", {})
+    ema_trend = None
+    try:
+        fast_vals = indicators.get("ema_fast")
+        if fast_vals is not None:
+            ema_trend = get_ema_gradient(fast_vals)
+    except Exception:
+        ema_trend = None
+    context["ema_trend"] = ema_trend
 
     # ------------------------------------------------------------------
     # 1) Local regime assessment (ADX + EMA slope consistency)
@@ -158,6 +168,24 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     ind_m1 = context.get("indicators_m1") or {}
     ind_h1 = context.get("indicators_h1") or {}
     ind_h4 = context.get("indicators_h4") or {}
+
+    # --- Bollinger band width for dynamic ADX threshold -----------------
+    bb_upper = indicators.get("bb_upper")
+    bb_lower = indicators.get("bb_lower")
+    bw_pips = None
+    try:
+        if bb_upper is not None and bb_lower is not None:
+            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+            bb_u = float(bb_upper.iloc[-1]) if hasattr(bb_upper, "iloc") else float(bb_upper[-1])
+            bb_l = float(bb_lower.iloc[-1]) if hasattr(bb_lower, "iloc") else float(bb_lower[-1])
+            bw_pips = (bb_u - bb_l) / pip_size
+    except Exception:
+        bw_pips = None
+    bw_thresh = float(env_loader.get_env("BAND_WIDTH_THRESH_PIPS", "4"))
+    adx_base = float(env_loader.get_env("ADX_RANGE_THRESHOLD", "25"))
+    coeff = float(env_loader.get_env("ADX_DYNAMIC_COEFF", "0"))
+    width_ratio = ((bw_pips - bw_thresh) / bw_thresh) if bw_pips is not None else 0.0
+    adx_dynamic_thresh = adx_base * (1 + coeff * width_ratio)
 
     def _extract_latest(series):
         if series is None:
@@ -184,6 +212,13 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         except Exception:
             adx_latest = None
 
+    adx_slope = None
+    if adx_vals is not None:
+        try:
+            adx_slope = calculate_adx_slope(adx_vals, lookback=ADX_SLOPE_LOOKBACK)
+        except Exception:
+            adx_slope = None
+
     # EMAの傾きが無い場合はema_fastから代用の傾きを算出
     ema_series = _extract_latest(ema_vals)
     if not ema_series:
@@ -196,9 +231,13 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         pos = [v > 0 for v in ema_series]
         neg = [v < 0 for v in ema_series]
         ema_sign_consistent = all(pos) or all(neg)
-    ema_ok = 1.0 if ema_sign_consistent else 0.0
+    if ema_trend == "flat":
+        ema_sign_consistent = False
+    ema_ok = 1.0 if ema_sign_consistent and ema_trend != "flat" else 0.0
 
     adx_ok = 1.0 if adx_latest is not None and adx_latest >= 20 else 0.0
+    if adx_ok > 0 and adx_slope is not None and adx_slope < 0:
+        adx_ok *= 0.5
 
     rsi_cross_ok = 0.0
     rsi_m1 = ind_m1.get("rsi")
@@ -210,9 +249,23 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         except Exception:
             rsi_cross_ok = 0.0
 
+    # Bollinger Band width check (narrow band implies range)
+    narrow_bw = False
+    bw_pips = None
+    try:
+        bb_upper = indicators.get("bb_upper")
+        bb_lower = indicators.get("bb_lower")
+        if bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
+            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+            bw_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
+            bw_thresh = float(env_loader.get_env("BAND_WIDTH_THRESH_PIPS", "4"))
+            narrow_bw = bw_pips <= bw_thresh
+    except Exception:
+        narrow_bw = False
+
     local_regime = None
     if adx_latest is not None and ema_sign_consistent:
-        local_regime = "trend" if adx_latest >= 20 else "range"
+        local_regime = "trend" if adx_latest >= adx_dynamic_thresh else "range"
 
     def _is_trend(ind: dict) -> bool | None:
         adx = ind.get("adx")
@@ -232,15 +285,24 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         ema_ok_local = len(ema_series) >= 3 and (
             all(v > 0 for v in ema_series) or all(v < 0 for v in ema_series)
         )
+        try:
+            ema_dir = get_ema_gradient(ind.get("ema_fast"))
+            if ema_dir == "flat":
+                ema_ok_local = False
+        except Exception:
+            pass
         if adx_val is None or not ema_ok_local:
             return None
-        return adx_val >= 20
+        return adx_val >= adx_dynamic_thresh
 
     if local_regime != "trend":
         for ind in (ind_h4, ind_h1):
             if _is_trend(ind):
                 local_regime = "trend"
                 break
+
+    if narrow_bw:
+        local_regime = "range"
 
     # ------------------------------------------------------------------
     # 2) LLM assessment (JSON‑only response)
@@ -261,7 +323,12 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         "Conversely, if RSI stays consistently near or above 70 for multiple "
         "candles, this indicates a strong bullish trend rather than overbought "
         "range conditions.\n"
-        f"### Market Data and Indicators:\n{json.dumps(context, ensure_ascii=False)}\n\n"
+        + (
+            f"Bollinger band width has contracted to {bw_pips:.1f} pips; range may be forming.\n"
+            if narrow_bw and bw_pips is not None
+            else ""
+        )
+        + f"### Market Data and Indicators:\n{json.dumps(context, ensure_ascii=False)}\n\n"
         "Respond with JSON: {\"market_condition\":\"trend|range\"}"
     )
 
@@ -545,7 +612,7 @@ def get_exit_decision(
                 last_adx = (
                     float(adx_series.iloc[-1]) if hasattr(adx_series, "iloc") else float(adx_series[-1])
                 )
-                if last_adx >= 25:
+                if last_adx >= adx_dynamic_thresh:
                     # Determine EMA slope over last 3 candles
                     if hasattr(ema_fast_series, "iloc") and len(ema_fast_series) >= 3:
                         ema_last = float(ema_fast_series.iloc[-1])
@@ -937,5 +1004,6 @@ __all__ = [
     "ADX_NO_TRADE_MAX",
     "EXIT_BIAS_FACTOR",
     "LOCAL_WEIGHT_THRESHOLD",
+    "ADX_SLOPE_LOOKBACK",
     "calc_consistency",
 ]
