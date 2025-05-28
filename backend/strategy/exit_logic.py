@@ -1,5 +1,9 @@
 from typing import Dict, Any
-from backend.strategy.openai_analysis import get_exit_decision
+from backend.strategy.openai_analysis import (
+    get_exit_decision,
+    evaluate_exit,
+    EXIT_BIAS_FACTOR,
+)
 from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
 from backend.logs.exit_logger import append_exit_log
@@ -9,7 +13,9 @@ import os
 
 # Trailing‑stop configuration
 TRAIL_TRIGGER_PIPS = float(
+
     os.getenv("TRAIL_TRIGGER_PIPS", "10")
+
 )  # profit threshold to arm trailing stop
 TRAIL_DISTANCE_PIPS = float(
     os.getenv("TRAIL_DISTANCE_PIPS", "6")
@@ -29,8 +35,10 @@ STAGNANT_ATR_PIPS = float(os.getenv("STAGNANT_ATR_PIPS", "0"))
 # Dynamic ATR‑based trailing‑stop (always enabled)
 TRAIL_TRIGGER_MULTIPLIER = float(os.getenv("TRAIL_TRIGGER_MULTIPLIER", "1.2"))
 TRAIL_DISTANCE_MULTIPLIER = float(os.getenv("TRAIL_DISTANCE_MULTIPLIER", "1.0"))
+# カレンダーイベント時の追加距離倍率
+CALENDAR_VOL_THRESHOLD = int(os.getenv("CALENDAR_VOL_THRESHOLD", "3"))
+CALENDAR_TRAIL_MULTIPLIER = float(os.getenv("CALENDAR_TRAIL_MULTIPLIER", "1.5"))
 from backend.orders.position_manager import get_position_details
-import re
 import json
 
 order_manager = OrderManager()
@@ -97,6 +105,23 @@ def decide_exit(
 
     context_data["secs_since_entry"] = secs_since_entry
     context_data["pips_from_entry"] = pips_from_entry
+
+
+    ai_context = {
+        **context_data,
+        "position": position,
+        "indicators": indicators,
+        "entry_regime": entry_regime,
+        "market_cond": market_cond,
+    }
+    decision_obj = evaluate_exit(ai_context, bias_factor=EXIT_BIAS_FACTOR)
+    ai_response = decision_obj.as_dict()
+    raw = json.dumps(ai_response)
+
+    decision_key = ai_response.get("action") or ai_response.get("decision")
+    decision = decision_key.upper() if decision_key else "HOLD"
+    reason = ai_response.get("reason", "")
+    return {"decision": decision, "reason": reason, "raw": raw}
 
     ai_response = get_exit_decision(
         context_data,
@@ -397,6 +422,28 @@ def process_exit(
                 else (entry_price - current_price) / pip_size
             )
 
+
+            # ---------- partial close check -----------------------------
+            partial_thresh = float(os.getenv("PARTIAL_CLOSE_PIPS", "0"))
+            partial_ratio = float(os.getenv("PARTIAL_CLOSE_RATIO", "0"))
+            if partial_thresh > 0 and partial_ratio > 0 and profit_pips >= partial_thresh:
+                trade_ids = position.get(position_side, {}).get("tradeIDs", [])
+                if trade_ids:
+                    close_units = int(abs(units) * partial_ratio)
+                    if close_units > 0:
+                        close_units = close_units if units > 0 else -close_units
+                        order_manager.close_partial(trade_ids[0], close_units)
+                        log_trade(
+                            position["instrument"],
+                            entry_time=position.get("entry_time", position.get("openTime", datetime.utcnow().isoformat())),
+                            entry_price=entry_price,
+                            units=close_units,
+                            ai_reason="partial close",
+                            exit_time=datetime.utcnow().isoformat(),
+                            exit_price=current_price,
+                        )
+                        units -= close_units
+
             # ---------- trailing‑stop (always ATR‑based) ---------------
             if TRAIL_ENABLED:
                 # Always ATR‑based
@@ -411,9 +458,25 @@ def process_exit(
                     elif isinstance(atr_val, (list, tuple)):
                         atr_val = atr_val[-1]
                     pip_sz = 0.01 if position["instrument"].endswith("_JPY") else 0.0001
+
                     atr_pips = atr_val / pip_sz
                     trigger_pips = atr_pips * TRAIL_TRIGGER_MULTIPLIER
+
                     distance_pips = atr_pips * TRAIL_DISTANCE_MULTIPLIER
+                    # 高ボラ指標発表時は距離を広げる
+                    if int(os.getenv("CALENDAR_VOLATILITY_LEVEL", "0")) >= CALENDAR_VOL_THRESHOLD:
+                        distance_pips *= CALENDAR_TRAIL_MULTIPLIER
+
+                    atr_pips = atr_val / pip_sz
+                    trigger_pips = max(
+                        atr_pips * TRAIL_TRIGGER_MULTIPLIER,
+                        TRAIL_TRIGGER_PIPS,
+                    )
+                    distance_pips = max(
+                        atr_pips * TRAIL_DISTANCE_MULTIPLIER,
+                        TRAIL_DISTANCE_PIPS,
+                    )
+
 
                 logging.info(
                     f"Trailing stop check: profit={profit_pips:.1f}p "
