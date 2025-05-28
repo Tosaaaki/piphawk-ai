@@ -33,6 +33,7 @@ from backend.strategy.openai_analysis import (
 )
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from backend.strategy import pattern_scanner
+from backend.strategy.momentum_follow import follow_breakout
 import requests
 
 from backend.utils.notification import send_line_message
@@ -861,6 +862,14 @@ class JobRunner:
                                 higher_tf,
                             )
                             logger.debug(f"Market condition (post‑filter): {market_cond}")
+
+                            if not has_position and market_cond.get("market_condition") == "break":
+                                try:
+                                    direction = market_cond.get("range_break")
+                                    follow = follow_breakout(candles_m5, indicators, direction)
+                                    logger.info(f"follow_breakout result: {follow}")
+                                except Exception as exc:
+                                    logger.warning(f"follow_breakout failed: {exc}")
 
                             margin_used = get_margin_used()
                             logger.info(f"marginUsed={margin_used}")
