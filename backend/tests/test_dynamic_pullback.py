@@ -49,12 +49,12 @@ class TestDynamicPullback(unittest.TestCase):
         om = types.ModuleType("backend.orders.order_manager")
         class DummyMgr:
             def __init__(self):
-                self.market_called = False
+                self.enter_called = False
+                self.last_params = None
             def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False):
+                self.enter_called = True
+                self.last_params = strategy_params
                 return {"order_id": "1"}
-            def place_market_order(self, instrument, units):
-                self.market_called = True
-                return {"order_id": "m1"}
             def cancel_order(self, oid):
                 pass
         om.OrderManager = DummyMgr
@@ -126,7 +126,7 @@ class TestDynamicPullback(unittest.TestCase):
         indicators = {"atr": FakeSeries([0.1]), "adx": FakeSeries([40])}
         tick = {"prices": [{"instrument": "USD_JPY", "bids": [{"price": "1.05"}], "asks": [{"price": "1.06"}]}]}
         self.runner._manage_pending_limits("USD_JPY", indicators, [], tick)
-        self.assertTrue(self.jr.order_mgr.market_called)
+        self.assertTrue(self.jr.order_mgr.enter_called)
 
     def test_calculate_dynamic_pullback(self):
         from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
