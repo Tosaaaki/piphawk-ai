@@ -396,6 +396,27 @@ def process_exit(
                 else (entry_price - current_price) / pip_size
             )
 
+            # ---------- partial close check -----------------------------
+            partial_thresh = float(os.getenv("PARTIAL_CLOSE_PIPS", "0"))
+            partial_ratio = float(os.getenv("PARTIAL_CLOSE_RATIO", "0"))
+            if partial_thresh > 0 and partial_ratio > 0 and profit_pips >= partial_thresh:
+                trade_ids = position.get(position_side, {}).get("tradeIDs", [])
+                if trade_ids:
+                    close_units = int(abs(units) * partial_ratio)
+                    if close_units > 0:
+                        close_units = close_units if units > 0 else -close_units
+                        order_manager.close_partial(trade_ids[0], close_units)
+                        log_trade(
+                            position["instrument"],
+                            entry_time=position.get("entry_time", position.get("openTime", datetime.utcnow().isoformat())),
+                            entry_price=entry_price,
+                            units=close_units,
+                            ai_reason="partial close",
+                            exit_time=datetime.utcnow().isoformat(),
+                            exit_price=current_price,
+                        )
+                        units -= close_units
+
             # ---------- trailing‑stop (always ATR‑based) ---------------
             if TRAIL_ENABLED:
                 # Always ATR‑based
