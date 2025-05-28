@@ -81,6 +81,20 @@ def get_position_details(instrument: str) -> Optional[Dict[str, Any]]:
         else:
             position_data['entry_time'] = None
 
+        # ---- calc total PL from individual trades -----------------------
+        pl_total = 0.0
+        for tr in trades:
+            try:
+                units = float(tr.get("currentUnits", 0))
+                open_price = float(tr.get("price", 0))
+                unreal = float(tr.get("unrealizedPL", 0))
+                realized = float(tr.get("realizedPL", 0))
+                _ = units, open_price  # 明示的な使用で型チェックを回避
+                pl_total += unreal + realized
+            except Exception:
+                pass
+        position_data["pl_corrected"] = pl_total
+
         # ---- extract entry_regime JSON from clientExtensions.comment ----
         entry_regime = None
         for tr in trades:

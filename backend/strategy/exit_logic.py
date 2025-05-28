@@ -196,7 +196,7 @@ def process_exit(
             entry_time=position.get("entry_time", exit_time),
             entry_price=float(position[position_side]["averagePrice"]),
             units=units,
-            profit_loss=float(position["pl"]),
+            profit_loss=float(position.get("pl_corrected", position.get("pl", 0))),
             ai_reason="regime shift exit",
         )
         return True
@@ -327,7 +327,7 @@ def process_exit(
                     ),
                     entry_price=entry_price,
                     units=units,
-                    profit_loss=float(position["pl"]),
+                    profit_loss=float(position.get("pl_corrected", position.get("pl", 0))),
                     ai_reason=f"AI‑confirmed early‑exit: {exit_decision['reason']}",
                     ai_response=exit_decision.get("raw"),
                 )
@@ -384,7 +384,7 @@ def process_exit(
             entry_time=entry_time,
             entry_price=entry_price,
             units=units,
-            profit_loss=float(position["pl"]),
+            profit_loss=float(position.get("pl_corrected", position.get("pl", 0))),
             ai_reason=exit_decision["reason"],
             ai_response=exit_decision.get("raw"),
         )
