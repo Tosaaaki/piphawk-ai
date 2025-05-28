@@ -64,6 +64,7 @@ The system derives a dynamic pullback requirement from ATR, ADX and recent price
 `PATTERN_EXCLUDE_TFS` に `M1` などを指定すると、その時間足ではパターン検出を行いません。
 `PATTERN_TFS` を `M1,M5` のように設定すると、指定した時間足のみをスキャンします。
 `STRICT_ENTRY_FILTER` controls whether the M1 RSI cross signal is required. Set to `false` to skip the cross check (default `true`).
+`HIGHER_TF_ENABLED` を `true` にすると、上位足ピボットとの距離も TP 計算に利用します。
 
 ## Running the API
 
