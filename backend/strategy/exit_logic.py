@@ -1,5 +1,9 @@
 from typing import Dict, Any
-from backend.strategy.openai_analysis import get_exit_decision
+from backend.strategy.openai_analysis import (
+    get_exit_decision,
+    evaluate_exit,
+    EXIT_BIAS_FACTOR,
+)
 from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
 from datetime import datetime
@@ -22,7 +26,6 @@ STAGNANT_ATR_PIPS   = float(os.getenv("STAGNANT_ATR_PIPS", "0"))
 TRAIL_TRIGGER_MULTIPLIER  = float(os.getenv("TRAIL_TRIGGER_MULTIPLIER", "1.2"))
 TRAIL_DISTANCE_MULTIPLIER = float(os.getenv("TRAIL_DISTANCE_MULTIPLIER", "1.0"))
 from backend.orders.position_manager import get_position_details
-import re
 import json
 
 order_manager = OrderManager()
@@ -87,58 +90,21 @@ def decide_exit(
     context_data["secs_since_entry"] = secs_since_entry
     context_data["pips_from_entry"] = pips_from_entry
 
-    ai_response = get_exit_decision(
-        context_data,
-        position,
-        indicators,
-        entry_regime,
-        market_cond,
-        higher_tf=higher_tf,
-        indicators_m1=indicators_m1,
-        patterns=patterns,
-        detected_patterns=pattern_names,
-    )
-    raw = ai_response if isinstance(ai_response, str) else json.dumps(ai_response)
+    ai_context = {
+        **context_data,
+        "position": position,
+        "indicators": indicators,
+        "entry_regime": entry_regime,
+        "market_cond": market_cond,
+    }
+    decision_obj = evaluate_exit(ai_context, bias_factor=EXIT_BIAS_FACTOR)
+    ai_response = decision_obj.as_dict()
+    raw = json.dumps(ai_response)
 
-    # --- Robustly parse AI response (dict or JSON string) ---
-    if isinstance(ai_response, dict):
-        resp = ai_response
-    elif isinstance(ai_response, str):
-        try:
-            resp = json.loads(ai_response)
-        except json.JSONDecodeError:
-            resp = None
-    else:
-        resp = None
-
-    # If JSON (dict) was obtained
-    if isinstance(resp, dict):
-        decision_key = resp.get("action") or resp.get("decision")
-        decision = decision_key.upper() if decision_key else "HOLD"
-        reason   = resp.get("reason", "")
-        return {"decision": decision, "reason": reason, "raw": raw}
-
-    # ----- Plain‑text fallback -----
-    if isinstance(ai_response, str) and not isinstance(resp, dict):
-        cleaned = ai_response.strip().lower()
-        m = re.search(r"[a-z]+", cleaned)
-        first_word = m.group(0) if m else ""
-        if first_word in ("exit", "yes"):
-            decision = "EXIT"
-        elif first_word in ("hold", "no"):
-            decision = "HOLD"
-        else:
-            if re.search(r"\b(exit|yes)\b", cleaned):
-                decision = "EXIT"
-            elif re.search(r"\b(hold|no)\b", cleaned):
-                decision = "HOLD"
-            else:
-                decision = "HOLD"
-        reason = ai_response
-        return {"decision": decision, "reason": reason, "raw": raw}
-
-    # ----- fallback for unknown type -----
-    return {"decision": "HOLD", "reason": "Unrecognized AI response", "raw": raw}
+    decision_key = ai_response.get("action") or ai_response.get("decision")
+    decision = decision_key.upper() if decision_key else "HOLD"
+    reason = ai_response.get("reason", "")
+    return {"decision": decision, "reason": reason, "raw": raw}
 
 def process_exit(
     indicators,

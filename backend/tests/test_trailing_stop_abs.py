@@ -18,9 +18,9 @@ class TestTrailingStopAbsProfit(unittest.TestCase):
     def setUp(self):
         self._added = []
         def add(name, mod):
-            if name not in sys.modules:
-                sys.modules[name] = mod
-                self._added.append(name)
+            sys.modules.pop(name, None)
+            sys.modules[name] = mod
+            self._added.append(name)
 
         os.environ.setdefault("OANDA_ACCOUNT_ID", "dummy")
         os.environ.setdefault("OANDA_API_KEY", "dummy")
@@ -46,6 +46,13 @@ class TestTrailingStopAbsProfit(unittest.TestCase):
 
         oa = types.ModuleType("backend.strategy.openai_analysis")
         oa.get_exit_decision = lambda *a, **k: {"decision": "HOLD", "reason": ""}
+        oa.evaluate_exit = lambda ctx, bias_factor=1.0: types.SimpleNamespace(
+            action="HOLD",
+            confidence=0.0,
+            reason="",
+            as_dict=lambda: {"action": "HOLD", "confidence": 0.0, "reason": ""},
+        )
+        oa.EXIT_BIAS_FACTOR = 1.0
         add("backend.strategy.openai_analysis", oa)
 
         import backend.orders.order_manager as om
