@@ -168,6 +168,24 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     ind_h1 = context.get("indicators_h1") or {}
     ind_h4 = context.get("indicators_h4") or {}
 
+    # --- Bollinger band width for dynamic ADX threshold -----------------
+    bb_upper = indicators.get("bb_upper")
+    bb_lower = indicators.get("bb_lower")
+    bw_pips = None
+    try:
+        if bb_upper is not None and bb_lower is not None:
+            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+            bb_u = float(bb_upper.iloc[-1]) if hasattr(bb_upper, "iloc") else float(bb_upper[-1])
+            bb_l = float(bb_lower.iloc[-1]) if hasattr(bb_lower, "iloc") else float(bb_lower[-1])
+            bw_pips = (bb_u - bb_l) / pip_size
+    except Exception:
+        bw_pips = None
+    bw_thresh = float(env_loader.get_env("BAND_WIDTH_THRESH_PIPS", "4"))
+    adx_base = float(env_loader.get_env("ADX_RANGE_THRESHOLD", "25"))
+    coeff = float(env_loader.get_env("ADX_DYNAMIC_COEFF", "0"))
+    width_ratio = ((bw_pips - bw_thresh) / bw_thresh) if bw_pips is not None else 0.0
+    adx_dynamic_thresh = adx_base * (1 + coeff * width_ratio)
+
     def _extract_latest(series):
         if series is None:
             return []
@@ -209,7 +227,7 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         ema_sign_consistent = False
     ema_ok = 1.0 if ema_sign_consistent and ema_trend != "flat" else 0.0
 
-    adx_ok = 1.0 if adx_latest is not None and adx_latest >= 20 else 0.0
+    adx_ok = 1.0 if adx_latest is not None and adx_latest >= adx_dynamic_thresh else 0.0
 
     rsi_cross_ok = 0.0
     rsi_m1 = ind_m1.get("rsi")
@@ -237,7 +255,7 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
 
     local_regime = None
     if adx_latest is not None and ema_sign_consistent:
-        local_regime = "trend" if adx_latest >= 20 else "range"
+        local_regime = "trend" if adx_latest >= adx_dynamic_thresh else "range"
 
     def _is_trend(ind: dict) -> bool | None:
         adx = ind.get("adx")
@@ -265,7 +283,7 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
             pass
         if adx_val is None or not ema_ok_local:
             return None
-        return adx_val >= 20
+        return adx_val >= adx_dynamic_thresh
 
     if local_regime != "trend":
         for ind in (ind_h4, ind_h1):
@@ -584,7 +602,7 @@ def get_exit_decision(
                 last_adx = (
                     float(adx_series.iloc[-1]) if hasattr(adx_series, "iloc") else float(adx_series[-1])
                 )
-                if last_adx >= 25:
+                if last_adx >= adx_dynamic_thresh:
                     # Determine EMA slope over last 3 candles
                     if hasattr(ema_fast_series, "iloc") and len(ema_fast_series) >= 3:
                         ema_last = float(ema_fast_series.iloc[-1])

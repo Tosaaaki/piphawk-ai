@@ -34,3 +34,9 @@ def calculate_bollinger_bands(prices, window=None, num_std=None):
         'upper_band': upper_band,
         'lower_band': lower_band
     })
+
+
+def calculate_bb_width(prices, window=None, num_std=None):
+    """Return Bollinger Band width as a Series."""
+    df = calculate_bollinger_bands(prices, window=window, num_std=num_std)
+    return df['upper_band'] - df['lower_band']
