@@ -125,7 +125,11 @@ def calc_consistency(
 # ----------------------------------------------------------------------
 # Market‑regime classification helper (OpenAI direct, enhanced English prompt)
 # ----------------------------------------------------------------------
-from backend.strategy.range_break import detect_range_break, classify_breakout
+from backend.strategy.range_break import (
+    detect_range_break,
+    classify_breakout,
+    detect_atr_breakout,
+)
 
 
 def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
@@ -388,6 +392,12 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
             break_class = classify_breakout(indicators)
             if break_class == "trend":
                 final_regime = "trend"
+
+        # --- ATR ブレイク判定 ----------------------------------------
+        atr_series = indicators.get("atr")
+        atr_break = detect_atr_breakout(candles, atr_series) if atr_series is not None else None
+        if atr_break:
+            final_regime = "break"
 
     return {
         "market_condition": final_regime,
