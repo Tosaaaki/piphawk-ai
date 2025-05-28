@@ -38,6 +38,8 @@ class TestLimitRetry(unittest.TestCase):
         oa.get_trade_plan = lambda *a, **k: {"entry": {"side": "long", "mode": "limit", "limit_price": 1.1}, "risk": {}}
         oa.get_market_condition = lambda *a, **k: {"market_condition": "trend", "trend_direction": "long"}
         oa.should_convert_limit_to_market = lambda ctx: False
+        oa.evaluate_exit = lambda ctx, bias_factor=1.0: types.SimpleNamespace(action="HOLD", confidence=0.0, reason="")
+        oa.EXIT_BIAS_FACTOR = 1.0
         add("backend.strategy.openai_analysis", oa)
 
         om = types.ModuleType("backend.orders.order_manager")
