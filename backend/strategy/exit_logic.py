@@ -1,6 +1,5 @@
 from typing import Dict, Any
 from backend.strategy.openai_analysis import (
-    get_exit_decision,
     evaluate_exit,
     EXIT_BIAS_FACTOR,
 )
@@ -123,58 +122,6 @@ def decide_exit(
     reason = ai_response.get("reason", "")
     return {"decision": decision, "reason": reason, "raw": raw}
 
-    ai_response = get_exit_decision(
-        context_data,
-        position,
-        indicators,
-        entry_regime,
-        market_cond,
-        higher_tf=higher_tf,
-        indicators_m1=indicators_m1,
-        patterns=patterns,
-        detected_patterns=pattern_names,
-    )
-    raw = ai_response if isinstance(ai_response, str) else json.dumps(ai_response)
-
-    # --- Robustly parse AI response (dict or JSON string) ---
-    if isinstance(ai_response, dict):
-        resp = ai_response
-    elif isinstance(ai_response, str):
-        try:
-            resp = json.loads(ai_response)
-        except json.JSONDecodeError:
-            resp = None
-    else:
-        resp = None
-
-    # If JSON (dict) was obtained
-    if isinstance(resp, dict):
-        decision_key = resp.get("action") or resp.get("decision")
-        decision = decision_key.upper() if decision_key else "HOLD"
-        reason = resp.get("reason", "")
-        return {"decision": decision, "reason": reason, "raw": raw}
-
-    # ----- Plain‑text fallback -----
-    if isinstance(ai_response, str) and not isinstance(resp, dict):
-        cleaned = ai_response.strip().lower()
-        m = re.search(r"[a-z]+", cleaned)
-        first_word = m.group(0) if m else ""
-        if first_word in ("exit", "yes"):
-            decision = "EXIT"
-        elif first_word in ("hold", "no"):
-            decision = "HOLD"
-        else:
-            if re.search(r"\b(exit|yes)\b", cleaned):
-                decision = "EXIT"
-            elif re.search(r"\b(hold|no)\b", cleaned):
-                decision = "HOLD"
-            else:
-                decision = "HOLD"
-        reason = ai_response
-        return {"decision": decision, "reason": reason, "raw": raw}
-
-    # ----- fallback for unknown type -----
-    return {"decision": "HOLD", "reason": "Unrecognized AI response", "raw": raw}
 
 
 def process_exit(
