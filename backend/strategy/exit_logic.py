@@ -6,13 +6,16 @@ from backend.strategy.openai_analysis import (
 )
 from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
+from backend.logs.exit_logger import append_exit_log
 from datetime import datetime
 import logging
 import os
 
 # Trailing‑stop configuration
 TRAIL_TRIGGER_PIPS = float(
-    os.getenv("TRAIL_TRIGGER_PIPS", "22")
+
+    os.getenv("TRAIL_TRIGGER_PIPS", "10")
+
 )  # profit threshold to arm trailing stop
 TRAIL_DISTANCE_PIPS = float(
     os.getenv("TRAIL_DISTANCE_PIPS", "6")
@@ -419,6 +422,7 @@ def process_exit(
                 else (entry_price - current_price) / pip_size
             )
 
+
             # ---------- partial close check -----------------------------
             partial_thresh = float(os.getenv("PARTIAL_CLOSE_PIPS", "0"))
             partial_ratio = float(os.getenv("PARTIAL_CLOSE_RATIO", "0"))
@@ -455,8 +459,9 @@ def process_exit(
                         atr_val = atr_val[-1]
                     pip_sz = 0.01 if position["instrument"].endswith("_JPY") else 0.0001
 
-                    atr_pips      = atr_val / pip_sz
-                    trigger_pips  = atr_pips * TRAIL_TRIGGER_MULTIPLIER
+                    atr_pips = atr_val / pip_sz
+                    trigger_pips = atr_pips * TRAIL_TRIGGER_MULTIPLIER
+
                     distance_pips = atr_pips * TRAIL_DISTANCE_MULTIPLIER
                     # 高ボラ指標発表時は距離を広げる
                     if int(os.getenv("CALENDAR_VOLATILITY_LEVEL", "0")) >= CALENDAR_VOL_THRESHOLD:
@@ -494,6 +499,40 @@ def process_exit(
                                 instrument=position["instrument"],
                                 distance_pips=int(distance_pips),
                             )
+                            try:
+                                bid = float(
+                                    market_data["prices"][0]["bids"][0]["price"]
+                                )
+                                ask = float(
+                                    market_data["prices"][0]["asks"][0]["price"]
+                                )
+                                pip_sz = (
+                                    0.01
+                                    if position["instrument"].endswith("_JPY")
+                                    else 0.0001
+                                )
+                                spread = (ask - bid) / pip_sz
+                                atr_current = indicators.get("atr")
+                                if hasattr(atr_current, "iloc"):
+                                    atr_current = float(atr_current.iloc[-1])
+                                elif isinstance(atr_current, (list, tuple)):
+                                    atr_current = float(atr_current[-1])
+                                atr_pips = (
+                                    atr_current / pip_sz
+                                    if atr_current is not None
+                                    else None
+                                )
+                                append_exit_log(
+                                    {
+                                        "timestamp": datetime.utcnow().isoformat(),
+                                        "instrument": position["instrument"],
+                                        "price": current_price,
+                                        "spread": spread,
+                                        "atr": atr_pips,
+                                    }
+                                )
+                            except Exception as exc:
+                                logging.error(f"exit_log write failed: {exc}")
                         else:
                             logging.warning(
                                 "Trailing-stop placement skipped: missing trade IDs"
