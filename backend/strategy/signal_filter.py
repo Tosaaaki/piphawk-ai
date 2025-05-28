@@ -200,6 +200,18 @@ def pass_entry_filter(
     latest_ema_slow = ema_slow.iloc[-1] if len(ema_slow) else None
     prev_ema_fast = ema_fast.iloc[-2] if len(ema_fast) > 1 else None
     prev_ema_slow = ema_slow.iloc[-2] if len(ema_slow) > 1 else None
+    ema_flat_thresh = float(os.getenv("EMA_FLAT_PIPS", "0.05")) * float(os.getenv("PIP_SIZE", "0.01"))
+
+    if len(ema_fast) >= 3 and len(ema_slow) >= 2:
+        prev_slope = prev_ema_fast - ema_fast.iloc[-3]
+        curr_slope = latest_ema_fast - prev_ema_fast
+        diff_prev = prev_ema_fast - prev_ema_slow
+        diff_curr = latest_ema_fast - latest_ema_slow
+        narrowing = abs(diff_curr) < abs(diff_prev)
+        rev_or_flat = (curr_slope * prev_slope < 0) or abs(curr_slope) <= ema_flat_thresh
+        if narrowing and rev_or_flat:
+            logger.debug("EntryFilter blocked: EMA convergence with slope reversal/flat")
+            return False
 
     # --- Bollinger Band width check ------------------------------------
     bb_upper = indicators.get("bb_upper")
