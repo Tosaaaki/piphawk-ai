@@ -21,15 +21,14 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    pip install pandas
    ```
 3. **Environment variables**
-   Copy the sample configuration files and edit them with your credentials:
+   最初にテンプレートをコピーし、自分用の `.env` または `backend/config/secret.env` を作成します。
    ```bash
    cp backend/config/secret.env .env
    cp backend/config/settings.env .
+   # Edit .env and set OPENAI_API_KEY, OANDA_API_KEY and OANDA_ACCOUNT_ID
    ```
-   Edit `.env` and set `OPENAI_API_KEY`, `OANDA_API_KEY` and `OANDA_ACCOUNT_ID`.
-   The application automatically loads `.env`, `backend/config/settings.env` and
-   `backend/config/secret.env` once at startup using `backend.utils.env_loader`.
-   Adjust any values in `settings.env` as needed.
+   アプリケーションは `.env`, `backend/config/settings.env`, `backend/config/secret.env` の順で環境変数を読み込みます。
+   必要に応じて `settings.env` の値も調整してください。
    `RANGE_CENTER_BLOCK_PCT` controls how close to the Bollinger band center price
    can be when ADX is below `ADX_RANGE_THRESHOLD`. Set to `0.3` (30%) to block
    entries near the middle of a range, helping suppress counter-trend trades.
