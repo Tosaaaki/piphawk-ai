@@ -11,4 +11,6 @@ if follow_breakout(candles, indicators, "up"):
     pass
 ```
 
-実装内部では押し戻し量や ADX を用いて判断する想定ですが、現時点では TODO として残しています。
+実装内部では押し戻し量や ADX を用いて判断する想定ですが、現時点では未実装で常に `False` を返します。
+
+> **Note**: `follow_breakout()` is currently not implemented and simply returns `False`.
