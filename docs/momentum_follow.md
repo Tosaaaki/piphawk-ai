@@ -11,4 +11,4 @@ if follow_breakout(candles, indicators, "up"):
     pass
 ```
 
-実装内部では押し戻し量や ADX を用いて判断する想定ですが、現時点では TODO として残しています。
+実装では直近の押し戻し量が ATR の一定割合以内かつ ADX が閾値以上かを確認してエントリー可否を判定します。
