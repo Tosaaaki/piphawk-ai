@@ -265,6 +265,22 @@ def process_entry(
             dist = abs(n_target - price_ref) / pip_size
             if fallback_tp is None or dist < fallback_tp:
                 fallback_tp = dist
+        bb_upper = indicators.get("bb_upper")
+        bb_lower = indicators.get("bb_lower")
+        if (
+            bb_upper is not None
+            and bb_lower is not None
+            and price_ref is not None
+        ):
+            if hasattr(bb_upper, "iloc"):
+                width = float(bb_upper.iloc[-1]) - float(bb_lower.iloc[-1])
+            else:
+                width = float(bb_upper[-1]) - float(bb_lower[-1])
+            width_pips = width / pip_size
+            bb_ratio = float(env_loader.get_env("TP_BB_RATIO", "0.6"))
+            bb_tp = width_pips * bb_ratio
+            if fallback_tp is None or bb_tp < fallback_tp:
+                fallback_tp = bb_tp
     except Exception as exc:
         logging.debug(f"[process_entry] ATR-based SL calc failed: {exc}")
 
