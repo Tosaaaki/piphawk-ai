@@ -52,21 +52,33 @@ def fetch_candles(instrument=None, granularity="M1", count=500, timeout=10):
 
 
 # New function to fetch multiple timeframes
+def _parse_env_timeframes() -> dict:
+    """環境変数 ``TRADE_TIMEFRAMES`` を解析して辞書を返す。"""
+    tf_env = os.getenv("TRADE_TIMEFRAMES")
+    if not tf_env:
+        return {}
+    result: dict[str, int] = {}
+    for item in tf_env.split(","):
+        if ":" not in item:
+            continue
+        tf, cnt = item.split(":", 1)
+        tf = tf.strip().upper()
+        try:
+            result[tf] = int(cnt)
+        except ValueError:
+            continue
+    return result
+
+
 def fetch_multiple_timeframes(instrument=None, timeframes=None):
-    """
-    Fetch candlestick data for multiple timeframes from OANDA API.
-
-    Parameters:
-        instrument (str): The instrument to fetch data for (e.g. "USD_JPY").
-        timeframes (dict): A dictionary specifying granularities and candle counts.
-
-    Returns:
-        dict: A dictionary with granularity as keys and candle data lists as values.
-    """
+    """複数の時間足のローソク足をまとめて取得する。"""
     if timeframes is None:
+        timeframes = _parse_env_timeframes()
+    if not timeframes:
         timeframes = {
-            "M1": 20,  # 短期エントリ分析
-            "M5": 50,  # 中期トレンド分析
+            "M1": 20,   # 短期エントリ分析
+            "M5": 50,   # 中期トレンド分析
+            "M15": 50,  # 15分足
             "H1": 120,  # 1時間足
             "H4": 90,   # 4時間足
             "D": 90,    # 日足

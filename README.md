@@ -53,6 +53,7 @@ exit is considered.
 `AI_LIMIT_CONVERT_MODEL` sets the OpenAI model used when asking whether a pending LIMIT should be switched to a market order. The default is `gpt-4.1-nano`.
 `PULLBACK_PIPS` defines the offset used specifically when the price is within the pivot suppression range. The defaults are `2` and `3` respectively.
 `PIP_SIZE` specifies the pip value for the traded pair (e.g. `0.01` for JPY pairs) and is used when calculating the new volatility‑based pullback threshold.
+`TRADE_TIMEFRAMES` allows overriding which candle intervals are fetched for analysis. Specify as `M1:20,M5:50,M15:50,H1:120,H4:90,D:90` to cover short to long horizons.
 The system derives a dynamic pullback requirement from ATR, ADX and recent price swings. If indicators are missing, the fallback is `PULLBACK_PIPS`.
 `TP_BB_RATIO` scales the Bollinger band width when deriving a fallback take-profit target. For example, `0.6` uses 60% of the band width.
 `RANGE_ENTRY_OFFSET_PIPS` determines how far from the Bollinger band center price must be (in pips) before keeping a market entry. When closer, the entry switches to a LIMIT at the band high or low. The default is `3`.
