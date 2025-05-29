@@ -41,6 +41,11 @@ be reached before an AI exit check occurs. The default value is `0.5` (50%).
 `MIN_RRR` sets the minimum reward-to-risk ratio allowed when selecting a
 take-profit. The TP level is now chosen to maximise expected value while
 keeping the ratio at or above this threshold.
+`ENFORCE_RRR` forces the TP/SL combination to respect this ratio. When set to
+`true` the entry logic adjusts the take-profit so that `tp_pips / sl_pips`
+meets `MIN_RRR` and logs the final values at INFO level.
+Recommended values are `MIN_RRR=1.2` with `ENFORCE_RRR=true` for conservative
+trading.
 `STAGNANT_EXIT_SEC` sets how long a profitable position can stagnate before the
 system asks the AI to close it. If `STAGNANT_ATR_PIPS` is greater than zero and
 ATR falls below this value, the position is considered stagnant once the time
@@ -81,6 +86,8 @@ The job runner performs market data collection, indicator calculation and tradin
 ```bash
 python -m backend.scheduler.job_runner
 ```
+If the optional performance logger was added earlier, each job loop's timing
+will be appended to `backend/logs/perf_stats.jsonl`.
 
 Both services can also be launched via Docker using `Dockerfile.api` and `Dockerfile.job` respectively.
 
