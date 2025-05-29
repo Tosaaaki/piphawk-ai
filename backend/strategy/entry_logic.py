@@ -455,13 +455,22 @@ def process_entry(
         units = int(lot_size * 1000) if side == "long" else -int(lot_size * 1000)
         entry_price = float(market_data['prices'][0]['bids'][0]['price'])
         entry_time = datetime.utcnow().isoformat()
+        rrr = None
+        try:
+            if tp_pips is not None and sl_pips not in (None, 0):
+                rrr = float(tp_pips) / float(sl_pips)
+        except Exception:
+            rrr = None
         log_trade(
             instrument,
             entry_time=entry_time,
             entry_price=entry_price,
             units=units,
             ai_reason=ai_raw,
-            ai_response=ai_raw
+            ai_response=ai_raw,
+            tp_pips=tp_pips,
+            sl_pips=sl_pips,
+            rrr=rrr,
         )
 
     return True

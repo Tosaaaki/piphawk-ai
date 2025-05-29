@@ -38,8 +38,12 @@ def init_db():
                 exit_price REAL,
                 units INTEGER NOT NULL,
                 profit_loss REAL,
+                tp_pips REAL,
+                sl_pips REAL,
+                rrr REAL,
                 ai_reason TEXT,
-                ai_response TEXT
+                ai_response TEXT,
+                entry_regime TEXT
             )
         ''')
 
@@ -48,6 +52,12 @@ def init_db():
         columns = [row[1] for row in cursor.fetchall()]
         if 'ai_response' not in columns:
             cursor.execute('ALTER TABLE trades ADD COLUMN ai_response TEXT')
+        if 'tp_pips' not in columns:
+            cursor.execute('ALTER TABLE trades ADD COLUMN tp_pips REAL')
+        if 'sl_pips' not in columns:
+            cursor.execute('ALTER TABLE trades ADD COLUMN sl_pips REAL')
+        if 'rrr' not in columns:
+            cursor.execute('ALTER TABLE trades ADD COLUMN rrr REAL')
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS ai_decisions (
@@ -89,21 +99,44 @@ def init_db():
             )
         ''')
 
-def log_trade(instrument, entry_time, entry_price, units, ai_reason,
-              ai_response=None, entry_regime=None,
-              exit_time=None, exit_price=None, profit_loss=None):
+def log_trade(
+    instrument,
+    entry_time,
+    entry_price,
+    units,
+    ai_reason,
+    ai_response=None,
+    entry_regime=None,
+    exit_time=None,
+    exit_price=None,
+    profit_loss=None,
+    tp_pips=None,
+    sl_pips=None,
+    rrr=None,
+):
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO trades (
                 instrument, entry_time, entry_price, units,
                 ai_reason, ai_response, entry_regime,
-                exit_time, exit_price, profit_loss
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                exit_time, exit_price, profit_loss,
+                tp_pips, sl_pips, rrr
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
-            instrument, entry_time, entry_price, units,
-            ai_reason, ai_response, entry_regime,
-            exit_time, exit_price, profit_loss
+            instrument,
+            entry_time,
+            entry_price,
+            units,
+            ai_reason,
+            ai_response,
+            entry_regime,
+            exit_time,
+            exit_price,
+            profit_loss,
+            tp_pips,
+            sl_pips,
+            rrr,
         ))
 
 def log_ai_decision(decision_type, instrument, ai_response):
