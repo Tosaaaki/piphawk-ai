@@ -302,6 +302,13 @@ class OrderManager:
         units = int(lot_size * 1000) if side == "long" else -int(lot_size * 1000)
         entry_time = datetime.utcnow().isoformat()
 
+        rrr = None
+        try:
+            if tp_pips is not None and sl_pips not in (None, 0):
+                rrr = float(tp_pips) / float(sl_pips)
+        except Exception:
+            rrr = None
+
         # ---- LIMIT order path ----
         if mode == "limit":
             return self.place_limit_order(
@@ -390,7 +397,10 @@ class OrderManager:
             units=units,
             ai_reason=strategy_params.get("ai_reason", "manual"),
             ai_response=strategy_params.get("ai_response"),
-            entry_regime=entry_regime
+            entry_regime=entry_regime,
+            tp_pips=tp_pips,
+            sl_pips=sl_pips,
+            rrr=rrr,
         )
         return result
 
