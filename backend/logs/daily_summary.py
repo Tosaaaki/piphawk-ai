@@ -3,7 +3,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import matplotlib.pyplot as plt
 
-DB_PATH = Path(__file__).resolve().parent / "trades.db"
+from backend.utils import env_loader
+
+_BASE_DIR = Path(__file__).resolve().parents[2]
+DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", str(_BASE_DIR / "trades.db")))
 
 
 def fetch_diffs(days: int = 1) -> list[float]:

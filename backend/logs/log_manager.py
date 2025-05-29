@@ -2,7 +2,10 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime
 
-DB_PATH = Path(__file__).resolve().parent / "trades.db"
+from backend.utils import env_loader
+
+_BASE_DIR = Path(__file__).resolve().parents[2]
+DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", str(_BASE_DIR / "trades.db")))
 
 def get_db_connection():
     return sqlite3.connect(DB_PATH)

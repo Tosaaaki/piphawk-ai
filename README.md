@@ -110,12 +110,20 @@ as on native x86 hardware.
 
 ## Database
 
-Trade history is stored in `trades.db` (SQLite) at the repository root. This file is no longer tracked in Git. No sample database is included, so the Docker image simply creates an empty file at `/app/trades.db` during build.
+Trade history is stored in `trades.db` (SQLite) at the repository root by default.
+You can override the path with the environment variable `TRADES_DB_PATH`.
+When running inside Docker this defaults to `/app/trades.db`.
 
 The table now includes an `ai_response` column which stores the full text returned
 by the AI when opening or closing a trade.
 
-If you need a clean database locally, create a fresh one using the helper in `backend.logs.log_manager`:
+If you need a clean database locally, copy the example file if available:
+
+```bash
+cp backend/logs/trades.db trades.db
+```
+
+or create a fresh one using the helper in `backend.logs.log_manager`:
 
 ```bash
 python - <<'EOF'

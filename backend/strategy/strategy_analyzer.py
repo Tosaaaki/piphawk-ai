@@ -1,5 +1,6 @@
 import sqlite3
 from datetime import datetime, timedelta
+from pathlib import Path
 from backend.utils import env_loader
 import json
 import shutil
@@ -15,7 +16,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-DB_PATH = "backend/logs/trades.db"
+_BASE_DIR = Path(__file__).resolve().parents[2]
+DB_PATH = env_loader.get_env("TRADES_DB_PATH", str(_BASE_DIR / "trades.db"))
 SETTINGS_PATH = "backend/config/settings.env"
 # SQLite table that stores every environment‐parameter change suggested/applied by the strategy optimizer
 PARAM_CHANGE_DB_TABLE = "param_changes"
