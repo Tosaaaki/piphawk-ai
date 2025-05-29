@@ -183,7 +183,12 @@ def pass_entry_filter(
                 from backend.indicators.calculate_indicators import calculate_indicators
 
                 pair = os.getenv("DEFAULT_PAIR", "USD_JPY")
-                candles_m1 = fetch_candles(pair, granularity="M1", count=10)
+                candles_m1 = fetch_candles(
+                    pair,
+                    granularity="M1",
+                    count=10,
+                    allow_incomplete=True,
+                )
                 indicators_m1 = calculate_indicators(candles_m1, pair=pair)
             except Exception as exc:
                 logger.warning("Failed to fetch M1 indicators: %s", exc)
