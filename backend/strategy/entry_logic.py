@@ -280,6 +280,23 @@ def process_entry(
         except Exception as exc:
             logging.debug(f"[process_entry] range-limit conversion failed: {exc}")
 
+    # ------------------------------------------------------------
+    #  Spread cap: convert market entry to LIMIT when spread is wide
+    # ------------------------------------------------------------
+    try:
+        pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+        max_spread = float(env_loader.get_env("MAX_SPREAD_PIPS", "0"))
+        if max_spread > 0 and bid is not None and ask is not None and mode == "market":
+            spread_pips = (ask - bid) / pip_size
+            if spread_pips > max_spread:
+                limit_price = bid if side == "long" else ask
+                mode = "limit"
+                logging.info(
+                    f"Spread {spread_pips:.1f} exceeds {max_spread} → switching to LIMIT"
+                )
+    except Exception as exc:  # pragma: no cover - edge case logging
+        logging.debug(f"[process_entry] spread check failed: {exc}")
+
     if mode == "wait":
         logging.info("AI suggests WAIT – re‑evaluate next loop.")
         return False
