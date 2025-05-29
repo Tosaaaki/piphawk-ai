@@ -6,7 +6,14 @@ OANDA_API_URL = "https://api-fxtrade.oanda.com/v3/instruments/{instrument}/candl
 OANDA_API_KEY = os.getenv("OANDA_API_KEY")
 OANDA_ACCOUNT_ID = os.getenv("OANDA_ACCOUNT_ID")
 
-def fetch_candles(instrument=None, granularity="M1", count=500, timeout=10):
+def fetch_candles(
+    instrument=None,
+    granularity="M1",
+    count=500,
+    timeout=10,
+    *,
+    allow_incomplete: bool = False,
+):
     """
     Fetch candlestick data from OANDA API.
     
@@ -15,6 +22,7 @@ def fetch_candles(instrument=None, granularity="M1", count=500, timeout=10):
         granularity (str): The granularity of the candles (e.g. "M1", "H1").
         count (int): Number of candles to fetch (max 5000).
         timeout (int | float): Timeout in seconds for the HTTP request.
+        allow_incomplete (bool): If True, include the most recent incomplete candle.
         
     Returns:
         list: List of candle data dictionaries.
@@ -39,7 +47,10 @@ def fetch_candles(instrument=None, granularity="M1", count=500, timeout=10):
         response.raise_for_status()
         data = response.json()
         if "candles" in data:
-            return data["candles"]
+            candles = data["candles"]
+            if not allow_incomplete:
+                candles = [c for c in candles if c.get("complete")]
+            return candles
         else:
             print(f"No candles found in response for {instrument}")
             return []
@@ -87,7 +98,12 @@ def fetch_multiple_timeframes(instrument=None, timeframes=None):
     candles_by_timeframe = {}
     for granularity, count in timeframes.items():
         fetch_gran = "D" if granularity == "D1" else granularity
-        candles = fetch_candles(instrument, fetch_gran, count)
+        candles = fetch_candles(
+            instrument,
+            fetch_gran,
+            count,
+            allow_incomplete=True,
+        )
         candles_by_timeframe[granularity] = candles
     
     return candles_by_timeframe
