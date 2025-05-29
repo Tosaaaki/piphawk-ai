@@ -27,6 +27,9 @@ ATR（ボラティリティ指標）の計算期間。
 ■ TRADE_LOT_SIZE
 1トレードで使用するロットサイズ（1 = 1000通貨）
 
+■ SCALE_LOT_SIZE
+AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
+
 ■ フィルター設定（AI呼び出し制御用）
 
 - RSI_ENTRY_LOWER / RSI_ENTRY_UPPER:
