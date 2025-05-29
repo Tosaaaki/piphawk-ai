@@ -653,16 +653,27 @@ class JobRunner:
                         )
 
                         BE_TRIGGER_PIPS = float(env_loader.get_env("BE_TRIGGER_PIPS", "10"))
+                        BE_ATR_TRIGGER_MULT = float(env_loader.get_env("BE_ATR_TRIGGER_MULT", "0"))
+                        atr_val = (
+                            indicators["atr"].iloc[-1]
+                            if hasattr(indicators["atr"], "iloc")
+                            else indicators["atr"][-1]
+                        )
+                        atr_pips = atr_val / pip_size
+                        if BE_ATR_TRIGGER_MULT > 0:
+                            be_trigger = max(BE_TRIGGER_PIPS, atr_pips * BE_ATR_TRIGGER_MULT)
+                        else:
+                            be_trigger = BE_TRIGGER_PIPS
                         TP_PIPS = float(env_loader.get_env("INIT_TP_PIPS", "30"))
                         AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.3"))
 
                         logger.info(
                             f"profit_pips={current_profit_pips:.1f}, "
-                            f"BE_trigger={BE_TRIGGER_PIPS}, "
+                            f"BE_trigger={be_trigger}, "
                             f"AI_trigger={TP_PIPS * AI_PROFIT_TRIGGER_RATIO}"
                         )
 
-                        if current_profit_pips >= BE_TRIGGER_PIPS and not self.breakeven_reached:
+                        if current_profit_pips >= be_trigger and not self.breakeven_reached:
                             new_sl_price = entry_price
                             trade_id = has_position[position_side]["tradeIDs"][0]
                             result = order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
