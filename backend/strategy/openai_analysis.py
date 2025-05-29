@@ -514,7 +514,20 @@ def get_exit_decision(
         except (ValueError, TypeError):
             pips_from_entry = 0
 
-    breakeven_reached = pips_from_entry >= BE_TRIGGER_PIPS
+    BE_ATR_TRIGGER_MULT = float(env_loader.get_env("BE_ATR_TRIGGER_MULT", "0"))
+    if BE_ATR_TRIGGER_MULT > 0:
+        pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+        atr_val = indicators.get("atr")
+        if hasattr(atr_val, "iloc"):
+            atr_val = atr_val.iloc[-1]
+        elif isinstance(atr_val, list):
+            atr_val = atr_val[-1]
+        atr_pips = float(atr_val) / pip_size if atr_val is not None else 0.0
+        be_trigger = max(BE_TRIGGER_PIPS, atr_pips * BE_ATR_TRIGGER_MULT)
+    else:
+        be_trigger = BE_TRIGGER_PIPS
+
+    breakeven_reached = pips_from_entry >= be_trigger
 
     # Ensure all indicator values are JSON serializable (e.g., pandas Series to list)
     indicators_serializable = {
