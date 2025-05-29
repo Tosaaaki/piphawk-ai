@@ -134,6 +134,13 @@ EOF
 This helper also upgrades older databases to include the new `ai_response`
 column. See `docs/db_migration.md` for details.
 
+To inspect parameter adjustments logged by the strategy analyzer, run
+`backend/logs/show_param_history.py`. Filter by parameter name or period:
+
+```bash
+python backend/logs/show_param_history.py --param RSI_PERIOD --days 7
+```
+
 ## React UI
 
 The active React application lives in `piphawk-ui/` and was bootstrapped with Create React App. Run it locally with:
