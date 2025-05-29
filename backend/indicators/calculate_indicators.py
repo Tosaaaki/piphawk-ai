@@ -17,6 +17,7 @@ from backend.indicators.bollinger import calculate_bollinger_bands
 from backend.indicators.adx import calculate_adx
 from backend.indicators.pivot import calculate_pivots
 from backend.indicators.n_wave import calculate_n_wave_target
+from backend.indicators.polarity import calculate_polarity
 from backend.market_data.candle_fetcher import fetch_candles
 
 
@@ -72,6 +73,7 @@ def calculate_indicators(
         'bb_lower': bb_df['lower_band'],
         'bb_middle': bb_df['middle_band'],
         'adx': adx_series,
+        'polarity': calculate_polarity(close_prices),
     }
 
     if high_prices and low_prices and close_prices:

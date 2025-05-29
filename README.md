@@ -49,6 +49,7 @@ threshold passes.
 `REVERSAL_EXIT_ATR_MULT` and `REVERSAL_EXIT_ADX_MIN` define how far beyond the
 opposite Bollinger Band the close must be, and the minimum ADX, before a reversal
 exit is considered.
+`POLARITY_EXIT_THRESHOLD` sets the absolute polarity required to trigger a polarity-based early exit. The default is `0.4`.
 `PULLBACK_LIMIT_OFFSET_PIPS` is the base distance for a pullback LIMIT order when the AI proposes a market entry. The actual offset is derived from ATR and ADX, and if price runs away while the trend persists the order can be switched to a market order under AI control.
 `AI_LIMIT_CONVERT_MODEL` sets the OpenAI model used when asking whether a pending LIMIT should be switched to a market order. The default is `gpt-4.1-nano`.
 `PULLBACK_PIPS` defines the offset used specifically when the price is within the pivot suppression range. The defaults are `2` and `3` respectively.

@@ -34,6 +34,9 @@ STAGNANT_ATR_PIPS = float(os.getenv("STAGNANT_ATR_PIPS", "0"))
 REVERSAL_EXIT_ATR_MULT = float(os.getenv("REVERSAL_EXIT_ATR_MULT", "1.0"))
 REVERSAL_EXIT_ADX_MIN = float(os.getenv("REVERSAL_EXIT_ADX_MIN", "25"))
 
+# polarity-based exit threshold
+POLARITY_EXIT_THRESHOLD = float(os.getenv("POLARITY_EXIT_THRESHOLD", "0.4"))
+
 # Dynamic ATR‑based trailing‑stop (always enabled)
 TRAIL_TRIGGER_MULTIPLIER = float(os.getenv("TRAIL_TRIGGER_MULTIPLIER", "1.2"))
 TRAIL_DISTANCE_MULTIPLIER = float(os.getenv("TRAIL_DISTANCE_MULTIPLIER", "1.0"))
@@ -310,6 +313,18 @@ def process_exit(
                             early_exit = True
                     except Exception:
                         pass
+
+        # polarity check
+        if not early_exit:
+            polarity = indicators.get("polarity")
+            if hasattr(polarity, "iloc"):
+                polarity = float(polarity.iloc[-1])
+            if polarity is not None:
+                if (
+                    (position_side == "long" and polarity <= -POLARITY_EXIT_THRESHOLD)
+                    or (position_side == "short" and polarity >= POLARITY_EXIT_THRESHOLD)
+                ):
+                    early_exit = True
 
         if early_exit:
             logging.info("Early‑exit criteria met — consulting AI before action.")
