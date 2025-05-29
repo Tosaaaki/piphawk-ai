@@ -92,7 +92,7 @@ def get_ai_cooldown_sec(current_position: dict | None) -> int:
                     units_val = 0.0
         if abs(units_val) > 0:
             return AI_COOLDOWN_SEC_FLAT
-    return AI_COOLDOWN_SEC_FLAT
+    return AI_COOLDOWN_SEC_OPEN
 
 logger = logging.getLogger(__name__)
 
