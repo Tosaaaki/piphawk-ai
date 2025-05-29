@@ -303,6 +303,13 @@ def process_entry(
             tp_ratio = float(env_loader.get_env("SHORT_TP_ATR_RATIO", "0.6"))
             fallback_tp = atr_val / pip_size * tp_ratio
         price_ref = bid if side == "long" else ask
+        # SL用ピボットレベル
+        pivot_sl_key = "pivot_s1" if side == "long" else "pivot_r1"
+        pivot_sl_val = indicators.get(pivot_sl_key)
+        if pivot_sl_val is not None and price_ref is not None:
+            dist_sl = abs(price_ref - pivot_sl_val) / pip_size
+            if fallback_sl is None or dist_sl > fallback_sl:
+                fallback_sl = dist_sl
         pivot_key = "pivot_r1" if side == "long" else "pivot_s1"
         pivot_val = indicators.get(pivot_key)
         if pivot_val is not None and price_ref is not None:
@@ -314,6 +321,9 @@ def process_entry(
             dist = abs(n_target - price_ref) / pip_size
             if fallback_tp is None or dist < fallback_tp:
                 fallback_tp = dist
+            # N波ターゲットをSL候補として利用
+            if fallback_sl is None or dist > fallback_sl:
+                fallback_sl = dist
         bb_upper = indicators.get("bb_upper")
         bb_lower = indicators.get("bb_lower")
         if (
