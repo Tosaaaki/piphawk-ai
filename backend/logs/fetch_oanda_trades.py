@@ -5,7 +5,11 @@ from backend.utils import env_loader
 import requests
 import sqlite3
 from datetime import datetime, timedelta
+from pathlib import Path
 import backend.logs.log_manager
+
+_BASE_DIR = Path(__file__).resolve().parents[2]
+DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", str(_BASE_DIR / "trades.db")))
 
 def fetch_oanda_trades():
     api_key = env_loader.get_env('OANDA_API_KEY')
@@ -55,7 +59,7 @@ def create_oanda_trades_table(db_path):
     conn.close()
 
 def fetch_and_store_transactions():
-    conn = sqlite3.connect('backend/logs/trades.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     initial_response = fetch_oanda_trades()
@@ -88,5 +92,5 @@ def fetch_and_store_transactions():
     conn.close()
 
 if __name__ == "__main__":
-    create_oanda_trades_table('backend/logs/trades.db')
+    create_oanda_trades_table(DB_PATH)
     fetch_and_store_transactions()
