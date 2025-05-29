@@ -44,7 +44,8 @@ def calculate_indicators(
 
     import logging
     logger = logging.getLogger(__name__)
-    logger.info(f"Latest close prices: {close_prices[-15:]}")
+    # 最近の終値をデバッグレベルで出力
+    logger.debug(f"Latest close prices: {close_prices[-15:]}")
 
     ema_fast_period = int(os.getenv("EMA_FAST_PERIOD", "9"))
     ema_slow_period = int(os.getenv("EMA_SLOW_PERIOD", "21"))
