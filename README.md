@@ -38,6 +38,7 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    contracting*.
 `AI_PROFIT_TRIGGER_RATIO` defines what portion of the take-profit target must
 be reached before an AI exit check occurs. The default value is `0.5` (50%).
+`SCALE_LOT_SIZE` sets how many lots are added when the AI exit decision is `SCALE`.
 `MIN_RRR` sets the minimum reward-to-risk ratio allowed when selecting a
 take-profit. The TP level is now chosen to maximise expected value while
 keeping the ratio at or above this threshold.
@@ -251,3 +252,9 @@ plan = get_trade_plan({}, {}, candles_dict,
 `follow_breakout()` 関数はレンジをブレイクした直後の押し戻しが十分小さいかどうかを判定します。ADX が設定値以上であることを確認し、ブレイクアウト足と直近足の終値差を ATR と比較します。押し戻し幅が `FOLLOW_PULLBACK_ATR_RATIO` × ATR 以下であれば `True` を返します。
 
 詳しいロジックは `docs/momentum_follow.md` を参照してください。
+
+## 分割エントリー (Scaling)
+
+The job runner can add to an existing position when the AI exit evaluator
+returns `SCALE`. Set `SCALE_LOT_SIZE` in `settings.env` to control the lot
+size of each additional entry (default `0.5`).
