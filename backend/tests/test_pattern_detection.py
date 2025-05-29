@@ -70,7 +70,7 @@ class TestPatternDetection(unittest.TestCase):
             {"o":1.3,"h":1.1,"l":0.8,"c":0.9},
         ]
         market_data = {"prices": [{"instrument": "USD_JPY", "bids": [{"price": "1"}], "asks": [{"price": "1"}]}]}
-        self.el.process_entry({}, m5, market_data, candles_dict={"M1": m1, "M5": m5}, patterns=["double_bottom","double_top"])
+        self.el.process_entry({}, m5, market_data, candles_dict={"M1": m1, "M5": m5}, patterns=["double_bottom","double_top"], tf_align=None)
         self.assertEqual(self.captured, {"M1": "double_bottom", "M5": "double_top"})
 
 if __name__ == "__main__":

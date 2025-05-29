@@ -36,11 +36,26 @@ def calculate_indicators(
     *,
     pair: str | None = None,
     history_days: int = 90,
+    allow_incomplete: bool | None = None,
 ) -> dict:
     """Calculate trading indicators and recent-percentile stats."""
-    close_prices = [float(candle['mid']['c']) for candle in market_data if candle['complete']]
-    high_prices = [float(candle['mid']['h']) for candle in market_data if candle['complete']]
-    low_prices = [float(candle['mid']['l']) for candle in market_data if candle['complete']]
+    if allow_incomplete is None:
+        allow_incomplete = os.getenv("USE_INCOMPLETE_BARS", "false").lower() == "true"
+    close_prices = [
+        float(c['mid']['c'])
+        for c in market_data
+        if allow_incomplete or c.get('complete')
+    ]
+    high_prices = [
+        float(c['mid']['h'])
+        for c in market_data
+        if allow_incomplete or c.get('complete')
+    ]
+    low_prices = [
+        float(c['mid']['l'])
+        for c in market_data
+        if allow_incomplete or c.get('complete')
+    ]
 
     import logging
     logger = logging.getLogger(__name__)
@@ -126,11 +141,18 @@ def calculate_indicators(
 
 
 
-def calculate_indicators_multi(market_data_dict: dict[str, list], *, pair: str | None = None, history_days: int = 90) -> dict[str, dict]:
+def calculate_indicators_multi(
+    market_data_dict: dict[str, list], *, pair: str | None = None, history_days: int = 90, allow_incomplete: bool | None = None
+) -> dict[str, dict]:
     """Calculate indicators for multiple timeframes."""
     result = {}
     for tf, data in market_data_dict.items():
-        result[tf] = calculate_indicators(data, pair=pair, history_days=history_days)
+        result[tf] = calculate_indicators(
+            data,
+            pair=pair,
+            history_days=history_days,
+            allow_incomplete=allow_incomplete,
+        )
     return result
 
 

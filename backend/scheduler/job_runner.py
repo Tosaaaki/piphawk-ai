@@ -32,6 +32,8 @@ except ImportError:  # tests may stub position_manager without helpers
         return None
 from backend.orders.order_manager import OrderManager
 from backend.strategy.signal_filter import pass_entry_filter
+from analysis.signal_filter import is_multi_tf_aligned
+from backend.logs.perf_stats_logger import PerfTimer
 from backend.strategy.signal_filter import pass_exit_filter
 from backend.strategy.openai_analysis import (
     get_market_condition,
@@ -529,12 +531,14 @@ class JobRunner:
         logger.info("Job Runner started.")
         while True:
             try:
+                timer = PerfTimer("job_loop")
                 now = datetime.utcnow()
                 # ---- Market‑hours guard ---------------------------------
                 if not instrument_is_tradeable(DEFAULT_PAIR):
                     logger.info(f"{DEFAULT_PAIR} market closed – sleeping 60 s")
                     time.sleep(60)
                     self.last_run = datetime.utcnow()
+                    timer.stop()
                     continue
                 # Refresh POSITION_REVIEW_SEC dynamically each loop
                 self.review_sec = int(env_loader.get_env("POSITION_REVIEW_SEC", str(self.review_sec)))
@@ -559,6 +563,7 @@ class JobRunner:
                             logger.info(f"{DEFAULT_PAIR} price feed marked non‑tradeable – sleeping 120 s")
                             time.sleep(120)
                             self.last_run = datetime.utcnow()
+                            timer.stop()
                             continue
                     except (IndexError, KeyError, TypeError):
                         # if structure unexpected, fall back to old check
@@ -585,13 +590,32 @@ class JobRunner:
                         logger.debug(f"Higher‑TF levels: {higher_tf}")
 
                     # 指標計算
-                    indicators_multi = calculate_indicators_multi(candles_dict)
+                    indicators_multi = calculate_indicators_multi(
+                        candles_dict,
+                        allow_incomplete=True,
+                    )
                     self.indicators_M1 = indicators_multi.get("M1")
                     self.indicators_M5 = indicators_multi.get("M5")
                     self.indicators_H1 = indicators_multi.get("H1")
                     self.indicators_H4 = indicators_multi.get("H4")
                     self.indicators_D = indicators_multi.get("D")
                     indicators = self.indicators_M5
+
+                    align = is_multi_tf_aligned(
+                        {
+                            "M1": self.indicators_M1 or {},
+                            "M5": self.indicators_M5 or {},
+                            "H1": self.indicators_H1 or {},
+                        }
+                    )
+                    if align is None and env_loader.get_env("STRICT_TF_ALIGN", "false").lower() == "true":
+                        logger.info("Multi‑TF alignment missing → skip entry")
+                        self.last_run = now
+                        update_oanda_trades()
+                        time.sleep(self.interval_seconds)
+                        timer.stop()
+                        continue
+                    logger.info(f"Multi‑TF alignment: {align}")
 
                     logger.info("Indicators calculation successful.")
 
@@ -799,6 +823,7 @@ class JobRunner:
                         # Update OANDA trade history every second
                         update_oanda_trades()
                         time.sleep(self.interval_seconds)
+                        timer.stop()
                         continue
 
                     # Periodic exit review
@@ -896,6 +921,7 @@ class JobRunner:
                             self.last_run = now
                             update_oanda_trades()
                             time.sleep(self.interval_seconds)
+                            timer.stop()
                             continue
 
                         # 2) Pivot-based suppression: avoid entries near specified pivots
@@ -923,6 +949,7 @@ class JobRunner:
                                 self.last_run = now
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)
+                                timer.stop()
                                 continue
 
                         # ── Entry side ───────────────────────────────
@@ -981,6 +1008,7 @@ class JobRunner:
                                 patterns=PATTERN_NAMES,
                                 candles_dict={"M1": candles_m1, "M5": candles_m5},
                                 pattern_names=self.patterns_by_tf,
+                                tf_align=align,
                             )
                             if not result:
                                 pend = get_pending_entry_order(DEFAULT_PAIR)
@@ -1004,6 +1032,7 @@ class JobRunner:
                                 self.last_run = now
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)
+                                timer.stop()
                                 continue
                             # Send LINE notification on entry
                             price = float(tick_data["prices"][0]["bids"][0]["price"])
@@ -1017,6 +1046,7 @@ class JobRunner:
 
                 update_oanda_trades()
                 time.sleep(self.interval_seconds)
+                timer.stop()
 
             except Exception as e:
                 logger.error(f"Error occurred during job execution: {e}", exc_info=True)
