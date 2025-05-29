@@ -14,7 +14,12 @@ class TestGetAICooldownSec(unittest.TestCase):
                 sys.modules[name] = module
                 self._added_modules.append(name)
 
-        add_module("pandas", types.ModuleType("pandas"))
+        class FakeSeries(list):
+            pass
+
+        pandas_stub = types.ModuleType("pandas")
+        pandas_stub.Series = FakeSeries
+        add_module("pandas", pandas_stub)
         openai_stub = types.ModuleType("openai")
         class DummyClient:
             def __init__(self, *a, **k):
@@ -44,6 +49,16 @@ class TestGetAICooldownSec(unittest.TestCase):
         self.assertEqual(
             self.oa.get_ai_cooldown_sec({"short": {"units": "-2"}}),
             self.oa.AI_COOLDOWN_SEC_FLAT,
+        )
+
+    def test_no_position_returns_open_cooldown(self):
+        self.assertEqual(
+            self.oa.get_ai_cooldown_sec({}),
+            self.oa.AI_COOLDOWN_SEC_OPEN,
+        )
+        self.assertEqual(
+            self.oa.get_ai_cooldown_sec(None),
+            self.oa.AI_COOLDOWN_SEC_OPEN,
         )
 
 if __name__ == "__main__":
