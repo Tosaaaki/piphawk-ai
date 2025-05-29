@@ -63,6 +63,9 @@ _SYSTEM_PROMPT = (
     "Do not wrap the JSON in markdown."
 )
 
+# SCALE は含み益が伸びておりトレンドの継続が見込めると AI が判断したときに返る。
+# リスク許容範囲を確認した上でポジションを追加する処理を想定している。
+
 _ALLOWED_ACTIONS = {"EXIT", "HOLD", "SCALE"}
 
 
