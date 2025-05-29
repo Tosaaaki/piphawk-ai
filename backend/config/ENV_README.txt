@@ -91,3 +91,45 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
   される。調整後の値は INFO レベルでログ出力される。
   MIN_RRR=1.2、ENFORCE_RRR=true が推奨設定。
 
+
+# 以下は README に記載されていた追加の環境変数
+
+- RANGE_CENTER_BLOCK_PCT: ADX が ADX_RANGE_THRESHOLD 以下のとき、BB 中心付近のエントリーをどの程度ブロックするか (0.3 = 30%)
+- BAND_WIDTH_THRESH_PIPS: BB 幅がこの値未満になると自動的にレンジモードに切り替える
+- AI_PROFIT_TRIGGER_RATIO: TP 目標の何割到達で AI に利確を問い合わせるか
+- MIN_RRR: 最低許容リスクリワード比
+- ENFORCE_RRR: true にすると MIN_RRR を下回らないよう TP/SL を調整
+- STAGNANT_EXIT_SEC: 利益が伸びないまま停滞したと判断するまでの秒数
+- STAGNANT_ATR_PIPS: ATR がこの値以下のとき停滞判定を行う
+- MIN_HOLD_SEC: ポジションを最低何秒保持するか
+- REVERSAL_EXIT_ATR_MULT / REVERSAL_EXIT_ADX_MIN: 反対側 BB を終値で超えた際の早期撤退条件
+- POLARITY_EXIT_THRESHOLD: ポラリティによる早期決済を行う閾値
+- PULLBACK_LIMIT_OFFSET_PIPS: 指値エントリーへ切り替える際の基本オフセット
+- AI_LIMIT_CONVERT_MODEL: 指値を成行に変換するか判断する AI モデル
+- PULLBACK_PIPS: ピボット抑制中に使用するオフセット
+- PIP_SIZE: 通貨ペアの1pip値 (JPYペアは 0.01 など)
+- TRADE_TIMEFRAMES: 取得するローソク足のタイムフレーム一覧
+- TP_BB_RATIO: ボリンジャーバンド幅からTP候補を算出するときの倍率
+- RANGE_ENTRY_OFFSET_PIPS: BB 中心からこのpips以内なら LIMIT へ切替
+- NOISE_SL_MULT: AI計算のSLを拡大する倍率
+- PATTERN_NAMES: 検出対象とするチャートパターン名一覧
+- LOCAL_WEIGHT_THRESHOLD: ローカル検出とAI判定の重み付け閾値
+- PATTERN_MIN_BARS / PATTERN_TOLERANCE: パターン成立条件の細かい調整
+- PATTERN_EXCLUDE_TFS / PATTERN_TFS: チャートパターン検出を行う/除外する時間足
+- STRICT_ENTRY_FILTER: M1 RSI クロス必須判定のオン/オフ
+- HIGHER_TF_ENABLED: 上位足ピボットをTP計算に利用するか
+
+# 分割エントリー関連設定
+
+- SCALE_LOT_SIZE: 追加エントリー時のロット数
+- SCALE_MAX_POS: 追加エントリーの最大回数
+- SCALE_TRIGGER_ATR: 追加エントリー発動ATR倍率
+
+## 設定例
+
+```
+SCALE_LOT_SIZE=0.3
+SCALE_MAX_POS=2
+SCALE_TRIGGER_ATR=0.5
+```
+
