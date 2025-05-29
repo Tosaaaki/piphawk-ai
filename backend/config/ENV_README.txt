@@ -24,8 +24,9 @@ ATR（ボラティリティ指標）の計算期間。
 ■ BOLLINGER_WINDOW / BOLLINGER_STD
 ボリンジャーバンドの移動平均期間と標準偏差設定。
 
-■ TRADE_LOT_SIZE
-1トレードで使用するロットサイズ（1 = 1000通貨）
+■ MIN_TRADE_LOT / MAX_TRADE_LOT
+1トレードで許可される最小ロット数と最大ロット数
+単位はLot（1 Lot = 1000通貨）
 
 ■ フィルター設定（AI呼び出し制御用）
 
