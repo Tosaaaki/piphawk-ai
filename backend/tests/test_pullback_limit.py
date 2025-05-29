@@ -83,6 +83,7 @@ class TestPullbackLimit(unittest.TestCase):
             market_data,
             higher_tf=higher_tf,
             candles_dict={"M5": candles},
+            tf_align=None,
         )
         self.assertTrue(result)
         self.assertEqual(self.el.order_manager.last_params["mode"], "market")

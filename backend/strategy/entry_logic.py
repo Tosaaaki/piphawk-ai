@@ -73,6 +73,7 @@ def process_entry(
     patterns: list[str] | None = None,
     pattern_names: dict[str, str | None] | None = None,
     candles_dict: dict[str, list] | None = None,
+    tf_align: str | None = None,
 ):
     """
     Ask OpenAI whether to enter a trade.
@@ -156,6 +157,12 @@ def process_entry(
 
     if side not in ("long", "short"):
         logging.info("AI says no trade entry → early exit")
+        return False
+
+    if tf_align and side != tf_align:
+        logging.info(
+            f"AI side {side} conflicts with multi‑TF alignment {tf_align}"
+        )
         return False
 
     # --- dynamic pullback threshold ---------------------------------
@@ -360,6 +367,13 @@ def process_entry(
         sl_pips = max(sl_pips, fallback_sl)
     if sl_pips < min_sl:
         sl_pips = min_sl
+    try:
+        if env_loader.get_env("ENFORCE_RRR", "false").lower() == "true":
+            min_rrr = float(env_loader.get_env("MIN_RRR", "0.8"))
+            if sl_pips > 0 and tp_pips / sl_pips < min_rrr:
+                tp_pips = sl_pips * min_rrr
+    except Exception:
+        pass
     logging.info(f"AI Entry {side} – tp={tp_pips}  sl={sl_pips} (pips)")
 
     if mode == "limit":

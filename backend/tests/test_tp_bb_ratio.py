@@ -93,6 +93,7 @@ class TestTpBbRatio(unittest.TestCase):
             candles,
             market_data,
             candles_dict={"M5": candles},
+            tf_align=None,
         )
         self.assertTrue(result)
         self.assertAlmostEqual(self.el.order_manager.last_params["tp_pips"], 5.0)

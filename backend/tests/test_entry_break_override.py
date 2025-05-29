@@ -80,6 +80,7 @@ class TestEntryBreakOverride(unittest.TestCase):
             market_data,
             market_cond,
             candles_dict={"M5": candles},
+            tf_align=None,
         )
         self.assertTrue(result)
         self.assertEqual(self.el.order_manager.last_params["side"], "short")
