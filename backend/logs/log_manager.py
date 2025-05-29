@@ -86,14 +86,14 @@ def init_db():
                 param_name TEXT NOT NULL,
                 old_value TEXT,
                 new_value TEXT,
-                ai_reason TEXT
+                reason TEXT
             )
         ''')
 
         cursor.execute("PRAGMA table_info(param_changes)")
         param_cols = [row[1] for row in cursor.fetchall()]
-        if 'ai_reason' not in param_cols:
-            cursor.execute('ALTER TABLE param_changes ADD COLUMN ai_reason TEXT')
+        if 'reason' not in param_cols:
+            cursor.execute('ALTER TABLE param_changes ADD COLUMN reason TEXT')
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS user_actions (
@@ -184,7 +184,7 @@ def log_param_change(param_name, old_value, new_value, ai_reason):
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO param_changes (
-                timestamp, param_name, old_value, new_value, ai_reason
+                timestamp, param_name, old_value, new_value, reason
             ) VALUES (?, ?, ?, ?, ?)
         ''', (
             datetime.utcnow().isoformat(),
