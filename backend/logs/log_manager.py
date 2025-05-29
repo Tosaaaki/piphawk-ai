@@ -88,9 +88,15 @@ def init_db():
                 timestamp TEXT NOT NULL,
                 param_name TEXT NOT NULL,
                 old_value TEXT,
-                new_value TEXT
+                new_value TEXT,
+                ai_reason TEXT
             )
         ''')
+
+        cursor.execute("PRAGMA table_info(param_changes)")
+        param_cols = [row[1] for row in cursor.fetchall()]
+        if 'ai_reason' not in param_cols:
+            cursor.execute('ALTER TABLE param_changes ADD COLUMN ai_reason TEXT')
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS user_actions (
@@ -167,7 +173,7 @@ def log_error(module, error_message, additional_info=None):
             (datetime.utcnow().isoformat(), module, error_message, additional_info),
         )
 
-def log_param_change(param_name, old_value, new_value):
+def log_param_change(param_name, old_value, new_value, ai_reason):
     """
     Record a parameter change into the param_changes table.
 
@@ -175,13 +181,21 @@ def log_param_change(param_name, old_value, new_value):
         param_name (str): Name of the parameter adjusted.
         old_value (Any): Original value (stored as string, may be None).
         new_value (Any): New value (stored as string).
+        ai_reason (str): Reason provided by the AI or subsystem.
     """
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO param_changes (timestamp, param_name, old_value, new_value)
-            VALUES (?, ?, ?, ?)
-        ''', (datetime.utcnow().isoformat(), str(param_name), str(old_value), str(new_value)))
+            INSERT INTO param_changes (
+                timestamp, param_name, old_value, new_value, ai_reason
+            ) VALUES (?, ?, ?, ?, ?)
+        ''', (
+            datetime.utcnow().isoformat(),
+            str(param_name),
+            str(old_value),
+            str(new_value),
+            str(ai_reason),
+        ))
 
 
 # OANDAトレードの記録

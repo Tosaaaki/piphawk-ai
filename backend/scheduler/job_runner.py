@@ -16,6 +16,7 @@ from backend.indicators.calculate_indicators import (
 
 from backend.strategy.entry_logic import process_entry, _pending_limits
 from backend.strategy.exit_logic import process_exit
+from backend.strategy.exit_ai_decision import evaluate as evaluate_exit_ai
 try:
     from backend.orders.position_manager import (
         check_current_position,
@@ -111,6 +112,8 @@ PATTERN_NAMES = [
 OANDA_API_KEY = env_loader.get_env("OANDA_API_KEY")
 OANDA_ACCOUNT_ID = env_loader.get_env("OANDA_ACCOUNT_ID")
 MARGIN_WARNING_THRESHOLD = float(env_loader.get_env("MARGIN_WARNING_THRESHOLD", "0"))
+# Additional lot size for scaling into an existing position
+SCALE_LOT_SIZE = float(env_loader.get_env("SCALE_LOT_SIZE", "0.5"))
 # ----- limit‑order housekeeping ------------------------------------
 MAX_LIMIT_AGE_SEC = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))  # seconds before a pending LIMIT is cancelled
 
@@ -776,15 +779,42 @@ class JobRunner:
                                         higher_tf,
                                     )
                                     logger.debug(f"Market condition (exit): {market_cond}")
-                                    exit_executed = process_exit(
-                                        indicators,
+                                    exit_ctx = build_exit_context(
+                                        has_position,
                                         tick_data,
-                                        market_cond,
-                                        higher_tf,
+                                        indicators,
                                         indicators_m1=self.indicators_M1,
-                                        patterns=PATTERN_NAMES,
-                                        pattern_names=self.patterns_by_tf,
                                     )
+                                    try:
+                                        ai_dec = evaluate_exit_ai(exit_ctx)
+                                    except Exception as exc:
+                                        logger.warning(f"exit AI evaluation failed: {exc}")
+                                        ai_dec = None
+                                    if ai_dec and ai_dec.action == "SCALE":
+                                        try:
+                                            order_mgr.enter_trade(
+                                                side=position_side,
+                                                lot_size=SCALE_LOT_SIZE,
+                                                market_data=tick_data,
+                                                strategy_params={"instrument": DEFAULT_PAIR, "mode": "market"},
+                                            )
+                                            logger.info(
+                                                f"Scaled into position ({position_side}) by {SCALE_LOT_SIZE} lots"
+                                            )
+                                            has_position = check_current_position(DEFAULT_PAIR)
+                                        except Exception as exc:
+                                            logger.warning(f"Failed to scale position: {exc}")
+                                        exit_executed = False
+                                    else:
+                                        exit_executed = process_exit(
+                                            indicators,
+                                            tick_data,
+                                            market_cond,
+                                            higher_tf,
+                                            indicators_m1=self.indicators_M1,
+                                            patterns=PATTERN_NAMES,
+                                            pattern_names=self.patterns_by_tf,
+                                        )
                                     if exit_executed:
                                         self.last_close_ts = datetime.utcnow()
                                         logger.info("Position closed based on AI recommendation.")
@@ -886,15 +916,42 @@ class JobRunner:
                                 higher_tf,
                             )
                             logger.debug(f"Market condition (review): {market_cond}")
-                            exit_executed = process_exit(
-                                indicators,
+                            exit_ctx = build_exit_context(
+                                has_position,
                                 tick_data,
-                                market_cond,
-                                higher_tf,
+                                indicators,
                                 indicators_m1=self.indicators_M1,
-                                patterns=PATTERN_NAMES,
-                                pattern_names=self.patterns_by_tf,
                             )
+                            try:
+                                ai_dec = evaluate_exit_ai(exit_ctx)
+                            except Exception as exc:
+                                logger.warning(f"exit AI evaluation failed: {exc}")
+                                ai_dec = None
+                            if ai_dec and ai_dec.action == "SCALE":
+                                try:
+                                    order_mgr.enter_trade(
+                                        side=position_side,
+                                        lot_size=SCALE_LOT_SIZE,
+                                        market_data=tick_data,
+                                        strategy_params={"instrument": DEFAULT_PAIR, "mode": "market"},
+                                    )
+                                    logger.info(
+                                        f"Scaled into position ({position_side}) by {SCALE_LOT_SIZE} lots"
+                                    )
+                                    has_position = check_current_position(DEFAULT_PAIR)
+                                except Exception as exc:
+                                    logger.warning(f"Failed to scale position: {exc}")
+                                exit_executed = False
+                            else:
+                                exit_executed = process_exit(
+                                    indicators,
+                                    tick_data,
+                                    market_cond,
+                                    higher_tf,
+                                    indicators_m1=self.indicators_M1,
+                                    patterns=PATTERN_NAMES,
+                                    pattern_names=self.patterns_by_tf,
+                                )
                             if exit_executed:
                                 self.last_close_ts = datetime.utcnow()
                                 logger.info("Position closed based on AI recommendation.")

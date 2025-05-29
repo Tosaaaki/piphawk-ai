@@ -13,6 +13,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend /app/backend
 
+# create an empty SQLite database if not provided
+RUN touch /app/trades.db
+
 ENV PYTHONUNBUFFERED=1
 ENV TZ=Asia/Tokyo
 

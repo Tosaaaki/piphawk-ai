@@ -49,7 +49,8 @@ def ensure_param_change_table():
                 timestamp TEXT,
                 param_key TEXT,
                 old_value TEXT,
-                new_value TEXT
+                new_value TEXT,
+                ai_reason TEXT
             )
         """)
 
