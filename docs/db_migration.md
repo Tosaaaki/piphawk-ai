@@ -27,10 +27,10 @@ ALTER TABLE trades ADD COLUMN sl_pips REAL;
 ALTER TABLE trades ADD COLUMN rrr REAL;
 ```
 
-The `param_changes` table now stores the reason returned by the AI in the
-`ai_reason` column. To add this column to an older database run `init_db()`
+The `param_changes` table now records the reason for each change in the
+`reason` column. To add this column to an older database run `init_db()`
 again or execute:
 
 ```sql
-ALTER TABLE param_changes ADD COLUMN ai_reason TEXT;
+ALTER TABLE param_changes ADD COLUMN reason TEXT;
 ```

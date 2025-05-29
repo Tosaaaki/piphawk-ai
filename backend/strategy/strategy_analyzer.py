@@ -50,9 +50,13 @@ def ensure_param_change_table():
                 param_key TEXT,
                 old_value TEXT,
                 new_value TEXT,
-                ai_reason TEXT
+                reason TEXT
             )
         """)
+        cur = conn.execute(f"PRAGMA table_info({PARAM_CHANGE_DB_TABLE})")
+        cols = [r[1] for r in cur.fetchall()]
+        if 'reason' not in cols:
+            conn.execute(f'ALTER TABLE {PARAM_CHANGE_DB_TABLE} ADD COLUMN reason TEXT')
 
 def backup_settings():
     """Create a timestamped backup of the current settings.env file."""
