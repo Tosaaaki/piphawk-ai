@@ -1,6 +1,6 @@
 import requests
 from backend.utils import env_loader
-from backend.logs.log_manager import get_db_connection
+from backend.logs.log_manager import get_db_connection, init_db, log_oanda_trade
 from datetime import datetime, timedelta
 import json
 
@@ -22,6 +22,7 @@ def fetch_transactions(url, params=None):
     return response.json()
 
 def initial_fetch_oanda_trades():
+    init_db()
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -50,15 +51,18 @@ def initial_fetch_oanda_trades():
                 trade_id = transaction_id
                 instrument = transaction.get('instrument', 'UNKNOWN')
                 units = transaction.get('units', 0)
-                price = transaction.get('price', 0.0)
-
-                cursor.execute(
-                    """
-                    INSERT OR IGNORE INTO oanda_trades (trade_id, instrument, units, open_time, price)
-                    VALUES (?, ?, ?, ?, ?)
-                    """,
-                    (trade_id, instrument, units, open_time, price)
+                price = float(transaction.get('price', 0.0))
+                log_oanda_trade(
+                    trade_id,
+                    instrument,
+                    open_time,
+                    price,
+                    units,
+                    "OPEN",
+                    0.0,
+                    float(transaction.get('pl', 0.0)),
                 )
+                updated_count += 1
 
             elif transaction_type in ('STOP_LOSS_ORDER', 'TAKE_PROFIT_ORDER'):
                 trade_id = transaction.get('tradeID') or transaction.get('tradesClosed', [{}])[0].get('tradeID')
@@ -70,23 +74,24 @@ def initial_fetch_oanda_trades():
                     cursor.execute(
                         """
                         UPDATE oanda_trades
-                        SET close_time = ?, tp_price = ?, realized_pl = ?
+                        SET close_time = ?, close_price = ?, tp_price = ?, realized_pl = ?, state = 'CLOSED'
                         WHERE trade_id = ?
                         """,
-                        (close_time, price, realized_pl, trade_id)
+                        (close_time, price, price, realized_pl, trade_id),
                     )
 
                 elif transaction_type == 'STOP_LOSS_ORDER':
                     cursor.execute(
                         """
                         UPDATE oanda_trades
-                        SET close_time = ?, sl_price = ?, realized_pl = ?
+                        SET close_time = ?, close_price = ?, sl_price = ?, realized_pl = ?, state = 'CLOSED'
                         WHERE trade_id = ?
                         """,
-                        (close_time, price, realized_pl, trade_id)
+                        (close_time, price, price, realized_pl, trade_id),
                     )
 
-            updated_count += cursor.rowcount
+            if transaction_type != 'ORDER_FILL':
+                updated_count += cursor.rowcount
 
         conn.commit()
         print(f"Successfully updated {updated_count} trades.")
@@ -96,4 +101,5 @@ def initial_fetch_oanda_trades():
         conn.close()
 
 if __name__ == "__main__":
+    init_db()
     initial_fetch_oanda_trades()

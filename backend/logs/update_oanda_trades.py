@@ -1,7 +1,7 @@
 import logging
 import requests
 from backend.utils import env_loader
-from backend.logs.log_manager import get_db_connection, init_db
+from backend.logs.log_manager import get_db_connection, init_db, log_oanda_trade
 
 # env_loader automatically loads default env files at import time
 
@@ -75,18 +75,30 @@ def update_oanda_trades():
                 trade_id = transaction_id
                 instrument = transaction.get('instrument', 'UNKNOWN')
                 units = transaction.get('units', 0)
-                price = transaction.get('price', 0.0)
+                price = float(transaction.get('price', 0.0))
                 realized_pl = float(transaction.get('pl', 0.0))
 
-                logger.debug("Debug BEFORE INSERT: %s %s %s %s %s %s", trade_id, instrument, units, open_time, price, realized_pl)
-                cursor.execute(
-                    """
-                    INSERT OR IGNORE INTO oanda_trades (trade_id, instrument, units, open_time, price, realized_pl)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    """,
-                    (trade_id, instrument, units, open_time, price, realized_pl)
+                logger.debug(
+                    "Debug BEFORE INSERT: %s %s %s %s %s %s",
+                    trade_id,
+                    instrument,
+                    units,
+                    open_time,
+                    price,
+                    realized_pl,
                 )
-                logger.debug("Debug AFTER INSERT rowcount: %s", cursor.rowcount)
+                log_oanda_trade(
+                    trade_id,
+                    instrument,
+                    open_time,
+                    price,
+                    units,
+                    "OPEN",
+                    0.0,
+                    realized_pl,
+                )
+                logger.debug("Debug AFTER INSERT rowcount: 1")
+                updated_count += 1
 
             elif transaction_type in ('STOP_LOSS_ORDER', 'TAKE_PROFIT_ORDER'):
                 trade_id = transaction.get('tradeID') or transaction.get('tradesClosed', [{}])[0].get('tradeID')
@@ -98,26 +110,29 @@ def update_oanda_trades():
                     cursor.execute(
                         """
                         UPDATE oanda_trades
-                        SET close_time = ?, tp_price = ?, realized_pl = ?
+                        SET close_time = ?, close_price = ?, tp_price = ?, realized_pl = ?, state = 'CLOSED'
                         WHERE trade_id = ?
                         """,
-                        (close_time, price, realized_pl, trade_id)
+                        (close_time, price, price, realized_pl, trade_id),
                     )
 
                 elif transaction_type == 'STOP_LOSS_ORDER':
                     cursor.execute(
                         """
                         UPDATE oanda_trades
-                        SET close_time = ?, sl_price = ?, realized_pl = ?
+                        SET close_time = ?, close_price = ?, sl_price = ?, realized_pl = ?, state = 'CLOSED'
                         WHERE trade_id = ?
                         """,
-                        (close_time, price, realized_pl, trade_id)
+                        (close_time, price, price, realized_pl, trade_id),
                     )
 
                 logger.info(f"{transaction_type} updated for trade_id {trade_id}, rowcount={cursor.rowcount}")
 
-            logger.info(f"{transaction_type} processed for trade_id {transaction_id}, rowcount={cursor.rowcount}")
-            updated_count += cursor.rowcount
+            logger.info(
+                f"{transaction_type} processed for trade_id {transaction_id}, rowcount={cursor.rowcount}"
+            )
+            if transaction_type != 'ORDER_FILL':
+                updated_count += cursor.rowcount
 
         conn.commit()
         logger.info(f"Successfully updated {updated_count} new trades.")
@@ -127,4 +142,5 @@ def update_oanda_trades():
         conn.close()
 
 if __name__ == "__main__":
+    init_db()
     update_oanda_trades()
