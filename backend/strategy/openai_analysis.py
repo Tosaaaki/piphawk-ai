@@ -48,6 +48,20 @@ LOCAL_WEIGHT_THRESHOLD: float = float(
     env_loader.get_env("LOCAL_WEIGHT_THRESHOLD", "0.6")
 )
 
+# --- Consistency weight configuration ---------------------------
+_DEFAULT_CONSISTENCY_WEIGHTS = {"ema": 0.4, "adx": 0.3, "rsi": 0.3}
+_consistency_weights = _DEFAULT_CONSISTENCY_WEIGHTS.copy()
+_cw_env = env_loader.get_env("CONSISTENCY_WEIGHTS")
+if _cw_env:
+    try:
+        for part in _cw_env.split(","):
+            key, val = part.split(":")
+            _consistency_weights[key.strip()] = float(val)
+    except Exception as exc:  # pragma: no cover - just log
+        logging.getLogger(__name__).warning(
+            "Invalid CONSISTENCY_WEIGHTS: %s", exc
+        )
+
 # Global variables to store last AI call timestamps
 _last_entry_ai_call_time = 0.0
 _last_exit_ai_call_time = 0.0
@@ -116,7 +130,11 @@ def calc_consistency(
     else:
         ai_score = 1.0 if local == ai else 0.0
 
-    local_score = ema_ok * 0.4 + adx_ok * 0.3 + rsi_cross_ok * 0.3
+    local_score = (
+        ema_ok * _consistency_weights.get("ema", 0.0)
+        + adx_ok * _consistency_weights.get("adx", 0.0)
+        + rsi_cross_ok * _consistency_weights.get("rsi", 0.0)
+    )
 
     alpha = LOCAL_WEIGHT_THRESHOLD * local_score + (1 - LOCAL_WEIGHT_THRESHOLD) * ai_score
     return alpha
@@ -193,14 +211,14 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     width_ratio = ((bw_pips - bw_thresh) / bw_thresh) if bw_pips is not None else 0.0
     adx_dynamic_thresh = adx_base * (1 + coeff * width_ratio)
 
-    def _extract_latest(series):
+    def _extract_latest(series, n: int = 3):
         if series is None:
             return []
         try:
             if hasattr(series, "iloc"):
-                return [float(x) for x in series.iloc[-3:]]
+                return [float(x) for x in series.iloc[-n:]]
             if isinstance(series, (list, tuple)):
-                return [float(x) for x in series[-3:]]
+                return [float(x) for x in series[-n:]]
             return [float(series)]
         except Exception:
             return []
@@ -226,10 +244,10 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
             adx_slope = None
 
     # EMAの傾きが無い場合はema_fastから代用の傾きを算出
-    ema_series = _extract_latest(ema_vals)
+    ema_series = _extract_latest(ema_vals, n=5)
     if not ema_series:
         fast_vals = indicators.get("ema_fast")
-        fast_series = _extract_latest(fast_vals)
+        fast_series = _extract_latest(fast_vals, n=5)
         if len(fast_series) >= 2:
             ema_series = [fast_series[i] - fast_series[i - 1] for i in range(1, len(fast_series))]
     ema_sign_consistent = False
@@ -272,6 +290,30 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     local_regime = None
     if adx_latest is not None and ema_sign_consistent:
         local_regime = "trend" if adx_latest >= adx_dynamic_thresh else "range"
+    elif adx_latest is not None:
+        local_regime = "range"
+
+    # --- check M1 indicators before higher timeframes -----------------
+    if local_regime is None:
+        m1_adx = ind_m1.get("adx")
+        m1_ema = ind_m1.get("ema_slope")
+        m1_adx_val = None
+        if m1_adx is not None:
+            try:
+                if hasattr(m1_adx, "iloc"):
+                    m1_adx_val = float(m1_adx.iloc[-1])
+                elif isinstance(m1_adx, (list, tuple)):
+                    m1_adx_val = float(m1_adx[-1]) if m1_adx else None
+                else:
+                    m1_adx_val = float(m1_adx)
+            except Exception:
+                m1_adx_val = None
+        m1_ema_series = _extract_latest(m1_ema, n=3)
+        m1_ema_ok = len(m1_ema_series) >= 2 and (
+            all(v > 0 for v in m1_ema_series) or all(v < 0 for v in m1_ema_series)
+        )
+        if m1_adx_val is not None and m1_adx_val >= adx_dynamic_thresh and m1_ema_ok:
+            local_regime = "trend"
 
     def _is_trend(ind: dict) -> bool | None:
         adx = ind.get("adx")
@@ -301,7 +343,7 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
             return None
         return adx_val >= adx_dynamic_thresh
 
-    if local_regime != "trend":
+    if local_regime is None:
         for ind in (ind_h4, ind_h1):
             if _is_trend(ind):
                 local_regime = "trend"
