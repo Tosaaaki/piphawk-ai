@@ -18,6 +18,7 @@ from backend.indicators.adx import calculate_adx
 from backend.indicators.pivot import calculate_pivots
 from backend.indicators.n_wave import calculate_n_wave_target
 from backend.indicators.polarity import calculate_polarity
+from backend.indicators.macd import calculate_macd, calculate_macd_histogram
 from backend.market_data.candle_fetcher import fetch_candles
 
 
@@ -76,12 +77,17 @@ def calculate_indicators(
     ema_slow_series = calculate_ema(close_prices, period=ema_slow_period)
     # EMAの傾き計算
     ema_slope_series = ema_fast_series.diff()
+    macd_series, macd_signal_series = calculate_macd(close_prices)
+    macd_hist_series = calculate_macd_histogram(close_prices)
 
     indicators = {
         'rsi': calculate_rsi(close_prices),
         'ema_fast': ema_fast_series,
         'ema_slow': ema_slow_series,
         'ema_slope': ema_slope_series,
+        'macd': macd_series,
+        'macd_signal': macd_signal_series,
+        'macd_hist': macd_hist_series,
         'atr': calculate_atr(high_prices, low_prices, close_prices),
         'n_wave_target': calculate_n_wave_target(close_prices),
         # Spread Bollinger components so filters can access them directly
