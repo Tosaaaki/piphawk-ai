@@ -1,7 +1,7 @@
 import logging
 import requests
 from backend.utils import env_loader
-from backend.logs.log_manager import get_db_connection
+from backend.logs.log_manager import get_db_connection, init_db
 
 # env_loader automatically loads default env files at import time
 
@@ -24,6 +24,7 @@ def fetch_transactions(url, params=None):
 
 # Get the last transaction ID from the database
 def get_last_transaction_id():
+    init_db()
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT MAX(CAST(trade_id AS INTEGER)) FROM oanda_trades")
@@ -43,6 +44,7 @@ import time
 import json
 
 def update_oanda_trades():
+    init_db()
     conn = get_db_connection()
     cursor = conn.cursor()
 
