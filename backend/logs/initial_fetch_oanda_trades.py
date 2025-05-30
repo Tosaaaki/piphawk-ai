@@ -54,6 +54,7 @@ def initial_fetch_oanda_trades():
                 price = float(transaction.get('price', 0.0))
                 log_oanda_trade(
                     trade_id,
+                    OANDA_ACCOUNT_ID,
                     instrument,
                     open_time,
                     price,

@@ -163,6 +163,7 @@ init_db()
 EOF
 ```
 This helper also upgrades older databases to include new columns and tables (e.g. `errors`) and ensures WAL mode is enabled. See `docs/db_migration.md` for details.
+If you upgrade from a version before the `account_id` column was added to `oanda_trades`, running `init_db()` once will create it automatically.
 
 To inspect parameter adjustments logged by the strategy analyzer, run
 `backend/logs/show_param_history.py`. Filter by parameter name or period:

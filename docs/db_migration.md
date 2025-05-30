@@ -46,3 +46,9 @@ CREATE TABLE errors (
     additional_info TEXT
 );
 ```
+
+If you run an older database without the `account_id` column in `oanda_trades`, execute `init_db()` to add it automatically or run:
+
+```sql
+ALTER TABLE oanda_trades ADD COLUMN account_id TEXT;
+```
