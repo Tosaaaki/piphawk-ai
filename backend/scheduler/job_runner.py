@@ -179,6 +179,7 @@ class JobRunner:
         # Storage for latest indicators by timeframe
         self.indicators_M1: dict | None = None
         self.indicators_M5: dict | None = None
+        self.indicators_M15: dict | None = None
         self.indicators_H1: dict | None = None
         self.indicators_H4: dict | None = None
         self.indicators_D: dict | None = None
@@ -633,6 +634,7 @@ class JobRunner:
                     )
                     self.indicators_M1 = indicators_multi.get("M1")
                     self.indicators_M5 = indicators_multi.get("M5")
+                    self.indicators_M15 = indicators_multi.get("M15")
                     self.indicators_H1 = indicators_multi.get("H1")
                     self.indicators_H4 = indicators_multi.get("H4")
                     self.indicators_D = indicators_multi.get("D")
@@ -1045,7 +1047,12 @@ class JobRunner:
 
                         # ── Entry side ───────────────────────────────
                         current_price = float(tick_data["prices"][0]["bids"][0]["price"])
-                        if pass_entry_filter(indicators, current_price, self.indicators_M1):
+                        if pass_entry_filter(
+                            indicators,
+                            current_price,
+                            self.indicators_M1,
+                            self.indicators_M15,
+                        ):
                             logger.info("Filter OK → Processing entry decision with AI.")
                             self.last_ai_call = datetime.now()  # record AI call time *before* the call
                             market_cond = get_market_condition(

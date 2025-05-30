@@ -16,7 +16,10 @@ import datetime
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from backend.market_data.tick_fetcher import fetch_tick_data
 from backend.indicators.adx import calculate_adx_slope
+
 logger = logging.getLogger(__name__)
+
+REVERSAL_RSI_DIFF = float(os.getenv("REVERSAL_RSI_DIFF", "15"))
 
 # ────────────────────────────────────────────────
 #  EMA helper for exit‑filter
@@ -90,8 +93,33 @@ def _rsi_cross_up_or_down(series: pd.Series, *, lookback: int = 1) -> bool:
         return False
 
 
+def rapid_reversal_block(
+    rsi_m5: pd.Series, rsi_m15: pd.Series, macd_hist: pd.Series
+) -> bool:
+    """Return True when RSI divergence and MACD histogram suggest a sharp reversal."""
+
+    try:
+        diff = float(rsi_m5.iloc[-1]) - float(rsi_m15.iloc[-1])
+    except Exception:
+        return False
+
+    try:
+        hist = float(macd_hist.iloc[-1])
+    except Exception:
+        return False
+
+    if diff >= REVERSAL_RSI_DIFF and hist > 0:
+        return True
+    if diff <= -REVERSAL_RSI_DIFF and hist < 0:
+        return True
+    return False
+
+
 def pass_entry_filter(
-    indicators: dict, price: float | None = None, indicators_m1: dict | None = None
+    indicators: dict,
+    price: float | None = None,
+    indicators_m1: dict | None = None,
+    indicators_m15: dict | None = None,
 ) -> bool:
     """
     Pure rule‑based entry filter.
@@ -106,6 +134,9 @@ def pass_entry_filter(
     indicators_m1 : dict | None
         Optional M1 timeframe indicator dictionary. If not provided, the
         function attempts to fetch M1 candles and compute indicators.
+    indicators_m15 : dict | None
+        Optional M15 timeframe indicator dictionary used for rapid reversal
+        checks. If omitted, the function fetches M15 candles as needed.
     """
     if os.getenv("DISABLE_ENTRY_FILTER", "false").lower() == "true":
         return True
@@ -201,6 +232,33 @@ def pass_entry_filter(
                     "EntryFilter blocked: M1 RSI did not show cross up/down signal"
                 )
                 return False
+
+    # --- Rapid reversal block ---------------------------------------
+    if indicators_m15 is None:
+        try:
+            from backend.market_data.candle_fetcher import fetch_candles
+            from backend.indicators.calculate_indicators import calculate_indicators
+
+            pair = os.getenv("DEFAULT_PAIR", "USD_JPY")
+            candles_m15 = fetch_candles(
+                pair,
+                granularity="M15",
+                count=20,
+                allow_incomplete=True,
+            )
+            indicators_m15 = calculate_indicators(candles_m15, pair=pair)
+        except Exception as exc:
+            logger.warning("Failed to fetch M15 indicators: %s", exc)
+            indicators_m15 = None
+
+    if (
+        indicators_m15
+        and indicators_m15.get("rsi") is not None
+        and indicators.get("macd_hist") is not None
+        and rapid_reversal_block(indicators["rsi"], indicators_m15["rsi"], indicators["macd_hist"])
+    ):
+        logger.debug("EntryFilter blocked: rapid reversal detected")
+        return False
 
     ema_fast = indicators["ema_fast"]
     ema_slow = indicators["ema_slow"]
