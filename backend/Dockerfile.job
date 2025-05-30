@@ -15,6 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # backendごと/appにコピー
 COPY backend /app/backend
+COPY analysis /app/analysis
 
 ENV PYTHONUNBUFFERED=1
 ENV TZ=Asia/Tokyo

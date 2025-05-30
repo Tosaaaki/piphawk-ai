@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the backend source code into the image
 COPY . /app/backend
+COPY analysis /app/analysis
 
 # Create an empty SQLite DB placeholder so the path exists at runtime
 RUN touch /app/trades.db
