@@ -120,6 +120,7 @@ def update_oanda_trades():
                     "OPEN",
                     0.0,
                     realized_pl,
+                    conn=conn,
                 )
                 logger.debug("Debug AFTER INSERT rowcount: 1")
                 updated_count += 1
