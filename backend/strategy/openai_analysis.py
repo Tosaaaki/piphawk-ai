@@ -215,15 +215,24 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     plus_di = indicators.get("plus_di")
     minus_di = indicators.get("minus_di")
     di_cross = False
-    if plus_di is not None and minus_di is not None and len(plus_di) >= 2:
-        try:
-            p_prev = float(plus_di.iloc[-2]) if hasattr(plus_di, "iloc") else float(plus_di[-2])
-            p_cur = float(plus_di.iloc[-1]) if hasattr(plus_di, "iloc") else float(plus_di[-1])
-            m_prev = float(minus_di.iloc[-2]) if hasattr(minus_di, "iloc") else float(minus_di[-2])
-            m_cur = float(minus_di.iloc[-1]) if hasattr(minus_di, "iloc") else float(minus_di[-1])
+    try:
+        def _tail2(series):
+            if series is None:
+                return []
+            if hasattr(series, "iloc"):
+                return [float(v) for v in series.iloc[-2:]]
+            if isinstance(series, (list, tuple)):
+                return [float(v) for v in series[-2:]]
+            return [float(series)]
+
+        p_vals = _tail2(plus_di)
+        m_vals = _tail2(minus_di)
+        if len(p_vals) >= 2 and len(m_vals) >= 2:
+            p_prev, p_cur = p_vals[-2], p_vals[-1]
+            m_prev, m_cur = m_vals[-2], m_vals[-1]
             di_cross = (p_prev > m_prev and p_cur < m_cur) or (p_prev < m_prev and p_cur > m_cur)
-        except Exception:
-            di_cross = False
+    except Exception:
+        di_cross = False
 
     def _extract_latest(series, n: int = 3):
         if series is None:
