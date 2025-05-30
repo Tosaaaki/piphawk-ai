@@ -21,9 +21,10 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    pip install pandas
    ```
 3. **Environment variables**
-   最初にテンプレートをコピーし、自分用の `.env` または `backend/config/secret.env` を作成します。
+   まず `backend/config/secret.env.example` をコピーして `.env` を作成するか、
+   自分で `.env` を新規作成してください。
    ```bash
-   cp backend/config/secret.env .env
+   cp backend/config/secret.env.example .env
    cp backend/config/settings.env .
    # Edit .env and set OPENAI_API_KEY, OANDA_API_KEY and OANDA_ACCOUNT_ID
    ```
