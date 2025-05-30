@@ -83,6 +83,27 @@ The API exposes endpoints for status checks, a simple dashboard and runtime sett
 uvicorn backend.api.main:app --host 0.0.0.0 --port 8080
 ```
 
+## LINE 通知設定
+
+API から LINE にメッセージを送信するには、まず `.env` に以下の環境変数を設定します。
+
+```bash
+LINE_CHANNEL_TOKEN=<your_line_token>
+LINE_USER_ID=<your_line_user_id>
+```
+
+次のコマンドで API を起動してください。
+
+```bash
+uvicorn backend.api.main:app --host 0.0.0.0 --port 8080
+```
+
+テスト用エンドポイント `/notifications/send` を利用すると送信確認ができます。
+
+```bash
+curl -X POST http://localhost:8080/notifications/send
+```
+
 ## Running the Job Scheduler
 
 The job runner performs market data collection, indicator calculation and trading decisions. Run it directly with Python:
