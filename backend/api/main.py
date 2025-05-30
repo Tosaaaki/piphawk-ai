@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, APIRouter
 from backend.utils import env_loader
 import sqlite3
 import os
+import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.base import STATE_RUNNING
 from datetime import datetime, timedelta
@@ -13,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI()
+logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------
 # simple health‑check endpoint for Cloud Run / load‑balancers
@@ -72,9 +74,15 @@ class RuntimeSettings(BaseModel):
 class NotificationSettings(BaseModel):
     enabled: bool
     token: str
+    user_id: str
 
 # In-memory notification settings
-notification_settings = {"enabled": False, "token": ""}
+notification_settings = {"enabled": False, "token": "", "user_id": ""}
+logger.info(
+    "API startup - LINE token set: %s, user ID set: %s",
+    bool(os.getenv("LINE_CHANNEL_TOKEN")),
+    bool(os.getenv("LINE_USER_ID")),
+)
 
 
 @app.get("/strategy/backtest")
@@ -220,6 +228,9 @@ def ui_get_settings():
 @app.post("/settings")
 def ui_update_settings(settings: NotificationSettings):
     notification_settings.update(settings.dict())
+    os.environ["LINE_CHANNEL_TOKEN"] = notification_settings["token"]
+    os.environ["LINE_USER_ID"] = notification_settings["user_id"]
+    logger.info("LINE settings updated via /settings")
     return {"status": "ok", "settings": notification_settings}
 
 
@@ -249,6 +260,9 @@ def get_notification_settings():
 @notifications_router.post("/settings")
 def update_notification_settings(settings: NotificationSettings):
     notification_settings.update(settings.dict())
+    os.environ["LINE_CHANNEL_TOKEN"] = notification_settings["token"]
+    os.environ["LINE_USER_ID"] = notification_settings["user_id"]
+    logger.info("LINE settings updated via /notifications/settings")
     return {"status": "ok", "settings": notification_settings}
 
 @notifications_router.post("/send")
