@@ -82,6 +82,7 @@ The system derives a dynamic pullback requirement from ATR, ADX and recent price
 `EMA_FLAT_PIPS` determines the range treated as a flat EMA slope; convergence with a reversal within this range triggers the *急反転* filter.
 `OVERSHOOT_ATR_MULT` blocks entries when price overshoots below the lower Bollinger Band by this multiple of ATR.
 `STRICT_TF_ALIGN` enforces multi-timeframe EMA alignment before entering.
+`TF_EMA_WEIGHTS` specifies the weight of each timeframe when evaluating EMA alignment, e.g. `M5:0.4,H1:0.3,H4:0.3`.
 
 ## Running the API
 

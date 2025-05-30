@@ -15,6 +15,10 @@ from backend.indicators.ema import calculate_ema
 from backend.indicators.atr import calculate_atr
 from backend.indicators.bollinger import calculate_bollinger_bands
 from backend.indicators.adx import calculate_adx
+try:
+    from backend.indicators.adx import calculate_di
+except Exception:  # pragma: no cover - fallback for older stubs
+    calculate_di = None
 from backend.indicators.pivot import calculate_pivots
 from backend.indicators.n_wave import calculate_n_wave_target
 from backend.indicators.polarity import calculate_polarity
@@ -69,8 +73,12 @@ def calculate_indicators(
     # --- Bollinger Bands (DataFrame) ---
     bb_df = calculate_bollinger_bands(close_prices)
 
-    # --- ADX (trend strength) ---
+    # --- ADX (trend strength) and DI lines ---
     adx_series = calculate_adx(high_prices, low_prices, close_prices)
+    if calculate_di:
+        plus_di, minus_di = calculate_di(high_prices, low_prices, close_prices)
+    else:  # pragma: no cover - fallback when calculate_di is absent
+        plus_di = minus_di = pd.Series([None] * len(close_prices))
 
     # EMAの計算
     ema_fast_series = calculate_ema(close_prices, period=ema_fast_period)
@@ -95,6 +103,8 @@ def calculate_indicators(
         'bb_lower': bb_df['lower_band'],
         'bb_middle': bb_df['middle_band'],
         'adx': adx_series,
+        'plus_di': plus_di,
+        'minus_di': minus_di,
         'polarity': calculate_polarity(close_prices),
     }
 

@@ -211,6 +211,20 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     width_ratio = ((bw_pips - bw_thresh) / bw_thresh) if bw_pips is not None else 0.0
     adx_dynamic_thresh = adx_base * (1 + coeff * width_ratio)
 
+    # DI cross detection for trend reversal
+    plus_di = indicators.get("plus_di")
+    minus_di = indicators.get("minus_di")
+    di_cross = False
+    if plus_di is not None and minus_di is not None and len(plus_di) >= 2:
+        try:
+            p_prev = float(plus_di.iloc[-2]) if hasattr(plus_di, "iloc") else float(plus_di[-2])
+            p_cur = float(plus_di.iloc[-1]) if hasattr(plus_di, "iloc") else float(plus_di[-1])
+            m_prev = float(minus_di.iloc[-2]) if hasattr(minus_di, "iloc") else float(minus_di[-2])
+            m_cur = float(minus_di.iloc[-1]) if hasattr(minus_di, "iloc") else float(minus_di[-1])
+            di_cross = (p_prev > m_prev and p_cur < m_cur) or (p_prev < m_prev and p_cur > m_cur)
+        except Exception:
+            di_cross = False
+
     def _extract_latest(series, n: int = 3):
         if series is None:
             return []
@@ -288,7 +302,9 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         narrow_bw = False
 
     local_regime = None
-    if adx_latest is not None and ema_sign_consistent:
+    if di_cross:
+        local_regime = "range"
+    elif adx_latest is not None and ema_sign_consistent:
         local_regime = "trend" if adx_latest >= adx_dynamic_thresh else "range"
     elif adx_latest is not None:
         local_regime = "range"
