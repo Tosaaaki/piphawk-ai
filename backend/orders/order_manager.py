@@ -251,16 +251,24 @@ class OrderManager:
 
     def get_current_tp(self, trade_id: str) -> float | None:
         """現在設定されているTP価格を取得する。"""
-        url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}/orders"
+        url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}"
         try:
             resp = requests.get(url, headers=HEADERS, timeout=10)
             resp.raise_for_status()
             data = resp.json()
-            tp_info = data.get("takeProfitOrder") or data.get("trade", {}).get("takeProfitOrder")
-            if isinstance(tp_info, dict):
-                price = tp_info.get("price")
-                if price is not None:
-                    return float(price)
+            tp_id = data.get("trade", {}).get("takeProfitOrderID")
+            if tp_id:
+                order_url = (
+                    f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{tp_id}"
+                )
+                order_resp = requests.get(order_url, headers=HEADERS, timeout=10)
+                order_resp.raise_for_status()
+                order_data = order_resp.json()
+                order_info = order_data.get("order") or order_data.get("takeProfitOrder")
+                if isinstance(order_info, dict):
+                    price = order_info.get("price")
+                    if price is not None:
+                        return float(price)
         except Exception as exc:
             logger.warning(f"get_current_tp failed for {trade_id}: {exc}")
         return None
