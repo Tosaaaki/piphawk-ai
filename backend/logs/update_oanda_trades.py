@@ -1,5 +1,7 @@
 import logging
 import requests
+import sqlite3
+import time
 from backend.utils import env_loader
 from backend.logs.log_manager import get_db_connection, init_db, log_oanda_trade
 
@@ -15,6 +17,23 @@ headers = {
 }
 
 logger = logging.getLogger(__name__)
+
+
+def execute_with_retry(func, *args, retries=5, delay=2, **kwargs):
+    """Retry database operations when the database is locked."""
+    last_exc = None
+    for _ in range(retries):
+        try:
+            return func(*args, **kwargs)
+        except sqlite3.OperationalError as exc:
+            if "database is locked" in str(exc):
+                last_exc = exc
+                logger.warning("Database is locked, retrying in %s seconds...", delay)
+                time.sleep(delay)
+                continue
+            raise
+    if last_exc:
+        raise last_exc
 
 def fetch_transactions(url, params=None):
     response = requests.get(url, headers=headers, params=params)
@@ -40,7 +59,6 @@ def fetch_trade_details(trade_id):
     else:
         return None
 
-import time
 import json
 
 def update_oanda_trades():
@@ -87,7 +105,8 @@ def update_oanda_trades():
                     price,
                     realized_pl,
                 )
-                log_oanda_trade(
+                execute_with_retry(
+                    log_oanda_trade,
                     trade_id,
                     instrument,
                     open_time,
@@ -107,7 +126,8 @@ def update_oanda_trades():
                 realized_pl = float(transaction.get('tradesClosed', [{}])[0].get('realizedPL', 0.0))
 
                 if transaction_type == 'TAKE_PROFIT_ORDER':
-                    cursor.execute(
+                    execute_with_retry(
+                        cursor.execute,
                         """
                         UPDATE oanda_trades
                         SET close_time = ?, close_price = ?, tp_price = ?, realized_pl = ?, state = 'CLOSED'
@@ -117,7 +137,8 @@ def update_oanda_trades():
                     )
 
                 elif transaction_type == 'STOP_LOSS_ORDER':
-                    cursor.execute(
+                    execute_with_retry(
+                        cursor.execute,
                         """
                         UPDATE oanda_trades
                         SET close_time = ?, close_price = ?, sl_price = ?, realized_pl = ?, state = 'CLOSED'
@@ -134,7 +155,7 @@ def update_oanda_trades():
             if transaction_type != 'ORDER_FILL':
                 updated_count += cursor.rowcount
 
-        conn.commit()
+        execute_with_retry(conn.commit)
         logger.info(f"Successfully updated {updated_count} new trades.")
     except Exception as e:
         logger.error(f"Error updating trades: {e}")
