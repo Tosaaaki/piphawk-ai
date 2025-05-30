@@ -244,11 +244,37 @@ class JobRunner:
             threshold_ratio = float(env_loader.get_env("LIMIT_THRESHOLD_ATR_RATIO", "0.3"))
             adx_series = indicators.get("adx")
             adx_val = adx_series.iloc[-1] if adx_series is not None and len(adx_series) else 0.0
+
+            # --- gather additional indicators for AI decision -----------------
+            rsi_series = indicators.get("rsi")
+            rsi_val = rsi_series.iloc[-1] if rsi_series is not None and len(rsi_series) else None
+
+            ema_slope_series = indicators.get("ema_slope")
+            ema_slope_val = (
+                ema_slope_series.iloc[-1]
+                if ema_slope_series is not None and len(ema_slope_series)
+                else None
+            )
+
+            bb_upper = indicators.get("bb_upper")
+            bb_lower = indicators.get("bb_lower")
+            bb_width_pips = None
+            if (
+                bb_upper is not None
+                and bb_lower is not None
+                and len(bb_upper)
+                and len(bb_lower)
+            ):
+                bb_width_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
+
             if atr_pips and diff_pips >= atr_pips * threshold_ratio and adx_val >= 25:
                 ctx = {
                     "diff_pips": diff_pips,
                     "atr_pips": atr_pips,
                     "adx": adx_val,
+                    "rsi": rsi_val,
+                    "ema_slope": ema_slope_val,
+                    "bb_width_pips": bb_width_pips,
                     "side": local_info.get("side"),
                 }
                 try:

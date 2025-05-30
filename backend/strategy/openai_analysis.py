@@ -997,9 +997,16 @@ Respond with **one-line valid JSON** exactly as:
 
 
 def should_convert_limit_to_market(context: dict) -> bool:
-    """Use OpenAI to decide whether to convert a pending LIMIT to a market order."""
+    """
+    OpenAI に問い合わせてリミット注文を成行に変更すべきか判断する。
+
+    context には ATR や ADX のほか、RSI、EMA 傾き、ボリンジャーバンド幅
+    などを含めることができる。
+    """
     prompt = (
         "We placed a limit order that has not filled and price is moving away.\n"
+        "Use ATR, ADX, RSI, EMA slope and Bollinger band width from the context "
+        "below to decide if switching to a market order is reasonable.\n\n"
         f"Context: {json.dumps(context, ensure_ascii=False)}\n\n"
         "Should we cancel the limit order and place a market order instead?\n"
         "Respond with YES or NO."
