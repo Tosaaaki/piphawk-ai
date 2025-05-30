@@ -68,6 +68,35 @@ def calculate_adx(
     return adx
 
 
+def calculate_di(
+    high: Sequence[float],
+    low: Sequence[float],
+    close: Sequence[float],
+    period: int = 14,
+) -> tuple[pd.Series, pd.Series]:
+    """Return +DI and -DI series using Wilder's smoothing."""
+
+    high = pd.Series(high, dtype="float64")
+    low = pd.Series(low, dtype="float64")
+    close = pd.Series(close, dtype="float64")
+
+    tr = pd.concat(
+        [high - low, (high - close.shift()).abs(), (low - close.shift()).abs()],
+        axis=1,
+    ).max(axis=1)
+
+    up = high.diff()
+    down = -low.diff()
+    plus_dm = up.where((up > down) & (up > 0), 0.0)
+    minus_dm = down.where((down > up) & (down > 0), 0.0)
+
+    atr = tr.rolling(period).mean()
+    plus_di = 100 * (plus_dm.rolling(period).sum() / atr)
+    minus_di = 100 * (minus_dm.rolling(period).sum() / atr)
+
+    return plus_di, minus_di
+
+
 def calculate_adx_slope(adx_values: Sequence[float], lookback: int = 5) -> float:
     """Return slope of the last ``lookback`` ADX values using linear regression."""
 

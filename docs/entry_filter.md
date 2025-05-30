@@ -13,6 +13,7 @@
 - `EMA_FLAT_PIPS`: EMA の傾きがフラットとみなされる許容幅。
 - `ADX_SLOPE_LOOKBACK`: ADX の傾きを計算する際の参照本数。
 - `ADX_DYNAMIC_COEFF`: ボリンジャーバンド幅に応じて ADX しきい値を補正する係数。
+- `TF_EMA_WEIGHTS`: 上位足EMA整合の重み付け (`M5:0.4,H1:0.3,H4:0.3` など)。
 - `OVERSHOOT_ATR_MULT`: 価格が BB 下限を ATR×この値だけ下回るとエントリーを阻止。
 - `STRICT_TF_ALIGN`: マルチTF整合が得られない場合でもエントリーするかどうか。
 

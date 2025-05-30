@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from typing import Dict, Literal
+from backend.utils import env_loader
 
 logger = logging.getLogger(__name__)
 
@@ -25,16 +26,28 @@ def _ema_direction(ema_fast, ema_slow) -> Direction | None:
 
 def is_multi_tf_aligned(indicators_by_tf: Dict[str, Dict]) -> Direction | None:
     """Return unified direction when multiple timeframes agree."""
-    votes: Dict[Direction, int] = {"long": 0, "short": 0}
+    weights_env = env_loader.get_env("TF_EMA_WEIGHTS", "M5:0.4,H1:0.3,H4:0.3")
+    weights: Dict[str, float] = {}
+    for part in weights_env.split(","):
+        if ":" in part:
+            key, val = part.split(":", 1)
+            try:
+                weights[key.strip().upper()] = float(val)
+            except ValueError:
+                continue
+
+    scores: Dict[Direction, float] = {"long": 0.0, "short": 0.0}
     for tf, ind in indicators_by_tf.items():
         dir_ = _ema_direction(ind.get("ema_fast"), ind.get("ema_slow"))
+        w = weights.get(tf.upper(), 0.0)
         if dir_:
-            votes[dir_] += 1
+            scores[dir_] += w
         else:
             logger.debug("%s: insufficient EMA data for alignment", tf)
-    if votes["long"] > votes["short"] and votes["long"] >= 2:
+
+    if scores["long"] > scores["short"] and scores["long"] >= 0.5:
         return "long"
-    if votes["short"] > votes["long"] and votes["short"] >= 2:
+    if scores["short"] > scores["long"] and scores["short"] >= 0.5:
         return "short"
     return None
 

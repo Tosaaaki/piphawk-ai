@@ -311,6 +311,22 @@ def pass_entry_filter(
     adx_thresh = adx_base * (1 + coeff * width_ratio)
     range_mode = latest_adx is not None and latest_adx < adx_thresh
 
+    # DI cross overrides trend judgement
+    plus_di = indicators.get("plus_di")
+    minus_di = indicators.get("minus_di")
+    di_cross = False
+    if plus_di is not None and minus_di is not None and len(plus_di) >= 2:
+        try:
+            p_prev = float(plus_di.iloc[-2]) if hasattr(plus_di, "iloc") else float(plus_di[-2])
+            p_cur = float(plus_di.iloc[-1]) if hasattr(plus_di, "iloc") else float(plus_di[-1])
+            m_prev = float(minus_di.iloc[-2]) if hasattr(minus_di, "iloc") else float(minus_di[-2])
+            m_cur = float(minus_di.iloc[-1]) if hasattr(minus_di, "iloc") else float(minus_di[-1])
+            di_cross = (p_prev > m_prev and p_cur < m_cur) or (p_prev < m_prev and p_cur > m_cur)
+        except Exception:
+            di_cross = False
+    if di_cross:
+        range_mode = True
+
     # --- Range center block --------------------------------------------
     block_pct = float(os.getenv("RANGE_CENTER_BLOCK_PCT", "0.3"))
     if (
