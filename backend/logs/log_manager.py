@@ -127,7 +127,7 @@ def log_trade(
     sl_pips=None,
     rrr=None,
 ):
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO trades (
@@ -153,7 +153,7 @@ def log_trade(
         ))
 
 def log_ai_decision(decision_type, instrument, ai_response):
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO ai_decisions (timestamp, decision_type, instrument, ai_response)
@@ -207,7 +207,7 @@ def log_param_change(param_name, old_value, new_value, ai_reason):
         new_value (Any): New value (stored as string).
         ai_reason (str): Reason provided by the AI or subsystem.
     """
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO param_changes (
@@ -223,11 +223,47 @@ def log_param_change(param_name, old_value, new_value, ai_reason):
 
 
 # OANDAトレードの記録
-def log_oanda_trade(trade_id, instrument, open_time, open_price, units, state, unrealized_pl, realized_pl=None, close_time=None, close_price=None, tp_price=None, sl_price=None):
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
+def log_oanda_trade(
+    trade_id,
+    instrument,
+    open_time,
+    open_price,
+    units,
+    state,
+    unrealized_pl,
+    realized_pl=None,
+    close_time=None,
+    close_price=None,
+    tp_price=None,
+    sl_price=None,
+    conn=None,
+):
+    own_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        own_conn = True
+    cursor = conn.cursor()
+    cursor.execute(
+        '''
             INSERT OR REPLACE INTO oanda_trades (
                 trade_id, instrument, open_time, open_price, units, state, unrealized_pl, realized_pl, close_time, close_price, tp_price, sl_price
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (trade_id, instrument, open_time, open_price, units, state, unrealized_pl, realized_pl, close_time, close_price, tp_price, sl_price))
+        ''',
+        (
+            trade_id,
+            instrument,
+            open_time,
+            open_price,
+            units,
+            state,
+            unrealized_pl,
+            realized_pl,
+            close_time,
+            close_price,
+            tp_price,
+            sl_price,
+        ),
+    )
+    if own_conn:
+        conn.commit()
+        conn.close()

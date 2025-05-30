@@ -61,6 +61,7 @@ def initial_fetch_oanda_trades():
                     "OPEN",
                     0.0,
                     float(transaction.get('pl', 0.0)),
+                    conn=conn,
                 )
                 updated_count += 1
 
