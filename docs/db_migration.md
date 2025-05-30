@@ -34,3 +34,15 @@ again or execute:
 ```sql
 ALTER TABLE param_changes ADD COLUMN reason TEXT;
 ```
+
+The database now also includes an `errors` table to store module errors. If your existing `trades.db` lacks this table, run `init_db()` once or execute the SQL below:
+
+```sql
+CREATE TABLE errors (
+    error_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT NOT NULL,
+    module TEXT NOT NULL,
+    error_message TEXT NOT NULL,
+    additional_info TEXT
+);
+```
