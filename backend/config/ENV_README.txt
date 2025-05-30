@@ -120,6 +120,9 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - STRICT_ENTRY_FILTER: M1 RSI クロス必須判定のオン/オフ
 - HIGHER_TF_ENABLED: 上位足ピボットをTP計算に利用するか
 
+- LINE_CHANNEL_TOKEN: LINE 通知に使用するチャンネルアクセストークン
+- LINE_USER_ID: 通知を送るユーザーのLINE ID
+
 # 分割エントリー関連設定
 
 - SCALE_LOT_SIZE: 追加エントリー時のロット数
