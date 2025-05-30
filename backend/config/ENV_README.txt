@@ -119,6 +119,13 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - PATTERN_EXCLUDE_TFS / PATTERN_TFS: チャートパターン検出を行う/除外する時間足
 - STRICT_ENTRY_FILTER: M1 RSI クロス必須判定のオン/オフ
 - HIGHER_TF_ENABLED: 上位足ピボットをTP計算に利用するか
+- VOL_MA_PERIOD: 出来高平均を計算する期間
+- MIN_VOL_MA / MIN_VOL_M1: ボリュームフィルタの最小値
+- ADX_SLOPE_LOOKBACK: ADX の傾き計算に使う本数
+- ADX_DYNAMIC_COEFF: BB 幅によって ADX しきい値を補正する係数
+- EMA_FLAT_PIPS: EMA の傾きをフラットとみなす幅
+- OVERSHOOT_ATR_MULT: BB下限をATR×この倍率だけ割り込むとエントリーをブロック
+- STRICT_TF_ALIGN: マルチTF整合が取れない場合のキャンセル可否
 
 - LINE_CHANNEL_TOKEN: LINE 通知に使用するチャンネルアクセストークン
 - LINE_USER_ID: 通知を送るユーザーのLINE ID
