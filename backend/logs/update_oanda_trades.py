@@ -1,7 +1,12 @@
 import logging
 import requests
 from backend.utils import env_loader
-from backend.logs.log_manager import get_db_connection, init_db, log_oanda_trade
+from backend.logs.log_manager import (
+    get_db_connection,
+    init_db,
+    log_oanda_trade,
+    log_error,
+)
 
 # env_loader automatically loads default env files at import time
 
@@ -138,6 +143,7 @@ def update_oanda_trades():
         logger.info(f"Successfully updated {updated_count} new trades.")
     except Exception as e:
         logger.error(f"Error updating trades: {e}")
+        log_error("update_oanda_trades", str(e))
     finally:
         conn.close()
 

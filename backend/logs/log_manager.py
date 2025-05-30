@@ -167,7 +167,7 @@ def log_error(module, error_message, additional_info=None):
     later inspection.
     """
     try:
-        with sqlite3.connect(DB_PATH) as conn:
+        with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 '''
@@ -180,7 +180,7 @@ def log_error(module, error_message, additional_info=None):
         if "no such table" in str(exc):
             try:
                 init_db()
-                with sqlite3.connect(DB_PATH) as conn:
+                with get_db_connection() as conn:
                     cursor = conn.cursor()
                     cursor.execute(
                         '''
