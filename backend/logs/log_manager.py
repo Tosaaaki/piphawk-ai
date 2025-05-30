@@ -1,6 +1,9 @@
 import sqlite3
+import logging
 from pathlib import Path
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from backend.utils import env_loader
 
@@ -163,15 +166,35 @@ def log_error(module, error_message, additional_info=None):
     HTTP responses. Anything passed in `additional_info` is stored verbatim for
     later inspection.
     """
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            '''
-            INSERT INTO errors (timestamp, module, error_message, additional_info)
-            VALUES (?, ?, ?, ?)
-        ''',
-            (datetime.utcnow().isoformat(), module, error_message, additional_info),
-        )
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                '''
+                INSERT INTO errors (timestamp, module, error_message, additional_info)
+                VALUES (?, ?, ?, ?)
+            ''',
+                (datetime.utcnow().isoformat(), module, error_message, additional_info),
+            )
+    except sqlite3.OperationalError as exc:
+        if "no such table" in str(exc):
+            try:
+                init_db()
+                with sqlite3.connect(DB_PATH) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        '''
+                        INSERT INTO errors (timestamp, module, error_message, additional_info)
+                        VALUES (?, ?, ?, ?)
+                    ''',
+                        (datetime.utcnow().isoformat(), module, error_message, additional_info),
+                    )
+            except Exception as retry_exc:
+                logger.warning("log_error retry failed: %s", retry_exc)
+        else:
+            logger.warning("log_error failed: %s", exc)
+    except Exception as exc:
+        logger.warning("log_error failed: %s", exc)
 
 def log_param_change(param_name, old_value, new_value, ai_reason):
     """
