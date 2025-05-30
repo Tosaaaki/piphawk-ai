@@ -114,6 +114,12 @@ Trade history is stored in `trades.db` (SQLite) at the repository root by defaul
 You can override the path with the environment variable `TRADES_DB_PATH`.
 When running inside Docker this defaults to `/app/trades.db`.
 
+SQLite uses WAL (Write-Ahead Logging) mode. For existing databases run:
+```bash
+sqlite3 trades.db "PRAGMA journal_mode=WAL;"
+```
+
+
 The table now includes an `ai_response` column which stores the full text returned
 by the AI when opening or closing a trade.
 
@@ -131,8 +137,7 @@ from backend.logs.log_manager import init_db
 init_db()
 EOF
 ```
-This helper also upgrades older databases to include the new `ai_response`
-column. See `docs/db_migration.md` for details.
+This helper also upgrades older databases to include new columns and tables (e.g. `errors`) and ensures WAL mode is enabled. See `docs/db_migration.md` for details.
 
 To inspect parameter adjustments logged by the strategy analyzer, run
 `backend/logs/show_param_history.py`. Filter by parameter name or period:
