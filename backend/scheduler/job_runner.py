@@ -3,6 +3,7 @@ import time
 import uuid
 import logging
 import json
+import os
 from backend.utils import env_loader
 
 from backend.market_data.tick_fetcher import fetch_tick_data
@@ -203,6 +204,14 @@ class JobRunner:
                         self.tp_reduced = True
         except Exception as exc:  # pragma: no cover - ignore init failures
             logger.debug(f"TP flag restore failed: {exc}")
+
+        token = os.getenv("LINE_CHANNEL_TOKEN", "")
+        user_id = os.getenv("LINE_USER_ID", "")
+        logger.info(
+            "JobRunner startup - LINE token set: %s, user ID set: %s",
+            bool(token),
+            bool(user_id),
+        )
 
     # ────────────────────────────────────────────────────────────
     #  Poll & renew pending LIMIT orders

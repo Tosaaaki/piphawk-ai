@@ -105,6 +105,9 @@ uvicorn backend.api.main:app --host 0.0.0.0 --port 8080
 curl -X POST http://localhost:8080/notifications/send
 ```
 
+設定画面や `/notifications/settings` からトークンとユーザー ID を更新すると
+環境変数にも反映され、即座に送信処理に利用されます。
+
 ## Running the Job Scheduler
 
 The job runner performs market data collection, indicator calculation and trading decisions. Run it directly with Python:

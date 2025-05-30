@@ -10,23 +10,16 @@ Put *all* LINE‑messaging logic here so that other modules
 """
 
 import os
+import logging
 from fastapi import HTTPException
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
 
-# ---------------------------------------------------------------------------
-# Environment variables (Cloud Run / Docker ― set via --set-env-vars)
-# ---------------------------------------------------------------------------
-LINE_CHANNEL_TOKEN: str = os.getenv("LINE_CHANNEL_TOKEN", "")
-LINE_USER_ID: str = os.getenv("LINE_USER_ID", "")
-
-# Initialise client only if token is present to avoid crashing on import.
-_line_api: LineBotApi | None = (
-    LineBotApi(LINE_CHANNEL_TOKEN) if LINE_CHANNEL_TOKEN else None
-)
+logger = logging.getLogger(__name__)
 
 
-def send_line_message(text: str) -> None:
+
+def send_line_message(text: str, token: str | None = None, user_id: str | None = None) -> None:
     """
     Send a LINE push message to the configured user.
 
@@ -36,13 +29,18 @@ def send_line_message(text: str) -> None:
         * 500 if the token / user‑ID is not configured
         * 500 if the underlying LINE SDK raises an error
     """
-    if not LINE_CHANNEL_TOKEN or not LINE_USER_ID or _line_api is None:
+    token = token or os.getenv("LINE_CHANNEL_TOKEN", "")
+    user_id = user_id or os.getenv("LINE_USER_ID", "")
+
+    if not token or not user_id:
         raise HTTPException(
             status_code=500,
             detail="LINE API token or user ID not configured",
         )
 
     try:
-        _line_api.push_message(LINE_USER_ID, TextSendMessage(text=text))
+        LineBotApi(token).push_message(user_id, TextSendMessage(text=text))
+        logger.debug("Sent LINE message: %s", text)
     except Exception as exc:  # noqa: BLE001
+        logger.error("LINE API error: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
