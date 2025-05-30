@@ -68,12 +68,11 @@ def build_exit_context(position, tick_data, indicators, indicators_m1=None) -> d
     ask = float(tick_data["prices"][0]["asks"][0]["price"])
     pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
     unrealized_pl_pips = float(position["unrealizedPL"]) / float(env_loader.get_env("PIP_VALUE_JPY", "100"))
+    side = "long" if int(position.get("long", {}).get("units", 0)) != 0 else "short"
     context = {
-        "side": "long" if position.get("long") else "short",
-        "units": abs(int(position["long"]["units"] if position.get("long") else position["short"]["units"])),
-        "avg_price": float(
-            position["long"]["averagePrice"] if position.get("long") else position["short"]["averagePrice"]
-        ),
+        "side": side,
+        "units": abs(int(position[side].get("units", 0))),
+        "avg_price": float(position[side].get("averagePrice", 0.0)),
         "unrealized_pl_pips": unrealized_pl_pips,
         "bid": bid,
         "ask": ask,
@@ -415,7 +414,7 @@ class JobRunner:
         atr_val = atr_series.iloc[-1] if hasattr(atr_series, "iloc") else atr_series[-1]
         ext_pips = (atr_val / pip_size) * TP_EXTENSION_ATR_MULT
         try:
-            entry_price = float(position[side]["averagePrice"])
+            entry_price = float(position[side].get("averagePrice", 0.0))
             trade_id = position[side]["tradeIDs"][0]
             er_raw = position.get("entry_regime")
             entry_uuid = None
@@ -469,7 +468,7 @@ class JobRunner:
         atr_val = atr_series.iloc[-1] if hasattr(atr_series, "iloc") else atr_series[-1]
         red_pips = (atr_val / pip_size) * TP_REDUCTION_ATR_MULT
         try:
-            entry_price = float(position[side]["averagePrice"])
+            entry_price = float(position[side].get("averagePrice", 0.0))
             trade_id = position[side]["tradeIDs"][0]
             er_raw = position.get("entry_regime")
             entry_uuid = None
@@ -656,9 +655,9 @@ class JobRunner:
                         self.ai_cooldown = self.ai_cooldown_open
 
                     # Determine position_side for further logic
-                    if has_position and has_position.get("long") and int(has_position["long"]["units"]) > 0:
+                    if has_position and int(has_position.get("long", {}).get("units", 0)) != 0:
                         position_side = "long"
-                    elif has_position and has_position.get("short") and int(has_position["short"]["units"]) < 0:
+                    elif has_position and int(has_position.get("short", {}).get("units", 0)) != 0:
                         position_side = "short"
                     else:
                         position_side = None
@@ -670,7 +669,7 @@ class JobRunner:
                             if position_side == "long"
                             else float(tick_data["prices"][0]["asks"][0]["price"])
                         )
-                        entry_price = float(has_position[position_side]["averagePrice"])
+                        entry_price = float(has_position[position_side].get("averagePrice", 0.0))
 
                         pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
                         current_profit_pips = (
@@ -869,7 +868,7 @@ class JobRunner:
                                 if position_side == "long"
                                 else float(tick_data["prices"][0]["asks"][0]["price"])
                             )
-                            entry_price = float(has_position[position_side]["averagePrice"])
+                            entry_price = float(has_position[position_side].get("averagePrice", 0.0))
                             pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
                             profit_pips = (
                                 (cur_price - entry_price) / pip_size
