@@ -51,7 +51,10 @@ def get_last_transaction_id():
     init_db()
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT MAX(CAST(trade_id AS INTEGER)) FROM oanda_trades")
+    cursor.execute(
+        "SELECT MAX(CAST(trade_id AS INTEGER)) FROM oanda_trades WHERE account_id = ?",
+        (OANDA_ACCOUNT_ID,),
+    )
     last_id = cursor.fetchone()[0]
     conn.close()
     return last_id if last_id else '0'
@@ -113,6 +116,7 @@ def update_oanda_trades():
                 execute_with_retry(
                     log_oanda_trade,
                     trade_id,
+                    OANDA_ACCOUNT_ID,
                     instrument,
                     open_time,
                     price,

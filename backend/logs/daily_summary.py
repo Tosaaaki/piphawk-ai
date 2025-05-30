@@ -7,6 +7,7 @@ from backend.utils import env_loader
 
 _BASE_DIR = Path(__file__).resolve().parents[2]
 DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", str(_BASE_DIR / "trades.db")))
+ACCOUNT_ID = env_loader.get_env("OANDA_ACCOUNT_ID")
 
 
 def fetch_diffs(days: int = 1) -> list[float]:
@@ -17,9 +18,9 @@ def fetch_diffs(days: int = 1) -> list[float]:
             """
             SELECT instrument, close_price, tp_price, units, close_time
             FROM oanda_trades
-            WHERE close_time IS NOT NULL AND tp_price IS NOT NULL AND close_time >= ?
+            WHERE account_id = ? AND close_time IS NOT NULL AND tp_price IS NOT NULL AND close_time >= ?
             """,
-            (since.isoformat(),),
+            (ACCOUNT_ID, since.isoformat()),
         )
         rows = cursor.fetchall()
     diffs: list[float] = []

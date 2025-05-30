@@ -21,6 +21,7 @@ def init_db():
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS oanda_trades (
                 trade_id INTEGER PRIMARY KEY,
+                account_id TEXT,
                 instrument TEXT NOT NULL,
                 open_time TEXT NOT NULL,
                 close_time TEXT,
@@ -34,6 +35,11 @@ def init_db():
                 sl_price REAL
             )
         ''')
+
+        cursor.execute("PRAGMA table_info(oanda_trades)")
+        oanda_cols = [row[1] for row in cursor.fetchall()]
+        if 'account_id' not in oanda_cols:
+            cursor.execute('ALTER TABLE oanda_trades ADD COLUMN account_id TEXT')
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS trades (
@@ -225,6 +231,7 @@ def log_param_change(param_name, old_value, new_value, ai_reason):
 # OANDAトレードの記録
 def log_oanda_trade(
     trade_id,
+    account_id,
     instrument,
     open_time,
     open_price,
@@ -246,11 +253,12 @@ def log_oanda_trade(
     cursor.execute(
         '''
             INSERT OR REPLACE INTO oanda_trades (
-                trade_id, instrument, open_time, open_price, units, state, unrealized_pl, realized_pl, close_time, close_price, tp_price, sl_price
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                trade_id, account_id, instrument, open_time, open_price, units, state, unrealized_pl, realized_pl, close_time, close_price, tp_price, sl_price
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''',
         (
             trade_id,
+            account_id,
             instrument,
             open_time,
             open_price,

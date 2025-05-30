@@ -37,6 +37,7 @@ app.add_middleware(
 
 
 DATABASE_PATH = env_loader.get_env("TRADES_DB_PATH", "/app/trades.db")
+ACCOUNT_ID = env_loader.get_env("OANDA_ACCOUNT_ID")
 LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
 
 # Initialize and start the background scheduler
@@ -126,15 +127,18 @@ def send_hourly_summary():
     start = end - timedelta(hours=1)
     conn = sqlite3.connect(DATABASE_PATH)
     cur = conn.cursor()
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
           COUNT(*),
           SUM(CASE WHEN realized_pl > 0 THEN 1 ELSE 0 END),
           SUM(CASE WHEN realized_pl <= 0 THEN 1 ELSE 0 END),
           SUM(realized_pl)
         FROM oanda_trades
-        WHERE close_time BETWEEN ? AND ?
-    """, (start.isoformat(), end.isoformat()))
+        WHERE account_id = ? AND close_time BETWEEN ? AND ?
+    """,
+        (ACCOUNT_ID, start.isoformat(), end.isoformat()),
+    )
     total, wins, losses, total_pl = cur.fetchone()
     conn.close()
     win_rate = round((wins or 0) / (total or 1) * 100, 2)
@@ -164,15 +168,18 @@ def get_trade_summary():
     start = end - timedelta(hours=1)
     conn = sqlite3.connect(DATABASE_PATH)
     cur = conn.cursor()
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
           COUNT(*),
           SUM(CASE WHEN realized_pl > 0 THEN 1 ELSE 0 END),
           SUM(CASE WHEN realized_pl <= 0 THEN 1 ELSE 0 END),
           SUM(realized_pl)
         FROM oanda_trades
-        WHERE close_time BETWEEN ? AND ?
-    """, (start.isoformat(), end.isoformat()))
+        WHERE account_id = ? AND close_time BETWEEN ? AND ?
+    """,
+        (ACCOUNT_ID, start.isoformat(), end.isoformat()),
+    )
     total, wins, losses, total_pl = cur.fetchone()
     conn.close()
     win_rate = round((wins or 0) / (total or 1) * 100, 2)
