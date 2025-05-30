@@ -32,6 +32,7 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    必要に応じて `settings.env` の値も調整してください。
 詳しい環境変数一覧と設定例は `backend/config/ENV_README.txt` を参照してください。
 分割エントリーに関する解説は `docs/scale_entry.md` にまとめています。
+エントリーフィルタの詳細は `docs/entry_filter.md` を参照してください。
    `RANGE_CENTER_BLOCK_PCT` controls how close to the Bollinger band center price
    can be when ADX is below `ADX_RANGE_THRESHOLD`. Set to `0.3` (30%) to block
    entries near the middle of a range, helping suppress counter-trend trades.
@@ -76,6 +77,11 @@ The system derives a dynamic pullback requirement from ATR, ADX and recent price
 `PATTERN_TFS` を `M1,M5` のように設定すると、指定した時間足のみをスキャンします。
 `STRICT_ENTRY_FILTER` controls whether the M1 RSI cross signal is required. Set to `false` to skip the cross check (default `true`).
 `HIGHER_TF_ENABLED` を `true` にすると、上位足ピボットとの距離も TP 計算に利用します。
+`VOL_MA_PERIOD` sets the averaging window for volume checks. If the average falls below `MIN_VOL_MA` (or `MIN_VOL_M1`) the entry is blocked.
+`ADX_SLOPE_LOOKBACK` defines how many candles to look back when computing ADX slope, and `ADX_DYNAMIC_COEFF` scales the ADX threshold based on Bollinger width.
+`EMA_FLAT_PIPS` determines the range treated as a flat EMA slope; convergence with a reversal within this range triggers the *急反転* filter.
+`OVERSHOOT_ATR_MULT` blocks entries when price overshoots below the lower Bollinger Band by this multiple of ATR.
+`STRICT_TF_ALIGN` enforces multi-timeframe EMA alignment before entering.
 
 ## Running the API
 
