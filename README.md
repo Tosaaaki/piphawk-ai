@@ -31,6 +31,20 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    アプリケーションは `.env`, `backend/config/settings.env`, `backend/config/secret.env` の順で環境変数を読み込みます。
    必要に応じて `settings.env` の値も調整してください。
 詳しい環境変数一覧と設定例は `backend/config/ENV_README.txt` を参照してください。
+
+### Switching OANDA accounts
+別アカウントを利用する場合は、そのアカウント用のAPIトークンを発行し、`.env` の
+`OANDA_API_KEY` と `OANDA_ACCOUNT_ID` を更新してください。また口座ごとにデータベ
+ースを分けると管理が容易なため、`TRADES_DB_PATH` で別ファイルを指定することを推
+奨します。
+
+```bash
+OANDA_API_KEY=<token for account 002>
+OANDA_ACCOUNT_ID=001-009-13679149-002
+TRADES_DB_PATH=trades-002.db
+```
+アカウントを切り替えたら一度 `init_db()` を実行し、その後
+`backend.logs.update_oanda_trades` を走らせると最新履歴が保存されます。
 分割エントリーに関する解説は `docs/scale_entry.md` にまとめています。
 エントリーフィルタの詳細は `docs/entry_filter.md` を参照してください。
    `RANGE_CENTER_BLOCK_PCT` controls how close to the Bollinger band center price
