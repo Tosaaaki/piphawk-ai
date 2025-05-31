@@ -40,6 +40,9 @@ def init_db():
         oanda_cols = [row[1] for row in cursor.fetchall()]
         if 'account_id' not in oanda_cols:
             cursor.execute('ALTER TABLE oanda_trades ADD COLUMN account_id TEXT')
+        # 旧バージョンのDBに open_price が無い場合に追加
+        if 'open_price' not in oanda_cols:
+            cursor.execute('ALTER TABLE oanda_trades ADD COLUMN open_price REAL')
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS trades (
