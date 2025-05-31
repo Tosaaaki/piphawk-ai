@@ -7,6 +7,7 @@ from backend.strategy.pattern_scanner import PATTERN_DIRECTION
 from backend.indicators.ema import get_ema_gradient
 from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 from backend.indicators.adx import calculate_adx_slope
+from backend.indicators import get_candle_features, compute_volume_sma
 
 # --- Added for AI-based exit decision ---
 # Consolidated exit decision helpers live in exit_ai_decision
@@ -1058,6 +1059,41 @@ Respond with **one-line valid JSON** exactly as:
 
 
 # ----------------------------------------------------------------------
+# Recent candle bias helper
+# ----------------------------------------------------------------------
+def is_entry_blocked_by_recent_candles(side: str, candles: list) -> bool:
+    """Return True when recent candles suggest blocking the opposite side."""
+    lookback = int(env_loader.get_env("REV_BLOCK_BARS", "3"))
+    tail_thr = float(env_loader.get_env("TAIL_RATIO_BLOCK", "2.0"))
+    vol_period = int(env_loader.get_env("VOL_SPIKE_PERIOD", "5"))
+
+    if lookback <= 0 or not candles:
+        return False
+
+    volumes = []
+    for c in candles[-(vol_period + lookback):]:
+        try:
+            volumes.append(float(c.get("volume", 0)))
+        except Exception:
+            volumes.append(0.0)
+    vol_sma = compute_volume_sma(volumes, vol_period)
+
+    for c in reversed(candles[-lookback:]):
+        feats = get_candle_features(c, volume_sma=vol_sma)
+        if feats["vol_spike"] or feats["tail_ratio"] >= tail_thr:
+            try:
+                mid = c.get("mid", {})
+                o = float(mid.get("o", c.get("o")))
+                cl = float(mid.get("c", c.get("c")))
+            except Exception:
+                continue
+            direction = "long" if cl > o else "short" if cl < o else None
+            if direction and direction != side:
+                return True
+    return False
+
+
+# ----------------------------------------------------------------------
 # AI-based exit decision
 # ----------------------------------------------------------------------
 # Legacy evaluate_exit functionality now lives in ``exit_ai_decision``.
@@ -1102,6 +1138,7 @@ __all__ = [
     "AIDecision",
     "evaluate_exit",
     "should_convert_limit_to_market",
+    "is_entry_blocked_by_recent_candles",
     "LIMIT_THRESHOLD_ATR_RATIO",
     "MAX_LIMIT_AGE_SEC",
     "MIN_NET_TP_PIPS",

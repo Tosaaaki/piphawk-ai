@@ -1,4 +1,3 @@
-from backend.strategy.openai_analysis import get_trade_plan
 from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
@@ -122,8 +121,11 @@ def process_entry(
     # ------------------------------------------------------------
     #  Step 1: call unified LLM helper
     # ------------------------------------------------------------
+    import importlib
+    oa = importlib.import_module("backend.strategy.openai_analysis")
+
     indicators_multi = {"M5": indicators}
-    plan = get_trade_plan(
+    plan = oa.get_trade_plan(
         market_data,
         indicators_multi,
         candles_dict,
@@ -164,6 +166,13 @@ def process_entry(
             f"AI side {side} conflicts with multi‑TF alignment {tf_align}"
         )
         return False
+
+    try:
+        if getattr(oa, "is_entry_blocked_by_recent_candles", lambda *a, **k: False)(side, candles):
+            logging.info("Entry blocked by recent candle bias")
+            return False
+    except Exception as exc:
+        logging.debug(f"[process_entry] bias check failed: {exc}")
 
     # --- dynamic pullback threshold ---------------------------------
     pullback_needed = None
