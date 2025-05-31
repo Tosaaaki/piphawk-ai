@@ -1,6 +1,8 @@
 from backend.utils import env_loader
 
 # env_loader automatically loads default env files at import time
+# 旧バージョン互換用のトレード取得スクリプト
+# log_manager.py のテーブル構造に合わせて列名を統一する
 
 import requests
 import sqlite3
@@ -37,22 +39,19 @@ def create_oanda_trades_table(db_path):
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS oanda_trades (
-            id TEXT PRIMARY KEY,
-            instrument TEXT,
-            price REAL,
-            open_time TEXT,
-            initial_units INTEGER,
-            initial_margin_required REAL,
-            state TEXT,
-            current_units INTEGER,
+            trade_id INTEGER PRIMARY KEY,
+            account_id TEXT,
+            instrument TEXT NOT NULL,
+            open_time TEXT NOT NULL,
+            close_time TEXT,
+            open_price REAL NOT NULL,
+            close_price REAL,
+            units INTEGER NOT NULL,
             realized_pl REAL,
-            financing REAL,
-            dividend_adjustment REAL,
             unrealized_pl REAL,
-            margin_used REAL,
-            take_profit_price REAL,
-            stop_loss_price REAL,
-            last_transaction_id TEXT
+            state TEXT NOT NULL,
+            tp_price REAL,
+            sl_price REAL
         );
     ''')
     conn.commit()
@@ -65,6 +64,7 @@ def fetch_and_store_transactions():
     initial_response = fetch_oanda_trades()
     pages = initial_response.get('pages', [])
     api_key = env_loader.get_env('OANDA_API_KEY')
+    account_id = env_loader.get_env('OANDA_ACCOUNT_ID')
     headers = {
         'Authorization': f'Bearer {api_key}',
         'Content-Type': 'application/json'
@@ -77,14 +77,18 @@ def fetch_and_store_transactions():
         for transaction in transactions:
             cursor.execute('''
                 INSERT OR IGNORE INTO oanda_trades (
-                    id, instrument, price, open_time, initial_units, realized_pl
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                    trade_id, account_id, instrument, open_time,
+                    open_price, units, state, unrealized_pl, realized_pl
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 transaction['id'],
+                account_id,
                 transaction.get('instrument', 'UNKNOWN'),
-                float(transaction.get('price', 0)),
                 transaction.get('time', ''),
+                float(transaction.get('price', 0)),
                 int(transaction.get('units', 0)),
+                'OPEN',
+                0.0,
                 float(transaction.get('pl', 0))
             ))
 
