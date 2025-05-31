@@ -4,7 +4,11 @@ from backend.utils.openai_client import ask_openai
 from backend.utils import env_loader, parse_json_answer
 from backend.strategy.pattern_ai_detection import detect_chart_pattern
 from backend.strategy.pattern_scanner import PATTERN_DIRECTION
-from backend.indicators.ema import get_ema_gradient
+try:
+    from backend.indicators.ema import get_ema_gradient
+except Exception:  # pragma: no cover - pandas may be unavailable
+    def get_ema_gradient(*_a, **_k) -> str:
+        return "flat"
 from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 from backend.indicators.adx import calculate_adx_slope
 
@@ -69,6 +73,9 @@ _last_exit_ai_call_time = 0.0
 _last_regime_ai_call_time = 0.0
 
 _cached_regime_result: dict | None = None
+
+# DI crossの最後の検知時刻（バーインデックス）を保持する
+_last_di_cross_ts: int | None = None
 
 
 def _series_tail_list(series, n: int = 20) -> list:
@@ -174,6 +181,7 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     import logging
 
     logger = logging.getLogger(__name__)
+    global _last_di_cross_ts
     indicators = context.get("indicators", {})
     ema_trend = None
     try:
@@ -215,6 +223,7 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     plus_di = indicators.get("plus_di")
     minus_di = indicators.get("minus_di")
     di_cross = False
+    current_idx = None
     try:
         def _tail2(series):
             if series is None:
@@ -227,12 +236,36 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
 
         p_vals = _tail2(plus_di)
         m_vals = _tail2(minus_di)
+        if plus_di is not None:
+            try:
+                current_idx = len(plus_di)
+            except Exception:
+                current_idx = 1
+        else:
+            current_idx = None
         if len(p_vals) >= 2 and len(m_vals) >= 2:
             p_prev, p_cur = p_vals[-2], p_vals[-1]
             m_prev, m_cur = m_vals[-2], m_vals[-1]
             di_cross = (p_prev > m_prev and p_cur < m_cur) or (p_prev < m_prev and p_cur > m_cur)
     except Exception:
         di_cross = False
+        current_idx = None
+
+    if di_cross and current_idx is not None:
+        _last_di_cross_ts = current_idx
+
+    cross_age = None
+    if _last_di_cross_ts is not None and current_idx is not None:
+        cross_age = current_idx - _last_di_cross_ts
+
+    if cross_age is not None and cross_age <= 5:
+        logger.info("di_cross_lock: %s bars since DI cross", cross_age)
+        return {
+            "market_condition": "range",
+            "range_break": None,
+            "break_direction": None,
+            "break_class": None,
+        }
 
     def _extract_latest(series, n: int = 3):
         if series is None:
