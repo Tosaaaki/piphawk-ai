@@ -54,6 +54,7 @@ class TestRapidReversalBlock(unittest.TestCase):
         os.environ["RSI_ENTRY_LOWER"] = "20"
         os.environ["RSI_ENTRY_UPPER"] = "80"
         os.environ["PIP_SIZE"] = "0.01"
+        os.environ["HIGHER_TF_ENABLED"] = "false"
 
         import backend.strategy.signal_filter as sf
         importlib.reload(sf)
@@ -95,7 +96,7 @@ class TestRapidReversalBlock(unittest.TestCase):
         ind = self._base_indicators()
         ind15 = {"rsi": FakeSeries([40])}
         m1 = {"rsi": FakeSeries([29, 35])}
-        res = self.sf.pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_m15=ind15)
+        res = self.sf.pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_m15=ind15, indicators_h1=None)
         self.assertFalse(res)
 
 

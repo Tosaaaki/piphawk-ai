@@ -1,4 +1,3 @@
-from backend.strategy.openai_analysis import get_trade_plan
 from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
@@ -122,8 +121,11 @@ def process_entry(
     # ------------------------------------------------------------
     #  Step 1: call unified LLM helper
     # ------------------------------------------------------------
+    import importlib
+    oa = importlib.import_module("backend.strategy.openai_analysis")
+
     indicators_multi = {"M5": indicators}
-    plan = get_trade_plan(
+    plan = oa.get_trade_plan(
         market_data,
         indicators_multi,
         candles_dict,
@@ -164,6 +166,13 @@ def process_entry(
             f"AI side {side} conflicts with multi‑TF alignment {tf_align}"
         )
         return False
+
+    try:
+        if getattr(oa, "is_entry_blocked_by_recent_candles", lambda *a, **k: False)(side, candles):
+            logging.info("Entry blocked by recent candle bias")
+            return False
+    except Exception as exc:
+        logging.debug(f"[process_entry] bias check failed: {exc}")
 
     # --- dynamic pullback threshold ---------------------------------
     pullback_needed = None
@@ -315,10 +324,10 @@ def process_entry(
             else:
                 atr_val = float(atr_series[-1])
             pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-            mult = float(env_loader.get_env("ATR_SL_MULTIPLIER", "2.0"))
-            fallback_sl = atr_val / pip_size * mult
-            tp_ratio = float(env_loader.get_env("SHORT_TP_ATR_RATIO", "0.6"))
-            fallback_tp = atr_val / pip_size * tp_ratio
+            mult_sl = float(env_loader.get_env("ATR_MULT_SL", env_loader.get_env("ATR_SL_MULTIPLIER", "2.0")))
+            fallback_sl = atr_val / pip_size * mult_sl
+            mult_tp = float(env_loader.get_env("ATR_MULT_TP", env_loader.get_env("SHORT_TP_ATR_RATIO", "0.6")))
+            fallback_tp = atr_val / pip_size * mult_tp
         price_ref = bid if side == "long" else ask
         # SL用ピボットレベル
         pivot_sl_key = "pivot_s1" if side == "long" else "pivot_r1"

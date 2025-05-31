@@ -21,6 +21,137 @@ logger = logging.getLogger(__name__)
 
 REVERSAL_RSI_DIFF = float(os.getenv("REVERSAL_RSI_DIFF", "15"))
 
+
+def _ema_direction(fast, slow) -> str | None:
+    """Return EMA-based direction."""
+    try:
+        f = float(fast.iloc[-1]) if hasattr(fast, "iloc") else float(fast[-1])
+        s = float(slow.iloc[-1]) if hasattr(slow, "iloc") else float(slow[-1])
+    except Exception:
+        return None
+    if f > s:
+        return "long"
+    if f < s:
+        return "short"
+    return None
+
+
+def counter_trend_block(side: str, ind_m5: dict, ind_m15: dict | None = None, ind_h1: dict | None = None) -> bool:
+    """Return True when higher timeframe trend opposes the side."""
+    if side not in ("long", "short"):
+        return False
+    if os.getenv("BLOCK_COUNTER_TREND", "true").lower() != "true":
+        return False
+    dir_m15 = _ema_direction(ind_m15.get("ema_fast"), ind_m15.get("ema_slow")) if ind_m15 else None
+    dir_h1 = _ema_direction(ind_h1.get("ema_fast"), ind_h1.get("ema_slow")) if ind_h1 else None
+    if dir_m15 and dir_h1 and dir_m15 == dir_h1 and side != dir_m15:
+        return True
+    adx_thresh = float(os.getenv("BLOCK_ADX_MIN", "25"))
+    adx_series = ind_m5.get("adx")
+    try:
+        if adx_series is not None and len(adx_series) >= 2:
+            prev_val = float(adx_series.iloc[-2]) if hasattr(adx_series, "iloc") else float(adx_series[-2])
+            cur_val = float(adx_series.iloc[-1]) if hasattr(adx_series, "iloc") else float(adx_series[-1])
+            if cur_val >= adx_thresh and cur_val > prev_val:
+                dir_m5 = _ema_direction(ind_m5.get("ema_fast"), ind_m5.get("ema_slow"))
+                if dir_m5 and side != dir_m5:
+                    return True
+    except Exception:
+        pass
+    return False
+
+
+def detect_climax_reversal(candles: list[dict], indicators: dict, *, lookback: int = 50, z_thresh: float | None = None) -> str | None:
+    """Return reversal side when BB±2σ breach and ATR z-score exceeds threshold."""
+    if os.getenv("CLIMAX_ENABLED", "true").lower() != "true":
+        return None
+    if z_thresh is None:
+        z_thresh = float(os.getenv("CLIMAX_ZSCORE", "1.5"))
+    if not candles:
+        return None
+    try:
+        close = float(candles[-1]["mid"]["c"])
+    except Exception:
+        return None
+    bb_upper = indicators.get("bb_upper")
+    bb_lower = indicators.get("bb_lower")
+    if bb_upper is None or bb_lower is None or not len(bb_upper):
+        return None
+    up = float(bb_upper.iloc[-1]) if hasattr(bb_upper, "iloc") else float(bb_upper[-1])
+    low = float(bb_lower.iloc[-1]) if hasattr(bb_lower, "iloc") else float(bb_lower[-1])
+    side = None
+    if close > up:
+        side = "short"
+    elif close < low:
+        side = "long"
+    else:
+        return None
+    atr_series = indicators.get("atr")
+    if atr_series is None or len(atr_series) < lookback:
+        return None
+    if hasattr(atr_series, "iloc"):
+        vals = [float(v) for v in atr_series.iloc[-lookback:]]
+        cur = float(atr_series.iloc[-1])
+    else:
+        vals = [float(v) for v in atr_series[-lookback:]]
+        cur = float(atr_series[-1])
+    mean = sum(vals) / len(vals)
+    var = sum((v - mean) ** 2 for v in vals) / len(vals)
+    std = math.sqrt(var)
+    if std == 0:
+        return None
+    z = (cur - mean) / std
+    if z > z_thresh:
+        return side
+    return None
+
+# ────────────────────────────────────────────────
+#  Trend追随前フィルター
+# ────────────────────────────────────────────────
+def filter_pre_ai(
+    candles: list[dict], indicators: dict, market_cond: dict | None = None
+) -> bool:
+    """Return True when the last candle is a large trend bar.
+
+    The function checks the body length of the most recent candle and
+    compares it with the current ATR value. When the candle body exceeds
+    ``1.5 × ATR`` and its direction matches ``market_cond['trend_direction']``
+    we skip the AI entry decision.
+    """
+
+    try:
+        if not candles:
+            return False
+        last = candles[-1]
+        if "mid" in last:
+            o_val = float(last["mid"].get("o", 0))
+            c_val = float(last["mid"].get("c", 0))
+        else:
+            o_val = float(last.get("o", 0))
+            c_val = float(last.get("c", 0))
+        body_len = c_val - o_val
+
+        atr_series = indicators.get("atr")
+        if atr_series is None or len(atr_series) == 0:
+            return False
+        atr = (
+            float(atr_series.iloc[-1])
+            if hasattr(atr_series, "iloc")
+            else float(atr_series[-1])
+        )
+
+        follow_trend = None
+        if market_cond is not None:
+            follow_trend = market_cond.get("trend_direction")
+
+        side = "long" if body_len > 0 else "short"
+
+        skip_entry = abs(body_len) > 1.5 * atr and side == follow_trend
+        return bool(skip_entry)
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.debug(f"filter_pre_ai failed: {exc}")
+        return False
+
 # ────────────────────────────────────────────────
 #  EMA helper for exit‑filter
 # ────────────────────────────────────────────────
@@ -120,6 +251,7 @@ def pass_entry_filter(
     price: float | None = None,
     indicators_m1: dict | None = None,
     indicators_m15: dict | None = None,
+    indicators_h1: dict | None = None,
 ) -> bool:
     """
     Pure rule‑based entry filter.
@@ -137,6 +269,8 @@ def pass_entry_filter(
     indicators_m15 : dict | None
         Optional M15 timeframe indicator dictionary used for rapid reversal
         checks. If omitted, the function fetches M15 candles as needed.
+    indicators_h1 : dict | None
+        Optional H1 timeframe indicators used for counter-trend blocking.
     """
     if os.getenv("DISABLE_ENTRY_FILTER", "false").lower() == "true":
         return True
@@ -144,17 +278,24 @@ def pass_entry_filter(
     # --- Time‑of‑day block (JST decimal hours) --------------------------
     quiet_start = float(os.getenv("QUIET_START_HOUR_JST", "3"))   # default 03:00
     quiet_end   = float(os.getenv("QUIET_END_HOUR_JST", "7"))     # default 07:00
+    quiet2_start = float(os.getenv("QUIET2_START_HOUR_JST", "23"))  # default 23:00
+    quiet2_end   = float(os.getenv("QUIET2_END_HOUR_JST", "1"))    # default 01:00
 
     now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
     current_time = now_jst.hour + now_jst.minute / 60.0
 
-    in_quiet_hours = (
-        (quiet_start < quiet_end  and quiet_start <= current_time < quiet_end) or
-        (quiet_start > quiet_end  and (current_time >= quiet_start or current_time < quiet_end)) or
-        (quiet_start == quiet_end)
-    )
+    def _in_range(start: float, end: float) -> bool:
+        return (
+            (start < end and start <= current_time < end)
+            or (start > end and (current_time >= start or current_time < end))
+            or (start == end)
+        )
+
+    in_quiet_hours = _in_range(quiet_start, quiet_end) or _in_range(quiet2_start, quiet2_end)
     if in_quiet_hours:
-        logger.debug(f"EntryFilter blocked by quiet hours ({quiet_start}-{quiet_end})")
+        logger.debug(
+            f"EntryFilter blocked by quiet hours ({quiet_start}-{quiet_end} or {quiet2_start}-{quiet2_end})"
+        )
         return False
 
     # --- Pivot suppression for specified timeframes --------------------

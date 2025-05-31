@@ -64,6 +64,8 @@ class TestPivotSuppression(unittest.TestCase):
         end = (start + 1) % 24
         os.environ["QUIET_START_HOUR_JST"] = str(start)
         os.environ["QUIET_END_HOUR_JST"] = str(end)
+        os.environ["QUIET2_START_HOUR_JST"] = str(start)
+        os.environ["QUIET2_END_HOUR_JST"] = str(end)
         os.environ["HIGHER_TF_ENABLED"] = "true"
         os.environ["PIVOT_SUPPRESSION_TFS"] = "D,H4"
         os.environ["PIVOT_SUPPRESSION_PIPS"] = "15"
@@ -84,7 +86,7 @@ class TestPivotSuppression(unittest.TestCase):
 
     def test_blocked_by_pivot(self):
         m1 = {"rsi": FakeSeries([29, 35])}
-        res = self.pass_entry_filter(sys.modules["backend.indicators.calculate_indicators"].calculate_indicators(), price=1.0, indicators_m1=m1)
+        res = self.pass_entry_filter(sys.modules["backend.indicators.calculate_indicators"].calculate_indicators(), price=1.0, indicators_m1=m1, indicators_h1=None)
         self.assertFalse(res)
 
 if __name__ == "__main__":
