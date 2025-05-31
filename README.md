@@ -193,6 +193,12 @@ To inspect parameter adjustments logged by the strategy analyzer, run
 python3 backend/logs/show_param_history.py --param RSI_PERIOD --days 7
 ```
 
+データベースのテーブル構成を確認するには次のスクリプトを実行します。
+
+```bash
+python3 -m backend.logs.show_tables
+```
+
 ## React UI
 
 The active React application lives in `piphawk-ui/` and was bootstrapped with Create React App. Run it locally with:
