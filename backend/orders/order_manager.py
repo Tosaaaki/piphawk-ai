@@ -43,6 +43,11 @@ def get_pip_size(instrument: str) -> float:
     return PIP_SIZES.get(instrument, PIP_SIZES.get(DEFAULT_PAIR, 0.01))
 
 
+def validate_rrr(tp_pips: float, sl_pips: float, min_rrr: float) -> bool:
+    """Return True if tp_pips / sl_pips meets or exceeds min_rrr."""
+    return sl_pips > 0 and (tp_pips / sl_pips) >= min_rrr
+
+
 class OrderManager:
 
     # ------------------------------------------------------------------
@@ -305,6 +310,21 @@ class OrderManager:
         sl_pips = strategy_params.get("sl_pips")
         pip = get_pip_size(instrument)
         # side = strategy_params.get("side", "long").lower()
+
+        min_rrr = float(os.getenv("MIN_RRR", "0.8"))
+        if tp_pips is not None and sl_pips is not None:
+            try:
+                if not validate_rrr(float(tp_pips), float(sl_pips), min_rrr):
+                    adj_tp = float(sl_pips) * min_rrr
+                    logger.warning(
+                        "TP/SL ratio below %.2f – adjusting TP from %s to %.2f",
+                        min_rrr,
+                        tp_pips,
+                        adj_tp,
+                    )
+                    tp_pips = adj_tp
+            except Exception:
+                pass
 
         entry_price = float(market_data['prices'][0]['bids'][0]['price']) if side == "long" else float(market_data['prices'][0]['asks'][0]['price'])
         units = int(lot_size * 1000) if side == "long" else -int(lot_size * 1000)
@@ -570,6 +590,28 @@ class OrderManager:
                 "timeInForce": "GTC",
             }
         }
+
+        min_rrr = float(os.getenv("MIN_RRR", "0.8"))
+        current_tp = None
+        entry_price = None
+        try:
+            current_tp = self.get_current_tp(trade_id)
+            from backend.logs.update_oanda_trades import fetch_trade_details
+            trade_info = fetch_trade_details(trade_id) or {}
+            trade = trade_info.get("trade", {})
+            entry_price = float(trade.get("price") or trade.get("averagePrice", 0))
+        except Exception as exc:
+            logger.debug(f"RRR fetch failed: {exc}")
+
+        if current_tp is not None and entry_price is not None:
+            pip = get_pip_size(instrument)
+            tp_pips = abs(current_tp - entry_price) / pip
+            sl_pips = abs(new_sl_price - entry_price) / pip
+            if not validate_rrr(tp_pips, sl_pips, min_rrr):
+                logger.warning(
+                    "RRR %.2f below %.2f – rejecting SL update", tp_pips / sl_pips if sl_pips else 0, min_rrr
+                )
+                return None
 
         response = requests.put(url, json=body, headers=HEADERS)
 
