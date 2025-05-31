@@ -33,7 +33,13 @@ except ImportError:  # tests may stub position_manager without helpers
     def get_position_details(*_args, **_kwargs):
         return None
 from backend.orders.order_manager import OrderManager
-from backend.strategy.signal_filter import pass_entry_filter
+try:
+    from backend.strategy.signal_filter import pass_entry_filter, filter_pre_ai
+except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
+    from backend.strategy.signal_filter import pass_entry_filter
+
+    def filter_pre_ai(*_args, **_kwargs):
+        return False
 from analysis.signal_filter import is_multi_tf_aligned
 from backend.logs.perf_stats_logger import PerfTimer
 from backend.strategy.signal_filter import pass_exit_filter
@@ -1079,6 +1085,14 @@ class JobRunner:
                                 higher_tf,
                             )
                             logger.debug(f"Market condition (post‑filter): {market_cond}")
+
+                            if filter_pre_ai(candles_m5, indicators, market_cond):
+                                logger.info("Pre-AI filter triggered → skipping entry.")
+                                self.last_run = now
+                                update_oanda_trades()
+                                time.sleep(self.interval_seconds)
+                                timer.stop()
+                                continue
 
                             if not has_position and market_cond.get("market_condition") == "break":
                                 try:
