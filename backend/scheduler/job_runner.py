@@ -176,6 +176,9 @@ class JobRunner:
         # Entry cooldown settings
         self.entry_cooldown_sec = int(env_loader.get_env("ENTRY_COOLDOWN_SEC", "30"))
         self.last_close_ts: datetime | None = None
+        # --- last stop-loss info ----------------------------------
+        self.last_sl_side: str | None = None
+        self.last_sl_time: datetime | None = None
         # Storage for latest indicators by timeframe
         self.indicators_M1: dict | None = None
         self.indicators_M5: dict | None = None
@@ -749,6 +752,9 @@ class JobRunner:
                                 logger.info(f"SL updated to entry price to secure minimum profit: {new_sl_price}")
                                 self.breakeven_reached = True
                                 self.sl_reset_done = False
+                                # SLが実行された向きと時間を記録
+                                self.last_sl_side = position_side
+                                self.last_sl_time = datetime.utcnow()
 
                         if self.breakeven_reached and not self.sl_reset_done:
                             trade_id = has_position[position_side]["tradeIDs"][0]
@@ -777,6 +783,9 @@ class JobRunner:
                                 if result is not None:
                                     logger.info(f"SL reapplied at {new_sl_price}")
                                     self.sl_reset_done = True
+                                    # SLが実行された向きと時間を記録
+                                    self.last_sl_side = position_side
+                                    self.last_sl_time = datetime.utcnow()
 
                         self._maybe_extend_tp(has_position, indicators, position_side, pip_size)
                         self._maybe_reduce_tp(has_position, indicators, position_side, pip_size)
@@ -1096,6 +1105,35 @@ class JobRunner:
                                 logger.warning(
                                     f"marginUsed {margin_used} exceeds threshold {MARGIN_WARNING_THRESHOLD}"
                                 )
+
+                            # --- SL hit cooldown check ----------------------
+                            try:
+                                plan_check = get_trade_plan(
+                                    tick_data,
+                                    {"M5": indicators},
+                                    {"M1": candles_m1, "M5": candles_m5},
+                                    patterns=PATTERN_NAMES,
+                                    detected_patterns=self.patterns_by_tf,
+                                )
+                                side = plan_check.get("entry", {}).get("side", "no").lower()
+                            except Exception as exc:
+                                logger.warning(f"get_trade_plan failed for check: {exc}")
+                                side = "no"
+
+                            if (
+                                side in ("long", "short")
+                                and self.last_sl_time
+                                and (now - self.last_sl_time).total_seconds() < 900
+                                and side == self.last_sl_side
+                            ):
+                                logger.info(
+                                    f"Entry blocked: recent SL hit on {side}. Cooldown {(now - self.last_sl_time).total_seconds():.0f}s < 900s"
+                                )
+                                self.last_run = now
+                                update_oanda_trades()
+                                time.sleep(self.interval_seconds)
+                                timer.stop()
+                                continue
 
                             result = process_entry(
                                 indicators,
