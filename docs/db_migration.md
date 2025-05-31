@@ -54,7 +54,8 @@ If you run an older database without the `account_id` column in `oanda_trades`, 
 ALTER TABLE oanda_trades ADD COLUMN account_id TEXT;
 ```
 
-The `open_price` column has been added to `oanda_trades`. Running `init_db()` will add this column automatically or execute:
+古い `oanda_trades` テーブルに `open_price` 列が無い場合も `init_db()` を実行する
+だけで自動的に追加されます。手動で行う場合は以下を実行してください。
 
 ```sql
 ALTER TABLE oanda_trades ADD COLUMN open_price REAL;
