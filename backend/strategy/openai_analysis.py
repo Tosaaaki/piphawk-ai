@@ -40,6 +40,8 @@ COOL_ATR_PCT: float = float(env_loader.get_env("COOL_ATR_PCT", "0"))
 ADX_NO_TRADE_MIN: float = float(env_loader.get_env("ADX_NO_TRADE_MIN", "20"))
 ADX_NO_TRADE_MAX: float = float(env_loader.get_env("ADX_NO_TRADE_MAX", "30"))
 ADX_SLOPE_LOOKBACK: int = int(env_loader.get_env("ADX_SLOPE_LOOKBACK", "3"))
+ADX_TREND_ON: int = 25
+ADX_TREND_OFF: int = 18
 USE_LOCAL_PATTERN: bool = (
     env_loader.get_env("USE_LOCAL_PATTERN", "false").lower() == "true"
 )
@@ -69,6 +71,9 @@ _last_exit_ai_call_time = 0.0
 _last_regime_ai_call_time = 0.0
 
 _cached_regime_result: dict | None = None
+
+# --- Market trend state for hysteresis control ---------------------
+_trend_active: bool = False
 
 
 def _series_tail_list(series, n: int = 20) -> list:
@@ -259,6 +264,24 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         except Exception:
             adx_latest = None
 
+    # --- Hysteresis control for trend/range state -------------------
+    global _trend_active
+    if adx_latest is not None:
+        prev_state = _trend_active
+        if _trend_active:
+            if adx_latest <= ADX_TREND_OFF:
+                _trend_active = False
+        else:
+            if adx_latest >= ADX_TREND_ON:
+                _trend_active = True
+        if prev_state != _trend_active:
+            logger.info(
+                "Regime change: %s -> %s (ADX %.2f)",
+                "trend" if prev_state else "range",
+                "trend" if _trend_active else "range",
+                adx_latest,
+            )
+
     adx_slope = None
     if adx_vals is not None:
         try:
@@ -317,6 +340,11 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         local_regime = "trend" if adx_latest >= adx_dynamic_thresh else "range"
     elif adx_latest is not None:
         local_regime = "range"
+    else:
+        local_regime = "trend" if _trend_active else "range"
+
+    if _trend_active and local_regime == "range":
+        local_regime = "trend"
 
     # --- check M1 indicators before higher timeframes -----------------
     if local_regime is None:
