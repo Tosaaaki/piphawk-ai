@@ -12,7 +12,7 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
 2. **Install dependencies**
    It is recommended to use a virtual environment.
    ```bash
-   python -m venv .venv
+   python3 -m venv .venv
    source .venv/bin/activate
    pip install -r backend/requirements.txt
    ```
@@ -119,7 +119,7 @@ curl -X POST http://localhost:8080/notifications/send
 
 The job runner performs market data collection, indicator calculation and trading decisions. Run it directly with Python:
 ```bash
-python -m backend.scheduler.job_runner
+python3 -m backend.scheduler.job_runner
 ```
 If the optional performance logger was added earlier, each job loop's timing
 will be appended to `backend/logs/perf_stats.jsonl`.
@@ -164,7 +164,7 @@ cp backend/logs/trades.db trades.db
 or create a fresh one using the helper in `backend.logs.log_manager`:
 
 ```bash
-python - <<'EOF'
+python3 - <<'EOF'
 from backend.logs.log_manager import init_db
 init_db()
 EOF
@@ -176,7 +176,7 @@ To inspect parameter adjustments logged by the strategy analyzer, run
 `backend/logs/show_param_history.py`. Filter by parameter name or period:
 
 ```bash
-python backend/logs/show_param_history.py --param RSI_PERIOD --days 7
+python3 backend/logs/show_param_history.py --param RSI_PERIOD --days 7
 ```
 
 ## React UI
