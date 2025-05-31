@@ -4,6 +4,7 @@ The `trades` table now stores the full AI response for each entry or exit.
 A new column `ai_response` has been added.  
 Additionally the table tracks take‑profit and stop‑loss distances (`tp_pips`,
 `sl_pips`) and the calculated risk‑reward ratio (`rrr`).
+The `oanda_trades` table now stores the opening price in `open_price`.
 
 ## Updating an existing `trades.db`
 
