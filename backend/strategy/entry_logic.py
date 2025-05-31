@@ -324,10 +324,10 @@ def process_entry(
             else:
                 atr_val = float(atr_series[-1])
             pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-            mult = float(env_loader.get_env("ATR_SL_MULTIPLIER", "2.0"))
-            fallback_sl = atr_val / pip_size * mult
-            tp_ratio = float(env_loader.get_env("SHORT_TP_ATR_RATIO", "0.6"))
-            fallback_tp = atr_val / pip_size * tp_ratio
+            mult_sl = float(env_loader.get_env("ATR_MULT_SL", env_loader.get_env("ATR_SL_MULTIPLIER", "2.0")))
+            fallback_sl = atr_val / pip_size * mult_sl
+            mult_tp = float(env_loader.get_env("ATR_MULT_TP", env_loader.get_env("SHORT_TP_ATR_RATIO", "0.6")))
+            fallback_tp = atr_val / pip_size * mult_tp
         price_ref = bid if side == "long" else ask
         # SL用ピボットレベル
         pivot_sl_key = "pivot_s1" if side == "long" else "pivot_r1"

@@ -34,11 +34,20 @@ except ImportError:  # tests may stub position_manager without helpers
         return None
 from backend.orders.order_manager import OrderManager
 try:
-    from backend.strategy.signal_filter import pass_entry_filter, filter_pre_ai
+    from backend.strategy.signal_filter import (
+        pass_entry_filter,
+        filter_pre_ai,
+        detect_climax_reversal,
+        counter_trend_block,
+    )
 except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
     from backend.strategy.signal_filter import pass_entry_filter
 
     def filter_pre_ai(*_args, **_kwargs):
+        return False
+    def detect_climax_reversal(*_a, **_k):
+        return None
+    def counter_trend_block(*_a, **_k):
         return False
 from analysis.signal_filter import is_multi_tf_aligned
 from backend.logs.perf_stats_logger import PerfTimer
@@ -559,15 +568,20 @@ class JobRunner:
         from backend.strategy import exit_logic
         quiet_start = float(env_loader.get_env("QUIET_START_HOUR_JST", "3"))
         quiet_end = float(env_loader.get_env("QUIET_END_HOUR_JST", "7"))
+        quiet2_start = float(env_loader.get_env("QUIET2_START_HOUR_JST", "23"))
+        quiet2_end = float(env_loader.get_env("QUIET2_END_HOUR_JST", "1"))
 
         now_jst = datetime.utcnow() + timedelta(hours=9)
         current_time = now_jst.hour + now_jst.minute / 60.0
 
-        in_quiet_hours = (
-            (quiet_start < quiet_end and quiet_start <= current_time < quiet_end)
-            or (quiet_start > quiet_end and (current_time >= quiet_start or current_time < quiet_end))
-            or (quiet_start == quiet_end)
-        )
+        def _in_range(start: float, end: float) -> bool:
+            return (
+                (start < end and start <= current_time < end)
+                or (start > end and (current_time >= start or current_time < end))
+                or (start == end)
+            )
+
+        in_quiet_hours = _in_range(quiet_start, quiet_end) or _in_range(quiet2_start, quiet2_end)
 
         if in_quiet_hours or self.get_calendar_volatility_level() >= 3:
             exit_logic.TRAIL_ENABLED = False
@@ -1067,6 +1081,7 @@ class JobRunner:
                             current_price,
                             self.indicators_M1,
                             self.indicators_M15,
+                            self.indicators_H1,
                         ):
                             logger.info("Filter OK → Processing entry decision with AI.")
                             self.last_ai_call = datetime.now()  # record AI call time *before* the call
@@ -1094,6 +1109,29 @@ class JobRunner:
                                 higher_tf,
                             )
                             logger.debug(f"Market condition (post‑filter): {market_cond}")
+
+                            climax_side = detect_climax_reversal(candles_m5, indicators)
+                            if climax_side and not has_position:
+                                logger.info(f"Climax reversal detected → {climax_side} entry")
+                                params = {
+                                    "instrument": DEFAULT_PAIR,
+                                    "side": climax_side,
+                                    "tp_pips": float(env_loader.get_env("CLIMAX_TP_PIPS", "7")),
+                                    "sl_pips": float(env_loader.get_env("CLIMAX_SL_PIPS", "10")),
+                                    "mode": "market",
+                                    "market_cond": market_cond,
+                                }
+                                order_mgr.enter_trade(
+                                    side=climax_side,
+                                    lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
+                                    market_data=tick_data,
+                                    strategy_params=params,
+                                )
+                                self.last_run = now
+                                update_oanda_trades()
+                                time.sleep(self.interval_seconds)
+                                timer.stop()
+                                continue
 
                             if filter_pre_ai(candles_m5, indicators, market_cond):
                                 logger.info("Pre-AI filter triggered → skipping entry.")
@@ -1143,6 +1181,14 @@ class JobRunner:
                                 logger.info(
                                     f"Entry blocked: recent SL hit on {side}. Cooldown {(now - self.last_sl_time).total_seconds():.0f}s < 900s"
                                 )
+                                self.last_run = now
+                                update_oanda_trades()
+                                time.sleep(self.interval_seconds)
+                                timer.stop()
+                                continue
+
+                            if counter_trend_block(side, indicators, self.indicators_M15, self.indicators_H1):
+                                logger.info("Counter-trend block triggered → skip entry")
                                 self.last_run = now
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)
