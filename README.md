@@ -12,7 +12,7 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
 2. **Install dependencies**
    It is recommended to use a virtual environment.
    ```bash
-   python -m venv .venv
+   python3 -m venv .venv
    source .venv/bin/activate
    pip install -r backend/requirements.txt
    ```
@@ -31,6 +31,20 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    アプリケーションは `.env`, `backend/config/settings.env`, `backend/config/secret.env` の順で環境変数を読み込みます。
    必要に応じて `settings.env` の値も調整してください。
 詳しい環境変数一覧と設定例は `backend/config/ENV_README.txt` を参照してください。
+
+### Switching OANDA accounts
+別アカウントを利用する場合は、そのアカウント用のAPIトークンを発行し、`.env` の
+`OANDA_API_KEY` と `OANDA_ACCOUNT_ID` を更新してください。また口座ごとにデータベ
+ースを分けると管理が容易なため、`TRADES_DB_PATH` で別ファイルを指定することを推
+奨します。
+
+```bash
+OANDA_API_KEY=<token for account 002>
+OANDA_ACCOUNT_ID=001-009-13679149-002
+TRADES_DB_PATH=trades-002.db
+```
+アカウントを切り替えたら一度 `init_db()` を実行し、その後
+`backend.logs.update_oanda_trades` を走らせると最新履歴が保存されます。
 分割エントリーに関する解説は `docs/scale_entry.md` にまとめています。
 エントリーフィルタの詳細は `docs/entry_filter.md` を参照してください。
    `RANGE_CENTER_BLOCK_PCT` controls how close to the Bollinger band center price
@@ -119,7 +133,7 @@ curl -X POST http://localhost:8080/notifications/send
 
 The job runner performs market data collection, indicator calculation and trading decisions. Run it directly with Python:
 ```bash
-python -m backend.scheduler.job_runner
+python3 -m backend.scheduler.job_runner
 ```
 If the optional performance logger was added earlier, each job loop's timing
 will be appended to `backend/logs/perf_stats.jsonl`.
@@ -164,7 +178,7 @@ cp backend/logs/trades.db trades.db
 or create a fresh one using the helper in `backend.logs.log_manager`:
 
 ```bash
-python - <<'EOF'
+python3 - <<'EOF'
 from backend.logs.log_manager import init_db
 init_db()
 EOF
@@ -176,7 +190,7 @@ To inspect parameter adjustments logged by the strategy analyzer, run
 `backend/logs/show_param_history.py`. Filter by parameter name or period:
 
 ```bash
-python backend/logs/show_param_history.py --param RSI_PERIOD --days 7
+python3 backend/logs/show_param_history.py --param RSI_PERIOD --days 7
 ```
 
 ## React UI
