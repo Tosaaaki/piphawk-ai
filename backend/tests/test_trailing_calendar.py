@@ -121,6 +121,8 @@ class TestTrailingCalendar(unittest.TestCase):
         end = (start + 1) % 24
         os.environ["QUIET_START_HOUR_JST"] = str(start)
         os.environ["QUIET_END_HOUR_JST"] = str(end)
+        os.environ["QUIET2_START_HOUR_JST"] = str(start)
+        os.environ["QUIET2_END_HOUR_JST"] = str(end)
         self.el.TRAIL_ENABLED = True
         self.runner._refresh_trailing_status()
         self.assertFalse(self.el.TRAIL_ENABLED)
@@ -128,6 +130,8 @@ class TestTrailingCalendar(unittest.TestCase):
     def test_distance_multiplier_applied(self):
         os.environ["QUIET_START_HOUR_JST"] = "0"
         os.environ["QUIET_END_HOUR_JST"] = "0"
+        os.environ["QUIET2_START_HOUR_JST"] = "0"
+        os.environ["QUIET2_END_HOUR_JST"] = "0"
         self.position.update({
             "instrument": "EUR_USD",
             "long": {"units": "1", "averagePrice": "1.2000", "tradeIDs": ["t1"]},
