@@ -11,7 +11,7 @@ Run the migration helper to add the new column if your database was created
 with an earlier version:
 
 ```bash
-python - <<'PY'
+python3 - <<'PY'
 from backend.logs.log_manager import init_db
 init_db()
 PY
