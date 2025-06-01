@@ -418,6 +418,10 @@ def process_entry(
             return False
 
         # Check if a similar pending order already exists
+        open_orders = order_manager.get_open_orders(instrument, side)
+        if open_orders:
+            logging.info("Existing pending order found – skip entry.")
+            return False
         existing = get_pending_entry_order(instrument)
         if existing:
             logging.info("Pending LIMIT order already exists – skip new limit placement.")
@@ -455,6 +459,9 @@ def process_entry(
         return bool(result)
     else:
         # --- MARKET order path ---
+        if order_manager.get_open_orders(instrument, side):
+            logging.info("Existing pending order found – skip market entry.")
+            return False
         params = {
             **strategy_params,
             "instrument": instrument,

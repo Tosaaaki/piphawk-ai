@@ -162,6 +162,31 @@ class OrderManager:
             r.raise_for_status()
         return r.json()
 
+    def get_open_orders(self, instrument: str, side: str) -> list[dict]:
+        """指定銘柄かつサイド一致するPENDING注文を取得する。"""
+        url = (
+            f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
+            f"?state=PENDING&instrument={instrument}"
+        )
+        try:
+            r = requests.get(url, headers=HEADERS, timeout=10)
+            r.raise_for_status()
+            orders = r.json().get("orders", [])
+        except Exception as exc:  # pragma: no cover - 通信失敗時は空リスト
+            logger.warning(f"get_open_orders failed: {exc}")
+            return []
+
+        sign = 1 if side == "long" else -1
+        result = []
+        for od in orders:
+            try:
+                units = int(float(od.get("units", "0")))
+                if units * sign > 0:
+                    result.append(od)
+            except Exception:
+                continue
+        return result
+
     def place_market_order(self, instrument, units, comment_json: str | None = None):
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
         tag = str(int(time.time()))
