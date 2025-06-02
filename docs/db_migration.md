@@ -60,3 +60,7 @@ ALTER TABLE oanda_trades ADD COLUMN account_id TEXT;
 ```sql
 ALTER TABLE oanda_trades ADD COLUMN open_price REAL;
 ```
+
+古いデータベースで `price` 列が残っている場合、`init_db()` を実行すると
+`open_price` 列にその値がコピーされます。`price` 列は削除されませんが、
+更新処理で値がセットされるためエラーは発生しなくなります。
