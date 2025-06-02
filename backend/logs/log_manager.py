@@ -43,6 +43,8 @@ def init_db():
         # 旧バージョンのDBに open_price が無い場合に追加
         if 'open_price' not in oanda_cols:
             cursor.execute('ALTER TABLE oanda_trades ADD COLUMN open_price REAL')
+        if 'price' in oanda_cols:
+            cursor.execute('UPDATE oanda_trades SET open_price = price WHERE open_price IS NULL')
         if 'close_time' not in oanda_cols:
             cursor.execute('ALTER TABLE oanda_trades ADD COLUMN close_time TEXT')
         if 'close_price' not in oanda_cols:
@@ -272,28 +274,57 @@ def log_oanda_trade(
         conn = get_db_connection()
         own_conn = True
     cursor = conn.cursor()
-    cursor.execute(
-        '''
-            INSERT OR REPLACE INTO oanda_trades (
-                trade_id, account_id, instrument, open_time, open_price, units, state, unrealized_pl, realized_pl, close_time, close_price, tp_price, sl_price
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''',
-        (
-            trade_id,
-            account_id,
-            instrument,
-            open_time,
-            open_price,
-            units,
-            state,
-            unrealized_pl,
-            realized_pl,
-            close_time,
-            close_price,
-            tp_price,
-            sl_price,
-        ),
-    )
+    cursor.execute("PRAGMA table_info(oanda_trades)")
+    cols = [row[1] for row in cursor.fetchall()]
+    if 'price' in cols:
+        cursor.execute(
+            '''
+                INSERT OR REPLACE INTO oanda_trades (
+                    trade_id, account_id, instrument, open_time,
+                    open_price, price, units, state, unrealized_pl,
+                    realized_pl, close_time, close_price, tp_price, sl_price
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            (
+                trade_id,
+                account_id,
+                instrument,
+                open_time,
+                open_price,
+                open_price,
+                units,
+                state,
+                unrealized_pl,
+                realized_pl,
+                close_time,
+                close_price,
+                tp_price,
+                sl_price,
+            ),
+        )
+    else:
+        cursor.execute(
+            '''
+                INSERT OR REPLACE INTO oanda_trades (
+                    trade_id, account_id, instrument, open_time, open_price, units, state, unrealized_pl, realized_pl, close_time, close_price, tp_price, sl_price
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            (
+                trade_id,
+                account_id,
+                instrument,
+                open_time,
+                open_price,
+                units,
+                state,
+                unrealized_pl,
+                realized_pl,
+                close_time,
+                close_price,
+                tp_price,
+                sl_price,
+            ),
+        )
     if own_conn:
         conn.commit()
         conn.close()
