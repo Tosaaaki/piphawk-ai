@@ -1,4 +1,9 @@
-from openai import OpenAI, APIError
+try:
+    from openai import OpenAI, APIError
+except ModuleNotFoundError as exc:
+    raise RuntimeError(
+        "openai package is required. Install via 'pip install openai'."
+    ) from exc
 from backend.utils import env_loader
 import json
 import logging
