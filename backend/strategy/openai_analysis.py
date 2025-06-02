@@ -906,6 +906,17 @@ def get_trade_plan(
         noise_pips = None
 
     noise_val = f"{noise_pips:.1f}" if noise_pips is not None else "N/A"
+    tv_score = "N/A"
+    try:
+        adx_series = ind_m5.get("adx")
+        bb_upper = ind_m5.get("bb_upper")
+        bb_lower = ind_m5.get("bb_lower")
+        if adx_series is not None and bb_upper is not None and bb_lower is not None:
+            from backend.indicators.adx import calculate_adx_bb_score
+            val = calculate_adx_bb_score(adx_series, bb_upper, bb_lower)
+            tv_score = f"{val:.2f}"
+    except Exception:
+        tv_score = "N/A"
     # --- calculate dynamic pullback threshold ----------------------------
     recent_high = None
     recent_low = None
@@ -1025,6 +1036,9 @@ EMA_s: {_series_tail_list(ind_d1.get('ema_slow'), 20)}
 {noise_val} pips is the approximate short-term market noise.
 Use this as a baseline for setting wider stop-loss levels.
 After calculating TP hit probability, widen the SL by at least {env_loader.get_env("NOISE_SL_MULT", "1.5")} times.
+
+### Composite Trend Score
+{tv_score}
 
 ### Pivot Levels
 Pivot: {ind_m5.get('pivot')}, R1: {ind_m5.get('pivot_r1')}, S1: {ind_m5.get('pivot_s1')}
