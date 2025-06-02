@@ -299,6 +299,30 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         except Exception:
             adx_latest = None
 
+    trend_dir = None
+    try:
+        if (
+            adx_latest is not None
+            and adx_latest > 20
+            and plus_di is not None
+            and minus_di is not None
+        ):
+            if hasattr(plus_di, "iloc"):
+                di_plus_val = float(plus_di.iloc[-1])
+                di_minus_val = float(minus_di.iloc[-1])
+            elif isinstance(plus_di, (list, tuple)):
+                di_plus_val = float(plus_di[-1])
+                di_minus_val = float(minus_di[-1])
+            else:
+                di_plus_val = float(plus_di)
+                di_minus_val = float(minus_di)
+            if di_plus_val > di_minus_val:
+                trend_dir = "long"
+            elif di_minus_val > di_plus_val:
+                trend_dir = "short"
+    except Exception:
+        trend_dir = None
+
     # --- Hysteresis control for trend/range state -------------------
     global _trend_active
     if adx_latest is not None:
@@ -542,6 +566,7 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         "range_break": range_break,
         "break_direction": range_break,
         "break_class": break_class,
+        "trend_direction": trend_dir,
     }
 
 
@@ -1083,6 +1108,11 @@ Respond with **one-line valid JSON** exactly as:
             noise_sl_mult = float(env_loader.get_env("NOISE_SL_MULT", "1.5"))
             sl *= noise_sl_mult
             risk["sl_pips"] = sl
+
+            if p + q > 1.01:
+                logger.warning("Probabilities invalid — skipping plan")
+                plan["entry"]["side"] = "no"
+                return plan
 
             if (tp - spread) < MIN_NET_TP_PIPS:
                 plan["entry"]["side"] = "no"
