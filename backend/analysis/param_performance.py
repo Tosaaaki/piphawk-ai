@@ -6,9 +6,15 @@ import sqlite3
 import logging
 from typing import Dict, Iterable, List, Tuple
 
-from backend.utils.openai_client import ask_openai
+try:
+    # OpenAI 関連モジュールが無い場合でも本モジュールを利用できるようにする
+    from backend.utils.openai_client import ask_openai
+except Exception:
+    ask_openai = None
 
-DB_PATH = "backend/logs/trades.db"
+from backend.logs.log_manager import DB_PATH as _DB_PATH
+
+DB_PATH = str(_DB_PATH)
 
 
 def _fetch_param_changes() -> List[Tuple[str, str, str]]:
@@ -103,6 +109,9 @@ def suggest_best_params(perf: List[dict]) -> dict | None:
         "\n".join(lines) +
         "\n\nRespond ONLY with JSON of parameter names and values."
     )
+    if ask_openai is None:
+        logging.getLogger(__name__).warning("OpenAI client unavailable; skipping suggestion")
+        return None
     try:
         return ask_openai(prompt)
     except Exception as exc:
