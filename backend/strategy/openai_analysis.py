@@ -848,6 +848,8 @@ def get_trade_plan(
     patterns: list[str] | None = None,
     pattern_tf: str = "M5",
     detected_patterns: dict[str, str | None] | None = None,
+    *,
+    allow_delayed_entry: bool | None = None,
 ) -> dict:
     """
     Single‑shot call to the LLM that returns a dict:
@@ -865,6 +867,11 @@ def get_trade_plan(
         • expected value (tp*tp_prob – sl*sl_prob) > 0
       If either guard fails, it forces ``side:"no"``.
     """
+    if allow_delayed_entry is None:
+        allow_delayed_entry = (
+            env_loader.get_env("ALLOW_DELAYED_ENTRY", "false").lower() == "true"
+        )
+
     ind_m5 = indicators.get("M5", {})
     ind_m1 = indicators.get("M1", {})
     ind_d1 = indicators.get("D1", indicators.get("D", {}))
@@ -996,6 +1003,12 @@ Allow short-term counter-trend trades only when all of the following are true:
 
 📈【Trend Entry Clarification】
 Once a TREND is confirmed, prioritize entries on pullbacks. Shorts enter after price rises {pullback_needed:.1f} pips above the latest low, longs after price drops {pullback_needed:.1f} pips below the latest high. This pullback rule overrides RSI extremes.
+""" + (
+    "\n\n⏳【Trend Overshoot Handling】\n"
+    "When RSI exceeds 70 in an uptrend or falls below 30 in a downtrend, do not immediately set side to 'no'.\n"
+    "If momentum is still strong you may follow the trend. Otherwise respond with mode:'wait' so the system rechecks after a pullback of about {pullback_needed:.1f} pips.\n"
+    if allow_delayed_entry else ""
+) + f"""
 
 🔎【Minor Retracement Clarification】
 Do not interpret short-term retracements as trend reversals. Genuine trend reversals require ALL of the following simultaneously:
