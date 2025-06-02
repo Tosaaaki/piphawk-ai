@@ -43,6 +43,20 @@ def init_db():
         # 旧バージョンのDBに open_price が無い場合に追加
         if 'open_price' not in oanda_cols:
             cursor.execute('ALTER TABLE oanda_trades ADD COLUMN open_price REAL')
+        if 'close_time' not in oanda_cols:
+            cursor.execute('ALTER TABLE oanda_trades ADD COLUMN close_time TEXT')
+        if 'close_price' not in oanda_cols:
+            cursor.execute('ALTER TABLE oanda_trades ADD COLUMN close_price REAL')
+        if 'realized_pl' not in oanda_cols:
+            cursor.execute('ALTER TABLE oanda_trades ADD COLUMN realized_pl REAL')
+        if 'unrealized_pl' not in oanda_cols:
+            cursor.execute('ALTER TABLE oanda_trades ADD COLUMN unrealized_pl REAL')
+        if 'state' not in oanda_cols:
+            cursor.execute('ALTER TABLE oanda_trades ADD COLUMN state TEXT')
+        if 'tp_price' not in oanda_cols:
+            cursor.execute('ALTER TABLE oanda_trades ADD COLUMN tp_price REAL')
+        if 'sl_price' not in oanda_cols:
+            cursor.execute('ALTER TABLE oanda_trades ADD COLUMN sl_price REAL')
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS trades (
