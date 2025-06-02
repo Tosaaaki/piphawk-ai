@@ -47,6 +47,8 @@ class TestAtrTpSlMult(unittest.TestCase):
             def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False):
                 self.last_params = strategy_params
                 return {"order_id": "1"}
+            def get_open_orders(self, instrument, side):
+                return []
         om.OrderManager = DummyMgr
         add("backend.orders.order_manager", om)
 
