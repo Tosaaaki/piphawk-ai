@@ -16,6 +16,10 @@ from backend.indicators.atr import calculate_atr
 from backend.indicators.bollinger import calculate_bollinger_bands
 from backend.indicators.adx import calculate_adx
 try:
+    from backend.indicators.adx import calculate_adx_bb_score
+except Exception:  # pragma: no cover - fallback when stub lacks function
+    calculate_adx_bb_score = lambda *_a, **_k: 0.0
+try:
     from backend.indicators.adx import calculate_di
 except Exception:  # pragma: no cover - fallback for older stubs
     calculate_di = None
@@ -107,6 +111,16 @@ def calculate_indicators(
         'minus_di': minus_di,
         'polarity': calculate_polarity(close_prices),
     }
+
+    try:
+        score = calculate_adx_bb_score(
+            adx_series,
+            bb_df['upper_band'],
+            bb_df['lower_band'],
+        )
+    except Exception:
+        score = 0.0
+    indicators['adx_bb_score'] = score
 
     if high_prices and low_prices and close_prices:
         piv = calculate_pivots(high_prices[-1], low_prices[-1], close_prices[-1])

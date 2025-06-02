@@ -123,3 +123,40 @@ def calculate_adx_slope(adx_values: Sequence[float], lookback: int = 5) -> float
 
     slope = num / den
     return float(slope)
+
+
+def calculate_adx_bb_score(
+    adx: Sequence[float],
+    bb_upper: Sequence[float],
+    bb_lower: Sequence[float],
+    lookback: int = 3,
+    width_period: int = 20,
+) -> float:
+    """Return composite score from ADX change and Bollinger Band width."""
+    try:
+        adx_vals = [float(v) for v in adx]
+        up_vals = [float(v) for v in bb_upper]
+        low_vals = [float(v) for v in bb_lower]
+    except Exception:
+        return 0.0
+
+    if len(adx_vals) <= lookback or len(up_vals) < width_period or len(low_vals) < width_period:
+        return 0.0
+
+    adx_delta = adx_vals[-1] - adx_vals[-lookback]
+    cur_width = up_vals[-1] - low_vals[-1]
+    widths = [u - l for u, l in zip(up_vals[-width_period:], low_vals[-width_period:])]
+    avg_width = sum(widths) / len(widths) if widths else 0.0
+    if avg_width == 0:
+        return 0.0
+    width_ratio = cur_width / avg_width
+
+    return float(adx_delta * width_ratio)
+
+
+__all__ = [
+    "calculate_adx",
+    "calculate_di",
+    "calculate_adx_slope",
+    "calculate_adx_bb_score",
+]
