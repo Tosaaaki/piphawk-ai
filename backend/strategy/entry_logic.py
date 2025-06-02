@@ -174,6 +174,26 @@ def process_entry(
     except Exception as exc:
         logging.debug(f"[process_entry] bias check failed: {exc}")
 
+    # RSI による逆張りブロック
+    try:
+        rsi_series = indicators.get("rsi")
+        if rsi_series is not None and len(rsi_series):
+            rsi_val = rsi_series.iloc[-1] if hasattr(rsi_series, "iloc") else rsi_series[-1]
+            os_thresh = float(env_loader.get_env("RSI_OVERSOLD_BLOCK", "35"))
+            ob_thresh = float(env_loader.get_env("RSI_OVERBOUGHT_BLOCK", "65"))
+            if side == "short" and rsi_val < os_thresh:
+                logging.info(
+                    f"RSI {rsi_val:.1f} < {os_thresh} → Sell 禁止"
+                )
+                return False
+            if side == "long" and rsi_val > ob_thresh:
+                logging.info(
+                    f"RSI {rsi_val:.1f} > {ob_thresh} → Buy 禁止"
+                )
+                return False
+    except Exception as exc:
+        logging.debug(f"[process_entry] oversold filter failed: {exc}")
+
     # --- dynamic pullback threshold ---------------------------------
     pullback_needed = None
     if not is_break:
