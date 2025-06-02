@@ -100,6 +100,8 @@ The indicators module also calculates `adx_bb_score`, a composite value derived 
 
 `TF_EMA_WEIGHTS` specifies the weight of each timeframe when evaluating EMA alignment, e.g. `M5:0.4,H1:0.3,H4:0.3`.
 
+`ALLOW_DELAYED_ENTRY` set to `true` lets the AI return `"mode":"wait"` when a trend is overextended. The job runner will keep polling and enter once the pullback depth is satisfied.
+
 ## パラメータ変更履歴の確認
 
 `init_db()` でデータベースを作成または更新した後、`log_param_change()` と `log_trade()` を

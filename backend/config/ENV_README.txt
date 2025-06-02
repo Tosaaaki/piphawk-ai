@@ -154,4 +154,5 @@ SCALE_TRIGGER_ATR=0.5
 - CLIMAX_ENABLED: クライマックス検出による自動エントリーを有効化
 - CLIMAX_ZSCORE: ATR Z スコアの閾値
 - CLIMAX_TP_PIPS / CLIMAX_SL_PIPS: クライマックス時に使用する TP/SL
+- ALLOW_DELAYED_ENTRY: トレンドが過熱している場合に "wait" を返させ、押し目到来で再問い合わせする
 
