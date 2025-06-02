@@ -97,7 +97,43 @@ The indicators module also calculates `adx_bb_score`, a composite value derived 
 `EMA_FLAT_PIPS` determines the range treated as a flat EMA slope; convergence with a reversal within this range triggers the *急反転* filter.
 `OVERSHOOT_ATR_MULT` blocks entries when price overshoots below the lower Bollinger Band by this multiple of ATR.
 `STRICT_TF_ALIGN` enforces multi-timeframe EMA alignment before entering.
+
 `TF_EMA_WEIGHTS` specifies the weight of each timeframe when evaluating EMA alignment, e.g. `M5:0.4,H1:0.3,H4:0.3`.
+
+## パラメータ変更履歴の確認
+
+`init_db()` でデータベースを作成または更新した後、`log_param_change()` と `log_trade()` を
+使って変更内容と取引を記録できます。記録された履歴は `analyze_param_performance()` で集計
+できます。
+
+```bash
+python3 - <<'EOF'
+from backend.logs.log_manager import init_db, log_param_change, log_trade
+from backend.analysis.param_performance import analyze_param_performance
+
+init_db()
+log_param_change("EMA_PERIOD", 50, 55, ai_reason="tuning")
+log_trade(
+    instrument="USD_JPY",
+    entry_time="2024-01-01T00:00:00Z",
+    entry_price=140.0,
+    units=1000,
+    ai_reason="example",
+    exit_time="2024-01-01T01:00:00Z",
+    exit_price=140.5,
+    profit_loss=50,
+)
+
+result = analyze_param_performance()
+print(result)
+EOF
+```
+
+出力は次のようなリスト形式になります。
+
+```text
+[{'timestamp': '...', 'params': {...}, 'metrics': {...}}, ...]
+```
 
 ## Running the API
 
