@@ -1,6 +1,7 @@
 import os
 import requests
 from backend.logs.log_manager import log_trade, log_error
+from backend.logs.trade_logger import ExitReason
 from backend.utils.price import format_price
 from datetime import datetime, timedelta
 import time
@@ -503,7 +504,8 @@ class OrderManager:
             entry_price=entry_price,
             units=units,
             ai_reason="exit",
-            exit_time=datetime.utcnow().isoformat()
+            exit_time=datetime.utcnow().isoformat(),
+            exit_reason=ExitReason.MANUAL,
         )
         return result
 
