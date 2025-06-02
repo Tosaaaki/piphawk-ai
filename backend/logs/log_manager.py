@@ -59,7 +59,8 @@ def init_db():
                 rrr REAL,
                 ai_reason TEXT,
                 ai_response TEXT,
-                entry_regime TEXT
+                entry_regime TEXT,
+                exit_reason TEXT
             )
         ''')
 
@@ -74,6 +75,8 @@ def init_db():
             cursor.execute('ALTER TABLE trades ADD COLUMN sl_pips REAL')
         if 'rrr' not in columns:
             cursor.execute('ALTER TABLE trades ADD COLUMN rrr REAL')
+        if 'exit_reason' not in columns:
+            cursor.execute('ALTER TABLE trades ADD COLUMN exit_reason TEXT')
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS ai_decisions (
@@ -135,6 +138,7 @@ def log_trade(
     tp_pips=None,
     sl_pips=None,
     rrr=None,
+    exit_reason=None,
 ):
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -143,8 +147,8 @@ def log_trade(
                 instrument, entry_time, entry_price, units,
                 ai_reason, ai_response, entry_regime,
                 exit_time, exit_price, profit_loss,
-                tp_pips, sl_pips, rrr
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                tp_pips, sl_pips, rrr, exit_reason
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             instrument,
             entry_time,
@@ -159,6 +163,7 @@ def log_trade(
             tp_pips,
             sl_pips,
             rrr,
+            exit_reason,
         ))
 
 def log_ai_decision(decision_type, instrument, ai_response):

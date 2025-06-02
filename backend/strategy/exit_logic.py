@@ -4,6 +4,7 @@ openai_analysis = importlib.import_module("backend.strategy.openai_analysis")
 EXIT_BIAS_FACTOR = getattr(openai_analysis, "EXIT_BIAS_FACTOR", 1.0)
 from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
+from backend.logs.trade_logger import ExitReason
 from backend.logs.exit_logger import append_exit_log
 from datetime import datetime
 import logging
@@ -218,6 +219,7 @@ def process_exit(
             units=units,
             profit_loss=float(position.get("pl_corrected", position.get("pl", 0))),
             ai_reason="regime shift exit",
+            exit_reason=ExitReason.AI,
         )
         return True
     elif regime_action == "HOLD":
@@ -362,6 +364,7 @@ def process_exit(
                     profit_loss=float(position.get("pl_corrected", position.get("pl", 0))),
                     ai_reason=f"AI‑confirmed early‑exit: {exit_decision['reason']}",
                     ai_response=exit_decision.get("raw"),
+                    exit_reason=ExitReason.AI,
                 )
                 return True
             else:
@@ -419,6 +422,7 @@ def process_exit(
             profit_loss=float(position.get("pl_corrected", position.get("pl", 0))),
             ai_reason=exit_decision["reason"],
             ai_response=exit_decision.get("raw"),
+            exit_reason=ExitReason.AI,
         )
         return True
     else:
@@ -461,6 +465,7 @@ def process_exit(
                             ai_reason="partial close",
                             exit_time=datetime.utcnow().isoformat(),
                             exit_price=current_price,
+                            exit_reason=ExitReason.RISK,
                         )
                         units -= close_units
 

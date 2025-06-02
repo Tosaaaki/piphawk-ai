@@ -15,6 +15,7 @@ class TestMinHoldExit(unittest.TestCase):
         os.environ['MIN_HOLD_SEC'] = '60'
         os.environ['AI_PROFIT_TRIGGER_RATIO'] = '0'
         os.environ['PIP_SIZE'] = '0.0001'
+        os.environ['OPENAI_API_KEY'] = 'dummy'
         os.environ.pop('OANDA_API_KEY', None)
         os.environ.pop('OANDA_ACCOUNT_ID', None)
 
@@ -24,6 +25,13 @@ class TestMinHoldExit(unittest.TestCase):
         dotenv = types.ModuleType('dotenv')
         dotenv.load_dotenv = lambda *a, **k: None
         add('dotenv', dotenv)
+        openai_stub = types.ModuleType('openai')
+        class DummyClient:
+            def __init__(self, *a, **k):
+                pass
+        openai_stub.OpenAI = DummyClient
+        openai_stub.APIError = Exception
+        add('openai', openai_stub)
 
         oa = types.ModuleType('backend.strategy.openai_analysis')
         oa.get_market_condition = lambda *a, **k: {}
