@@ -6,7 +6,11 @@ import os
 from pathlib import Path
 from typing import Iterable, Optional
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv  # type: ignore
+except Exception:  # ランタイムに dotenv がなくても動作させる
+    def load_dotenv(*_args, **_kwargs) -> None:
+        pass
 
 _BASE_DIR = Path(__file__).resolve().parents[1]
 _DEFAULT_FILES = [
