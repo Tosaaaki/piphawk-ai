@@ -63,6 +63,7 @@ from backend.strategy.momentum_follow import follow_breakout
 import requests
 
 from backend.utils.notification import send_line_message
+from backend.logs.trade_logger import log_trade, ExitReason
 
 #
 # optional helper for pending LIMIT look‑up;
@@ -144,6 +145,10 @@ TP_REDUCTION_ADX_MAX = float(env_loader.get_env("TP_REDUCTION_ADX_MAX", "20"))
 TP_REDUCTION_MIN_SEC = int(env_loader.get_env("TP_REDUCTION_MIN_SEC", "900"))
 TP_REDUCTION_ATR_MULT = float(env_loader.get_env("TP_REDUCTION_ATR_MULT", "1.0"))
 
+# Peak profit exit settings
+PEAK_EXIT_ENABLED = env_loader.get_env("PEAK_EXIT_ENABLED", "false").lower() == "true"
+PEAK_EXIT_RETRACE_PIPS = float(env_loader.get_env("PEAK_EXIT_RETRACE_PIPS", "2"))
+
 
 # ───────────────────────────────────────────────────────────
 #  Check if the instrument is currently tradeable via OANDA
@@ -208,6 +213,8 @@ class JobRunner:
         self.tp_reduced: bool = False
         # Latest detected chart patterns by timeframe
         self.patterns_by_tf: dict[str, str | None] = {}
+        # Highest profit observed since entry
+        self.max_profit_pips: float = 0.0
 
         # Restore TP adjustment flags based on existing TP order comment
         try:
@@ -588,6 +595,33 @@ class JobRunner:
         else:
             exit_logic.TRAIL_ENABLED = env_loader.get_env("TRAIL_ENABLED", "true").lower() == "true"
 
+    def _should_peak_exit(self, side: str, indicators: dict, current_profit: float) -> bool:
+        if not PEAK_EXIT_ENABLED:
+            return False
+        if self.max_profit_pips - current_profit < PEAK_EXIT_RETRACE_PIPS:
+            return False
+        ema_fast = indicators.get("ema_fast")
+        ema_slow = indicators.get("ema_slow")
+        if ema_fast is None or ema_slow is None:
+            return False
+        if hasattr(ema_fast, "iloc"):
+            if len(ema_fast) < 2 or len(ema_slow) < 2:
+                return False
+            prev_fast = float(ema_fast.iloc[-2])
+            latest_fast = float(ema_fast.iloc[-1])
+            prev_slow = float(ema_slow.iloc[-2])
+            latest_slow = float(ema_slow.iloc[-1])
+        else:
+            if len(ema_fast) < 2 or len(ema_slow) < 2:
+                return False
+            prev_fast = float(ema_fast[-2])
+            latest_fast = float(ema_fast[-1])
+            prev_slow = float(ema_slow[-2])
+            latest_slow = float(ema_slow[-1])
+        cross_down = prev_fast >= prev_slow and latest_fast < latest_slow
+        cross_up = prev_fast <= prev_slow and latest_fast > latest_slow
+        return (side == "long" and cross_down) or (side == "short" and cross_up)
+
     def run(self):
         logger.info("Job Runner started.")
         while True:
@@ -706,6 +740,7 @@ class JobRunner:
                         self.sl_reset_done = False
                         self.tp_extended = False
                         self.tp_reduced = False
+                        self.max_profit_pips = 0.0
 
                     # ---- Dynamic cooldown (OPEN / FLAT) ---------------
                     # ポジション保有時はエグジット用、未保有時はエントリー用
@@ -737,6 +772,7 @@ class JobRunner:
                             if position_side == "long"
                             else (entry_price - current_price) / pip_size
                         )
+                        self.max_profit_pips = max(self.max_profit_pips, current_profit_pips)
 
                         BE_TRIGGER_PIPS = float(env_loader.get_env("BE_TRIGGER_PIPS", "10"))
                         BE_ATR_TRIGGER_MULT = float(env_loader.get_env("BE_ATR_TRIGGER_MULT", "0"))
@@ -809,6 +845,38 @@ class JobRunner:
 
                         self._maybe_extend_tp(has_position, indicators, position_side, pip_size)
                         self._maybe_reduce_tp(has_position, indicators, position_side, pip_size)
+
+                        if self._should_peak_exit(position_side, indicators, current_profit_pips):
+                            logger.info("Peak exit triggered → closing position.")
+                            try:
+                                order_mgr.close_position(DEFAULT_PAIR, side=position_side)
+                                exit_time = datetime.utcnow().isoformat()
+                                log_trade(
+                                    instrument=DEFAULT_PAIR,
+                                    entry_time=has_position.get(
+                                        "entry_time", has_position.get("openTime", exit_time)
+                                    ),
+                                    entry_price=entry_price,
+                                    units=int(has_position[position_side]["units"]) if position_side == "long" else -int(has_position[position_side]["units"]),
+                                    exit_time=exit_time,
+                                    exit_price=current_price,
+                                    profit_loss=float(has_position.get("pl_corrected", has_position.get("pl", 0))),
+                                    ai_reason="peak exit",
+                                    exit_reason=ExitReason.RISK,
+                                )
+                                self.last_close_ts = datetime.utcnow()
+                                send_line_message(
+                                    f"【PEAK EXIT】{DEFAULT_PAIR} {current_price} で決済しました。PL={current_profit_pips:.1f}pips"
+                                )
+                            except Exception as exc:
+                                logger.warning(f"Peak exit failed: {exc}")
+                            self.max_profit_pips = 0.0
+                            self.breakeven_reached = False
+                            self.sl_reset_done = False
+                            update_oanda_trades()
+                            time.sleep(self.interval_seconds)
+                            timer.stop()
+                            continue
 
                         if current_profit_pips >= TP_PIPS * AI_PROFIT_TRIGGER_RATIO:
                             if secs_since_entry is not None and secs_since_entry < MIN_HOLD_SEC:
@@ -1032,6 +1100,7 @@ class JobRunner:
                     if not has_position:
                         self.tp_extended = False
                         self.tp_reduced = False
+                        self.max_profit_pips = 0.0
                         # 1) Entry cooldown check
                         if (
                             self.last_close_ts
