@@ -34,6 +34,7 @@ LIMIT_THRESHOLD_ATR_RATIO: float = float(env_loader.get_env("LIMIT_THRESHOLD_ATR
 MAX_LIMIT_AGE_SEC: int = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
 MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "2"))
 BE_TRIGGER_PIPS: int = int(env_loader.get_env("BE_TRIGGER_PIPS", 10))
+BE_TRIGGER_R: float = float(env_loader.get_env("BE_TRIGGER_R", "0"))
 AI_LIMIT_CONVERT_MODEL: str = env_loader.get_env("AI_LIMIT_CONVERT_MODEL", "gpt-4.1-nano")
 MIN_RRR: float = float(env_loader.get_env("MIN_RRR", "0.8"))
 # --- Exit bias factor ---
@@ -684,6 +685,18 @@ def get_exit_decision(
         be_trigger = max(BE_TRIGGER_PIPS, atr_pips * BE_ATR_TRIGGER_MULT)
     else:
         be_trigger = BE_TRIGGER_PIPS
+    if BE_TRIGGER_R > 0:
+        sl_val = None
+        if entry_regime and isinstance(entry_regime, dict):
+            sl_val = entry_regime.get("sl")
+        if sl_val is None:
+            sl_val = current_position.get("sl_pips")
+        try:
+            if sl_val is not None:
+                sl_val = float(sl_val)
+                be_trigger = max(be_trigger, sl_val * BE_TRIGGER_R)
+        except Exception:
+            pass
 
     breakeven_reached = pips_from_entry >= be_trigger
 
