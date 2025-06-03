@@ -45,6 +45,9 @@ COOL_ATR_PCT: float = float(env_loader.get_env("COOL_ATR_PCT", "0"))
 ADX_NO_TRADE_MIN: float = float(env_loader.get_env("ADX_NO_TRADE_MIN", "20"))
 ADX_NO_TRADE_MAX: float = float(env_loader.get_env("ADX_NO_TRADE_MAX", "30"))
 ADX_SLOPE_LOOKBACK: int = int(env_loader.get_env("ADX_SLOPE_LOOKBACK", "3"))
+ENABLE_RANGE_ENTRY: bool = (
+    env_loader.get_env("ENABLE_RANGE_ENTRY", "false").lower() == "true"
+)
 ADX_TREND_ON: int = 25
 ADX_TREND_OFF: int = 18
 USE_LOCAL_PATTERN: bool = (
@@ -1163,14 +1166,18 @@ Respond with **one-line valid JSON** exactly as:
     except (TypeError, ValueError, IndexError, ZeroDivisionError):
         pass
 
-    # ADX no-trade zone enforcement
+    # ADX no-trade zone enforcement (skipped when ENABLE_RANGE_ENTRY is true)
     try:
         adx_series = ind_m5.get("adx")
         if hasattr(adx_series, "iloc"):
             adx_val = float(adx_series.iloc[-1])
         else:
             adx_val = float(adx_series[-1])
-        if ADX_NO_TRADE_MIN <= adx_val <= ADX_NO_TRADE_MAX and not pattern_name:
+        if (
+            not ENABLE_RANGE_ENTRY
+            and ADX_NO_TRADE_MIN <= adx_val <= ADX_NO_TRADE_MAX
+            and not pattern_name
+        ):
             plan["entry"]["side"] = "no"
     except (TypeError, ValueError, IndexError):
         pass
@@ -1268,5 +1275,6 @@ __all__ = [
     "EXIT_BIAS_FACTOR",
     "LOCAL_WEIGHT_THRESHOLD",
     "ADX_SLOPE_LOOKBACK",
+    "ENABLE_RANGE_ENTRY",
     "calc_consistency",
 ]
