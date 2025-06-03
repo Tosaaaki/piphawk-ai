@@ -72,6 +72,9 @@ class TestTrailingStopAbsProfit(unittest.TestCase):
                 self.calls.append((trade_id, instrument, distance_pips))
                 return {}
 
+            def get_current_trailing_distance(self, trade_id, instrument):
+                return None
+
             def exit_trade(self, *a, **k):
                 pass
 
@@ -151,6 +154,26 @@ class TestTrailingStopAbsProfit(unittest.TestCase):
         market = {
             "prices": [{"bids": [{"price": "1.2357"}], "asks": [{"price": "1.2357"}]}]
         }
+        self.el.process_exit({}, market)
+        self.assertEqual(len(self.el.order_manager.calls), 0)
+
+    def test_skip_when_distance_same(self):
+        self.position.update(
+            {
+                "instrument": "EUR_USD",
+                "long": {"units": "1", "averagePrice": "1.2345", "tradeIDs": ["t1"]},
+                "pl": "0",
+                "entry_time": "2024-01-01T00:00:00Z",
+            }
+        )
+        market = {
+            "prices": [{"bids": [{"price": "1.2368"}], "asks": [{"price": "1.2368"}]}]
+        }
+        class OM(self.DummyOM):
+            def get_current_trailing_distance(self, trade_id, instrument):
+                return 6
+
+        self.el.order_manager = OM()
         self.el.process_exit({}, market)
         self.assertEqual(len(self.el.order_manager.calls), 0)
 
