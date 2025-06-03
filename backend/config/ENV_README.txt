@@ -83,6 +83,9 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - ADX_NO_TRADE_MIN / ADX_NO_TRADE_MAX:
   ADXがこの範囲に収まっているとエントリーを見送る。
 
+- ENABLE_RANGE_ENTRY:
+  true にするとレンジ相場でもエントリーを許可し、ADXノートレード判定をスキップする。
+
 ■ MIN_RRR
   期待値計算において許容する最小リスクリワード比。TP候補の中から、
   確率×pips が最大となり MIN_RRR 以上のものを採用する。
@@ -154,4 +157,5 @@ SCALE_TRIGGER_ATR=0.5
 - CLIMAX_ENABLED: クライマックス検出による自動エントリーを有効化
 - CLIMAX_ZSCORE: ATR Z スコアの閾値
 - CLIMAX_TP_PIPS / CLIMAX_SL_PIPS: クライマックス時に使用する TP/SL
+- ALLOW_DELAYED_ENTRY: トレンドが過熱している場合に "wait" を返させ、押し目到来で再問い合わせする
 

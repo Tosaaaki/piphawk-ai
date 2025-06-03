@@ -73,6 +73,7 @@ def process_entry(
     pattern_names: dict[str, str | None] | None = None,
     candles_dict: dict[str, list] | None = None,
     tf_align: str | None = None,
+    allow_delayed_entry: bool | None = None,
 ):
     """
     Ask OpenAI whether to enter a trade.
@@ -90,6 +91,11 @@ def process_entry(
     # If the caller did not pass a dict (JobRunner passes candles), fall back to an empty dict
     if not isinstance(strategy_params, dict):
         strategy_params = {}
+
+    if allow_delayed_entry is None:
+        allow_delayed_entry = (
+            env_loader.get_env("ALLOW_DELAYED_ENTRY", "false").lower() == "true"
+        )
 
     # ------------------------------------------------------------
     #  Chart pattern scan (local) --------------------------------
@@ -131,6 +137,7 @@ def process_entry(
         candles_dict,
         patterns=patterns,
         detected_patterns=detected,
+        allow_delayed_entry=allow_delayed_entry,
     )
 
     # Raw JSON for audit log
@@ -438,7 +445,11 @@ def process_entry(
             return False
 
         # Check if a similar pending order already exists
-        open_orders = order_manager.get_open_orders(instrument, side)
+        open_orders = (
+            order_manager.get_open_orders(instrument, side)
+            if hasattr(order_manager, "get_open_orders")
+            else []
+        )
         if open_orders:
             logging.info("Existing pending order found – skip entry.")
             return False
@@ -479,7 +490,7 @@ def process_entry(
         return bool(result)
     else:
         # --- MARKET order path ---
-        if order_manager.get_open_orders(instrument, side):
+        if hasattr(order_manager, "get_open_orders") and order_manager.get_open_orders(instrument, side):
             logging.info("Existing pending order found – skip market entry.")
             return False
         params = {

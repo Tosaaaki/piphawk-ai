@@ -45,6 +45,9 @@ COOL_ATR_PCT: float = float(env_loader.get_env("COOL_ATR_PCT", "0"))
 ADX_NO_TRADE_MIN: float = float(env_loader.get_env("ADX_NO_TRADE_MIN", "20"))
 ADX_NO_TRADE_MAX: float = float(env_loader.get_env("ADX_NO_TRADE_MAX", "30"))
 ADX_SLOPE_LOOKBACK: int = int(env_loader.get_env("ADX_SLOPE_LOOKBACK", "3"))
+ENABLE_RANGE_ENTRY: bool = (
+    env_loader.get_env("ENABLE_RANGE_ENTRY", "false").lower() == "true"
+)
 ADX_TREND_ON: int = 25
 ADX_TREND_OFF: int = 18
 USE_LOCAL_PATTERN: bool = (
@@ -848,6 +851,8 @@ def get_trade_plan(
     patterns: list[str] | None = None,
     pattern_tf: str = "M5",
     detected_patterns: dict[str, str | None] | None = None,
+    *,
+    allow_delayed_entry: bool | None = None,
 ) -> dict:
     """
     Single‑shot call to the LLM that returns a dict:
@@ -865,6 +870,11 @@ def get_trade_plan(
         • expected value (tp*tp_prob – sl*sl_prob) > 0
       If either guard fails, it forces ``side:"no"``.
     """
+    if allow_delayed_entry is None:
+        allow_delayed_entry = (
+            env_loader.get_env("ALLOW_DELAYED_ENTRY", "false").lower() == "true"
+        )
+
     ind_m5 = indicators.get("M5", {})
     ind_m1 = indicators.get("M1", {})
     ind_d1 = indicators.get("D1", indicators.get("D", {}))
@@ -996,6 +1006,12 @@ Allow short-term counter-trend trades only when all of the following are true:
 
 📈【Trend Entry Clarification】
 Once a TREND is confirmed, prioritize entries on pullbacks. Shorts enter after price rises {pullback_needed:.1f} pips above the latest low, longs after price drops {pullback_needed:.1f} pips below the latest high. This pullback rule overrides RSI extremes.
+""" + (
+    "\n\n⏳【Trend Overshoot Handling】\n"
+    "When RSI exceeds 70 in an uptrend or falls below 30 in a downtrend, do not immediately set side to 'no'.\n"
+    "If momentum is still strong you may follow the trend. Otherwise respond with mode:'wait' so the system rechecks after a pullback of about {pullback_needed:.1f} pips.\n"
+    if allow_delayed_entry else ""
+) + f"""
 
 🔎【Minor Retracement Clarification】
 Do not interpret short-term retracements as trend reversals. Genuine trend reversals require ALL of the following simultaneously:
@@ -1150,14 +1166,18 @@ Respond with **one-line valid JSON** exactly as:
     except (TypeError, ValueError, IndexError, ZeroDivisionError):
         pass
 
-    # ADX no-trade zone enforcement
+    # ADX no-trade zone enforcement (skipped when ENABLE_RANGE_ENTRY is true)
     try:
         adx_series = ind_m5.get("adx")
         if hasattr(adx_series, "iloc"):
             adx_val = float(adx_series.iloc[-1])
         else:
             adx_val = float(adx_series[-1])
-        if ADX_NO_TRADE_MIN <= adx_val <= ADX_NO_TRADE_MAX and not pattern_name:
+        if (
+            not ENABLE_RANGE_ENTRY
+            and ADX_NO_TRADE_MIN <= adx_val <= ADX_NO_TRADE_MAX
+            and not pattern_name
+        ):
             plan["entry"]["side"] = "no"
     except (TypeError, ValueError, IndexError):
         pass
@@ -1255,5 +1275,6 @@ __all__ = [
     "EXIT_BIAS_FACTOR",
     "LOCAL_WEIGHT_THRESHOLD",
     "ADX_SLOPE_LOOKBACK",
+    "ENABLE_RANGE_ENTRY",
     "calc_consistency",
 ]
