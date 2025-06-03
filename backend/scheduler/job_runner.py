@@ -575,13 +575,19 @@ class JobRunner:
         from backend.strategy import exit_logic
         quiet_start = float(env_loader.get_env("QUIET_START_HOUR_JST", "3"))
         quiet_end = float(env_loader.get_env("QUIET_END_HOUR_JST", "7"))
-        quiet2_start = float(env_loader.get_env("QUIET2_START_HOUR_JST", "23"))
-        quiet2_end = float(env_loader.get_env("QUIET2_END_HOUR_JST", "1"))
+        quiet2_enabled = env_loader.get_env("QUIET2_ENABLED", "false").lower() == "true"
+        if quiet2_enabled:
+            quiet2_start = float(env_loader.get_env("QUIET2_START_HOUR_JST", "23"))
+            quiet2_end = float(env_loader.get_env("QUIET2_END_HOUR_JST", "1"))
+        else:
+            quiet2_start = quiet2_end = None
 
         now_jst = datetime.utcnow() + timedelta(hours=9)
         current_time = now_jst.hour + now_jst.minute / 60.0
 
-        def _in_range(start: float, end: float) -> bool:
+        def _in_range(start: float | None, end: float | None) -> bool:
+            if start is None or end is None:
+                return False
             return (
                 (start < end and start <= current_time < end)
                 or (start > end and (current_time >= start or current_time < end))
@@ -776,6 +782,7 @@ class JobRunner:
 
                         BE_TRIGGER_PIPS = float(env_loader.get_env("BE_TRIGGER_PIPS", "10"))
                         BE_ATR_TRIGGER_MULT = float(env_loader.get_env("BE_ATR_TRIGGER_MULT", "0"))
+                        BE_TRIGGER_R = float(env_loader.get_env("BE_TRIGGER_R", "0"))
                         atr_val = (
                             indicators["atr"].iloc[-1]
                             if hasattr(indicators["atr"], "iloc")
@@ -786,6 +793,14 @@ class JobRunner:
                             be_trigger = max(BE_TRIGGER_PIPS, atr_pips * BE_ATR_TRIGGER_MULT)
                         else:
                             be_trigger = BE_TRIGGER_PIPS
+                        if BE_TRIGGER_R > 0:
+                            sl_pips_val = has_position.get("sl_pips")
+                            if sl_pips_val is not None:
+                                try:
+                                    sl_pips_val = float(sl_pips_val)
+                                    be_trigger = max(be_trigger, sl_pips_val * BE_TRIGGER_R)
+                                except Exception:
+                                    pass
                         TP_PIPS = float(env_loader.get_env("INIT_TP_PIPS", "30"))
                         AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.3"))
 

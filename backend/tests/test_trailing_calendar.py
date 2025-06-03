@@ -123,6 +123,7 @@ class TestTrailingCalendar(unittest.TestCase):
         os.environ["QUIET_END_HOUR_JST"] = str(end)
         os.environ["QUIET2_START_HOUR_JST"] = str(start)
         os.environ["QUIET2_END_HOUR_JST"] = str(end)
+        os.environ["QUIET2_ENABLED"] = "true"
         self.el.TRAIL_ENABLED = True
         self.runner._refresh_trailing_status()
         self.assertFalse(self.el.TRAIL_ENABLED)
@@ -132,6 +133,7 @@ class TestTrailingCalendar(unittest.TestCase):
         os.environ["QUIET_END_HOUR_JST"] = "0"
         os.environ["QUIET2_START_HOUR_JST"] = "0"
         os.environ["QUIET2_END_HOUR_JST"] = "0"
+        os.environ["QUIET2_ENABLED"] = "true"
         self.position.update({
             "instrument": "EUR_USD",
             "long": {"units": "1", "averagePrice": "1.2000", "tradeIDs": ["t1"]},

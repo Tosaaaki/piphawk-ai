@@ -170,6 +170,7 @@ class TestRegimeFilters(unittest.TestCase):
         os.environ["QUIET_END_HOUR_JST"] = "3.25"
         os.environ["QUIET2_START_HOUR_JST"] = "0.75"
         os.environ["QUIET2_END_HOUR_JST"] = "3.25"
+        os.environ["QUIET2_ENABLED"] = "true"
         os.environ["MIN_VOL_MA"] = "100"
         os.environ["VOL_MA_PERIOD"] = "3"
 

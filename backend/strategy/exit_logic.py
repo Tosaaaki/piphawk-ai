@@ -518,11 +518,21 @@ def process_exit(
                         # --- attach trailing stop to the first open trade ID ---
                         trade_ids = position.get(position_side, {}).get("tradeIDs", [])
                         if trade_ids:
-                            order_manager.place_trailing_stop(
-                                trade_id=trade_ids[0],
-                                instrument=position["instrument"],
-                                distance_pips=int(distance_pips),
-                            )
+                            current_distance = None
+                            if hasattr(order_manager, "get_current_trailing_distance"):
+                                current_distance = order_manager.get_current_trailing_distance(
+                                    trade_ids[0], position["instrument"]
+                                )
+                            if current_distance is not None and int(current_distance) == int(distance_pips):
+                                logging.debug(
+                                    "Trailing stop unchanged: %dp", int(distance_pips)
+                                )
+                            else:
+                                order_manager.place_trailing_stop(
+                                    trade_id=trade_ids[0],
+                                    instrument=position["instrument"],
+                                    distance_pips=int(distance_pips),
+                                )
                             try:
                                 bid = float(
                                     market_data["prices"][0]["bids"][0]["price"]
