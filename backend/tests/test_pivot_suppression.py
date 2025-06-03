@@ -66,6 +66,7 @@ class TestPivotSuppression(unittest.TestCase):
         os.environ["QUIET_END_HOUR_JST"] = str(end)
         os.environ["QUIET2_START_HOUR_JST"] = str(start)
         os.environ["QUIET2_END_HOUR_JST"] = str(end)
+        os.environ["QUIET2_ENABLED"] = "true"
         os.environ["HIGHER_TF_ENABLED"] = "true"
         os.environ["PIVOT_SUPPRESSION_TFS"] = "D,H4"
         os.environ["PIVOT_SUPPRESSION_PIPS"] = "15"
