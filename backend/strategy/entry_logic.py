@@ -20,6 +20,11 @@ order_manager = OrderManager()
 # In‑memory cache: entry_uuid -> {"instrument": str, "order_id": str, "ts": int}
 _pending_limits: dict[str, dict] = {}
 
+# 逆張りエントリー機能の有効/無効フラグ
+PEAK_ENTRY_ENABLED = (
+    env_loader.get_env("PEAK_ENTRY_ENABLED", "false").lower() == "true"
+)
+
 def pullback_limit(side: str, price: float, offset_pips: float) -> float:
     """Return limit price offset by given pips in the direction of a pullback."""
     pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
@@ -167,6 +172,16 @@ def process_entry(
     if side not in ("long", "short"):
         logging.info("AI says no trade entry → early exit")
         return False
+
+    if PEAK_ENTRY_ENABLED:
+        try:
+            from backend.strategy.signal_filter import detect_peak_reversal
+            m5 = candles_dict.get("M5", candles)
+            if detect_peak_reversal(m5, side):
+                side = "short" if side == "long" else "long"
+                logging.info(f"Peak reversal detected → side flipped to {side}")
+        except Exception as exc:
+            logging.debug(f"[process_entry] peak reversal check failed: {exc}")
 
     if tf_align and side != tf_align:
         logging.info(
