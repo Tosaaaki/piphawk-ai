@@ -366,3 +366,11 @@ plan = get_trade_plan({}, {}, candles_dict,
 The job runner can add to an existing position when the AI exit evaluator
 returns `SCALE`. Set `SCALE_LOT_SIZE` in `settings.env` to control the lot
 size of each additional entry (default `0.5`).
+
+## Trailing Stop Updates
+
+The trailing stop distance is recalculated on every loop when a position is in
+profit. The job runner calls `order_manager.place_trailing_stop()` to update the
+stop on the first trade ID, which replaces the previous order. OANDA cancels the
+old trailing stop automatically once the new one is applied. See
+`backend/strategy/exit_logic.py` lines 510-525 for the exact logic.
