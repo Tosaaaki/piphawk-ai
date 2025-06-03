@@ -278,13 +278,19 @@ def pass_entry_filter(
     # --- Time‑of‑day block (JST decimal hours) --------------------------
     quiet_start = float(os.getenv("QUIET_START_HOUR_JST", "3"))   # default 03:00
     quiet_end   = float(os.getenv("QUIET_END_HOUR_JST", "7"))     # default 07:00
-    quiet2_start = float(os.getenv("QUIET2_START_HOUR_JST", "23"))  # default 23:00
-    quiet2_end   = float(os.getenv("QUIET2_END_HOUR_JST", "1"))    # default 01:00
+    quiet2_enabled = os.getenv("QUIET2_ENABLED", "false").lower() == "true"
+    if quiet2_enabled:
+        quiet2_start = float(os.getenv("QUIET2_START_HOUR_JST", "23"))  # default 23:00
+        quiet2_end   = float(os.getenv("QUIET2_END_HOUR_JST", "1"))    # default 01:00
+    else:
+        quiet2_start = quiet2_end = None
 
     now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
     current_time = now_jst.hour + now_jst.minute / 60.0
 
-    def _in_range(start: float, end: float) -> bool:
+    def _in_range(start: float | None, end: float | None) -> bool:
+        if start is None or end is None:
+            return False
         return (
             (start < end and start <= current_time < end)
             or (start > end and (current_time >= start or current_time < end))
@@ -293,8 +299,9 @@ def pass_entry_filter(
 
     in_quiet_hours = _in_range(quiet_start, quiet_end) or _in_range(quiet2_start, quiet2_end)
     if in_quiet_hours:
+        q2_msg = f" or {quiet2_start}-{quiet2_end}" if quiet2_enabled else ""
         logger.debug(
-            f"EntryFilter blocked by quiet hours ({quiet_start}-{quiet_end} or {quiet2_start}-{quiet2_end})"
+            f"EntryFilter blocked by quiet hours ({quiet_start}-{quiet_end}{q2_msg})"
         )
         return False
 
