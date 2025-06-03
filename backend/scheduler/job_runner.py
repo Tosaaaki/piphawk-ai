@@ -215,6 +215,8 @@ class JobRunner:
         self.patterns_by_tf: dict[str, str | None] = {}
         # Highest profit observed since entry
         self.max_profit_pips: float = 0.0
+        # recent M5 candles for peak detection
+        self.last_candles_m5: list[dict] | None = None
 
         # Restore TP adjustment flags based on existing TP order comment
         try:
@@ -606,6 +608,12 @@ class JobRunner:
             return False
         if self.max_profit_pips - current_profit < PEAK_EXIT_RETRACE_PIPS:
             return False
+
+        from backend.strategy.signal_filter import detect_peak_reversal
+
+        if detect_peak_reversal(self.last_candles_m5 or [], side):
+            return True
+
         ema_fast = indicators.get("ema_fast")
         ema_slow = indicators.get("ema_slow")
         if ema_fast is None or ema_slow is None:
@@ -681,6 +689,7 @@ class JobRunner:
                     candles_h1 = candles_dict.get("H1", [])
                     candles_h4 = candles_dict.get("H4", [])
                     candles_d1 = candles_dict.get("D", [])
+                    self.last_candles_m5 = candles_m5
                     candles = candles_m5  # backward compatibility
                     logger.info(f"Candle M5 last: {candles_m5[-1] if candles_m5 else 'No candles'}")
 
