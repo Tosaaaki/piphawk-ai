@@ -132,6 +132,7 @@ MARGIN_WARNING_THRESHOLD = float(env_loader.get_env("MARGIN_WARNING_THRESHOLD", 
 SCALE_LOT_SIZE = float(env_loader.get_env("SCALE_LOT_SIZE", "0.5"))
 # ----- limit‑order housekeeping ------------------------------------
 MAX_LIMIT_AGE_SEC = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))  # seconds before a pending LIMIT is cancelled
+PENDING_GRACE_MIN = int(env_loader.get_env("PENDING_GRACE_MIN", "3"))
 
 # POSITION_REVIEW_ENABLED : "true" | "false"  – enable/disable periodic position reviews (default "true")
 # POSITION_REVIEW_SEC     : seconds between AI reviews while holding a position   (default 60)
@@ -187,6 +188,7 @@ class JobRunner:
         self.review_sec = int(env_loader.get_env("POSITION_REVIEW_SEC", "60"))
         # LIMIT order age threshold
         self.max_limit_age_sec = MAX_LIMIT_AGE_SEC
+        self.pending_grace_sec = PENDING_GRACE_MIN * 60
         # ----- Additional runtime state --------------------------------
         # Toggle for higher‑timeframe reference levels (daily / H4)
         self.higher_tf_enabled = env_loader.get_env("HIGHER_TF_ENABLED", "true").lower() == "true"
@@ -723,6 +725,19 @@ class JobRunner:
 
                     # チェック：保留LIMIT注文の更新
                     self._manage_pending_limits(DEFAULT_PAIR, indicators, candles_m5, tick_data)
+
+                    pend_info = get_pending_entry_order(DEFAULT_PAIR)
+                    if pend_info:
+                        age = time.time() - pend_info.get("ts", 0)
+                        if age < self.pending_grace_sec:
+                            logger.info(
+                                f"Pending LIMIT active ({age:.0f}s) – skip entry check"
+                            )
+                            self.last_run = now
+                            update_oanda_trades()
+                            time.sleep(self.interval_seconds)
+                            timer.stop()
+                            continue
 
                     # ポジション確認
                     has_position = check_current_position(DEFAULT_PAIR)
@@ -1293,19 +1308,25 @@ class JobRunner:
                             if not result:
                                 pend = get_pending_entry_order(DEFAULT_PAIR)
                                 if pend and pend.get("order_id"):
-                                    try:
-                                        order_mgr.cancel_order(pend["order_id"])
+                                    age = time.time() - pend.get("ts", 0)
+                                    if age >= self.pending_grace_sec:
+                                        try:
+                                            order_mgr.cancel_order(pend["order_id"])
+                                            logger.info(
+                                                f"AI declined entry; canceled pending LIMIT {pend['order_id']}"
+                                            )
+                                        except Exception as exc:
+                                            logger.warning(
+                                                f"Failed to cancel pending LIMIT {pend['order_id']}: {exc}"
+                                            )
+                                        for key, info in list(_pending_limits.items()):
+                                            if info.get("order_id") == pend["order_id"]:
+                                                _pending_limits.pop(key, None)
+                                                break
+                                    else:
                                         logger.info(
-                                            f"AI declined entry; canceled pending LIMIT {pend['order_id']}"
+                                            f"Pending LIMIT age {age:.0f}s < grace period; keeping order"
                                         )
-                                    except Exception as exc:
-                                        logger.warning(
-                                            f"Failed to cancel pending LIMIT {pend['order_id']}: {exc}"
-                                        )
-                                    for key, info in list(_pending_limits.items()):
-                                        if info.get("order_id") == pend["order_id"]:
-                                            _pending_limits.pop(key, None)
-                                            break
                                 logger.info(
                                     "process_entry returned False → aborting entry and continuing loop"
                                 )
