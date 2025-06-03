@@ -60,7 +60,8 @@ def get_open_positions() -> Optional[List[Dict[str, Any]]]:
 
 def get_position_details(instrument: str) -> Optional[Dict[str, Any]]:
     """
-    Fetch details for a specific instrument position, including entry time.
+    指定銘柄のポジション詳細を取得する。エントリ時のコメントから
+    tp/sl(pips) も抽出し ``tp_pips`` / ``sl_pips`` として返す。
     """
     url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/positions/{instrument}"
     try:
@@ -98,11 +99,15 @@ def get_position_details(instrument: str) -> Optional[Dict[str, Any]]:
         # ---- extract entry_regime JSON from clientExtensions.comment ----
         entry_regime = None
         tp_comment = None
+        sl_pips = None
+        tp_pips = None
         for tr in trades:
             comment = tr.get("clientExtensions", {}).get("comment")
             if comment:
                 try:
                     entry_regime = json.loads(comment)
+                    sl_pips = entry_regime.get("sl")
+                    tp_pips = entry_regime.get("tp")
                 except json.JSONDecodeError:
                     entry_regime = {"regime": "unknown"}
                 break
@@ -116,6 +121,10 @@ def get_position_details(instrument: str) -> Optional[Dict[str, Any]]:
                 break
         position_data["entry_regime"] = json.dumps(entry_regime) if entry_regime else None
         position_data["tp_comment"] = tp_comment
+        if sl_pips is not None:
+            position_data["sl_pips"] = float(sl_pips)
+        if tp_pips is not None:
+            position_data["tp_pips"] = float(tp_pips)
 
         return position_data
 

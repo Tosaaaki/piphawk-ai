@@ -776,6 +776,7 @@ class JobRunner:
 
                         BE_TRIGGER_PIPS = float(env_loader.get_env("BE_TRIGGER_PIPS", "10"))
                         BE_ATR_TRIGGER_MULT = float(env_loader.get_env("BE_ATR_TRIGGER_MULT", "0"))
+                        BE_TRIGGER_R = float(env_loader.get_env("BE_TRIGGER_R", "0"))
                         atr_val = (
                             indicators["atr"].iloc[-1]
                             if hasattr(indicators["atr"], "iloc")
@@ -786,6 +787,14 @@ class JobRunner:
                             be_trigger = max(BE_TRIGGER_PIPS, atr_pips * BE_ATR_TRIGGER_MULT)
                         else:
                             be_trigger = BE_TRIGGER_PIPS
+                        if BE_TRIGGER_R > 0:
+                            sl_pips_val = has_position.get("sl_pips")
+                            if sl_pips_val is not None:
+                                try:
+                                    sl_pips_val = float(sl_pips_val)
+                                    be_trigger = max(be_trigger, sl_pips_val * BE_TRIGGER_R)
+                                except Exception:
+                                    pass
                         TP_PIPS = float(env_loader.get_env("INIT_TP_PIPS", "30"))
                         AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.3"))
 
