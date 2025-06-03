@@ -106,6 +106,28 @@ def detect_climax_reversal(candles: list[dict], indicators: dict, *, lookback: i
     return None
 
 # ────────────────────────────────────────────────
+#  簡易ピーク反転検出
+# ────────────────────────────────────────────────
+def detect_peak_reversal(candles: list[dict], side: str) -> bool:
+    """最後の3本で中央が高値(安値)となり、最終足が反対方向へ引けたらTrue"""
+
+    if len(candles) < 3:
+        return False
+    try:
+        sub = candles[-3:]
+        highs = [float(c.get("mid", c).get("h")) for c in sub]
+        lows = [float(c.get("mid", c).get("l")) for c in sub]
+        closes = [float(c.get("mid", c).get("c")) for c in sub]
+    except Exception:
+        return False
+
+    if side == "long":
+        return highs[1] >= highs[0] and highs[1] >= highs[2] and closes[2] < closes[1]
+    elif side == "short":
+        return lows[1] <= lows[0] and lows[1] <= lows[2] and closes[2] > closes[1]
+    return False
+
+# ────────────────────────────────────────────────
 #  Trend追随前フィルター
 # ────────────────────────────────────────────────
 def filter_pre_ai(
