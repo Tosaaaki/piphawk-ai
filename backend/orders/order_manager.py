@@ -304,6 +304,31 @@ class OrderManager:
             logger.warning(f"get_current_tp failed for {trade_id}: {exc}")
         return None
 
+    def get_current_trailing_distance(self, trade_id: str, instrument: str) -> float | None:
+        """現在設定されているトレーリングストップ距離(pips)を取得する。"""
+        url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}"
+        try:
+            resp = requests.get(url, headers=HEADERS, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+            ts_id = data.get("trade", {}).get("trailingStopLossOrderID")
+            if ts_id:
+                order_url = (
+                    f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{ts_id}"
+                )
+                order_resp = requests.get(order_url, headers=HEADERS, timeout=10)
+                order_resp.raise_for_status()
+                order_data = order_resp.json()
+                order_info = order_data.get("order") or order_data.get("trailingStopLossOrder")
+                if isinstance(order_info, dict):
+                    dist = order_info.get("distance")
+                    if dist is not None:
+                        pip_factor = 0.01 if instrument.endswith("JPY") else 0.0001
+                        return float(dist) / pip_factor
+        except Exception as exc:
+            logger.warning(f"get_current_trailing_distance failed for {trade_id}: {exc}")
+        return None
+
     def market_close_position(self, instrument):
         # delegate to unified close_position() helper
         logger.debug(f"[market_close_position] closing BOTH sides for {instrument}")
