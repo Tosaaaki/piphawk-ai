@@ -131,6 +131,16 @@ def process_entry(
             env_loader.get_env("ALLOW_DELAYED_ENTRY", "false").lower() == "true"
         )
 
+    pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+    spread_pips = None
+    try:
+        if isinstance(market_data, dict):
+            bid = float(market_data["prices"][0]["bids"][0]["price"])
+            ask = float(market_data["prices"][0]["asks"][0]["price"])
+            spread_pips = (ask - bid) / pip_size
+    except Exception:
+        spread_pips = None
+
     # ------------------------------------------------------------
     #  Chart pattern scan (local) --------------------------------
     # ------------------------------------------------------------
@@ -201,6 +211,14 @@ def process_entry(
     if side not in ("long", "short"):
         logging.info("AI says no trade entry → early exit")
         return False
+
+    if spread_pips is not None:
+        from backend.risk_manager import cost_guard
+        if not cost_guard(risk_info.get("tp_pips"), spread_pips):
+            min_net = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
+            net = float(risk_info.get("tp_pips", 0)) - spread_pips
+            logging.info(f"Net TP {net:.1f} < {min_net} → skip entry")
+            return False
 
     if PEAK_ENTRY_ENABLED:
         try:
