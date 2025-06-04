@@ -31,6 +31,17 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    アプリケーションは `.env`, `backend/config/settings.env`, `backend/config/secret.env` の順で環境変数を読み込みます。
    必要に応じて `settings.env` の値も調整してください。
 詳しい環境変数一覧と設定例は `backend/config/ENV_README.txt` を参照してください。
+
+#### settings.env の主な変数
+`backend/config/settings.env` には取引ロジックに関わる初期値がまとめられています。 `.env` の次に読み込まれるため、ここを編集すると大半の設定を簡単に変更できます。
+
+- `DEFAULT_PAIR` … 取引する通貨ペア
+- `MIN_RRR` … 最低リスクリワード比。`ENFORCE_RRR` と併用すると常にこの比率を保ちます
+- `SCALE_LOT_SIZE` … 追加エントリー時のロット数
+- `AI_MODEL` … OpenAI モデル名
+- `LINE_CHANNEL_TOKEN` / `LINE_USER_ID` … LINE 通知に使用する認証情報
+
+その他の変数は `backend/config/ENV_README.txt` を参照してください。
 ### Using strategy.yml
 `config/strategy.yml` を作成すると、キーと値を YAML 形式で指定して環境変数を上書きできます。
 ```yaml
