@@ -49,7 +49,7 @@ class TestPullbackLimit(unittest.TestCase):
         class DummyMgr:
             def __init__(self):
                 self.last_params = None
-            def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False):
+            def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False, with_oco=True):
                 self.last_params = strategy_params
                 return {"order_id": "1"}
         om.OrderManager = DummyMgr
