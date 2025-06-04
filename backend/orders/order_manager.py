@@ -3,12 +3,17 @@ import requests
 from backend.logs.log_manager import log_trade, log_error
 from backend.logs.trade_logger import ExitReason
 from backend.utils.price import format_price
-from backend.risk_manager import validate_rrr, validate_sl
+from backend.risk_manager import (
+    validate_rrr,
+    validate_rrr_after_cost,
+    validate_sl,
+)
 from datetime import datetime, timedelta
 import time
 import json
 import logging
 import uuid
+
 logger = logging.getLogger(__name__)
 
 OANDA_API_URL = os.getenv("OANDA_API_URL", "https://api-fxtrade.oanda.com/v3")
@@ -17,7 +22,7 @@ OANDA_API_KEY = os.getenv("OANDA_API_KEY")
 
 HEADERS = {
     "Authorization": f"Bearer {OANDA_API_KEY}",
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
 }
 
 
@@ -29,6 +34,7 @@ def _extract_error_details(response) -> tuple[str | None, str | None]:
     except Exception:
         return None, None
 
+
 # ----------------------------------------------------------------------
 #  Pip‑size table (extend as needed) and helper
 # ----------------------------------------------------------------------
@@ -39,6 +45,7 @@ PIP_SIZES: dict[str, float] = {
     "EUR_USD": 0.0001,
     # add more pairs here if necessary
 }
+
 
 def get_pip_size(instrument: str) -> float:
     """Return pip size for the instrument; fallback to DEFAULT_PAIR mapping."""
@@ -77,10 +84,12 @@ class OrderManager:
 
         comment_dict = {"entry_uuid": entry_uuid, "mode": "limit"}
         if risk_info:
-            comment_dict.update(tp=risk_info.get("tp_pips"),
-                                sl=risk_info.get("sl_pips"),
-                                pp=risk_info.get("tp_prob"),
-                                qp=risk_info.get("sl_prob"))
+            comment_dict.update(
+                tp=risk_info.get("tp_pips"),
+                sl=risk_info.get("sl_pips"),
+                pp=risk_info.get("tp_prob"),
+                qp=risk_info.get("sl_prob"),
+            )
         comment_json = json.dumps(comment_dict, separators=(",", ":"))
         if len(comment_json.encode("utf-8")) > 240:
             comment_json = comment_json.encode("utf-8")[:240].decode("utf-8", "ignore")
@@ -95,12 +104,11 @@ class OrderManager:
                 "timeInForce": "GTD",
                 "type": "LIMIT",
                 "positionFill": "DEFAULT",
-                "clientExtensions": {
-                    "comment": comment_json,
-                    "tag": tag
-                },
-                "gtdTime": (datetime.utcnow() + 
-                            timedelta(seconds=valid_sec)).isoformat("T") + "Z"
+                "clientExtensions": {"comment": comment_json, "tag": tag},
+                "gtdTime": (datetime.utcnow() + timedelta(seconds=valid_sec)).isoformat(
+                    "T"
+                )
+                + "Z",
             }
         }
         if tp_price and sl_price:
@@ -143,8 +151,10 @@ class OrderManager:
         payload = {
             "order": {
                 "price": format_price(instrument, new_price),
-                "gtdTime": (datetime.utcnow() +
-                            timedelta(seconds=valid_sec)).isoformat("T") + "Z"
+                "gtdTime": (datetime.utcnow() + timedelta(seconds=valid_sec)).isoformat(
+                    "T"
+                )
+                + "Z",
             }
         }
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{order_id}"
@@ -193,17 +203,13 @@ class OrderManager:
             "timeInForce": "FOK",
             "type": "MARKET",
             "positionFill": "DEFAULT",
-            "clientExtensions": {
-                "tag": tag
-            }
+            "clientExtensions": {"tag": tag},
         }
         if comment_json:
             order["clientExtensions"]["comment"] = comment_json
         data = {"order": order}
         response = requests.post(url, json=data, headers=HEADERS)
-        logger.debug(
-            f"Market order response: {response.status_code} {response.text}"
-        )
+        logger.debug(f"Market order response: {response.status_code} {response.text}")
         if response.status_code != 201:
             code, msg = _extract_error_details(response)
             log_error(
@@ -214,7 +220,15 @@ class OrderManager:
             raise Exception(f"Failed to place order: {response.text}")
         return response.json()
 
-    def adjust_tp_sl(self, instrument, trade_id, new_tp=None, new_sl=None, *, entry_uuid: str | None = None):
+    def adjust_tp_sl(
+        self,
+        instrument,
+        trade_id,
+        new_tp=None,
+        new_sl=None,
+        *,
+        entry_uuid: str | None = None,
+    ):
         """Adjust TP/SL for a trade and store entry_uuid in comment if given."""
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
         results = {}
@@ -242,7 +256,8 @@ class OrderManager:
                 err_msg = f"TP adjustment failed: {code} {msg}"
 
                 if code in ("NO_SUCH_TRADE", "ORDER_DOESNT_EXIST") or (
-                    "NO_SUCH_TRADE" in response.text or "ORDER_DOESNT_EXIST" in response.text
+                    "NO_SUCH_TRADE" in response.text
+                    or "ORDER_DOESNT_EXIST" in response.text
                 ):
                     log_error("order_manager", err_msg, response.text)
                     break
@@ -291,7 +306,9 @@ class OrderManager:
                 order_resp = requests.get(order_url, headers=HEADERS, timeout=10)
                 order_resp.raise_for_status()
                 order_data = order_resp.json()
-                order_info = order_data.get("order") or order_data.get("takeProfitOrder")
+                order_info = order_data.get("order") or order_data.get(
+                    "takeProfitOrder"
+                )
                 if isinstance(order_info, dict):
                     price = order_info.get("price")
                     if price is not None:
@@ -300,7 +317,9 @@ class OrderManager:
             logger.warning(f"get_current_tp failed for {trade_id}: {exc}")
         return None
 
-    def get_current_trailing_distance(self, trade_id: str, instrument: str) -> float | None:
+    def get_current_trailing_distance(
+        self, trade_id: str, instrument: str
+    ) -> float | None:
         """現在設定されているトレーリングストップ距離(pips)を取得する。"""
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}"
         try:
@@ -315,14 +334,18 @@ class OrderManager:
                 order_resp = requests.get(order_url, headers=HEADERS, timeout=10)
                 order_resp.raise_for_status()
                 order_data = order_resp.json()
-                order_info = order_data.get("order") or order_data.get("trailingStopLossOrder")
+                order_info = order_data.get("order") or order_data.get(
+                    "trailingStopLossOrder"
+                )
                 if isinstance(order_info, dict):
                     dist = order_info.get("distance")
                     if dist is not None:
                         pip_factor = 0.01 if instrument.endswith("JPY") else 0.0001
                         return float(dist) / pip_factor
         except Exception as exc:
-            logger.warning(f"get_current_trailing_distance failed for {trade_id}: {exc}")
+            logger.warning(
+                f"get_current_trailing_distance failed for {trade_id}: {exc}"
+            )
         return None
 
     def market_close_position(self, instrument):
@@ -337,6 +360,8 @@ class OrderManager:
         strategy_params,
         side="long",
         force_limit_only: bool = False,
+        *,
+        with_oco: bool = True,
     ):
         min_lot = float(os.getenv("MIN_TRADE_LOT", "0.01"))
         max_lot = float(os.getenv("MAX_TRADE_LOT", "0.1"))
@@ -350,7 +375,9 @@ class OrderManager:
             )
             mode = "limit"
         entry_uuid = strategy_params.get("entry_uuid") or str(uuid.uuid4())[:8]
-        valid_sec = int(strategy_params.get("valid_for_sec", os.getenv("MAX_LIMIT_AGE_SEC", "180")))
+        valid_sec = int(
+            strategy_params.get("valid_for_sec", os.getenv("MAX_LIMIT_AGE_SEC", "180"))
+        )
 
         instrument = strategy_params["instrument"]
         tp_pips = strategy_params.get("tp_pips")
@@ -373,7 +400,30 @@ class OrderManager:
             except Exception:
                 pass
 
-        entry_price = float(market_data['prices'][0]['bids'][0]['price']) if side == "long" else float(market_data['prices'][0]['asks'][0]['price'])
+        entry_price = (
+            float(market_data["prices"][0]["bids"][0]["price"])
+            if side == "long"
+            else float(market_data["prices"][0]["asks"][0]["price"])
+        )
+        bid = float(market_data['prices'][0]['bids'][0]['price'])
+        ask = float(market_data['prices'][0]['asks'][0]['price'])
+        entry_price = bid if side == "long" else ask
+
+        if tp_pips is not None and sl_pips is not None:
+            try:
+                spread_pips = (ask - bid) / pip
+                slip = float(os.getenv("ENTRY_SLIPPAGE_PIPS", "0"))
+                min_rrr_cost = float(os.getenv("MIN_RRR_AFTER_COST", "1.2"))
+                if not validate_rrr_after_cost(float(tp_pips), float(sl_pips), spread_pips + slip, min_rrr_cost):
+                    logger.warning(
+                        "RRR after cost %.2f below %.2f – aborting entry",
+                        (float(tp_pips) - (spread_pips + slip)) / float(sl_pips) if sl_pips else 0,
+                        min_rrr_cost,
+                    )
+                    return None
+            except Exception:
+                pass
+
         units = int(lot_size * 1000) if side == "long" else -int(lot_size * 1000)
         entry_time = datetime.utcnow().isoformat()
 
@@ -395,7 +445,7 @@ class OrderManager:
                 side=side,
                 entry_uuid=entry_uuid,
                 valid_sec=valid_sec,
-                risk_info=strategy_params.get("risk")
+                risk_info=strategy_params.get("risk"),
             )
 
         # ---- embed entry‑regime JSON into clientExtensions.comment (≤255 bytes) ----
@@ -420,7 +470,9 @@ class OrderManager:
             comment_json = json.dumps(comment_dict, separators=(",", ":"))
             # OANDA は 255 byte 制限。安全マージンで 240 byte に丸める
             if len(comment_json.encode("utf-8")) > 240:
-                comment_json = comment_json.encode("utf-8")[:240].decode("utf-8", "ignore")
+                comment_json = comment_json.encode("utf-8")[:240].decode(
+                    "utf-8", "ignore"
+                )
         except Exception as exc:
             logger.debug(f"[enter_trade] building comment JSON failed: {exc}")
 
@@ -440,7 +492,7 @@ class OrderManager:
             }
         }
 
-        if tp_pips and sl_pips:
+        if with_oco and tp_pips and sl_pips:
             if side == "long":
                 tp_price = entry_price + float(tp_pips) * pip
                 sl_price = entry_price - float(sl_pips) * pip
@@ -456,7 +508,9 @@ class OrderManager:
             }
 
         response = requests.post(url, json=order_body, headers=HEADERS)
-        logger.debug(f"Order placement response: {response.status_code} - {response.text}")
+        logger.debug(
+            f"Order placement response: {response.status_code} - {response.text}"
+        )
         if response.status_code != 201:
             raise Exception(f"Failed to place order: {response.text}")
 
@@ -496,9 +550,9 @@ class OrderManager:
             )
             raise Exception(f"Failed to fetch position details: {response.text}")
 
-        position_data = response.json()['position']
-        long_units = int(position_data['long']['units'])
-        short_units = int(position_data['short']['units'])
+        position_data = response.json()["position"]
+        long_units = int(position_data["long"]["units"])
+        short_units = int(position_data["short"]["units"])
 
         if short_units < 0:
             side = "short"
@@ -510,18 +564,22 @@ class OrderManager:
         logger.debug(f"[exit_trade] API-based detected side={side} for {instrument}")
         result = self.close_position(instrument, side)
 
-        entry_price = float(position['long']['averagePrice'] if int(position['long']['units']) > 0 else position['short']['averagePrice'])
+        entry_price = float(
+            position["long"]["averagePrice"]
+            if int(position["long"]["units"]) > 0
+            else position["short"]["averagePrice"]
+        )
 
         if side == "long":
-            units = int(position['long']['units'])
+            units = int(position["long"]["units"])
         elif side == "short":
-            units = int(position['short']['units'])
+            units = int(position["short"]["units"])
         else:
             units = 0
 
         log_trade(
             instrument=instrument,
-            entry_time=position.get('entry_time', datetime.utcnow().isoformat()),
+            entry_time=position.get("entry_time", datetime.utcnow().isoformat()),
             entry_price=entry_price,
             units=units,
             ai_reason="exit",
@@ -533,7 +591,9 @@ class OrderManager:
     def close_position(self, instrument, side: str = "both"):
         if side is None:
             raise ValueError("side must be 'long', 'short', or 'both'")
-        url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/positions/{instrument}/close"
+        url = (
+            f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/positions/{instrument}/close"
+        )
 
         # OANDA spec: we must explicitly specify which side(s) to close
         if side == "short":
@@ -560,9 +620,7 @@ class OrderManager:
 
     def close_partial(self, trade_id: str, units: int) -> dict:
         """Close a portion of a trade by specifying units."""
-        url = (
-            f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}/close"
-        )
+        url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}/close"
         payload = {"units": str(units)}
         logger.debug(f"[close_partial] trade_id={trade_id} units={units}")
         resp = requests.put(url, json=payload, headers=HEADERS)
@@ -612,8 +670,7 @@ class OrderManager:
         }
 
         url = (
-            f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/"
-            f"{trade_id}/orders"
+            f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/" f"{trade_id}/orders"
         )
         response = requests.put(url, json=body, headers=HEADERS)
         if response.status_code != 200:
@@ -629,8 +686,7 @@ class OrderManager:
     def update_trade_sl(self, trade_id, instrument, new_sl_price):
         """Create or modify a Stop Loss order for the given trade."""
         url = (
-            f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/"
-            f"{trade_id}/orders"
+            f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/" f"{trade_id}/orders"
         )
         body = {
             "stopLoss": {
@@ -645,6 +701,7 @@ class OrderManager:
         try:
             current_tp = self.get_current_tp(trade_id)
             from backend.logs.update_oanda_trades import fetch_trade_details
+
             trade_info = fetch_trade_details(trade_id) or {}
             trade = trade_info.get("trade", {})
             entry_price = float(trade.get("price") or trade.get("averagePrice", 0))
@@ -657,7 +714,9 @@ class OrderManager:
             sl_pips = abs(new_sl_price - entry_price) / pip
             if not validate_rrr(tp_pips, sl_pips, min_rrr):
                 logger.warning(
-                    "RRR %.2f below %.2f – rejecting SL update", tp_pips / sl_pips if sl_pips else 0, min_rrr
+                    "RRR %.2f below %.2f – rejecting SL update",
+                    tp_pips / sl_pips if sl_pips else 0,
+                    min_rrr,
                 )
                 return None
 

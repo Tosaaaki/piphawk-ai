@@ -25,7 +25,6 @@ def _last_low(indicators: dict) -> float | None:
         return None
     return None
 
-
 def _last_high(indicators: dict) -> float | None:
     """Extract the last high price from H1 indicators."""
     series = (
@@ -47,8 +46,6 @@ def _last_high(indicators: dict) -> float | None:
     except Exception:
         return None
     return None
-
-
 def is_near_h1_support(indicators_h1: dict, price: float, rng: float) -> bool:
     """Return True if ``price`` is within ``rng`` pips of the last H1 low."""
     if not indicators_h1 or rng <= 0 or price is None:
@@ -59,7 +56,6 @@ def is_near_h1_support(indicators_h1: dict, price: float, rng: float) -> bool:
         return False
     diff_pips = abs(price - low) / pip_size
     return diff_pips <= rng
-
 
 def is_near_h1_resistance(indicators_h1: dict, price: float, rng: float) -> bool:
     """Return True if ``price`` is within ``rng`` pips of the last H1 high."""

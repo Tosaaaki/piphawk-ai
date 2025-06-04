@@ -46,7 +46,7 @@ class TestLimitRetry(unittest.TestCase):
         class DummyMgr:
             def __init__(self):
                 self.enter_calls = 0
-            def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False):
+            def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False, with_oco=True):
                 self.enter_calls += 1
                 return {"order_id": "1"}
             def place_market_order(self, instrument, units):

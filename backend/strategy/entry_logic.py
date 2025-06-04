@@ -22,6 +22,7 @@ except ModuleNotFoundError:  # pragma: no cover
     def extension_block(*_a, **_k):
         return False
 try:
+
     from backend.filters.h1_level_block import (
         is_near_h1_support,
         is_near_h1_resistance,
@@ -32,8 +33,10 @@ except ModuleNotFoundError:  # pragma: no cover
 
     def is_near_h1_resistance(*_a, **_k):
         return False
+      
 from backend.risk_manager import (
     validate_rrr,
+    validate_rrr_after_cost,
     validate_sl,
     calc_min_sl,
     get_recent_swing_diff,
@@ -142,6 +145,16 @@ def process_entry(
             env_loader.get_env("ALLOW_DELAYED_ENTRY", "false").lower() == "true"
         )
 
+    pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+    spread_pips = None
+    try:
+        if isinstance(market_data, dict):
+            bid = float(market_data["prices"][0]["bids"][0]["price"])
+            ask = float(market_data["prices"][0]["asks"][0]["price"])
+            spread_pips = (ask - bid) / pip_size
+    except Exception:
+        spread_pips = None
+
     # ------------------------------------------------------------
     #  Chart pattern scan (local) --------------------------------
     # ------------------------------------------------------------
@@ -212,6 +225,14 @@ def process_entry(
     if side not in ("long", "short"):
         logging.info("AI says no trade entry → early exit")
         return False
+
+    if spread_pips is not None:
+        from backend.risk_manager import cost_guard
+        if not cost_guard(risk_info.get("tp_pips"), spread_pips):
+            min_net = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
+            net = float(risk_info.get("tp_pips", 0)) - spread_pips
+            logging.info(f"Net TP {net:.1f} < {min_net} → skip entry")
+            return False
 
     if PEAK_ENTRY_ENABLED:
         try:
@@ -345,6 +366,19 @@ def process_entry(
         except Exception:
             pass
 
+        try:
+            adx_series = indicators.get("adx")
+            thresh = float(env_loader.get_env("BYPASS_PULLBACK_ADX_MIN", "0"))
+            if (
+                thresh > 0
+                and adx_series is not None
+                and len(adx_series)
+                and float(adx_series.iloc[-1] if hasattr(adx_series, "iloc") else adx_series[-1]) >= thresh
+            ):
+                pullback_needed = None
+        except Exception:
+            pass
+
     if isinstance(market_data, dict):
         instrument = market_data["prices"][0]["instrument"]
         bid = float(market_data["prices"][0]["bids"][0]["price"])
@@ -353,7 +387,6 @@ def process_entry(
         instrument = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
         bid = ask = None
 
-    # H1 サポート/レジスタンス付近ではエントリーを見送る
     try:
         rng = float(env_loader.get_env("H1_BOUNCE_RANGE_PIPS", "0"))
         ind_h1 = indicators_multi.get("H1") if indicators_multi else None
@@ -612,6 +645,20 @@ def process_entry(
             validate_sl(tp_pips, sl_pips, atr_pips, min_atr_mult)
     except Exception:
         pass
+
+    try:
+        pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+        spread = (ask - bid) / pip_size if bid is not None and ask is not None else 0.0
+        slip = float(env_loader.get_env("ENTRY_SLIPPAGE_PIPS", "0"))
+        min_rrr_cost = float(env_loader.get_env("MIN_RRR_AFTER_COST", "1.2"))
+        if not validate_rrr_after_cost(tp_pips, sl_pips, spread + slip, min_rrr_cost):
+            logging.info(
+                f"RRR after cost {(tp_pips - (spread + slip)) / sl_pips if sl_pips else 0:.2f} < {min_rrr_cost} → skip entry"
+            )
+            return False
+    except Exception as exc:
+        logging.debug(f"[process_entry] rrr-after-cost check failed: {exc}")
+
     logging.info(f"AI Entry {side} – tp={tp_pips}  sl={sl_pips} (pips)")
 
     if mode == "limit":

@@ -119,6 +119,5 @@ class TestH1LevelBlock(unittest.TestCase):
         self.assertFalse(res)
         self.assertEqual(self.el.order_manager.calls, 0)
 
-
 if __name__ == "__main__":
     unittest.main()

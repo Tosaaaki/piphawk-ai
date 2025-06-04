@@ -4,31 +4,27 @@ import types
 import importlib
 import unittest
 
-
 class FakeSeries:
     def __init__(self, data):
         self._data = list(data)
-
         class _ILoc:
             def __init__(self, outer):
                 self._outer = outer
-
             def __getitem__(self, idx):
                 return self._outer._data[idx]
-
         self.iloc = _ILoc(self)
-
     def __getitem__(self, idx):
+        if isinstance(idx, slice):
+            return self._data[idx]
+        if isinstance(idx, int) and idx < 0:
+            raise KeyError(idx)
         return self._data[idx]
-
     def __len__(self):
         return len(self._data)
 
-
-class TestPeakEntry(unittest.TestCase):
+class TestEntryCostGuard(unittest.TestCase):
     def setUp(self):
         self._mods = []
-
         def add(name, mod):
             sys.modules[name] = mod
             self._mods.append(name)
@@ -44,26 +40,21 @@ class TestPeakEntry(unittest.TestCase):
         oa = types.ModuleType("backend.strategy.openai_analysis")
         oa.get_trade_plan = lambda *a, **k: {
             "entry": {"side": "long", "mode": "market"},
-            "risk": {"tp_pips": 10, "sl_pips": 5},
+            "risk": {"tp_pips": 5, "sl_pips": 2},
         }
+        oa.get_market_condition = lambda *a, **k: {}
         oa.should_convert_limit_to_market = lambda ctx: True
         oa.evaluate_exit = lambda *a, **k: types.SimpleNamespace(action="HOLD", confidence=0.0, reason="")
         oa.EXIT_BIAS_FACTOR = 1.0
         add("backend.strategy.openai_analysis", oa)
 
         om = types.ModuleType("backend.orders.order_manager")
-
         class DummyMgr:
             def __init__(self):
                 self.last_params = None
-
-            def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False, with_oco=True):
+            def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False):
                 self.last_params = strategy_params
                 return {"order_id": "1"}
-
-            def get_open_orders(self, instrument, side):
-                return []
-
         om.OrderManager = DummyMgr
         add("backend.orders.order_manager", om)
 
@@ -71,48 +62,37 @@ class TestPeakEntry(unittest.TestCase):
         log_mod.log_trade = lambda *a, **k: None
         add("backend.logs.log_manager", log_mod)
 
-        import backend.strategy.signal_filter as sf
-        self._orig_detect = sf.detect_peak_reversal
-        sf.detect_peak_reversal = lambda candles, side: True
-        self._sf = sf
-
         os.environ["PIP_SIZE"] = "0.01"
-        os.environ["PEAK_ENTRY_ENABLED"] = "true"
+        os.environ["MIN_NET_TP_PIPS"] = "2"
+        os.environ["MAX_SPREAD_PIPS"] = "10"
 
         import backend.strategy.entry_logic as el
         importlib.reload(el)
         self.el = el
+        self._mods.append("backend.strategy.entry_logic")
 
     def tearDown(self):
         for name in self._mods:
             sys.modules.pop(name, None)
         os.environ.pop("PIP_SIZE", None)
-        os.environ.pop("PEAK_ENTRY_ENABLED", None)
-        if hasattr(self, "_sf"):
-            self._sf.detect_peak_reversal = self._orig_detect
+        os.environ.pop("MIN_NET_TP_PIPS", None)
+        os.environ.pop("MAX_SPREAD_PIPS", None)
 
-    def test_peak_reversal_flips_side(self):
+    def test_entry_skipped_when_net_tp_too_small(self):
         indicators = {"atr": FakeSeries([0.1])}
-        candle = {"mid": {"o": "1", "h": "2", "l": "0", "c": "1"}}
-        candles = [candle, candle, candle]
+        candles = []
         market_data = {
-            "prices": [
-                {"instrument": "USD_JPY", "bids": [{"price": "1.0"}], "asks": [{"price": "1.01"}]}
-            ]
+            "prices": [{"instrument": "USD_JPY", "bids": [{"price": "1.0"}], "asks": [{"price": "1.04"}]}]
         }
-        res = self.el.process_entry(
+        result = self.el.process_entry(
             indicators,
             candles,
             market_data,
             candles_dict={"M5": candles},
             tf_align=None,
         )
-        self.assertTrue(res)
-        params = self.el.order_manager.last_params
-        self.assertIsNotNone(params)
-        self.assertEqual(params["side"], "short")
-
+        self.assertFalse(result)
+        self.assertIsNone(self.el.order_manager.last_params)
 
 if __name__ == "__main__":
     unittest.main()
-

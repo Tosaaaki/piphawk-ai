@@ -12,7 +12,7 @@ class TestMinHoldExit(unittest.TestCase):
             sys.modules[name] = mod
             self._mods.append(name)
 
-        os.environ['MIN_HOLD_SEC'] = '60'
+        os.environ['MIN_HOLD_SECONDS'] = '60'
         os.environ['AI_PROFIT_TRIGGER_RATIO'] = '0'
         os.environ['PIP_SIZE'] = '0.0001'
         os.environ['OPENAI_API_KEY'] = 'dummy'
@@ -103,7 +103,7 @@ class TestMinHoldExit(unittest.TestCase):
     def tearDown(self):
         for n in self._mods:
             sys.modules.pop(n, None)
-        os.environ.pop('MIN_HOLD_SEC', None)
+        os.environ.pop('MIN_HOLD_SECONDS', None)
         os.environ.pop('AI_PROFIT_TRIGGER_RATIO', None)
         os.environ.pop('PIP_SIZE', None)
 

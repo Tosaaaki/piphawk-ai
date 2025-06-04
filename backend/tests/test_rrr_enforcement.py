@@ -54,11 +54,15 @@ class TestRRREnforcement(unittest.TestCase):
         class DummyMgr:
             def __init__(self):
                 self.last_params = None
-            def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False):
+            def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False, with_oco=True):
                 self.last_params = strategy_params
                 return {"order_id": "1"}
         om.OrderManager = DummyMgr
         add("backend.orders.order_manager", om)
+
+        tp_mod = types.ModuleType("backend.filters.trend_pullback")
+        tp_mod.should_enter_long = lambda *a, **k: True
+        add("backend.filters.trend_pullback", tp_mod)
 
         log_mod = types.ModuleType("backend.logs.log_manager")
         log_mod.log_trade = lambda *a, **k: None
@@ -68,6 +72,8 @@ class TestRRREnforcement(unittest.TestCase):
         os.environ["PIP_SIZE"] = "0.01"
         os.environ["ENFORCE_RRR"] = "true"
         os.environ["MIN_RRR"] = "2"
+        os.environ["MIN_RRR_AFTER_COST"] = "1.2"
+        os.environ["ENTRY_SLIPPAGE_PIPS"] = "0"
 
         import backend.strategy.entry_logic as el
         importlib.reload(el)
@@ -80,6 +86,9 @@ class TestRRREnforcement(unittest.TestCase):
         os.environ.pop("MIN_RRR", None)
         os.environ.pop("PIP_SIZE", None)
         os.environ.pop("OPENAI_API_KEY", None)
+        os.environ.pop("MIN_RRR_AFTER_COST", None)
+        os.environ.pop("ENTRY_SLIPPAGE_PIPS", None)
+        sys.modules.pop("backend.filters.trend_pullback", None)
 
     def test_rrr_enforced(self):
         indicators = {"atr": FakeSeries([0.1])}
@@ -96,6 +105,10 @@ class TestRRREnforcement(unittest.TestCase):
         params = self.el.order_manager.last_params
         self.assertIsNotNone(params)
         self.assertGreaterEqual(params["tp_pips"], params["sl_pips"] * 2)
+        spread = (1.01 - 1.0) / float(os.environ["PIP_SIZE"])
+        cost = spread + float(os.environ["ENTRY_SLIPPAGE_PIPS"])
+        r_after = (params["tp_pips"] - cost) / params["sl_pips"]
+        self.assertGreaterEqual(r_after, float(os.environ["MIN_RRR_AFTER_COST"]))
 
 
 if __name__ == "__main__":

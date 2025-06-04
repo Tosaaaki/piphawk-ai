@@ -98,6 +98,14 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
   される。調整後の値は INFO レベルでログ出力される。
   MIN_RRR=1.2、ENFORCE_RRR=true が推奨設定。
 
+■ MIN_RRR_AFTER_COST
+  スプレッドやスリッページなどコスト控除後のRRRが
+  この値以上でなければエントリーを行わない。
+
+■ ENTRY_SLIPPAGE_PIPS
+  エントリー時に想定するスリッページ幅(pips)。
+  MIN_RRR_AFTER_COST の計算に利用される。
+
 
 # 以下は README に記載されていた追加の環境変数
 
@@ -106,9 +114,11 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - AI_PROFIT_TRIGGER_RATIO: TP 目標の何割到達で AI に利確を問い合わせるか
 - MIN_RRR: 最低許容リスクリワード比
 - ENFORCE_RRR: true にすると MIN_RRR を下回らないよう TP/SL を調整
+- MIN_RRR_AFTER_COST: スプレッド控除後のRRR下限
+- ENTRY_SLIPPAGE_PIPS: エントリー時の想定スリッページ
 - STAGNANT_EXIT_SEC: 利益が伸びないまま停滞したと判断するまでの秒数
 - STAGNANT_ATR_PIPS: ATR がこの値以下のとき停滞判定を行う
-- MIN_HOLD_SEC: ポジションを最低何秒保持するか
+- MIN_HOLD_SECONDS: ポジションを最低何秒保持するか
 - REVERSAL_EXIT_ATR_MULT / REVERSAL_EXIT_ADX_MIN: 反対側 BB を終値で超えた際の早期撤退条件
 - REVERSAL_RSI_DIFF: M5 と M15 の RSI 差分がこの値以上で MACD ヒストグラムが同じ方向ならエントリーをブロック
 - POLARITY_EXIT_THRESHOLD: ポラリティによる早期決済を行う閾値
@@ -116,6 +126,7 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - AI_LIMIT_CONVERT_MODEL: 指値を成行に変換するか判断する AI モデル
 - PULLBACK_PIPS: ピボット抑制中に使用するオフセット
 - PULLBACK_ATR_RATIO: ATR 比で待機するプルバック深度の倍率
+- BYPASS_PULLBACK_ADX_MIN: ADX がこの値以上ならプルバック待ちをスキップ
 - EXT_BLOCK_ATR: 終値が EMA20 からこの倍率 × ATR 以上乖離しているとエントリー禁止
 - PIP_SIZE: 通貨ペアの1pip値 (JPYペアは 0.01 など)
 - TRADE_TIMEFRAMES: 取得するローソク足のタイムフレーム一覧
@@ -172,7 +183,6 @@ SCALE_TRIGGER_ATR=0.5
 - ALLOW_DELAYED_ENTRY: トレンドが過熱している場合に "wait" を返させ、押し目到来で再問い合わせする
 - MIN_EARLY_EXIT_PROFIT_PIPS: 早期撤退を検討する際に必要な最低利益幅
 - H1_BOUNCE_RANGE_PIPS: H1安値/高値からこのpips以内ならエントリーを見送る
-
 ■ OANDA_MATCH_SEC
   ローカルトレードと OANDA 取引を照合するときの許容秒数。デフォルトは60秒。
 
