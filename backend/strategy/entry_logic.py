@@ -90,6 +90,7 @@ def process_entry(
     pattern_names: dict[str, str | None] | None = None,
     candles_dict: dict[str, list] | None = None,
     tf_align: str | None = None,
+    indicators_multi: dict[str, dict] | None = None,
     allow_delayed_entry: bool | None = None,
 ):
     """
@@ -101,6 +102,7 @@ def process_entry(
         market_data: latest tick data (dict from OANDA)
         market_cond: output of get_market_condition()  e.g. {"market_condition":"trend","trend_direction":"long"}
         strategy_params: optional dict to pass extra parameters / overrides
+        indicators_multi: multi-timeframe indicators for alignment adjustment
 
     Returns:
         True if an entry was placed, False otherwise.
@@ -147,7 +149,7 @@ def process_entry(
     import importlib
     oa = importlib.import_module("backend.strategy.openai_analysis")
 
-    indicators_multi = {"M5": indicators}
+    indicators_multi = {"M5": indicators} if indicators_multi is None else {k.upper(): v for k, v in indicators_multi.items()}
     plan = oa.get_trade_plan(
         market_data,
         indicators_multi,
@@ -195,11 +197,22 @@ def process_entry(
         except Exception as exc:
             logging.debug(f"[process_entry] peak reversal check failed: {exc}")
 
-    if tf_align and side != tf_align:
-        logging.info(
-            f"AI side {side} conflicts with multi‑TF alignment {tf_align}"
-        )
-        return False
+    if tf_align:
+        try:
+            from analysis.signal_filter import is_multi_tf_aligned
+            align = is_multi_tf_aligned(indicators_multi, ai_side=side)
+            if align and side != align:
+                logging.info(
+                    f"AI side {side} realigned to {align} by multi‑TF check"
+                )
+                side = align
+            elif align is None and env_loader.get_env("STRICT_TF_ALIGN", "false").lower() == "true":
+                logging.info("Multi‑TF alignment missing → skip entry")
+                return False
+        except Exception as exc:
+            logging.debug(f"alignment adjust failed: {exc}")
+            if env_loader.get_env("STRICT_TF_ALIGN", "false").lower() == "true":
+                return False
 
     try:
         if getattr(oa, "is_entry_blocked_by_recent_candles", lambda *a, **k: False)(side, candles):

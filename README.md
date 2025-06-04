@@ -114,6 +114,7 @@ The indicators module also calculates `adx_bb_score`, a composite value derived 
 `STRICT_TF_ALIGN` enforces multi-timeframe EMA alignment before entering.
 
 `TF_EMA_WEIGHTS` specifies the weight of each timeframe when evaluating EMA alignment, e.g. `M5:0.4,H1:0.3,H4:0.3`.
+`AI_ALIGN_WEIGHT` adds the AI's suggested direction to the multi-timeframe alignment check.
 
 `ALLOW_DELAYED_ENTRY` set to `true` lets the AI return `"mode":"wait"` when a trend is overextended. The job runner will keep polling and enter once the pullback depth is satisfied.
 

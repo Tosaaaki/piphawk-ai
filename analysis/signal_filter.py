@@ -24,8 +24,11 @@ def _ema_direction(ema_fast, ema_slow) -> Direction | None:
     return None
 
 
-def is_multi_tf_aligned(indicators_by_tf: Dict[str, Dict]) -> Direction | None:
-    """Return unified direction when multiple timeframes agree."""
+def is_multi_tf_aligned(
+    indicators_by_tf: Dict[str, Dict], ai_side: Direction | None = None
+) -> Direction | None:
+    """Return unified direction when multiple timeframes and AI agree."""
+
     weights_env = env_loader.get_env("TF_EMA_WEIGHTS", "M5:0.4,H1:0.3,H4:0.3")
     weights: Dict[str, float] = {}
     for part in weights_env.split(","):
@@ -45,10 +48,18 @@ def is_multi_tf_aligned(indicators_by_tf: Dict[str, Dict]) -> Direction | None:
         else:
             logger.debug("%s: insufficient EMA data for alignment", tf)
 
-    if scores["long"] > scores["short"] and scores["long"] >= 0.5:
-        return "long"
-    if scores["short"] > scores["long"] and scores["short"] >= 0.5:
-        return "short"
-    return None
+    if ai_side in ("long", "short"):
+        ai_w = float(env_loader.get_env("AI_ALIGN_WEIGHT", "0.2"))
+        scores[ai_side] += ai_w
+
+    long_score = scores["long"]
+    short_score = scores["short"]
+    if long_score == short_score and ai_side in ("long", "short"):
+        return ai_side
+    if long_score > short_score:
+        return "long" if long_score >= 0.5 or ai_side == "long" else None
+    if short_score > long_score:
+        return "short" if short_score >= 0.5 or ai_side == "short" else None
+    return ai_side if ai_side in ("long", "short") else None
 
 __all__ = ["is_multi_tf_aligned"]
