@@ -52,10 +52,28 @@ def counter_trend_block(side: str, ind_m5: dict, ind_m15: dict | None = None, in
         if adx_series is not None and len(adx_series) >= 2:
             prev_val = float(adx_series.iloc[-2]) if hasattr(adx_series, "iloc") else float(adx_series[-2])
             cur_val = float(adx_series.iloc[-1]) if hasattr(adx_series, "iloc") else float(adx_series[-1])
-            if cur_val >= adx_thresh and cur_val > prev_val:
-                dir_m5 = _ema_direction(ind_m5.get("ema_fast"), ind_m5.get("ema_slow"))
-                if dir_m5 and side != dir_m5:
-                    return True
+            dir_m5 = _ema_direction(ind_m5.get("ema_fast"), ind_m5.get("ema_slow"))
+            if (
+                cur_val >= adx_thresh
+                and cur_val > prev_val
+                and dir_m5
+                and side != dir_m5
+            ):
+                return True
+            # 強い下降トレンド時のロング抑制
+            if (
+                side == "long"
+                and dir_m5 == "short"
+                and cur_val >= adx_thresh
+            ):
+                return True
+            # 強い上昇トレンド時のショート抑制
+            if (
+                side == "short"
+                and dir_m5 == "long"
+                and cur_val >= adx_thresh
+            ):
+                return True
     except Exception:
         pass
     return False
@@ -126,6 +144,28 @@ def detect_peak_reversal(candles: list[dict], side: str) -> bool:
     elif side == "short":
         return lows[1] <= lows[0] and lows[1] <= lows[2] and closes[2] > closes[1]
     return False
+
+
+def consecutive_lower_lows(candles: list[dict], count: int = 3) -> bool:
+    """Return True if there are ``count`` consecutive lower lows."""
+    if len(candles) < count + 1:
+        return False
+    try:
+        lows = [float(c.get("mid", c).get("l")) for c in candles[-(count + 1):]]
+    except Exception:
+        return False
+    return all(lows[i] < lows[i - 1] for i in range(1, len(lows)))
+
+
+def consecutive_higher_highs(candles: list[dict], count: int = 3) -> bool:
+    """Return True if there are ``count`` consecutive higher highs."""
+    if len(candles) < count + 1:
+        return False
+    try:
+        highs = [float(c.get("mid", c).get("h")) for c in candles[-(count + 1):]]
+    except Exception:
+        return False
+    return all(highs[i] > highs[i - 1] for i in range(1, len(highs)))
 
 # ────────────────────────────────────────────────
 #  Trend追随前フィルター
