@@ -62,7 +62,7 @@ class TestRegimeFilters(unittest.TestCase):
                 self.calls = []
             def update_trade_sl(self, *a, **k):
                 return {}
-            def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False):
+            def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False, with_oco=True):
                 self.calls.append(side)
                 return {"order_id": "1"}
             def cancel_order(self, oid):

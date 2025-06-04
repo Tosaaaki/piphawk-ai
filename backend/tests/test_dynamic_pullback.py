@@ -51,7 +51,7 @@ class TestDynamicPullback(unittest.TestCase):
             def __init__(self):
                 self.enter_called = False
                 self.last_params = None
-            def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False):
+            def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False, with_oco=True):
                 self.enter_called = True
                 self.last_params = strategy_params
                 return {"order_id": "1"}

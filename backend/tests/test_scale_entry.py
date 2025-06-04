@@ -57,7 +57,7 @@ class TestScaleEntry(unittest.TestCase):
         class DummyMgr:
             def __init__(self):
                 self.calls = []
-            def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False):
+            def enter_trade(self, side, lot_size, market_data, strategy_params, force_limit_only=False, with_oco=True):
                 self.calls.append((side, lot_size, strategy_params))
                 return {'order_id': '1'}
             def update_trade_sl(self, *a, **k):
