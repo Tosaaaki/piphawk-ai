@@ -392,6 +392,25 @@ def process_entry(
             # N波ターゲットをSL候補として利用
             if fallback_sl is None or dist > fallback_sl:
                 fallback_sl = dist
+
+        # ヒゲ幅平均×2をSL候補に追加
+        try:
+            wicks = []
+            for c in candles[-3:]:
+                base = c.get("mid", c)
+                high = float(base.get("h"))
+                low = float(base.get("l"))
+                opn = float(base.get("o", 0))
+                cls = float(base.get("c", 0))
+                upper = high - max(opn, cls)
+                lower = min(opn, cls) - low
+                wicks.append((upper + lower) / pip_size)
+            if wicks:
+                wick_sl = sum(wicks) / len(wicks) * 2
+                if fallback_sl is None or wick_sl > fallback_sl:
+                    fallback_sl = wick_sl
+        except Exception:
+            pass
         bb_upper = indicators.get("bb_upper")
         bb_lower = indicators.get("bb_lower")
         if (

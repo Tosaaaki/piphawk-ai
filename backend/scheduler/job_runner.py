@@ -34,11 +34,12 @@ except ImportError:  # tests may stub position_manager without helpers
         return None
 from backend.orders.order_manager import OrderManager
 try:
-    from backend.strategy.signal_filter import (
+from backend.strategy.signal_filter import (
         pass_entry_filter,
         filter_pre_ai,
         detect_climax_reversal,
         counter_trend_block,
+        consecutive_lower_lows,
     )
 except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
     from backend.strategy.signal_filter import pass_entry_filter
@@ -133,6 +134,7 @@ SCALE_LOT_SIZE = float(env_loader.get_env("SCALE_LOT_SIZE", "0.5"))
 # ----- limit‑order housekeeping ------------------------------------
 MAX_LIMIT_AGE_SEC = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))  # seconds before a pending LIMIT is cancelled
 PENDING_GRACE_MIN = int(env_loader.get_env("PENDING_GRACE_MIN", "3"))
+SL_COOLDOWN_SEC = int(env_loader.get_env("SL_COOLDOWN_SEC", "300"))
 
 # POSITION_REVIEW_ENABLED : "true" | "false"  – enable/disable periodic position reviews (default "true")
 # POSITION_REVIEW_SEC     : seconds between AI reviews while holding a position   (default 60)
@@ -201,6 +203,7 @@ class JobRunner:
         # --- last stop-loss info ----------------------------------
         self.last_sl_side: str | None = None
         self.last_sl_time: datetime | None = None
+        self.sl_cooldown_sec = SL_COOLDOWN_SEC
         # Storage for latest indicators by timeframe
         self.indicators_M1: dict | None = None
         self.indicators_M5: dict | None = None
@@ -1294,15 +1297,24 @@ class JobRunner:
                                 logger.warning(f"get_trade_plan failed for check: {exc}")
                                 side = "no"
 
+                            cooldown = int(env_loader.get_env("SL_COOLDOWN_SEC", str(self.sl_cooldown_sec)))
                             if (
                                 side in ("long", "short")
                                 and self.last_sl_time
-                                and (now - self.last_sl_time).total_seconds() < 900
+                                and (now - self.last_sl_time).total_seconds() < cooldown
                                 and side == self.last_sl_side
                             ):
                                 logger.info(
-                                    f"Entry blocked: recent SL hit on {side}. Cooldown {(now - self.last_sl_time).total_seconds():.0f}s < 900s"
+                                    f"Entry blocked: recent SL hit on {side}. Cooldown {(now - self.last_sl_time).total_seconds():.0f}s < {cooldown}s"
                                 )
+                                self.last_run = now
+                                update_oanda_trades()
+                                time.sleep(self.interval_seconds)
+                                timer.stop()
+                                continue
+
+                            if side == "long" and consecutive_lower_lows(candles_m5):
+                                logger.info("Entry blocked: consecutive lower lows detected")
                                 self.last_run = now
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)
