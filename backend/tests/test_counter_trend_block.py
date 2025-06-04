@@ -40,5 +40,21 @@ class TestCounterTrendBlock(unittest.TestCase):
         m5 = {"adx": FakeSeries([24, 26]), "ema_fast": FakeSeries([1, 1.1]), "ema_slow": FakeSeries([1, 1.05])}
         self.assertTrue(self.sf.counter_trend_block("short", m5))
 
+    def test_downtrend_blocks_long(self):
+        m5 = {
+            "adx": FakeSeries([26, 26]),
+            "ema_fast": FakeSeries([1.1, 1.0]),
+            "ema_slow": FakeSeries([1.05, 1.05]),
+        }
+        self.assertTrue(self.sf.counter_trend_block("long", m5))
+
+    def test_uptrend_blocks_short(self):
+        m5 = {
+            "adx": FakeSeries([26, 26]),
+            "ema_fast": FakeSeries([1.0, 1.1]),
+            "ema_slow": FakeSeries([1.0, 1.05]),
+        }
+        self.assertTrue(self.sf.counter_trend_block("short", m5))
+
 if __name__ == "__main__":
     unittest.main()
