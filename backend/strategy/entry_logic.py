@@ -6,7 +6,13 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - fallback for optional import
     def false_break_skip(*_a, **_k):
         return False
-from backend.risk_manager import validate_rrr, validate_sl
+from backend.risk_manager import (
+    validate_rrr,
+    validate_sl,
+    calc_min_sl,
+    get_recent_swing_diff,
+    is_high_vol_session,
+)
 from datetime import datetime
 from backend.utils import env_loader
 import logging
@@ -376,6 +382,7 @@ def process_entry(
     min_sl = float(env_loader.get_env("MIN_SL_PIPS", "0"))
     fallback_sl = None
     atr_pips = None
+    dynamic_min_sl = 0.0
     try:
         atr_series = indicators.get("atr")
         if atr_series is not None and len(atr_series):
@@ -460,6 +467,20 @@ def process_entry(
                 dist = abs(pivot_val - price_ref) / pip_size
                 if fallback_tp is None or dist < fallback_tp:
                     fallback_tp = dist
+
+        # 動的SL下限計算
+        entry_price = bid if side == "long" else ask
+        swing_diff = None
+        if entry_price is not None:
+            swing_diff = get_recent_swing_diff(candles, side, entry_price, pip_size)
+        session_factor = 1.3 if is_high_vol_session() else 1.0
+        dynamic_min_sl = calc_min_sl(
+            atr_pips,
+            swing_diff,
+            atr_mult=float(env_loader.get_env("MIN_ATR_MULT", "1.2")),
+            swing_buffer_pips=5.0,
+            session_factor=session_factor,
+        )
     except Exception as exc:
         logging.debug(f"[process_entry] ATR-based SL calc failed: {exc}")
 
@@ -481,6 +502,10 @@ def process_entry(
 
     if fallback_sl is not None:
         sl_pips = max(sl_pips, fallback_sl)
+    try:
+        sl_pips = max(sl_pips, dynamic_min_sl)
+    except Exception:
+        pass
     if sl_pips < min_sl:
         sl_pips = min_sl
     try:
