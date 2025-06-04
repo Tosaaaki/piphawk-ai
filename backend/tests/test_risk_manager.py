@@ -8,7 +8,12 @@ def test_calc_lot_size():
         calc_lot_size(10000, 0.01, 0, 0.1)
 import unittest
 import logging
-from backend.risk_manager import validate_rrr, validate_sl
+from backend.risk_manager import (
+    validate_rrr,
+    validate_sl,
+    calc_min_sl,
+    get_recent_swing_diff,
+)
 
 
 class TestRiskManager(unittest.TestCase):
@@ -23,6 +28,17 @@ class TestRiskManager(unittest.TestCase):
         self.assertFalse(result)
         self.assertTrue(any('SL too tight' in m for m in cm.output))
         self.assertTrue(validate_sl(30, 15, 10, 1.0))
+
+    def test_calc_min_sl(self):
+        self.assertEqual(calc_min_sl(10, 8, atr_mult=1.2, swing_buffer_pips=5), 13)
+
+    def test_get_recent_swing_diff(self):
+        candles = [
+            {"mid": {"h": 1.1, "l": 1.0}},
+            {"mid": {"h": 1.2, "l": 1.05}},
+        ]
+        diff = get_recent_swing_diff(candles, "long", 1.15, 0.01, lookback=2)
+        self.assertAlmostEqual(diff, 15.0)
 
 
 if __name__ == '__main__':
