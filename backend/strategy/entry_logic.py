@@ -334,6 +334,19 @@ def process_entry(
         except Exception:
             pass
 
+        try:
+            adx_series = indicators.get("adx")
+            thresh = float(env_loader.get_env("BYPASS_PULLBACK_ADX_MIN", "0"))
+            if (
+                thresh > 0
+                and adx_series is not None
+                and len(adx_series)
+                and float(adx_series.iloc[-1] if hasattr(adx_series, "iloc") else adx_series[-1]) >= thresh
+            ):
+                pullback_needed = None
+        except Exception:
+            pass
+
     if isinstance(market_data, dict):
         instrument = market_data["prices"][0]["instrument"]
         bid = float(market_data["prices"][0]["bids"][0]["price"])
