@@ -56,5 +56,18 @@ class TestCounterTrendBlock(unittest.TestCase):
         }
         self.assertTrue(self.sf.counter_trend_block("short", m5))
 
+    def test_bypass_with_high_adx_same_direction(self):
+        import os
+        os.environ["COUNTER_BYPASS_ADX"] = "30"
+        m5 = {
+            "adx": FakeSeries([25, 35]),
+            "ema_fast": FakeSeries([1.0, 1.1]),
+            "ema_slow": FakeSeries([1.0, 1.05]),
+        }
+        m15 = {"ema_fast": FakeSeries([1.1, 1.0]), "ema_slow": FakeSeries([1.1, 1.05])}
+        h1 = {"ema_fast": FakeSeries([1.2, 1.1]), "ema_slow": FakeSeries([1.2, 1.15])}
+        self.assertFalse(self.sf.counter_trend_block("long", m5, m15, h1))
+        os.environ.pop("COUNTER_BYPASS_ADX", None)
+
 if __name__ == "__main__":
     unittest.main()

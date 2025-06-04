@@ -164,6 +164,7 @@ SCALE_TRIGGER_ATR=0.5
 
 - ATR_MULT_TP / ATR_MULT_SL: ATR(M5) に掛ける TP, SL の倍率
 - BLOCK_COUNTER_TREND: M15/H1 が同方向のとき逆張りをブロック
+- COUNTER_BYPASS_ADX: M5 ADX がこの値以上かつ同方向なら逆張り判定を無視
 - BLOCK_ADX_MIN: ADX がこの値以上で上昇中なら逆張りを抑制
 - COUNTER_TREND_TP_RATIO: 逆張りを許容する際にTPをこの倍率で縮小
 - CLIMAX_ENABLED: クライマックス検出による自動エントリーを有効化
