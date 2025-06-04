@@ -157,7 +157,7 @@ TP_REDUCTION_ATR_MULT = float(env_loader.get_env("TP_REDUCTION_ATR_MULT", "1.0")
 
 # Peak profit exit settings
 PEAK_EXIT_ENABLED = env_loader.get_env("PEAK_EXIT_ENABLED", "false").lower() == "true"
-PEAK_EXIT_RETRACE_PIPS = float(env_loader.get_env("PEAK_EXIT_RETRACE_PIPS", "2"))
+MM_DRAW_MAX_ATR_RATIO = float(env_loader.get_env("MM_DRAW_MAX_ATR_RATIO", "2.0"))
 
 
 # ───────────────────────────────────────────────────────────
@@ -618,7 +618,14 @@ class JobRunner:
     def _should_peak_exit(self, side: str, indicators: dict, current_profit: float) -> bool:
         if not PEAK_EXIT_ENABLED:
             return False
-        if self.max_profit_pips - current_profit < PEAK_EXIT_RETRACE_PIPS:
+        atr_val = indicators.get("atr")
+        if hasattr(atr_val, "iloc"):
+            atr_val = float(atr_val.iloc[-1])
+        if atr_val is None:
+            return False
+        pip_size = 0.01 if DEFAULT_PAIR.endswith("_JPY") else 0.0001
+        allowed_draw = (atr_val / pip_size) * MM_DRAW_MAX_ATR_RATIO
+        if (self.max_profit_pips - current_profit) < allowed_draw:
             return False
 
         from backend.strategy.signal_filter import detect_peak_reversal
