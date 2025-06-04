@@ -835,7 +835,21 @@ class JobRunner:
                         )
 
                         if current_profit_pips >= be_trigger and not self.breakeven_reached:
-                            new_sl_price = entry_price
+                            adx_series = indicators.get("adx")
+                            adx_val = (
+                                adx_series.iloc[-1]
+                                if adx_series is not None and hasattr(adx_series, "iloc")
+                                else adx_series[-1] if adx_series else 0.0
+                            )
+                            vol_adx_min = float(env_loader.get_env("BE_VOL_ADX_MIN", "30"))
+                            vol_sl_mult = float(env_loader.get_env("BE_VOL_SL_MULT", "2.0"))
+                            if adx_val >= vol_adx_min:
+                                if position_side == "long":
+                                    new_sl_price = entry_price - atr_val * vol_sl_mult
+                                else:
+                                    new_sl_price = entry_price + atr_val * vol_sl_mult
+                            else:
+                                new_sl_price = entry_price
                             trade_id = has_position[position_side]["tradeIDs"][0]
                             result = order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
                             if result is None:
