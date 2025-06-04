@@ -29,6 +29,23 @@ def is_multi_tf_aligned(
 ) -> Direction | None:
     """Return unified direction when multiple timeframes and AI agree."""
 
+    bypass_adx = float(env_loader.get_env("ALIGN_BYPASS_ADX", "0"))
+    if ai_side in ("long", "short") and bypass_adx > 0:
+        m5 = indicators_by_tf.get("M5") or indicators_by_tf.get("m5")
+        adx = m5.get("adx") if m5 else None
+        try:
+            if adx is not None:
+                latest = adx.iloc[-1] if hasattr(adx, "iloc") else adx[-1]
+                if float(latest) >= bypass_adx:
+                    logger.debug(
+                        "Bypassing multi-TF alignment as ADX %.2f >= %.2f",
+                        float(latest),
+                        bypass_adx,
+                    )
+                    return ai_side
+        except Exception:
+            pass
+
     weights_env = env_loader.get_env("TF_EMA_WEIGHTS", "M5:0.4,H1:0.3,H4:0.3")
     weights: Dict[str, float] = {}
     for part in weights_env.split(","):
