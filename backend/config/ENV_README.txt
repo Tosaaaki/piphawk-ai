@@ -115,6 +115,8 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - PULLBACK_LIMIT_OFFSET_PIPS: 指値エントリーへ切り替える際の基本オフセット
 - AI_LIMIT_CONVERT_MODEL: 指値を成行に変換するか判断する AI モデル
 - PULLBACK_PIPS: ピボット抑制中に使用するオフセット
+- PULLBACK_ATR_RATIO: ATR 比で待機するプルバック深度の倍率
+- EXT_BLOCK_ATR: 終値が EMA20 からこの倍率 × ATR 以上乖離しているとエントリー禁止
 - PIP_SIZE: 通貨ペアの1pip値 (JPYペアは 0.01 など)
 - TRADE_TIMEFRAMES: 取得するローソク足のタイムフレーム一覧
 - TP_BB_RATIO: ボリンジャーバンド幅からTP候補を算出するときの倍率
