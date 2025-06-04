@@ -19,6 +19,8 @@
 - `REV_BLOCK_BARS`: 急反転を検知するために参照するローソク足本数。
 - `TAIL_RATIO_BLOCK`: ヒゲと実体の比率がこの値以上ならエントリーをブロック。
 - `VOL_SPIKE_PERIOD`: ボリュームスパイク判定に用いる平均期間。
+- `BLOCK_COUNTER_TREND`: M15/H1 が同方向でポジションと逆ならエントリーを停止。
+- `COUNTER_BYPASS_ADX`: M5 ADX がこの値以上でポジションと同方向なら逆張り判定を無視。
 
 ## 急反転フィルタの例
 

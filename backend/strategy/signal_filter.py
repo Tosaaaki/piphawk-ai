@@ -36,15 +36,32 @@ def _ema_direction(fast, slow) -> str | None:
     return None
 
 
-def counter_trend_block(side: str, ind_m5: dict, ind_m15: dict | None = None, ind_h1: dict | None = None) -> bool:
+def counter_trend_block(
+    side: str,
+    ind_m5: dict,
+    ind_m15: dict | None = None,
+    ind_h1: dict | None = None,
+) -> bool:
     """Return True when higher timeframe trend opposes the side."""
     if side not in ("long", "short"):
-        return False
-    if os.getenv("BLOCK_COUNTER_TREND", "true").lower() != "true":
         return False
     dir_m15 = _ema_direction(ind_m15.get("ema_fast"), ind_m15.get("ema_slow")) if ind_m15 else None
     dir_h1 = _ema_direction(ind_h1.get("ema_fast"), ind_h1.get("ema_slow")) if ind_h1 else None
     if dir_m15 and dir_h1 and dir_m15 == dir_h1 and side != dir_m15:
+        adx_override = float(os.getenv("COUNTER_BYPASS_ADX", "0"))
+        adx_series = ind_m5.get("adx")
+        dir_m5 = _ema_direction(ind_m5.get("ema_fast"), ind_m5.get("ema_slow"))
+        try:
+            if (
+                adx_override > 0
+                and adx_series is not None
+                and len(adx_series) >= 1
+                and dir_m5 == side
+                and float(adx_series.iloc[-1] if hasattr(adx_series, "iloc") else adx_series[-1]) >= adx_override
+            ):
+                return False
+        except Exception:
+            pass
         return True
     adx_thresh = float(os.getenv("BLOCK_ADX_MIN", "25"))
     adx_series = ind_m5.get("adx")

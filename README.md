@@ -134,6 +134,8 @@ The indicators module also calculates `adx_bb_score`, a composite value derived 
 `REV_BLOCK_BARS`, `TAIL_RATIO_BLOCK` and `VOL_SPIKE_PERIOD` configure the Recent Candle Bias filter, blocking entries when recent candles show sharp tails or volume spikes in the opposite direction.
 `STRICT_TF_ALIGN` enforces multi-timeframe EMA alignment before entering.
 `COUNTER_TREND_TP_RATIO` scales down the take-profit when entering against the higher timeframe trend.
+`BLOCK_COUNTER_TREND` set to `true` skips entries when both M15 and H1 EMA direction oppose the trade.
+`COUNTER_BYPASS_ADX` ignores the counter-trend check when the latest M5 ADX is at or above this value and aligns with the entry side.
 
 `TF_EMA_WEIGHTS` specifies the weight of each timeframe when evaluating EMA alignment, e.g. `M5:0.4,H1:0.3,H4:0.3`.
 `AI_ALIGN_WEIGHT` adds the AI's suggested direction to the multi-timeframe alignment check.
