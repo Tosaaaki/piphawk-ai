@@ -1201,7 +1201,7 @@ Respond with **one-line valid JSON** exactly as:
 # Recent candle bias helper
 # ----------------------------------------------------------------------
 def is_entry_blocked_by_recent_candles(side: str, candles: list) -> bool:
-    """Return True when recent candles suggest blocking the opposite side."""
+    """最近のローソク足が反対方向の強いシグナルを示す場合にTrueを返す。"""
     lookback = int(env_loader.get_env("REV_BLOCK_BARS", "3"))
     tail_thr = float(env_loader.get_env("TAIL_RATIO_BLOCK", "2.0"))
     vol_period = int(env_loader.get_env("VOL_SPIKE_PERIOD", "5"))
@@ -1219,7 +1219,8 @@ def is_entry_blocked_by_recent_candles(side: str, candles: list) -> bool:
 
     for c in reversed(candles[-lookback:]):
         feats = get_candle_features(c, volume_sma=vol_sma)
-        if feats["vol_spike"] or feats["tail_ratio"] >= tail_thr:
+        should_block = feats["vol_spike"] and feats["tail_ratio"] >= tail_thr
+        if should_block:
             try:
                 mid = c.get("mid", {})
                 o = float(mid.get("o", c.get("o")))
@@ -1228,6 +1229,12 @@ def is_entry_blocked_by_recent_candles(side: str, candles: list) -> bool:
                 continue
             direction = "long" if cl > o else "short" if cl < o else None
             if direction and direction != side:
+                logging.debug(
+                    "Recent candle suggests %s (tail %.2f, vol spike %s)",
+                    direction,
+                    feats["tail_ratio"],
+                    feats["vol_spike"],
+                )
                 return True
     return False
 
