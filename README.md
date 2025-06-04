@@ -57,6 +57,8 @@ TRADES_DB_PATH=trades-002.db
 `AI_PROFIT_TRIGGER_RATIO` defines what portion of the take-profit target must
 be reached before an AI exit check occurs. The default value is `0.5` (50%).
 `SCALE_LOT_SIZE` sets how many lots are added when the AI exit decision is `SCALE`.
+`MIN_SL_PIPS` enforces a minimum stop-loss size. If the AI suggests a smaller value the system uses this floor instead (default `8`).
+`SL_COOLDOWN_SEC` is the waiting period after a stop-loss exit before another entry in the same direction is allowed. Default is `300` seconds.
 `MIN_RRR` sets the minimum reward-to-risk ratio allowed when selecting a
 take-profit. The TP level is now chosen to maximise expected value while
 keeping the ratio at or above this threshold.
