@@ -76,6 +76,7 @@ def load_params(
     path: str | Path = Path(__file__).resolve().parent / "params.yaml",
     strategy_path: str | Path | None = Path(__file__).resolve().parent
     / "strategy.yml",
+    settings_path: str | Path | None = Path(__file__).resolve().parent / "settings.yaml",
 ):
     """Load YAML parameters and export them as environment variables."""
 
@@ -89,6 +90,11 @@ def load_params(
         sp = Path(strategy_path)
         if sp.exists():
             env_params.update(_flatten(_parse_yaml_file(sp)))
+
+    if settings_path is not None:
+        se = Path(settings_path)
+        if se.exists():
+            env_params.update(_flatten(_parse_yaml_file(se)))
 
     for k, v in env_params.items():
         os.environ[k] = str(v)

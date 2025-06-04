@@ -15,7 +15,7 @@ class ExitReason(Enum):
 
 
 def log_trade(*, exit_reason: ExitReason | None = None, **kwargs: Any) -> None:
-    """Wrapper for log_trade allowing ``ExitReason`` enumeration."""
+"""Wrapper for log_trade allowing ``ExitReason`` enumeration."""
     if exit_reason is not None:
         kwargs["exit_reason"] = exit_reason.value
     _log_trade(**kwargs)
