@@ -140,6 +140,17 @@ def init_db():
             )
         ''')
 
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS entry_skips (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                instrument TEXT NOT NULL,
+                side TEXT,
+                reason TEXT,
+                details TEXT
+            )
+        ''')
+
 def log_trade(
     instrument,
     entry_time,
@@ -250,6 +261,26 @@ def log_param_change(param_name, old_value, new_value, ai_reason):
             str(new_value),
             str(ai_reason),
         ))
+
+
+def log_entry_skip(instrument, side, reason, details=None):
+    """Record an entry skip event."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO entry_skips (
+                timestamp, instrument, side, reason, details
+            ) VALUES (?, ?, ?, ?, ?)
+            ''',
+            (
+                datetime.utcnow().isoformat(),
+                instrument,
+                side,
+                reason,
+                details,
+            ),
+        )
 
 
 # OANDAトレードの記録
