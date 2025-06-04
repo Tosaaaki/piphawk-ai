@@ -80,6 +80,9 @@ be reached before an AI exit check occurs. The default value is `0.5` (50%).
 `SCALE_LOT_SIZE` sets how many lots are added when the AI exit decision is `SCALE`.
 `MIN_SL_PIPS` enforces a minimum stop-loss size. If the AI suggests a smaller value the system uses this floor instead (default `8`).
 `SL_COOLDOWN_SEC` is the waiting period after a stop-loss exit before another entry in the same direction is allowed. Default is `300` seconds.
+`AI_COOLDOWN_SEC_OPEN` sets the minimum interval in seconds between AI calls while a position is open.
+`AI_COOLDOWN_SEC_FLAT` defines the cooldown when no position is held.
+`AI_REGIME_COOLDOWN_SEC` controls how often the AI checks market regime.
 `MIN_RRR` sets the minimum reward-to-risk ratio allowed when selecting a
 take-profit. The TP level is now chosen to maximise expected value while
 keeping the ratio at or above this threshold.
@@ -122,6 +125,7 @@ The indicators module also calculates `adx_bb_score`, a composite value derived 
 `ADX_SLOPE_LOOKBACK` defines how many candles to look back when computing ADX slope, and `ADX_DYNAMIC_COEFF` scales the ADX threshold based on Bollinger width.
 `EMA_FLAT_PIPS` determines the range treated as a flat EMA slope; convergence with a reversal within this range triggers the *急反転* filter.
 `OVERSHOOT_ATR_MULT` blocks entries when price overshoots below the lower Bollinger Band by this multiple of ATR.
+`REV_BLOCK_BARS`, `TAIL_RATIO_BLOCK` and `VOL_SPIKE_PERIOD` configure the Recent Candle Bias filter, blocking entries when recent candles show sharp tails or volume spikes in the opposite direction.
 `STRICT_TF_ALIGN` enforces multi-timeframe EMA alignment before entering.
 
 `TF_EMA_WEIGHTS` specifies the weight of each timeframe when evaluating EMA alignment, e.g. `M5:0.4,H1:0.3,H4:0.3`.
