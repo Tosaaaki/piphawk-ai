@@ -67,16 +67,17 @@ def calc_min_sl(
     swing_val = swing_diff + swing_buffer_pips if swing_diff is not None else 0.0
     return max(atr_val, swing_val)
 
+def cost_guard(tp_pips: float | None, spread_pips: float) -> bool:
+    """Return True if net take-profit after spread meets threshold."""
+    from backend.utils import env_loader
 
-def validate_rrr_after_cost(
-    tp_pips: float, sl_pips: float, cost_pips: float, min_rrr: float
-) -> bool:
-    """スプレッドなどコスト控除後のRRRが基準を満たすか判定する。"""
     try:
-        net_tp = tp_pips - cost_pips
-        if net_tp <= 0:
-            return False
-        return sl_pips > 0 and (net_tp / sl_pips) >= min_rrr
+        tp = float(tp_pips) if tp_pips is not None else None
+        spread = float(spread_pips)
+        if tp is None:
+            return True
+        min_net = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
+        return (tp - spread) >= min_net
     except Exception:
-        return False
+        return True
 
