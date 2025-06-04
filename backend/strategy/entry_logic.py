@@ -11,6 +11,11 @@ try:
 except ModuleNotFoundError:  # pragma: no cover
     def trend_pb_ok(*_a, **_k):
         return True
+try:
+    from backend.filters.breakout_entry import should_enter_breakout
+except ModuleNotFoundError:  # pragma: no cover
+    def should_enter_breakout(*_a, **_k):
+        return False
 from backend.risk_manager import (
     validate_rrr,
     validate_sl,
@@ -261,8 +266,14 @@ def process_entry(
     except Exception as exc:
         logging.debug(f"[process_entry] false-break filter failed: {exc}")
 
+    breakout_entry = False
     try:
-        if side == "long" and not trend_pb_ok(indicators, candles_dict.get("M5", candles)):
+        breakout_entry = should_enter_breakout(candles_dict.get("M5", candles), indicators)
+    except Exception as exc:
+        logging.debug(f"[process_entry] breakout check failed: {exc}")
+
+    try:
+        if side == "long" and not breakout_entry and not trend_pb_ok(indicators, candles_dict.get("M5", candles)):
             logging.info("Trend pullback conditions not met → skip entry")
             return False
     except Exception as exc:
