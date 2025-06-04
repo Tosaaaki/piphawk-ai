@@ -71,6 +71,7 @@ TRADES_DB_PATH=trades-002.db
 実現損益を反映させるには `backend.logs.reconcile_trades` を実行します。
 分割エントリーに関する解説は `docs/scale_entry.md` にまとめています。
 エントリーフィルタの詳細は `docs/entry_filter.md` を参照してください。
+高位足の使い方に関する補足は `docs/higher_tf_strategy.md` を参照してください。
    `RANGE_CENTER_BLOCK_PCT` controls how close to the Bollinger band center price
    can be when ADX is below `ADX_RANGE_THRESHOLD`. Set to `0.3` (30%) to block
    entries near the middle of a range, helping suppress counter-trend trades.
