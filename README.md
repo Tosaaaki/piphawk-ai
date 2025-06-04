@@ -100,7 +100,7 @@ trading.
 system asks the AI to close it. If `STAGNANT_ATR_PIPS` is greater than zero and
 ATR falls below this value, the position is considered stagnant once the time
 threshold passes.
-`MIN_HOLD_SEC` defines the minimum hold duration before any exit logic runs.
+`MIN_HOLD_SECONDS` defines the minimum hold duration before any exit logic runs.
 `REVERSAL_EXIT_ATR_MULT` and `REVERSAL_EXIT_ADX_MIN` define how far beyond the
 opposite Bollinger Band the close must be, and the minimum ADX, before a reversal
 exit is considered.

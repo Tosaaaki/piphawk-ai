@@ -4,7 +4,7 @@ import uuid
 import logging
 import json
 import os
-from backend.utils import env_loader
+from backend.utils import env_loader, trade_age_seconds
 
 from backend.market_data.tick_fetcher import fetch_tick_data
 
@@ -774,17 +774,9 @@ class JobRunner:
                     logger.info(f"Current position status: {has_position}")
                     logger.info(f"Has open position for {DEFAULT_PAIR}: {has_position}")
 
-                    MIN_HOLD_SEC = int(env_loader.get_env("MIN_HOLD_SEC", "0"))
-                    
-                    secs_since_entry = None
-                    if has_position:
-                        ts_raw = has_position.get("entry_time") or has_position.get("openTime")
-                        if ts_raw:
-                            try:
-                                et = datetime.fromisoformat(ts_raw.replace("Z", "+00:00"))
-                                secs_since_entry = (datetime.utcnow() - et).total_seconds()
-                            except Exception:
-                                secs_since_entry = None
+                    MIN_HOLD_SECONDS = int(env_loader.get_env("MIN_HOLD_SECONDS", "0"))
+
+                    secs_since_entry = trade_age_seconds(has_position) if has_position else None
 
                     if not has_position:
                         self.breakeven_reached = False
@@ -953,9 +945,9 @@ class JobRunner:
                             continue
 
                         if current_profit_pips >= TP_PIPS * AI_PROFIT_TRIGGER_RATIO:
-                            if secs_since_entry is not None and secs_since_entry < MIN_HOLD_SEC:
+                            if secs_since_entry is not None and secs_since_entry < MIN_HOLD_SECONDS:
                                 logger.info(
-                                    f"Hold time {secs_since_entry:.1f}s < {MIN_HOLD_SEC}s → skip exit call"
+                                    f"Hold time {secs_since_entry:.1f}s < {MIN_HOLD_SECONDS}s → skip exit call"
                                 )
                             else:
                                 # EXITフィルターを評価し、フィルターNGの場合はAIの決済判断をスキップ
@@ -1088,9 +1080,9 @@ class JobRunner:
                             pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
                             profit_pips = 0.0
 
-                        if secs_since_entry is not None and secs_since_entry < MIN_HOLD_SEC:
+                        if secs_since_entry is not None and secs_since_entry < MIN_HOLD_SECONDS:
                             logger.info(
-                                f"Hold time {secs_since_entry:.1f}s < {MIN_HOLD_SEC}s → skip exit call"
+                                f"Hold time {secs_since_entry:.1f}s < {MIN_HOLD_SECONDS}s → skip exit call"
                             )
                             pass_exit = False
                         else:
