@@ -16,6 +16,11 @@ try:
 except ModuleNotFoundError:  # pragma: no cover
     def should_enter_breakout(*_a, **_k):
         return False
+try:
+    from backend.filters.extension_block import extension_block
+except ModuleNotFoundError:  # pragma: no cover
+    def extension_block(*_a, **_k):
+        return False
 from backend.risk_manager import (
     validate_rrr,
     validate_sl,
@@ -234,6 +239,17 @@ def process_entry(
             return False
     except Exception as exc:
         logging.debug(f"[process_entry] bias check failed: {exc}")
+
+    # --- extension block filter ----------------------------------
+    try:
+        ratio = float(env_loader.get_env("EXT_BLOCK_ATR", "0"))
+        if ratio > 0:
+            m5 = candles_dict.get("M5", candles)
+            if extension_block(m5, ratio):
+                logging.info("Extension block triggered → skip entry")
+                return False
+    except Exception as exc:
+        logging.debug(f"[process_entry] extension block failed: {exc}")
 
     # RSI による逆張りブロック
     try:
