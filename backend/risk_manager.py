@@ -67,3 +67,16 @@ def calc_min_sl(
     swing_val = swing_diff + swing_buffer_pips if swing_diff is not None else 0.0
     return max(atr_val, swing_val)
 
+
+def validate_rrr_after_cost(
+    tp_pips: float, sl_pips: float, cost_pips: float, min_rrr: float
+) -> bool:
+    """スプレッドなどコスト控除後のRRRが基準を満たすか判定する。"""
+    try:
+        net_tp = tp_pips - cost_pips
+        if net_tp <= 0:
+            return False
+        return sl_pips > 0 and (net_tp / sl_pips) >= min_rrr
+    except Exception:
+        return False
+
