@@ -45,6 +45,8 @@ TRADES_DB_PATH=trades-002.db
 ```
 アカウントを切り替えたら一度 `init_db()` を実行し、その後
 `backend.logs.update_oanda_trades` を走らせると最新履歴が保存されます。
+ローカルの `trades` テーブルと OANDA の取引履歴を突き合わせて
+実現損益を反映させるには `backend.logs.reconcile_trades` を実行します。
 分割エントリーに関する解説は `docs/scale_entry.md` にまとめています。
 エントリーフィルタの詳細は `docs/entry_filter.md` を参照してください。
    `RANGE_CENTER_BLOCK_PCT` controls how close to the Bollinger band center price
