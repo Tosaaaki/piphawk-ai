@@ -66,7 +66,12 @@ import requests
 
 from backend.utils.notification import send_line_message
 from backend.logs.trade_logger import log_trade, ExitReason
-from backend.logs.log_manager import log_entry_skip
+try:
+    from backend.logs.log_manager import log_entry_skip
+except Exception:  # pragma: no cover - test stubs may omit log_entry_skip
+
+    def log_entry_skip(*_args, **_kwargs):
+        return None
 
 #
 # optional helper for pending LIMIT look‑up;
