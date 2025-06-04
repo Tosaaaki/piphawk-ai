@@ -41,6 +41,7 @@
     "BE_VOL_SL_MULT": 2.0,
     "EARLY_EXIT_ENABLED": true,
     "BREAKEVEN_BUFFER_PIPS": 2,
+    "MIN_EARLY_EXIT_PROFIT_PIPS": 5,
     "ATR_SL_MULTIPLIER": 2.0,
     "_ATR_SL_NOTE": "If AI omits sl_pips, use ATR(M5) * ATR_SL_MULTIPLIER",
     "ATR_MULT_TP": 0.8,

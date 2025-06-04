@@ -38,6 +38,11 @@ REVERSAL_EXIT_ADX_MIN = float(os.getenv("REVERSAL_EXIT_ADX_MIN", "25"))
 # polarity-based exit threshold
 POLARITY_EXIT_THRESHOLD = float(os.getenv("POLARITY_EXIT_THRESHOLD", "0.4"))
 
+# 早期撤退を行う際の最低利益幅（pips）
+MIN_EARLY_EXIT_PROFIT_PIPS = float(
+    os.getenv("MIN_EARLY_EXIT_PROFIT_PIPS", "5")
+)
+
 # Dynamic ATR‑based trailing‑stop (always enabled)
 TRAIL_TRIGGER_MULTIPLIER = float(os.getenv("TRAIL_TRIGGER_MULTIPLIER", "1.2"))
 TRAIL_DISTANCE_MULTIPLIER = float(os.getenv("TRAIL_DISTANCE_MULTIPLIER", "1.0"))
@@ -254,19 +259,21 @@ def process_exit(
         be_buffer = BREAKEVEN_BUFFER_PIPS * pip_size
 
         early_exit = False
-        if ema_fast is not None and atr_val is not None:
+        if (
+            ema_fast is not None
+            and atr_val is not None
+            and profit_pips >= MIN_EARLY_EXIT_PROFIT_PIPS
+        ):
             if position_side == "long":
                 if (
-                    (current_price < ema_fast)
-                    and (profit_pips > 0)
-                    and (current_price <= entry_price + be_buffer)
+                    current_price < ema_fast
+                    and current_price <= entry_price + be_buffer
                 ):
                     early_exit = True
             else:  # short
                 if (
-                    (current_price > ema_fast)
-                    and (profit_pips > 0)
-                    and (current_price >= entry_price - be_buffer)
+                    current_price > ema_fast
+                    and current_price >= entry_price - be_buffer
                 ):
                     early_exit = True
 
