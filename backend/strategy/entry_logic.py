@@ -1,6 +1,11 @@
 from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
+try:
+    from backend.filters.false_break_filter import should_skip as false_break_skip
+except ModuleNotFoundError:  # pragma: no cover - fallback for optional import
+    def false_break_skip(*_a, **_k):
+        return False
 from datetime import datetime
 from backend.utils import env_loader
 import logging
@@ -215,6 +220,17 @@ def process_entry(
                 return False
     except Exception as exc:
         logging.debug(f"[process_entry] oversold filter failed: {exc}")
+
+    # --- false break filter -----------------------------------------
+    try:
+        lookback = int(env_loader.get_env("FALSE_BREAK_LOOKBACK", "5"))
+        ratio = float(env_loader.get_env("FALSE_BREAK_RATIO", "0.5"))
+        m5 = candles_dict.get("M5", candles)
+        if false_break_skip(m5, lookback, ratio):
+            logging.info("False break detected → skip entry")
+            return False
+    except Exception as exc:
+        logging.debug(f"[process_entry] false-break filter failed: {exc}")
 
     # --- dynamic pullback threshold ---------------------------------
     pullback_needed = None
