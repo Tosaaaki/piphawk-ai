@@ -149,6 +149,17 @@ def consecutive_lower_lows(candles: list[dict], count: int = 3) -> bool:
         return False
     return all(lows[i] < lows[i - 1] for i in range(1, len(lows)))
 
+
+def consecutive_higher_highs(candles: list[dict], count: int = 3) -> bool:
+    """Return True if there are ``count`` consecutive higher highs."""
+    if len(candles) < count + 1:
+        return False
+    try:
+        highs = [float(c.get("mid", c).get("h")) for c in candles[-(count + 1):]]
+    except Exception:
+        return False
+    return all(highs[i] > highs[i - 1] for i in range(1, len(highs)))
+
 # ────────────────────────────────────────────────
 #  Trend追随前フィルター
 # ────────────────────────────────────────────────

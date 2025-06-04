@@ -40,6 +40,7 @@ from backend.strategy.signal_filter import (
         detect_climax_reversal,
         counter_trend_block,
         consecutive_lower_lows,
+        consecutive_higher_highs,
     )
 except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
     from backend.strategy.signal_filter import pass_entry_filter
@@ -1315,6 +1316,14 @@ class JobRunner:
 
                             if side == "long" and consecutive_lower_lows(candles_m5):
                                 logger.info("Entry blocked: consecutive lower lows detected")
+                                self.last_run = now
+                                update_oanda_trades()
+                                time.sleep(self.interval_seconds)
+                                timer.stop()
+                                continue
+
+                            if side == "short" and consecutive_higher_highs(candles_m5):
+                                logger.info("Entry blocked: consecutive higher highs detected")
                                 self.last_run = now
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)
