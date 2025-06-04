@@ -13,6 +13,7 @@ from backend.risk_manager import (
     validate_sl,
     calc_min_sl,
     get_recent_swing_diff,
+    cost_guard,
 )
 
 
@@ -39,6 +40,13 @@ class TestRiskManager(unittest.TestCase):
         ]
         diff = get_recent_swing_diff(candles, "long", 1.15, 0.01, lookback=2)
         self.assertAlmostEqual(diff, 15.0)
+
+    def test_cost_guard(self):
+        import os
+        os.environ["MIN_NET_TP_PIPS"] = "2"
+        self.assertTrue(cost_guard(5, 2))
+        self.assertFalse(cost_guard(3, 2.5))
+        os.environ.pop("MIN_NET_TP_PIPS", None)
 
 
 if __name__ == '__main__':

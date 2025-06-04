@@ -9,6 +9,8 @@ from backend.logs.exit_logger import append_exit_log
 from datetime import datetime
 import logging
 import os
+from backend.utils import env_loader
+from backend.utils import trade_age_seconds
 
 # Trailing‑stop configuration
 TRAIL_TRIGGER_PIPS = float(
@@ -165,19 +167,11 @@ def process_exit(
         return False
 
     # --- Check minimum hold time ---------------------------------------
-    entry_ts = position.get("entry_time") or position.get("openTime")
-    secs_since_entry = None
-    if entry_ts:
-        try:
-            et = datetime.fromisoformat(entry_ts.replace("Z", "+00:00"))
-            secs_since_entry = (datetime.utcnow() - et).total_seconds()
-        except Exception:
-            secs_since_entry = None
-
-    min_hold = int(os.getenv("MIN_HOLD_SEC", "0"))
+    secs_since_entry = trade_age_seconds(position)
+    min_hold = int(env_loader.get_env("MIN_HOLD_SECONDS", "0"))
     if secs_since_entry is not None and secs_since_entry < min_hold:
         logging.info(
-            f"Held {secs_since_entry:.1f}s < MIN_HOLD_SEC {min_hold} → skip exit logic."
+            f"Held {secs_since_entry:.1f}s < MIN_HOLD_SECONDS {min_hold} → skip exit logic."
         )
         return False
 

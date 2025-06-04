@@ -4,7 +4,7 @@ import uuid
 import logging
 import json
 import os
-from backend.utils import env_loader
+from backend.utils import env_loader, trade_age_seconds
 
 from backend.market_data.tick_fetcher import fetch_tick_data
 
@@ -157,7 +157,7 @@ TP_REDUCTION_ATR_MULT = float(env_loader.get_env("TP_REDUCTION_ATR_MULT", "1.0")
 
 # Peak profit exit settings
 PEAK_EXIT_ENABLED = env_loader.get_env("PEAK_EXIT_ENABLED", "false").lower() == "true"
-PEAK_EXIT_RETRACE_PIPS = float(env_loader.get_env("PEAK_EXIT_RETRACE_PIPS", "2"))
+MM_DRAW_MAX_ATR_RATIO = float(env_loader.get_env("MM_DRAW_MAX_ATR_RATIO", "2.0"))
 
 
 # ───────────────────────────────────────────────────────────
@@ -618,7 +618,14 @@ class JobRunner:
     def _should_peak_exit(self, side: str, indicators: dict, current_profit: float) -> bool:
         if not PEAK_EXIT_ENABLED:
             return False
-        if self.max_profit_pips - current_profit < PEAK_EXIT_RETRACE_PIPS:
+        atr_val = indicators.get("atr")
+        if hasattr(atr_val, "iloc"):
+            atr_val = float(atr_val.iloc[-1])
+        if atr_val is None:
+            return False
+        pip_size = 0.01 if DEFAULT_PAIR.endswith("_JPY") else 0.0001
+        allowed_draw = (atr_val / pip_size) * MM_DRAW_MAX_ATR_RATIO
+        if (self.max_profit_pips - current_profit) < allowed_draw:
             return False
 
         from backend.strategy.signal_filter import detect_peak_reversal
@@ -767,17 +774,9 @@ class JobRunner:
                     logger.info(f"Current position status: {has_position}")
                     logger.info(f"Has open position for {DEFAULT_PAIR}: {has_position}")
 
-                    MIN_HOLD_SEC = int(env_loader.get_env("MIN_HOLD_SEC", "0"))
-                    
-                    secs_since_entry = None
-                    if has_position:
-                        ts_raw = has_position.get("entry_time") or has_position.get("openTime")
-                        if ts_raw:
-                            try:
-                                et = datetime.fromisoformat(ts_raw.replace("Z", "+00:00"))
-                                secs_since_entry = (datetime.utcnow() - et).total_seconds()
-                            except Exception:
-                                secs_since_entry = None
+                    MIN_HOLD_SECONDS = int(env_loader.get_env("MIN_HOLD_SECONDS", "0"))
+
+                    secs_since_entry = trade_age_seconds(has_position) if has_position else None
 
                     if not has_position:
                         self.breakeven_reached = False
@@ -946,9 +945,9 @@ class JobRunner:
                             continue
 
                         if current_profit_pips >= TP_PIPS * AI_PROFIT_TRIGGER_RATIO:
-                            if secs_since_entry is not None and secs_since_entry < MIN_HOLD_SEC:
+                            if secs_since_entry is not None and secs_since_entry < MIN_HOLD_SECONDS:
                                 logger.info(
-                                    f"Hold time {secs_since_entry:.1f}s < {MIN_HOLD_SEC}s → skip exit call"
+                                    f"Hold time {secs_since_entry:.1f}s < {MIN_HOLD_SECONDS}s → skip exit call"
                                 )
                             else:
                                 # EXITフィルターを評価し、フィルターNGの場合はAIの決済判断をスキップ
@@ -1081,9 +1080,9 @@ class JobRunner:
                             pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
                             profit_pips = 0.0
 
-                        if secs_since_entry is not None and secs_since_entry < MIN_HOLD_SEC:
+                        if secs_since_entry is not None and secs_since_entry < MIN_HOLD_SECONDS:
                             logger.info(
-                                f"Hold time {secs_since_entry:.1f}s < {MIN_HOLD_SEC}s → skip exit call"
+                                f"Hold time {secs_since_entry:.1f}s < {MIN_HOLD_SECONDS}s → skip exit call"
                             )
                             pass_exit = False
                         else:
