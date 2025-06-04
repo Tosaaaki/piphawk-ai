@@ -177,3 +177,7 @@ cython_debug/
 node_modules/
 
 backend/logs/*.db
+backend/logs/*.jsonl
+backend/logs/*.db*
+backend/logs/*.jsonl
+backend/logs/*.db*
