@@ -23,6 +23,7 @@ except ModuleNotFoundError:  # pragma: no cover
         return False
 from backend.risk_manager import (
     validate_rrr,
+    validate_rrr_after_cost,
     validate_sl,
     calc_min_sl,
     get_recent_swing_diff,
@@ -586,6 +587,20 @@ def process_entry(
             validate_sl(tp_pips, sl_pips, atr_pips, min_atr_mult)
     except Exception:
         pass
+
+    try:
+        pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+        spread = (ask - bid) / pip_size if bid is not None and ask is not None else 0.0
+        slip = float(env_loader.get_env("ENTRY_SLIPPAGE_PIPS", "0"))
+        min_rrr_cost = float(env_loader.get_env("MIN_RRR_AFTER_COST", "1.2"))
+        if not validate_rrr_after_cost(tp_pips, sl_pips, spread + slip, min_rrr_cost):
+            logging.info(
+                f"RRR after cost {(tp_pips - (spread + slip)) / sl_pips if sl_pips else 0:.2f} < {min_rrr_cost} → skip entry"
+            )
+            return False
+    except Exception as exc:
+        logging.debug(f"[process_entry] rrr-after-cost check failed: {exc}")
+
     logging.info(f"AI Entry {side} – tp={tp_pips}  sl={sl_pips} (pips)")
 
     if mode == "limit":

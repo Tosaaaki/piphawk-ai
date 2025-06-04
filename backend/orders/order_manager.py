@@ -3,7 +3,11 @@ import requests
 from backend.logs.log_manager import log_trade, log_error
 from backend.logs.trade_logger import ExitReason
 from backend.utils.price import format_price
-from backend.risk_manager import validate_rrr, validate_sl
+from backend.risk_manager import (
+    validate_rrr,
+    validate_rrr_after_cost,
+    validate_sl,
+)
 from datetime import datetime, timedelta
 import time
 import json
@@ -373,7 +377,25 @@ class OrderManager:
             except Exception:
                 pass
 
-        entry_price = float(market_data['prices'][0]['bids'][0]['price']) if side == "long" else float(market_data['prices'][0]['asks'][0]['price'])
+        bid = float(market_data['prices'][0]['bids'][0]['price'])
+        ask = float(market_data['prices'][0]['asks'][0]['price'])
+        entry_price = bid if side == "long" else ask
+
+        if tp_pips is not None and sl_pips is not None:
+            try:
+                spread_pips = (ask - bid) / pip
+                slip = float(os.getenv("ENTRY_SLIPPAGE_PIPS", "0"))
+                min_rrr_cost = float(os.getenv("MIN_RRR_AFTER_COST", "1.2"))
+                if not validate_rrr_after_cost(float(tp_pips), float(sl_pips), spread_pips + slip, min_rrr_cost):
+                    logger.warning(
+                        "RRR after cost %.2f below %.2f – aborting entry",
+                        (float(tp_pips) - (spread_pips + slip)) / float(sl_pips) if sl_pips else 0,
+                        min_rrr_cost,
+                    )
+                    return None
+            except Exception:
+                pass
+
         units = int(lot_size * 1000) if side == "long" else -int(lot_size * 1000)
         entry_time = datetime.utcnow().isoformat()
 

@@ -98,6 +98,14 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
   される。調整後の値は INFO レベルでログ出力される。
   MIN_RRR=1.2、ENFORCE_RRR=true が推奨設定。
 
+■ MIN_RRR_AFTER_COST
+  スプレッドやスリッページなどコスト控除後のRRRが
+  この値以上でなければエントリーを行わない。
+
+■ ENTRY_SLIPPAGE_PIPS
+  エントリー時に想定するスリッページ幅(pips)。
+  MIN_RRR_AFTER_COST の計算に利用される。
+
 
 # 以下は README に記載されていた追加の環境変数
 
@@ -106,6 +114,8 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - AI_PROFIT_TRIGGER_RATIO: TP 目標の何割到達で AI に利確を問い合わせるか
 - MIN_RRR: 最低許容リスクリワード比
 - ENFORCE_RRR: true にすると MIN_RRR を下回らないよう TP/SL を調整
+- MIN_RRR_AFTER_COST: スプレッド控除後のRRR下限
+- ENTRY_SLIPPAGE_PIPS: エントリー時の想定スリッページ
 - STAGNANT_EXIT_SEC: 利益が伸びないまま停滞したと判断するまでの秒数
 - STAGNANT_ATR_PIPS: ATR がこの値以下のとき停滞判定を行う
 - MIN_HOLD_SEC: ポジションを最低何秒保持するか
