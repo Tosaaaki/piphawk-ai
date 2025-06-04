@@ -22,6 +22,17 @@ def validate_rrr(tp_pips: float, sl_pips: float, min_rrr: float) -> bool:
         return False
 
 
+def validate_rrr_after_cost(
+    tp_pips: float, sl_pips: float, cost_pips: float, min_rrr: float
+) -> bool:
+    """Return True if (tp_pips - cost_pips) / sl_pips >= min_rrr."""
+    try:
+        net_tp = tp_pips - cost_pips
+        return sl_pips > 0 and (net_tp / sl_pips) >= min_rrr
+    except Exception:
+        return False
+
+
 def is_high_vol_session() -> bool:
     """ロンドン・NY序盤などボラティリティが高い時間帯か判定する。"""
     from datetime import datetime, timedelta
