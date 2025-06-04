@@ -73,6 +73,9 @@ def init_db():
                 tp_pips REAL,
                 sl_pips REAL,
                 rrr REAL,
+                ai_dir TEXT,
+                local_dir TEXT,
+                final_side TEXT,
                 ai_reason TEXT,
                 ai_response TEXT,
                 entry_regime TEXT,
@@ -91,6 +94,12 @@ def init_db():
             cursor.execute('ALTER TABLE trades ADD COLUMN sl_pips REAL')
         if 'rrr' not in columns:
             cursor.execute('ALTER TABLE trades ADD COLUMN rrr REAL')
+        if 'ai_dir' not in columns:
+            cursor.execute('ALTER TABLE trades ADD COLUMN ai_dir TEXT')
+        if 'local_dir' not in columns:
+            cursor.execute('ALTER TABLE trades ADD COLUMN local_dir TEXT')
+        if 'final_side' not in columns:
+            cursor.execute('ALTER TABLE trades ADD COLUMN final_side TEXT')
         if 'exit_reason' not in columns:
             cursor.execute('ALTER TABLE trades ADD COLUMN exit_reason TEXT')
 
@@ -165,6 +174,9 @@ def log_trade(
     tp_pips=None,
     sl_pips=None,
     rrr=None,
+    ai_dir=None,
+    local_dir=None,
+    final_side=None,
     exit_reason=None,
 ):
     with get_db_connection() as conn:
@@ -174,8 +186,10 @@ def log_trade(
                 instrument, entry_time, entry_price, units,
                 ai_reason, ai_response, entry_regime,
                 exit_time, exit_price, profit_loss,
-                tp_pips, sl_pips, rrr, exit_reason
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                tp_pips, sl_pips, rrr,
+                ai_dir, local_dir, final_side,
+                exit_reason
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             instrument,
             entry_time,
@@ -190,6 +204,9 @@ def log_trade(
             tp_pips,
             sl_pips,
             rrr,
+            ai_dir,
+            local_dir,
+            final_side,
             exit_reason,
         ))
 
