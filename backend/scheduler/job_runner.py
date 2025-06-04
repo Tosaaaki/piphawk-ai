@@ -34,7 +34,7 @@ except ImportError:  # tests may stub position_manager without helpers
         return None
 from backend.orders.order_manager import OrderManager
 try:
-from backend.strategy.signal_filter import (
+    from backend.strategy.signal_filter import (
         pass_entry_filter,
         filter_pre_ai,
         detect_climax_reversal,
