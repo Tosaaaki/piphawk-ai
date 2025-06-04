@@ -193,6 +193,7 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
 
     logger = logging.getLogger(__name__)
     global _last_di_cross_ts
+    global _cached_regime_result, _last_regime_ai_call_time
     indicators = context.get("indicators", {})
     ema_trend = None
     try:
@@ -277,6 +278,15 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
             "break_direction": None,
             "break_class": None,
         }
+
+    # --- Cache check: reuse recent AI result if cooldown active ---------
+    now = time.time()
+    if (
+        _cached_regime_result is not None
+        and now - _last_regime_ai_call_time < AI_REGIME_COOLDOWN_SEC
+    ):
+        logger.info("Regime decision skipped (cooldown)")
+        return _cached_regime_result
 
     def _extract_latest(series, n: int = 3):
         if series is None:
@@ -565,13 +575,16 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
             final_regime = "break"
             range_break = atr_break
 
-    return {
+    result = {
         "market_condition": final_regime,
         "range_break": range_break,
         "break_direction": range_break,
         "break_class": break_class,
         "trend_direction": trend_dir,
     }
+    _cached_regime_result = result
+    _last_regime_ai_call_time = now
+    return result
 
 
 
