@@ -726,7 +726,9 @@ class JobRunner:
                             "H1": self.indicators_H1 or {},
                         }
                     )
-                    if align is None and env_loader.get_env("STRICT_TF_ALIGN", "false").lower() == "true":
+                    if align is None and env_loader.get_env(
+                        "ALIGN_STRICT", env_loader.get_env("STRICT_TF_ALIGN", "false")
+                    ).lower() == "true":
                         logger.info("Multi‑TF alignment missing → skip entry")
                         log_entry_skip(DEFAULT_PAIR, None, "tf_align")
                         self.last_run = now

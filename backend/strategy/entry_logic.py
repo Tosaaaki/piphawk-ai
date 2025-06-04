@@ -211,12 +211,16 @@ def process_entry(
                     f"AI side {side} realigned to {align} by multi‑TF check"
                 )
                 side = align
-            elif align is None and env_loader.get_env("STRICT_TF_ALIGN", "false").lower() == "true":
+            elif align is None and env_loader.get_env(
+                "ALIGN_STRICT", env_loader.get_env("STRICT_TF_ALIGN", "false")
+            ).lower() == "true":
                 logging.info("Multi‑TF alignment missing → skip entry")
                 return False
         except Exception as exc:
             logging.debug(f"alignment adjust failed: {exc}")
-            if env_loader.get_env("STRICT_TF_ALIGN", "false").lower() == "true":
+            if env_loader.get_env(
+                "ALIGN_STRICT", env_loader.get_env("STRICT_TF_ALIGN", "false")
+            ).lower() == "true":
                 return False
 
     try:

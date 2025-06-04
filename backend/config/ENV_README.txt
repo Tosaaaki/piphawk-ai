@@ -32,7 +32,7 @@ ATR（ボラティリティ指標）の計算期間。
 AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 
 ■ AI_COOLDOWN_SEC_OPEN / AI_COOLDOWN_SEC_FLAT / AI_REGIME_COOLDOWN_SEC
-AI呼び出しの最小間隔（秒）を設定する。OPENはポジション保有時、FLATはノーポジ時、REGIMEはトレンド判定用。デフォルトは OPEN=60、FLAT=30、REGIME=60。
+ AI呼び出しの最小間隔（秒）を設定する。OPENはポジション保有時、FLATはノーポジ時、REGIMEはトレンド判定用。デフォルトは OPEN=60、FLAT=30、REGIME=20。
 
 ■ フィルター設定（AI呼び出し制御用）
 
@@ -135,7 +135,8 @@ AI呼び出しの最小間隔（秒）を設定する。OPENはポジション�
 - REV_BLOCK_BARS / TAIL_RATIO_BLOCK / VOL_SPIKE_PERIOD:
   Recent Candle Bias フィルターで参照する設定。直近のローソク足本数、ヒゲ比率、出来高急増判定期間を指定する。
   デフォルトは 3 / 2.0 / 5。
-- STRICT_TF_ALIGN: マルチTF整合が取れない場合のキャンセル可否
+ - STRICT_TF_ALIGN: マルチTF整合が取れない場合のキャンセル可否
+ - ALIGN_STRICT: 上記と同義のエイリアス
 - TF_EMA_WEIGHTS: 上位足EMA整合の重み付け (例 `M5:0.4,H1:0.3,H4:0.3`)
 - AI_ALIGN_WEIGHT: AIの方向性をEMA整合に加味する重み
 
