@@ -56,9 +56,15 @@ class TestAtrTpSlMult(unittest.TestCase):
         log_mod.log_trade = lambda *a, **k: None
         add("backend.logs.log_manager", log_mod)
 
+        # trend_pullback フィルターを常に True を返すスタブに置き換え
+        tp_mod = types.ModuleType("backend.filters.trend_pullback")
+        tp_mod.should_enter_long = lambda *a, **k: True
+        add("backend.filters.trend_pullback", tp_mod)
+
         os.environ["PIP_SIZE"] = "0.01"
         os.environ["ATR_MULT_TP"] = "0.8"
         os.environ["ATR_MULT_SL"] = "1.1"
+        os.environ["MIN_ATR_MULT"] = "1.1"
 
         import backend.strategy.entry_logic as el
         importlib.reload(el)
@@ -71,6 +77,7 @@ class TestAtrTpSlMult(unittest.TestCase):
         os.environ.pop("PIP_SIZE", None)
         os.environ.pop("ATR_MULT_TP", None)
         os.environ.pop("ATR_MULT_SL", None)
+        os.environ.pop("MIN_ATR_MULT", None)
         sys.modules.pop("backend.strategy.entry_logic", None)
 
     def test_atr_based_tp_sl(self):

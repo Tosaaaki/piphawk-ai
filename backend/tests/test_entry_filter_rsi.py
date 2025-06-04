@@ -58,8 +58,9 @@ class TestEntryFilterRSICross(unittest.TestCase):
 
         global pass_entry_filter, _rsi_cross_up_or_down
         import importlib
-        from backend.strategy import signal_filter as sf
-        importlib.reload(sf)
+        # テスト間でモジュールが置き換えられている可能性があるので削除してからインポート
+        sys.modules.pop("backend.strategy.signal_filter", None)
+        sf = importlib.import_module("backend.strategy.signal_filter")
         pass_entry_filter = sf.pass_entry_filter
         _rsi_cross_up_or_down = sf._rsi_cross_up_or_down
         self.sf_logger = sf.logger
