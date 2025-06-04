@@ -159,3 +159,6 @@ SCALE_TRIGGER_ATR=0.5
 - CLIMAX_TP_PIPS / CLIMAX_SL_PIPS: クライマックス時に使用する TP/SL
 - ALLOW_DELAYED_ENTRY: トレンドが過熱している場合に "wait" を返させ、押し目到来で再問い合わせする
 
+■ OANDA_MATCH_SEC
+  ローカルトレードと OANDA 取引を照合するときの許容秒数。デフォルトは60秒。
+
