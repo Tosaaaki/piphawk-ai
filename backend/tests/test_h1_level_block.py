@@ -68,12 +68,14 @@ class TestH1LevelBlock(unittest.TestCase):
         import backend.strategy.entry_logic as el
         importlib.reload(el)
         self.el = el
+        self._mods.append("backend.strategy.entry_logic")
 
     def tearDown(self):
         for m in self._mods:
             sys.modules.pop(m, None)
         os.environ.pop("PIP_SIZE", None)
         os.environ.pop("H1_BOUNCE_RANGE_PIPS", None)
+        sys.modules.pop("backend.strategy.entry_logic", None)
 
     def test_entry_blocked_near_h1_support(self):
         indicators = {"atr": FakeSeries([0.1])}
@@ -93,6 +95,29 @@ class TestH1LevelBlock(unittest.TestCase):
         self.assertFalse(res)
         self.assertEqual(self.el.order_manager.calls, 0)
 
+    def test_entry_blocked_near_h1_resistance(self):
+        indicators = {"atr": FakeSeries([0.1])}
+        candles = []
+        market_data = {
+            "prices": [{"instrument": "USD_JPY", "bids": [{"price": "1.035"}], "asks": [{"price": "1.045"}]}]
+        }
+        h1_ind = {"pivot": 1.02, "pivot_s1": 1.00}
+        oa = sys.modules["backend.strategy.openai_analysis"]
+        oa.get_trade_plan = lambda *a, **k: {
+            "entry": {"side": "long", "mode": "market"},
+            "risk": {"tp_pips": 10, "sl_pips": 5},
+        }
+        importlib.reload(self.el)
+        res = self.el.process_entry(
+            indicators,
+            candles,
+            market_data,
+            candles_dict={"M5": candles},
+            tf_align=None,
+            indicators_multi={"M5": indicators, "H1": h1_ind},
+        )
+        self.assertFalse(res)
+        self.assertEqual(self.el.order_manager.calls, 0)
 
 if __name__ == "__main__":
     unittest.main()

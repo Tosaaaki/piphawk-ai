@@ -22,10 +22,18 @@ except ModuleNotFoundError:  # pragma: no cover
     def extension_block(*_a, **_k):
         return False
 try:
-    from backend.filters.h1_level_block import is_near_h1_support
+
+    from backend.filters.h1_level_block import (
+        is_near_h1_support,
+        is_near_h1_resistance,
+    )
 except ModuleNotFoundError:  # pragma: no cover
     def is_near_h1_support(*_a, **_k):
         return False
+
+    def is_near_h1_resistance(*_a, **_k):
+        return False
+      
 from backend.risk_manager import (
     validate_rrr,
     validate_rrr_after_cost,
@@ -379,17 +387,19 @@ def process_entry(
         instrument = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
         bid = ask = None
 
-    # H1 サポート付近ではショートを見送る
     try:
         rng = float(env_loader.get_env("H1_BOUNCE_RANGE_PIPS", "0"))
         ind_h1 = indicators_multi.get("H1") if indicators_multi else None
-        price_chk = ask
-        if side == "short" and rng > 0 and price_chk is not None and ind_h1:
-            if is_near_h1_support(ind_h1, price_chk, rng):
+        price_chk = bid if side == "long" else ask
+        if rng > 0 and price_chk is not None and ind_h1:
+            if side == "short" and is_near_h1_support(ind_h1, price_chk, rng):
                 logging.info("Price near H1 support → skip short entry")
                 return False
+            if side == "long" and is_near_h1_resistance(ind_h1, price_chk, rng):
+                logging.info("Price near H1 resistance → skip long entry")
+                return False
     except Exception as exc:
-        logging.debug(f"[process_entry] H1 support check failed: {exc}")
+        logging.debug(f"[process_entry] H1 level check failed: {exc}")
 
     if mode == "market" and not is_break:
         price_ref = bid if side == "long" else ask
