@@ -85,7 +85,7 @@ be reached before an AI exit check occurs. The default value is `0.5` (50%).
 `SL_COOLDOWN_SEC` is the waiting period after a stop-loss exit before another entry in the same direction is allowed. Default is `300` seconds.
 `AI_COOLDOWN_SEC_OPEN` sets the minimum interval in seconds between AI calls while a position is open.
 `AI_COOLDOWN_SEC_FLAT` defines the cooldown when no position is held.
-`AI_REGIME_COOLDOWN_SEC` controls how often the AI checks market regime.
+`AI_REGIME_COOLDOWN_SEC` controls how often the AI checks market regime. Default is `15` seconds.
 `MIN_RRR` sets the minimum reward-to-risk ratio allowed when selecting a
 take-profit. The TP level is now chosen to maximise expected value while
 keeping the ratio at or above this threshold.
