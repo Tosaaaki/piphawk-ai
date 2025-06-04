@@ -66,6 +66,7 @@ import requests
 
 from backend.utils.notification import send_line_message
 from backend.logs.trade_logger import log_trade, ExitReason
+from backend.logs.log_manager import log_entry_skip
 
 #
 # optional helper for pending LIMIT look‑up;
@@ -727,6 +728,7 @@ class JobRunner:
                     )
                     if align is None and env_loader.get_env("STRICT_TF_ALIGN", "false").lower() == "true":
                         logger.info("Multi‑TF alignment missing → skip entry")
+                        log_entry_skip(DEFAULT_PAIR, None, "tf_align")
                         self.last_run = now
                         update_oanda_trades()
                         time.sleep(self.interval_seconds)
@@ -746,6 +748,7 @@ class JobRunner:
                             logger.info(
                                 f"Pending LIMIT active ({age:.0f}s) – skip entry check"
                             )
+                            log_entry_skip(DEFAULT_PAIR, None, "pending_limit", f"{age:.0f}s < {self.pending_grace_sec}s")
                             self.last_run = now
                             update_oanda_trades()
                             time.sleep(self.interval_seconds)
@@ -1308,6 +1311,12 @@ class JobRunner:
                                 logger.info(
                                     f"Entry blocked: recent SL hit on {side}. Cooldown {(now - self.last_sl_time).total_seconds():.0f}s < {cooldown}s"
                                 )
+                                log_entry_skip(
+                                    DEFAULT_PAIR,
+                                    side,
+                                    "sl_cooldown",
+                                    f"{(now - self.last_sl_time).total_seconds():.0f}s < {cooldown}s",
+                                )
                                 self.last_run = now
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)
@@ -1316,6 +1325,7 @@ class JobRunner:
 
                             if side == "long" and consecutive_lower_lows(candles_m5):
                                 logger.info("Entry blocked: consecutive lower lows detected")
+                                log_entry_skip(DEFAULT_PAIR, side, "lower_lows")
                                 self.last_run = now
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)
@@ -1324,6 +1334,7 @@ class JobRunner:
 
                             if side == "short" and consecutive_higher_highs(candles_m5):
                                 logger.info("Entry blocked: consecutive higher highs detected")
+                                log_entry_skip(DEFAULT_PAIR, side, "higher_highs")
                                 self.last_run = now
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)
@@ -1332,6 +1343,7 @@ class JobRunner:
 
                             if counter_trend_block(side, indicators, self.indicators_M15, self.indicators_H1):
                                 logger.info("Counter-trend block triggered → skip entry")
+                                log_entry_skip(DEFAULT_PAIR, side, "counter_trend")
                                 self.last_run = now
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)
