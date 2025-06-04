@@ -6,6 +6,11 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - fallback for optional import
     def false_break_skip(*_a, **_k):
         return False
+try:
+    from backend.filters.trend_pullback import should_enter_long as trend_pb_ok
+except ModuleNotFoundError:  # pragma: no cover
+    def trend_pb_ok(*_a, **_k):
+        return True
 from backend.risk_manager import (
     validate_rrr,
     validate_sl,
@@ -251,6 +256,13 @@ def process_entry(
             return False
     except Exception as exc:
         logging.debug(f"[process_entry] false-break filter failed: {exc}")
+
+    try:
+        if side == "long" and not trend_pb_ok(indicators, candles_dict.get("M5", candles)):
+            logging.info("Trend pullback conditions not met → skip entry")
+            return False
+    except Exception as exc:
+        logging.debug(f"[process_entry] trend-pullback check failed: {exc}")
 
     # --- dynamic pullback threshold ---------------------------------
     pullback_needed = None
