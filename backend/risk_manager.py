@@ -67,7 +67,6 @@ def calc_min_sl(
     swing_val = swing_diff + swing_buffer_pips if swing_diff is not None else 0.0
     return max(atr_val, swing_val)
 
-
 def cost_guard(tp_pips: float | None, spread_pips: float) -> bool:
     """Return True if net take-profit after spread meets threshold."""
     from backend.utils import env_loader
