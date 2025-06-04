@@ -1341,20 +1341,18 @@ class JobRunner:
                                 timer.stop()
                                 continue
 
+                            tp_ratio = None
                             if counter_trend_block(side, indicators, self.indicators_M15, self.indicators_H1):
-                                logger.info("Counter-trend block triggered → skip entry")
-                                log_entry_skip(DEFAULT_PAIR, side, "counter_trend")
-                                self.last_run = now
-                                update_oanda_trades()
-                                time.sleep(self.interval_seconds)
-                                timer.stop()
-                                continue
+                                logger.info("Counter-trend detected → TP reduced")
+                                tp_ratio = float(env_loader.get_env("COUNTER_TREND_TP_RATIO", "0.5"))
 
+                            entry_params = {"tp_ratio": tp_ratio} if tp_ratio else None
                             result = process_entry(
                                 indicators,
                                 candles_m5,
                                 tick_data,
                                 market_cond,
+                                entry_params,
                                 higher_tf=higher_tf,
                                 patterns=PATTERN_NAMES,
                             candles_dict={"M1": candles_m1, "M5": candles_m5},

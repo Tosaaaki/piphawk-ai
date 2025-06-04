@@ -528,6 +528,15 @@ def process_entry(
                 tp_pips = sl_pips * min_rrr
     except Exception:
         pass
+
+    # マルチTFが逆方向の場合のTP短縮
+    try:
+        if isinstance(strategy_params, dict):
+            ratio = strategy_params.get("tp_ratio")
+            if ratio:
+                tp_pips = tp_pips * float(ratio)
+    except Exception:
+        pass
     try:
         min_atr_mult = float(env_loader.get_env("MIN_ATR_MULT", "1.0"))
         if atr_pips is not None:
