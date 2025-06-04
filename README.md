@@ -31,6 +31,14 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    アプリケーションは `.env`, `backend/config/settings.env`, `backend/config/secret.env` の順で環境変数を読み込みます。
    必要に応じて `settings.env` の値も調整してください。
 詳しい環境変数一覧と設定例は `backend/config/ENV_README.txt` を参照してください。
+### Using strategy.yml
+`config/strategy.yml` を作成すると、キーと値を YAML 形式で指定して環境変数を上書きできます。
+```yaml
+MIN_RRR: 1.5
+ATR_RATIO: 1.8
+```
+`config.params_loader.load_params("config/strategy.yml")` を呼び出すと `.env` より後から読み込まれ、簡単にパラメータを切り替えられます。
+
 
 ### Switching OANDA accounts
 別アカウントを利用する場合は、そのアカウント用のAPIトークンを発行し、`.env` の
@@ -69,6 +77,7 @@ keeping the ratio at or above this threshold.
 meets `MIN_RRR` and logs the final values at INFO level.
 Recommended values are `MIN_RRR=1.2` with `ENFORCE_RRR=true` for conservative
 trading.
+`ATR_RATIO` は ATR の短期平均を長期平均で割った値がこのしきい値を超えるとリスク過熱とみなし、エントリーを控えます。
 `STAGNANT_EXIT_SEC` sets how long a profitable position can stagnate before the
 system asks the AI to close it. If `STAGNANT_ATR_PIPS` is greater than zero and
 ATR falls below this value, the position is considered stagnant once the time
@@ -109,6 +118,23 @@ The indicators module also calculates `adx_bb_score`, a composite value derived 
 `ALLOW_DELAYED_ENTRY` set to `true` lets the AI return `"mode":"wait"` when a trend is overextended. The job runner will keep polling and enter once the pullback depth is satisfied.
 
 `OANDA_MATCH_SEC` はローカルトレードと OANDA 取引を照合するときの許容秒数です。デフォルトは `60` です。
+
+`config/strategy.yml` にはリスク管理とフィルタ、再エントリー条件をまとめています。初期値は以下の通りです。
+
+```yaml
+risk:
+  min_atr_sl_multiplier: 1.2
+  min_rr_ratio: 1.2
+filters:
+  avoid_false_break:
+    lookback_candles: 20
+    threshold_ratio: 0.2
+reentry:
+  enable: true
+  trigger_pips_over_break: 1.5
+```
+
+`min_atr_sl_multiplier` は ATR を基にした最小ストップ幅の倍率、`min_rr_ratio` は最低リスクリワード比を示します。`avoid_false_break` ではブレイク失敗回避のための期間と閾値を設定し、`reentry` を有効にするとブレイク後に再びエントリーする条件を制御できます。
 
 ## パラメータ変更履歴の確認
 

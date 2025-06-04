@@ -1,6 +1,12 @@
 from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
+try:
+    from backend.filters.false_break_filter import should_skip as false_break_skip
+except ModuleNotFoundError:  # pragma: no cover - fallback for optional import
+    def false_break_skip(*_a, **_k):
+        return False
+from backend.risk_manager import validate_rrr, validate_sl
 from datetime import datetime
 from backend.utils import env_loader
 import logging
@@ -216,6 +222,17 @@ def process_entry(
     except Exception as exc:
         logging.debug(f"[process_entry] oversold filter failed: {exc}")
 
+    # --- false break filter -----------------------------------------
+    try:
+        lookback = int(env_loader.get_env("FALSE_BREAK_LOOKBACK", "5"))
+        ratio = float(env_loader.get_env("FALSE_BREAK_RATIO", "0.5"))
+        m5 = candles_dict.get("M5", candles)
+        if false_break_skip(m5, lookback, ratio):
+            logging.info("False break detected → skip entry")
+            return False
+    except Exception as exc:
+        logging.debug(f"[process_entry] false-break filter failed: {exc}")
+
     # --- dynamic pullback threshold ---------------------------------
     pullback_needed = None
     if not is_break:
@@ -358,6 +375,7 @@ def process_entry(
 
     min_sl = float(env_loader.get_env("MIN_SL_PIPS", "0"))
     fallback_sl = None
+    atr_pips = None
     try:
         atr_series = indicators.get("atr")
         if atr_series is not None and len(atr_series):
@@ -366,10 +384,11 @@ def process_entry(
             else:
                 atr_val = float(atr_series[-1])
             pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+            atr_pips = atr_val / pip_size
             mult_sl = float(env_loader.get_env("ATR_MULT_SL", env_loader.get_env("ATR_SL_MULTIPLIER", "2.0")))
-            fallback_sl = atr_val / pip_size * mult_sl
+            fallback_sl = atr_pips * mult_sl
             mult_tp = float(env_loader.get_env("ATR_MULT_TP", env_loader.get_env("SHORT_TP_ATR_RATIO", "0.6")))
-            fallback_tp = atr_val / pip_size * mult_tp
+            fallback_tp = atr_pips * mult_tp
         price_ref = bid if side == "long" else ask
         # SL用ピボットレベル
         pivot_sl_key = "pivot_s1" if side == "long" else "pivot_r1"
@@ -467,8 +486,14 @@ def process_entry(
     try:
         if env_loader.get_env("ENFORCE_RRR", "false").lower() == "true":
             min_rrr = float(env_loader.get_env("MIN_RRR", "0.8"))
-            if sl_pips > 0 and tp_pips / sl_pips < min_rrr:
+            if not validate_rrr(tp_pips, sl_pips, min_rrr):
                 tp_pips = sl_pips * min_rrr
+    except Exception:
+        pass
+    try:
+        min_atr_mult = float(env_loader.get_env("MIN_ATR_MULT", "1.0"))
+        if atr_pips is not None:
+            validate_sl(tp_pips, sl_pips, atr_pips, min_atr_mult)
     except Exception:
         pass
     logging.info(f"AI Entry {side} – tp={tp_pips}  sl={sl_pips} (pips)")

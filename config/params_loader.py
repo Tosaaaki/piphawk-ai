@@ -1,4 +1,4 @@
-"""params.yaml を読み込み環境変数へ反映する簡易ローダー."""
+"""Load parameters from params.yaml and strategy.yml into environment variables."""
 from __future__ import annotations
 
 import os
@@ -17,32 +17,79 @@ def _parse_value(val: str):
         return val
 
 
-def load_params(path: str | Path = Path(__file__).resolve().parent / "params.yaml"):
-    """YAML 形式 (key: value) を読み込み環境変数に設定."""
+def _parse_yaml_file(path: Path) -> dict:
+    lines = path.read_text().splitlines()
+
+    def parse(start: int, indent: int):
+        data: dict[str, object] = {}
+        items: list[object] | None = None
+        i = start
+        while i < len(lines):
+            raw = lines[i]
+            if not raw.strip() or raw.lstrip().startswith("#"):
+                i += 1
+                continue
+            cur_indent = len(raw) - len(raw.lstrip())
+            if cur_indent < indent:
+                break
+            text = raw.strip()
+            if text.startswith("- "):
+                if items is None:
+                    items = []
+                items.append(_parse_value(text[2:]))
+                i += 1
+                continue
+            if ":" in text:
+                key, val = text.split(":", 1)
+                key = key.strip()
+                val = val.strip()
+                i += 1
+                if val == "":
+                    child, i = parse(i, cur_indent + 2)
+                    data[key] = child
+                else:
+                    data[key] = _parse_value(val)
+                continue
+            i += 1
+        if items is not None and not data:
+            return items, i
+        return data, i
+
+    parsed, _ = parse(0, 0)
+    return parsed
+
+
+def _flatten(d: object, prefix: str = "") -> dict[str, object]:
+    flat: dict[str, object] = {}
+    if isinstance(d, dict):
+        for k, v in d.items():
+            key = f"{prefix}_{k}" if prefix else k
+            flat.update(_flatten(v, key))
+    elif isinstance(d, list):
+        flat[prefix.upper()] = ",".join(str(item) for item in d)
+    else:
+        flat[prefix.upper()] = d
+    return flat
+
+
+def load_params(
+    path: str | Path = Path(__file__).resolve().parent / "params.yaml",
+    strategy_path: str | Path | None = Path(__file__).resolve().parent
+    / "strategy.yml",
+):
+    """Load YAML parameters and export them as environment variables."""
+
+    env_params: dict[str, object] = {}
+
     p = Path(path)
-    if not p.exists():
-        return {}
-    params: dict[str, object] = {}
-    current_key = None
-    for line in p.read_text().splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        if ":" in line and not line.startswith("-"):
-            key, val = line.split(":", 1)
-            key = key.strip()
-            val = val.strip()
-            if val:
-                params[key] = _parse_value(val)
-                current_key = None
-            else:
-                params[key] = []
-                current_key = key
-        elif line.startswith("-") and current_key:
-            params[current_key].append(_parse_value(line[1:].strip()))
-    for k, v in params.items():
-        if isinstance(v, list):
-            os.environ[k] = ",".join(str(item) for item in v)
-        else:
-            os.environ[k] = str(v)
-    return params
+    if p.exists():
+        env_params.update(_flatten(_parse_yaml_file(p)))
+
+    if strategy_path is not None:
+        sp = Path(strategy_path)
+        if sp.exists():
+            env_params.update(_flatten(_parse_yaml_file(sp)))
+
+    for k, v in env_params.items():
+        os.environ[k] = str(v)
+    return env_params

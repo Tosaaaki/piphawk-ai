@@ -3,6 +3,7 @@ import requests
 from backend.logs.log_manager import log_trade, log_error
 from backend.logs.trade_logger import ExitReason
 from backend.utils.price import format_price
+from backend.risk_manager import validate_rrr, validate_sl
 from datetime import datetime, timedelta
 import time
 import json
@@ -42,11 +43,6 @@ PIP_SIZES: dict[str, float] = {
 def get_pip_size(instrument: str) -> float:
     """Return pip size for the instrument; fallback to DEFAULT_PAIR mapping."""
     return PIP_SIZES.get(instrument, PIP_SIZES.get(DEFAULT_PAIR, 0.01))
-
-
-def validate_rrr(tp_pips: float, sl_pips: float, min_rrr: float) -> bool:
-    """Return True if tp_pips / sl_pips meets or exceeds min_rrr."""
-    return sl_pips > 0 and (tp_pips / sl_pips) >= min_rrr
 
 
 class OrderManager:
