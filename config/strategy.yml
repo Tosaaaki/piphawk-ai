@@ -1,0 +1,10 @@
+risk:
+  min_atr_sl_multiplier: 1.2
+  min_rr_ratio: 1.2
+filters:
+  avoid_false_break:
+    lookback_candles: 20
+    threshold_ratio: 0.2
+reentry:
+  enable: true
+  trigger_pips_over_break: 1.5
