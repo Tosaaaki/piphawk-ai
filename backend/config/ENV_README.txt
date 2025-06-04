@@ -136,9 +136,10 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
   Recent Candle Bias フィルターで参照する設定。直近のローソク足本数、ヒゲ比率、出来高急増判定期間を指定する。
   デフォルトは 3 / 2.0 / 5。
  - STRICT_TF_ALIGN: マルチTF整合が取れない場合のキャンセル可否
- - ALIGN_STRICT: 上記と同義のエイリアス
+- ALIGN_STRICT: 上記と同義のエイリアス
 - TF_EMA_WEIGHTS: 上位足EMA整合の重み付け (例 `M5:0.4,H1:0.3,H4:0.3`)
 - AI_ALIGN_WEIGHT: AIの方向性をEMA整合に加味する重み
+- ALIGN_BYPASS_ADX: M5 ADXがこの値以上でAI方向が設定されている場合、整合チェックをスキップ
 
 - LINE_CHANNEL_TOKEN: LINE 通知に使用するチャンネルアクセストークン
 - LINE_USER_ID: 通知を送るユーザーのLINE ID
