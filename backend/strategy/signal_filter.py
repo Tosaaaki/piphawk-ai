@@ -67,6 +67,13 @@ def counter_trend_block(side: str, ind_m5: dict, ind_m15: dict | None = None, in
                 and cur_val >= adx_thresh
             ):
                 return True
+            # 強い上昇トレンド時のショート抑制
+            if (
+                side == "short"
+                and dir_m5 == "long"
+                and cur_val >= adx_thresh
+            ):
+                return True
     except Exception:
         pass
     return False
