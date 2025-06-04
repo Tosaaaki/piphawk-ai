@@ -61,6 +61,7 @@
     "MIN_VOL_MA": 80,
     "MIN_VOL_M1": 60,
     "VOL_SPIKE_PERIOD": 5,
+    "_VOL_SPIKE_NOTE": "Duplicate entry removed",
     "QUIET_START_HOUR_JST": 3,
     "QUIET_END_HOUR_JST": 7.5,
     "QUIET2_START_HOUR_JST": 23,
@@ -109,6 +110,5 @@
     "CLIMAX_TP_PIPS": 7,
     "CLIMAX_SL_PIPS": 10,
     "REV_BLOCK_BARS": 3,
-    "TAIL_RATIO_BLOCK": 2.0,
-    "VOL_SPIKE_PERIOD": 5
+    "TAIL_RATIO_BLOCK": 2.0
   }
