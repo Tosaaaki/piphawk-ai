@@ -31,6 +31,9 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
    アプリケーションは `.env`, `backend/config/settings.env`, `backend/config/secret.env` の順で環境変数を読み込みます。
    必要に応じて `settings.env` の値も調整してください。
 詳しい環境変数一覧と設定例は `backend/config/ENV_README.txt` を参照してください。
+`REV_BLOCK_BARS` は直近のローソク足から何本を逆行判定に使うか、
+`TAIL_RATIO_BLOCK` はヒゲと実体の比がこの値を超えるとエントリーをブロックし、
+`VOL_SPIKE_PERIOD` は出来高急増を検出する際の平均期間を指定します。
 
 #### settings.env の主な変数
 `backend/config/settings.env` には取引ロジックに関わる初期値がまとめられています。 `.env` の次に読み込まれるため、ここを編集すると大半の設定を簡単に変更できます。
