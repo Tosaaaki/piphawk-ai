@@ -108,7 +108,7 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - ENFORCE_RRR: true にすると MIN_RRR を下回らないよう TP/SL を調整
 - STAGNANT_EXIT_SEC: 利益が伸びないまま停滞したと判断するまでの秒数
 - STAGNANT_ATR_PIPS: ATR がこの値以下のとき停滞判定を行う
-- MIN_HOLD_SEC: ポジションを最低何秒保持するか
+- MIN_HOLD_SECONDS: ポジションを最低何秒保持するか
 - REVERSAL_EXIT_ATR_MULT / REVERSAL_EXIT_ADX_MIN: 反対側 BB を終値で超えた際の早期撤退条件
 - REVERSAL_RSI_DIFF: M5 と M15 の RSI 差分がこの値以上で MACD ヒストグラムが同じ方向ならエントリーをブロック
 - POLARITY_EXIT_THRESHOLD: ポラリティによる早期決済を行う閾値

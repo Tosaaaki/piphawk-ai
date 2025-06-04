@@ -73,7 +73,7 @@
     "HIGHER_TF_ENABLED": true,
     "ENTRY_COOLDOWN_SEC": 60,
     "SL_COOLDOWN_SEC": 300,
-    "MIN_HOLD_SEC": 60,
+    "MIN_HOLD_SECONDS": 60,
     "EXIT_CHECK_SEC": 30,
     "INVERT_ENTRY_SIDE": false,
     "MIN_TP_PROB": 0.75,
