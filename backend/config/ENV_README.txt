@@ -131,6 +131,7 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - OVERSHOOT_ATR_MULT: BB下限をATR×この倍率だけ割り込むとエントリーをブロック
 - STRICT_TF_ALIGN: マルチTF整合が取れない場合のキャンセル可否
 - TF_EMA_WEIGHTS: 上位足EMA整合の重み付け (例 `M5:0.4,H1:0.3,H4:0.3`)
+- AI_ALIGN_WEIGHT: AIの方向性をEMA整合に加味する重み
 
 - LINE_CHANNEL_TOKEN: LINE 通知に使用するチャンネルアクセストークン
 - LINE_USER_ID: 通知を送るユーザーのLINE ID

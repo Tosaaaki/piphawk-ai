@@ -1357,10 +1357,15 @@ class JobRunner:
                                 market_cond,
                                 higher_tf=higher_tf,
                                 patterns=PATTERN_NAMES,
-                                candles_dict={"M1": candles_m1, "M5": candles_m5},
-                                pattern_names=self.patterns_by_tf,
-                                tf_align=align,
-                            )
+                            candles_dict={"M1": candles_m1, "M5": candles_m5},
+                            pattern_names=self.patterns_by_tf,
+                            tf_align=align,
+                            indicators_multi={
+                                "M1": self.indicators_M1 or {},
+                                "M5": self.indicators_M5 or {},
+                                "H1": self.indicators_H1 or {},
+                            },
+                        )
                             if not result:
                                 pend = get_pending_entry_order(DEFAULT_PAIR)
                                 if pend and pend.get("order_id"):
