@@ -119,6 +119,23 @@ The indicators module also calculates `adx_bb_score`, a composite value derived 
 
 `OANDA_MATCH_SEC` はローカルトレードと OANDA 取引を照合するときの許容秒数です。デフォルトは `60` です。
 
+`config/strategy.yml` にはリスク管理とフィルタ、再エントリー条件をまとめています。初期値は以下の通りです。
+
+```yaml
+risk:
+  min_atr_sl_multiplier: 1.2
+  min_rr_ratio: 1.2
+filters:
+  avoid_false_break:
+    lookback_candles: 20
+    threshold_ratio: 0.2
+reentry:
+  enable: true
+  trigger_pips_over_break: 1.5
+```
+
+`min_atr_sl_multiplier` は ATR を基にした最小ストップ幅の倍率、`min_rr_ratio` は最低リスクリワード比を示します。`avoid_false_break` ではブレイク失敗回避のための期間と閾値を設定し、`reentry` を有効にするとブレイク後に再びエントリーする条件を制御できます。
+
 ## パラメータ変更履歴の確認
 
 `init_db()` でデータベースを作成または更新した後、`log_param_change()` と `log_trade()` を
