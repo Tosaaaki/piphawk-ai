@@ -17,6 +17,8 @@ from backend.risk_manager import (
     get_recent_swing_diff,
     is_high_vol_session,
 )
+from backend.strategy.validators import normalize_probs, risk_autofix
+from backend.config.defaults import MIN_ABS_SL_PIPS
 
 # --- Added for AI-based exit decision ---
 # Consolidated exit decision helpers live in exit_ai_decision
@@ -900,6 +902,7 @@ def get_trade_plan(
     pattern_tf: str = "M5",
     detected_patterns: dict[str, str | None] | None = None,
     *,
+    higher_tf_direction: str | None = None,
     allow_delayed_entry: bool | None = None,
 ) -> dict:
     """
@@ -912,6 +915,9 @@ def get_trade_plan(
     ``indicators`` should map timeframe labels (e.g. "M5", "M1") to their
     respective indicator dictionaries. ``candles_dict`` likewise contains a
     list of candles for each timeframe.
+
+    ``higher_tf_direction`` conveys the trend direction of a higher timeframe and
+    is included in the prompt so the model can avoid contradicting it.
 
     The function also performs local guards:
         • tp_prob ≥ MIN_TP_PROB
@@ -1145,6 +1151,9 @@ After calculating TP hit probability, widen the SL by at least {env_loader.get_e
 ### Composite Trend Score
 {tv_score}
 
+### Higher Timeframe Direction
+{higher_tf_direction or "unknown"}
+
 ### Pivot Levels
 Pivot: {ind_m5.get('pivot')}, R1: {ind_m5.get('pivot_r1')}, S1: {ind_m5.get('pivot_s1')}
 
@@ -1172,17 +1181,18 @@ Respond with **one-line valid JSON** exactly as:
         return {"entry": {"side": "no"}, "raw": raw}
 
     # ---- local guards -------------------------------------------------
-    risk = plan.get("risk", {})
+    risk = risk_autofix(plan.get("risk"))
+    plan["risk"] = risk
     entry = plan.get("entry", {})
     mode = entry.get("mode", "market")
     if mode not in ("market", "limit", "wait"):
         entry["mode"] = "market"
     if risk:
         try:
-            tp = float(risk.get("tp_pips", 0))
-            sl = float(risk.get("sl_pips", 0))
-            p = float(risk.get("tp_prob", 0))
-            q = float(risk.get("sl_prob", 0))
+            tp = float(risk.get("tp_pips", 8))
+            sl = float(risk.get("sl_pips", 4))
+            p = float(risk.get("tp_prob", 0.6))
+            q = float(risk.get("sl_prob", 0.4))
             spread = float(market_data.get("spread_pips", 0))
 
             noise_sl_mult = float(env_loader.get_env("NOISE_SL_MULT", "1.5"))
@@ -1224,9 +1234,9 @@ Respond with **one-line valid JSON** exactly as:
                     swing_buffer_pips=5.0,
                     session_factor=session_factor,
                 )
-                sl = max(sl, dynamic_sl, min_sl)
+                sl = max(sl, dynamic_sl, min_sl, MIN_ABS_SL_PIPS)
             except Exception:
-                sl = max(sl, min_sl)
+                sl = max(sl, min_sl, MIN_ABS_SL_PIPS)
 
             risk["sl_pips"] = sl
 
@@ -1237,15 +1247,11 @@ Respond with **one-line valid JSON** exactly as:
                 risk["tp_prob"] = p
                 risk["sl_prob"] = q
 
+            p, q = normalize_probs(p, q)
+            risk["tp_prob"] = p
+            risk["sl_prob"] = q
             total = p + q
-            if abs(total - 1.0) <= 0.05:
-                p_norm = p / total
-                q_norm = q / total
-                risk["tp_prob"] = p_norm
-                risk["sl_prob"] = q_norm
-                p = p_norm
-                q = q_norm
-            elif total > 1.0 + PROB_MARGIN or total < 1.0 - PROB_MARGIN:
+            if total > 1.0 + PROB_MARGIN or total < 1.0 - PROB_MARGIN:
                 logger.warning("Probabilities invalid — skipping plan")
                 plan["entry"]["side"] = "no"
                 return plan
