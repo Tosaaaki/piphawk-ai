@@ -3,8 +3,7 @@ from __future__ import annotations
 
 from typing import Sequence
 
-from indicators.patterns import DoubleBottomSignal
-
+from indicators.patterns import DoubleBottomSignal, DoubleTopSignal
 
 class SignalManager:
     """Simple signal manager calling RegimeDetector."""
@@ -135,6 +134,10 @@ def double_bottom_features(candles: Sequence[dict]) -> dict | None:
     signal = DoubleBottomSignal()
     return signal.evaluate(candles)
 
+def double_top_features(candles: Sequence[dict]) -> dict | None:
+    """Return double-top pattern features if detected."""
+    signal = DoubleTopSignal()
+    return signal.evaluate(candles)
 
 __all__ = [
     "has_long_wick",
@@ -144,5 +147,6 @@ __all__ = [
     "compute_trade_score",
     "detect_range_reversal",
     "double_bottom_features",
+    "double_top_features",
     "SignalManager",
 ]

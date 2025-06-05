@@ -404,6 +404,7 @@ print(result)
 - `morning_star`
 - `evening_star`
 - `DoubleBottomSignal` class allows local detection of double-bottom patterns
+- `DoubleTopSignal` class allows local detection of double-top patterns
 
 複数時間足を使う場合は `get_trade_plan` の `pattern_tf` 引数で判定に利用する足を指定します。
 
