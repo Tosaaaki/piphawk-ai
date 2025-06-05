@@ -609,10 +609,6 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     _last_regime_ai_call_time = now
     return result
 
-    _cached_regime_result = result
-    _last_regime_ai_call_time = time.time()
-    return result
-
 
 
 # ----------------------------------------------------------------------
