@@ -530,6 +530,7 @@ class OrderManager:
             tp_pips=tp_pips,
             sl_pips=sl_pips,
             rrr=rrr,
+            is_manual=False,
         )
         return result
 
@@ -585,6 +586,7 @@ class OrderManager:
             ai_reason="exit",
             exit_time=datetime.now(timezone.utc).isoformat(),
             exit_reason=ExitReason.MANUAL,
+            is_manual=True,
         )
         return result
 
@@ -741,6 +743,7 @@ class OrderManager:
             0,
             "SL dynamically updated",
             json.dumps(result),
+            is_manual=False,
         )
         logger.debug(f"SL update response: {result}")
         return result

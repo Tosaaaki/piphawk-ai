@@ -79,7 +79,8 @@ def init_db():
                 ai_reason TEXT,
                 ai_response TEXT,
                 entry_regime TEXT,
-                exit_reason TEXT
+                exit_reason TEXT,
+                is_manual INTEGER
             )
         ''')
 
@@ -102,6 +103,8 @@ def init_db():
             cursor.execute('ALTER TABLE trades ADD COLUMN final_side TEXT')
         if 'exit_reason' not in columns:
             cursor.execute('ALTER TABLE trades ADD COLUMN exit_reason TEXT')
+        if 'is_manual' not in columns:
+            cursor.execute('ALTER TABLE trades ADD COLUMN is_manual INTEGER')
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS ai_decisions (
@@ -178,6 +181,7 @@ def log_trade(
     local_dir=None,
     final_side=None,
     exit_reason=None,
+    is_manual: bool | None = None,
 ):
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -188,8 +192,8 @@ def log_trade(
                 exit_time, exit_price, profit_loss,
                 tp_pips, sl_pips, rrr,
                 ai_dir, local_dir, final_side,
-                exit_reason
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                exit_reason, is_manual
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             instrument,
             entry_time,
@@ -208,6 +212,7 @@ def log_trade(
             local_dir,
             final_side,
             exit_reason,
+            is_manual,
         ))
 
 def log_ai_decision(decision_type, instrument, ai_response):
