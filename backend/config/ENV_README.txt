@@ -147,6 +147,7 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - MIN_VOL_MA / MIN_VOL_M1: ボリュームフィルタの最小値
 - ADX_SLOPE_LOOKBACK: ADX の傾き計算に使う本数
 - ADX_DYNAMIC_COEFF: BB 幅によって ADX しきい値を補正する係数
+- COMPOSITE_MIN: ADXとBB幅から算出するComposite Trend Scoreのしきい値
 - EMA_FLAT_PIPS: EMA の傾きをフラットとみなす幅
 - OVERSHOOT_ATR_MULT: BB下限をATR×この倍率だけ割り込むとエントリーをブロック
 - REV_BLOCK_BARS / TAIL_RATIO_BLOCK / VOL_SPIKE_PERIOD:
