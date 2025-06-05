@@ -140,6 +140,8 @@ The indicators module also calculates `adx_bb_score`, a composite value derived 
 `TF_EMA_WEIGHTS` specifies the weight of each timeframe when evaluating EMA alignment, e.g. `M5:0.4,H1:0.3,H4:0.3`.
 `AI_ALIGN_WEIGHT` adds the AI's suggested direction to the multi-timeframe alignment check.
 `ALIGN_BYPASS_ADX` bypasses the alignment logic and returns the AI side when the latest M5 ADX meets or exceeds this value.
+`LT_TF_PRIORITY_ADX` defines the ADX level on the lower timeframe that triggers temporary down‑weighting of higher timeframes when an EMA cross occurs.
+`LT_TF_WEIGHT_FACTOR` is the factor applied to higher timeframe weights during that period.
 
 `ALLOW_DELAYED_ENTRY` set to `true` lets the AI return `"mode":"wait"` when a trend is overextended. The job runner will keep polling and enter once the pullback depth is satisfied.
 
