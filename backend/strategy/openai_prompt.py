@@ -131,7 +131,12 @@ def build_trade_plan_prompt(
     except Exception:
         pass
 
-    direction_line = "\n### Higher TF Direction\n" + str(higher_tf_direction) + "\n" if higher_tf_direction else ""
+    # 上位足のトレンド方向を明示的に記載
+    direction_line = (
+        "\n### Higher Timeframe Direction\n" + str(higher_tf_direction) + "\n"
+        if higher_tf_direction
+        else ""
+    )
 
     prompt = f"""
 ⚠️【Market Regime Classification – Flexible Criteria】
