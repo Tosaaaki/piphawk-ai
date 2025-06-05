@@ -6,6 +6,13 @@ import json
 import os
 from backend.utils import env_loader, trade_age_seconds
 
+try:
+    from config import params_loader
+    # strategy.yml などから環境変数を読み込む
+    params_loader.load_params()
+except Exception:
+    pass
+
 from backend.market_data.tick_fetcher import fetch_tick_data
 
 from backend.market_data.candle_fetcher import fetch_multiple_timeframes
