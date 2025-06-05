@@ -78,6 +78,18 @@ def calc_min_sl(
     swing_val = swing_diff + swing_buffer_pips if swing_diff is not None else 0.0
     return max(atr_val, swing_val)
 
+
+def calc_short_sl_price(
+    swing_high: float | None, atr_pips: float | None, pip_size: float
+) -> float | None:
+    """Return short position SL price based on swing high and ATR."""
+    if swing_high is None or atr_pips is None:
+        return None
+    try:
+        return swing_high + (atr_pips * 0.5) * pip_size
+    except Exception:
+        return None
+
 def cost_guard(tp_pips: float | None, spread_pips: float) -> bool:
     """Return True if net take-profit after spread meets threshold."""
     from backend.utils import env_loader

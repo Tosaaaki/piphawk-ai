@@ -47,6 +47,8 @@ class RollingADX:
         self.minus_dm: Deque[float] = deque(maxlen=length)
         self.adx: float | None = None
         self.prev_adx: float | None = None
+        self.last_di_plus: float | None = None
+        self.last_di_minus: float | None = None
 
     def update(self, tick: Dict[str, Any]) -> tuple[float, float]:
         high = float(tick["high"])
@@ -69,10 +71,14 @@ class RollingADX:
         self.prev_low = low
         self.prev_close = close
         if len(self.tr_values) < self.length:
+            self.last_di_plus = None
+            self.last_di_minus = None
             return 0.0, 0.0
         atr = sum(self.tr_values) / len(self.tr_values)
         di_plus = 100 * (sum(self.plus_dm) / len(self.plus_dm)) / atr if atr else 0.0
         di_minus = 100 * (sum(self.minus_dm) / len(self.minus_dm)) / atr if atr else 0.0
+        self.last_di_plus = di_plus
+        self.last_di_minus = di_minus
         denom = di_plus + di_minus
         dx = 100 * abs(di_plus - di_minus) / denom if denom else 0.0
         if self.adx is None:
