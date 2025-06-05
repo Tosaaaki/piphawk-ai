@@ -54,6 +54,14 @@ ATR_RATIO: 1.8
 ```
 `config.params_loader.load_params("config/strategy.yml")` を呼び出すと `.env` より後から読み込まれ、簡単にパラメータを切り替えられます。
 
+スキャルピング用の設定例は以下の通りです。
+```yaml
+SCALP_MODE: true
+SCALP_ADX_MIN: 35
+SCALP_TP_PIPS: 4
+SCALP_SL_PIPS: 2
+```
+
 
 ### Switching OANDA accounts
 別アカウントを利用する場合は、そのアカウント用のAPIトークンを発行し、`.env` の
@@ -73,6 +81,7 @@ TRADES_DB_PATH=trades-002.db
 分割エントリーに関する解説は `docs/scale_entry.md` にまとめています。
 エントリーフィルタの詳細は `docs/entry_filter.md` を参照してください。
 高位足の使い方に関する補足は `docs/higher_tf_strategy.md` を参照してください。
+低ボラ時のエントリー仕様は `docs/low_vol_entry.md` を参照してください。
    `RANGE_CENTER_BLOCK_PCT` controls how close to the Bollinger band center price
    can be when ADX is below `ADX_RANGE_THRESHOLD`. Set to `0.3` (30%) to block
    entries near the middle of a range, helping suppress counter-trend trades.
