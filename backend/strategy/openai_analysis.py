@@ -1,6 +1,7 @@
 import logging
 import json
 from backend.utils.openai_client import ask_openai
+from backend.logs.log_manager import log_ai_decision
 from backend.utils import env_loader, parse_json_answer
 from backend.strategy.pattern_ai_detection import detect_chart_pattern
 from backend.strategy.pattern_scanner import PATTERN_DIRECTION
@@ -634,6 +635,7 @@ def get_exit_decision(
     candles: list | None = None,
     patterns: list[str] | None = None,
     detected_patterns: dict[str, str | None] | None = None,
+    instrument: str | None = None,
 ):
     """
     Ask the LLM whether we should exit an existing position.
@@ -648,6 +650,9 @@ def get_exit_decision(
     if now - _last_exit_ai_call_time < cooldown:
         logger.info("Exit decision skipped (cooldown)")
         return {"action": "HOLD", "reason": "Cooldown active"}
+
+    if instrument is None:
+        instrument = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
 
     if indicators is None:
         indicators = {}
@@ -816,8 +821,19 @@ def get_exit_decision(
         "- Example: {\"action\":\"HOLD\",\"reason\":\"Upward EMA and strong ADX; trend likely to continue.\"}\n"
         "- Example: {\"action\":\"EXIT\",\"reason\":\"RSI overbought and price stalling at upper Bollinger Band.\"}\n"
     )
-    response_json = ask_openai(prompt)
+    try:
+        response_json = ask_openai(prompt)
+    except Exception as exc:
+        try:
+            log_ai_decision("ERROR", instrument, str(exc))
+        except Exception as log_exc:  # pragma: no cover
+            logger.warning("log_ai_decision failed: %s", log_exc)
+        raise
     _last_exit_ai_call_time = now
+    try:
+        log_ai_decision("EXIT", instrument, json.dumps(response_json, ensure_ascii=False))
+    except Exception as exc:  # pragma: no cover - logging failure shouldn't stop flow
+        logger.warning("log_ai_decision failed: %s", exc)
     logger.debug(f"[get_exit_decision] prompt sent:\n{prompt}")
     logger.info(f"OpenAI response: {response_json}")
 
@@ -906,6 +922,7 @@ def get_trade_plan(
     *,
     higher_tf_direction: str | None = None,
     allow_delayed_entry: bool | None = None,
+    instrument: str | None = None,
 ) -> dict:
     """
     Single‑shot call to the LLM that returns a dict:
@@ -930,6 +947,9 @@ def get_trade_plan(
         allow_delayed_entry = (
             env_loader.get_env("ALLOW_DELAYED_ENTRY", "false").lower() == "true"
         )
+
+    if instrument is None:
+        instrument = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
 
     ind_m5 = indicators.get("M5", {})
     ind_m1 = indicators.get("M1", {})
@@ -1182,10 +1202,25 @@ Your task:
 Respond with **one-line valid JSON** exactly as:
 {{"regime":{{...}},"entry":{{...}},"risk":{{...}}}}
 """
-    raw = ask_openai(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano"))
+    try:
+        raw = ask_openai(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano"))
+    except Exception as exc:
+        try:
+            log_ai_decision("ERROR", instrument, str(exc))
+        except Exception as log_exc:  # pragma: no cover
+            logger.warning("log_ai_decision failed: %s", log_exc)
+        raise
+    try:
+        log_ai_decision("ENTRY", instrument, json.dumps(raw, ensure_ascii=False))
+    except Exception as exc:  # pragma: no cover - logging failure shouldn't stop flow
+        logger.warning("log_ai_decision failed: %s", exc)
 
     plan, err = parse_json_answer(raw)
     if plan is None:
+        try:
+            log_ai_decision("ERROR", instrument, json.dumps(raw, ensure_ascii=False))
+        except Exception as exc:  # pragma: no cover - ignore logging failure
+            logger.warning("log_ai_decision failed: %s", exc)
         return {"entry": {"side": "no"}, "raw": raw}
 
     entry_conf = plan.get("entry_confidence")
