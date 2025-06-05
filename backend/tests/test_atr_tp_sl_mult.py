@@ -66,6 +66,12 @@ class TestAtrTpSlMult(unittest.TestCase):
         os.environ["ATR_MULT_SL"] = "1.1"
         os.environ["MIN_ATR_MULT"] = "1.1"
 
+        # risk_manager.is_high_vol_session を常に False を返すように上書き
+        import backend.risk_manager as rm
+        self._risk_manager = rm
+        self._orig_is_high_vol = rm.is_high_vol_session
+        rm.is_high_vol_session = lambda: False
+
         import backend.strategy.entry_logic as el
         importlib.reload(el)
         self.el = el
@@ -74,6 +80,9 @@ class TestAtrTpSlMult(unittest.TestCase):
     def tearDown(self):
         for name in self._mods:
             sys.modules.pop(name, None)
+        # risk_manager.is_high_vol_session を元に戻す
+        if hasattr(self, "_risk_manager"):
+            self._risk_manager.is_high_vol_session = self._orig_is_high_vol
         os.environ.pop("PIP_SIZE", None)
         os.environ.pop("ATR_MULT_TP", None)
         os.environ.pop("ATR_MULT_SL", None)
