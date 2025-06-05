@@ -55,7 +55,8 @@ class TestExitReasonLogging(unittest.TestCase):
             exit_reason=self.tl.ExitReason.AI,
         )
         self.assertIsNotNone(self.conn.params)
-        self.assertEqual(self.conn.params[-1], 'AI')
+        # exit_reason is stored before is_manual flag
+        self.assertEqual(self.conn.params[-2], 'AI')
 
 if __name__ == '__main__':
     unittest.main()

@@ -757,6 +757,7 @@ def process_entry(
             tp_pips=tp_pips,
             sl_pips=sl_pips,
             rrr=rrr,
+            is_manual=False,
         )
 
     return True

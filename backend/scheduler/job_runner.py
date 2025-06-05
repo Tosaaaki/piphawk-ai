@@ -944,6 +944,7 @@ class JobRunner:
                                     profit_loss=float(has_position.get("pl_corrected", has_position.get("pl", 0))),
                                     ai_reason="peak exit",
                                     exit_reason=ExitReason.RISK,
+                                    is_manual=False,
                                 )
                                 self.last_close_ts = datetime.now(timezone.utc)
                                 send_line_message(

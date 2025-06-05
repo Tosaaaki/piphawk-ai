@@ -219,6 +219,7 @@ def process_exit(
             profit_loss=float(position.get("pl_corrected", position.get("pl", 0))),
             ai_reason="regime shift exit",
             exit_reason=ExitReason.AI,
+            is_manual=False,
         )
         return True
     elif regime_action == "HOLD":
@@ -366,6 +367,7 @@ def process_exit(
                     ai_reason=f"AI‑confirmed early‑exit: {exit_decision['reason']}",
                     ai_response=exit_decision.get("raw"),
                     exit_reason=ExitReason.AI,
+                    is_manual=False,
                 )
                 return True
             else:
@@ -424,6 +426,7 @@ def process_exit(
             ai_reason=exit_decision["reason"],
             ai_response=exit_decision.get("raw"),
             exit_reason=ExitReason.AI,
+            is_manual=False,
         )
         return True
     else:
@@ -467,6 +470,7 @@ def process_exit(
                             exit_time=datetime.now(timezone.utc).isoformat(),
                             exit_price=current_price,
                             exit_reason=ExitReason.RISK,
+                            is_manual=False,
                         )
                         units -= close_units
 
