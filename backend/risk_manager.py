@@ -35,9 +35,9 @@ def validate_rrr_after_cost(
 
 def is_high_vol_session() -> bool:
     """ロンドン・NY序盤などボラティリティが高い時間帯か判定する。"""
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
 
-    now_jst = datetime.utcnow() + timedelta(hours=9)
+    now_jst = datetime.now(timezone.utc) + timedelta(hours=9)
     hour = now_jst.hour + now_jst.minute / 60.0
     return (15 <= hour < 17) or (22 <= hour < 24)
 

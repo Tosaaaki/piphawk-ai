@@ -1,6 +1,6 @@
 import os
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 OANDA_API_URL = "https://api-fxtrade.oanda.com/v3/instruments/{instrument}/candles"
 OANDA_API_KEY = os.getenv("OANDA_API_KEY")

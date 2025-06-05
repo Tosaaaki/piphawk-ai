@@ -42,7 +42,7 @@ from backend.risk_manager import (
     get_recent_swing_diff,
     is_high_vol_session,
 )
-from datetime import datetime
+from datetime import datetime, timezone
 from backend.utils import env_loader
 import logging
 import json
@@ -704,7 +704,7 @@ def process_entry(
             _pending_limits[entry_uuid] = {
                 "instrument": instrument,
                 "order_id": result.get("order_id"),
-                "ts": int(datetime.utcnow().timestamp()),
+                "ts": int(datetime.now(timezone.utc).timestamp()),
                 "limit_price": limit_price,
                 "side": side,
                 "retry_count": 0,
@@ -740,7 +740,7 @@ def process_entry(
         lot_size = float(env_loader.get_env("TRADE_LOT_SIZE", "1.0"))
         units = int(lot_size * 1000) if side == "long" else -int(lot_size * 1000)
         entry_price = float(market_data['prices'][0]['bids'][0]['price'])
-        entry_time = datetime.utcnow().isoformat()
+        entry_time = datetime.now(timezone.utc).isoformat()
         rrr = None
         try:
             if tp_pips is not None and sl_pips not in (None, 0):

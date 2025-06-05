@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from backend.utils import env_loader
 
@@ -21,7 +21,7 @@ def _to_decimal(hm: str) -> float:
 
 def in_no_trade_period(ts: datetime | None = None) -> bool:
     """NO_TRADE の時間帯なら True."""
-    ts = ts or datetime.utcnow() + timedelta(hours=9)
+    ts = ts or datetime.now(timezone.utc) + timedelta(hours=9)
     ranges = env_loader.get_env("NO_TRADE", "")
     current = ts.hour + ts.minute / 60
     for block in ranges.split(','):

@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import matplotlib.pyplot as plt
 
@@ -11,7 +11,7 @@ ACCOUNT_ID = env_loader.get_env("OANDA_ACCOUNT_ID")
 
 
 def fetch_diffs(days: int = 1) -> list[float]:
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now(timezone.utc) - timedelta(days=days)
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute(

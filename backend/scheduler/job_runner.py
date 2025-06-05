@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import time
 import uuid
 import logging
@@ -473,7 +473,7 @@ class JobRunner:
             _pending_limits[entry_uuid] = {
                 "instrument": instrument,
                 "order_id": result.get("order_id"),
-                "ts": int(datetime.utcnow().timestamp()),
+                "ts": int(datetime.now(timezone.utc).timestamp()),
                 "limit_price": limit_price,
                 "side": side,
                 "retry_count": retry_count + 1,
@@ -539,7 +539,7 @@ class JobRunner:
         if entry_ts:
             try:
                 et = datetime.fromisoformat(entry_ts.replace("Z", "+00:00"))
-                held_sec = (datetime.utcnow() - et).total_seconds()
+                held_sec = (datetime.now(timezone.utc) - et).total_seconds()
                 if held_sec < TP_REDUCTION_MIN_SEC:
                     return
             except Exception:
@@ -600,7 +600,7 @@ class JobRunner:
         else:
             quiet2_start = quiet2_end = None
 
-        now_jst = datetime.utcnow() + timedelta(hours=9)
+        now_jst = datetime.now(timezone.utc) + timedelta(hours=9)
         current_time = now_jst.hour + now_jst.minute / 60.0
 
         def _in_range(start: float | None, end: float | None) -> bool:
@@ -664,12 +664,12 @@ class JobRunner:
         while True:
             try:
                 timer = PerfTimer("job_loop")
-                now = datetime.utcnow()
+                now = datetime.now(timezone.utc)
                 # ---- Market‑hours guard ---------------------------------
                 if not instrument_is_tradeable(DEFAULT_PAIR):
                     logger.info(f"{DEFAULT_PAIR} market closed – sleeping 60 s")
                     time.sleep(60)
-                    self.last_run = datetime.utcnow()
+                    self.last_run = datetime.now(timezone.utc)
                     timer.stop()
                     continue
                 # Refresh POSITION_REVIEW_SEC dynamically each loop
@@ -694,7 +694,7 @@ class JobRunner:
                         ) == "non-tradeable":
                             logger.info(f"{DEFAULT_PAIR} price feed marked non‑tradeable – sleeping 120 s")
                             time.sleep(120)
-                            self.last_run = datetime.utcnow()
+                            self.last_run = datetime.now(timezone.utc)
                             timer.stop()
                             continue
                     except (IndexError, KeyError, TypeError):
@@ -881,7 +881,7 @@ class JobRunner:
                                 self.sl_reset_done = False
                                 # SLが実行された向きと時間を記録
                                 self.last_sl_side = position_side
-                                self.last_sl_time = datetime.utcnow()
+                                self.last_sl_time = datetime.now(timezone.utc)
 
                         if self.breakeven_reached and not self.sl_reset_done:
                             trade_id = has_position[position_side]["tradeIDs"][0]
@@ -912,7 +912,7 @@ class JobRunner:
                                     self.sl_reset_done = True
                                     # SLが実行された向きと時間を記録
                                     self.last_sl_side = position_side
-                                    self.last_sl_time = datetime.utcnow()
+                                    self.last_sl_time = datetime.now(timezone.utc)
 
                         self._maybe_extend_tp(has_position, indicators, position_side, pip_size)
                         self._maybe_reduce_tp(has_position, indicators, position_side, pip_size)
@@ -921,7 +921,7 @@ class JobRunner:
                             logger.info("Peak exit triggered → closing position.")
                             try:
                                 order_mgr.close_position(DEFAULT_PAIR, side=position_side)
-                                exit_time = datetime.utcnow().isoformat()
+                                exit_time = datetime.now(timezone.utc).isoformat()
                                 log_trade(
                                     instrument=DEFAULT_PAIR,
                                     entry_time=has_position.get(
@@ -935,7 +935,7 @@ class JobRunner:
                                     ai_reason="peak exit",
                                     exit_reason=ExitReason.RISK,
                                 )
-                                self.last_close_ts = datetime.utcnow()
+                                self.last_close_ts = datetime.now(timezone.utc)
                                 send_line_message(
                                     f"【PEAK EXIT】{DEFAULT_PAIR} {current_price} で決済しました。PL={current_profit_pips:.1f}pips"
                                 )
@@ -1058,7 +1058,7 @@ class JobRunner:
                                             pattern_names=self.patterns_by_tf,
                                         )
                                     if exit_executed:
-                                        self.last_close_ts = datetime.utcnow()
+                                        self.last_close_ts = datetime.now(timezone.utc)
                                         logger.info("Position closed based on AI recommendation.")
                                         send_line_message(
                                             f"【EXIT】{DEFAULT_PAIR} {current_price} で決済しました。PL={current_profit_pips:.1f}pips"
@@ -1234,7 +1234,7 @@ class JobRunner:
                                     pattern_names=self.patterns_by_tf,
                                 )
                             if exit_executed:
-                                self.last_close_ts = datetime.utcnow()
+                                self.last_close_ts = datetime.now(timezone.utc)
                                 logger.info("Position closed based on AI recommendation.")
                                 send_line_message(
                                     f"【EXIT】{DEFAULT_PAIR} {cur_price} で決済しました。PL={profit_pips * pip_size:.2f}"
@@ -1253,10 +1253,10 @@ class JobRunner:
                         # 1) Entry cooldown check
                         if (
                             self.last_close_ts
-                            and (datetime.utcnow() - self.last_close_ts).total_seconds() < self.entry_cooldown_sec
+                            and (datetime.now(timezone.utc) - self.last_close_ts).total_seconds() < self.entry_cooldown_sec
                         ):
                             logger.info(
-                                f"Entry cooldown active ({(datetime.utcnow() - self.last_close_ts).total_seconds():.1f}s < {self.entry_cooldown_sec}s). Skipping entry."
+                                f"Entry cooldown active ({(datetime.now(timezone.utc) - self.last_close_ts).total_seconds():.1f}s < {self.entry_cooldown_sec}s). Skipping entry."
                             )
                             self.last_run = now
                             update_oanda_trades()

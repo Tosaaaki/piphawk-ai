@@ -4,6 +4,7 @@ import types
 import importlib
 import unittest
 import datetime
+from datetime import timezone
 
 class FakeSeries:
     def __init__(self, data):
@@ -116,7 +117,7 @@ class TestTrailingCalendar(unittest.TestCase):
             sys.modules.pop(name, None)
 
     def test_trailing_disabled_during_event(self):
-        now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+        now = datetime.datetime.now(timezone.utc) + datetime.timedelta(hours=9)
         start = (now.hour + 1) % 24
         end = (start + 1) % 24
         os.environ["QUIET_START_HOUR_JST"] = str(start)

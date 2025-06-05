@@ -1,7 +1,7 @@
 import sqlite3
 import logging
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +216,7 @@ def log_ai_decision(decision_type, instrument, ai_response):
         cursor.execute('''
             INSERT INTO ai_decisions (timestamp, decision_type, instrument, ai_response)
             VALUES (?, ?, ?, ?)
-        ''', (datetime.utcnow().isoformat(), decision_type, instrument, ai_response))
+        ''', (datetime.now(timezone.utc).isoformat(), decision_type, instrument, ai_response))
 
 def log_error(module, error_message, additional_info=None):
     """Record an error event.
@@ -233,7 +233,7 @@ def log_error(module, error_message, additional_info=None):
                 INSERT INTO errors (timestamp, module, error_message, additional_info)
                 VALUES (?, ?, ?, ?)
             ''',
-                (datetime.utcnow().isoformat(), module, error_message, additional_info),
+                (datetime.now(timezone.utc).isoformat(), module, error_message, additional_info),
             )
     except sqlite3.OperationalError as exc:
         if "no such table" in str(exc):
@@ -246,7 +246,7 @@ def log_error(module, error_message, additional_info=None):
                         INSERT INTO errors (timestamp, module, error_message, additional_info)
                         VALUES (?, ?, ?, ?)
                     ''',
-                        (datetime.utcnow().isoformat(), module, error_message, additional_info),
+                        (datetime.now(timezone.utc).isoformat(), module, error_message, additional_info),
                     )
             except Exception as retry_exc:
                 logger.warning("log_error retry failed: %s", retry_exc)
@@ -272,7 +272,7 @@ def log_param_change(param_name, old_value, new_value, ai_reason):
                 timestamp, param_name, old_value, new_value, reason
             ) VALUES (?, ?, ?, ?, ?)
         ''', (
-            datetime.utcnow().isoformat(),
+            datetime.now(timezone.utc).isoformat(),
             str(param_name),
             str(old_value),
             str(new_value),
@@ -291,7 +291,7 @@ def log_entry_skip(instrument, side, reason, details=None):
             ) VALUES (?, ?, ?, ?, ?)
             ''',
             (
-                datetime.utcnow().isoformat(),
+                datetime.now(timezone.utc).isoformat(),
                 instrument,
                 side,
                 reason,

@@ -4,6 +4,7 @@ import types
 import importlib
 import unittest
 import datetime
+from datetime import timezone
 
 class FakeSeries:
     def __init__(self, data):
@@ -59,7 +60,7 @@ class TestPivotSuppression(unittest.TestCase):
         }
         sys.modules["backend.strategy.higher_tf_analysis"].analyze_higher_tf = lambda *a, **k: {"pivot_d": 1.0, "pivot_h4": 1.0}
 
-        now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+        now = datetime.datetime.now(timezone.utc) + datetime.timedelta(hours=9)
         start = (now.hour + 1) % 24
         end = (start + 1) % 24
         os.environ["QUIET_START_HOUR_JST"] = str(start)
