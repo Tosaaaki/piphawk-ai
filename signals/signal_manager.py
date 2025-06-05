@@ -40,6 +40,26 @@ def mark_liquidity_sweep(candles: Sequence[dict]) -> bool:
         return True
     return False
 
+def follow_through_ok(entry: dict, next_m1: dict, side: str) -> bool:
+    """Return True if the next M1 candle continues in the entry direction."""
+    try:
+        entry_close = float(entry.get("c"))
+        next_close = float(next_m1.get("c"))
+    except Exception:
+        return False
+    if side == "long":
+        return next_close > entry_close
+    if side == "short":
+        return next_close < entry_close
+    return False
+
+__all__ = [
+    "has_long_wick",
+    "is_engulfing",
+    "mark_liquidity_sweep",
+    "follow_through_ok",
+]
+
 def compute_trade_score(
     vwap_dev: float,
     atr_boost: float,
