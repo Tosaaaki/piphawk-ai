@@ -88,10 +88,33 @@ def compute_trade_score(
     return None
 
 
+def detect_range_reversal(
+    vwap_dev: float,
+    atr_boost: float,
+    candles: Sequence[dict],
+    confluence: bool,
+    *,
+    weights: dict[str, float] | None = None,
+) -> str | None:
+    """Return ``"range_reversal"`` when trade score exceeds threshold."""
+    engulf = False
+    if len(candles) >= 2:
+        engulf = is_engulfing(candles[-2], candles[-1])
+    mode = compute_trade_score(
+        vwap_dev,
+        atr_boost,
+        engulf,
+        confluence,
+        weights=weights,
+    )
+    return mode if mode == "range_reversal" else None
+
+
 __all__ = [
     "has_long_wick",
     "is_engulfing",
     "mark_liquidity_sweep",
     "follow_through_ok",
     "compute_trade_score",
+    "detect_range_reversal",
 ]
