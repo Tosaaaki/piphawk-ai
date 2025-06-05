@@ -163,8 +163,8 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 # 分割エントリー関連設定
 
 - SCALE_LOT_SIZE: 追加エントリー時のロット数
-- SCALE_MAX_POS: 追加エントリーの最大回数
-- SCALE_TRIGGER_ATR: 追加エントリー発動ATR倍率
+ - SCALE_MAX_POS: 1ポジションにつき許可する追加回数
+ - SCALE_TRIGGER_ATR: エントリー価格からの乖離が `ATR × この値` を超えたときのみ追加
 
 ## 設定例
 
