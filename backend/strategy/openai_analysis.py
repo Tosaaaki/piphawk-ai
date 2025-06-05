@@ -907,7 +907,6 @@ def get_trade_plan(
     *,
     higher_tf_direction: str | None = None,
     allow_delayed_entry: bool | None = None,
-    higher_tf_direction: str | None = None,
 ) -> dict:
     """
     Single‑shot call to the LLM that returns a dict:
