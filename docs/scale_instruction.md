@@ -15,7 +15,12 @@
 result = evaluate(context)
 if result.action == "SCALE" and result.confidence > 0.7:
     # 例: 既存ポジションに追加のロットを乗せる
-    order_manager.add_units(position, extra_units)
+    order_mgr.enter_trade(
+        side=position.side,
+        lot_size=extra_units,
+        market_data=tick_data,
+        strategy_params={"instrument": pair, "mode": "market"},
+    )
 ```
 
 AI が SCALE を返すのは、含み益がありトレンドの継続が見込めるときです。\
