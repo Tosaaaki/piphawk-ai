@@ -79,6 +79,7 @@ TRADES_DB_PATH=trades-002.db
    range mode regardless of ADX. When the width falls below this value the system
    treats the market as ranging and the AI prompt notes that *BB width is
    contracting*.
+   `ENABLE_RANGE_ENTRY` を `true` にすると、ADX のノートレード判定を無視してレンジ相場でもエントリーを許可します。価格がボリンジャーバンド中心から `RANGE_ENTRY_OFFSET_PIPS` pips 以内にある場合は、市場注文をバンド端の LIMIT に変換します。この処理は `backend/strategy/entry_logic.py` で行われます。
 `AI_PROFIT_TRIGGER_RATIO` defines what portion of the take-profit target must
 be reached before an AI exit check occurs. The default value is `0.5` (50%).
 `SCALE_LOT_SIZE` sets how many lots are added when the AI exit decision is `SCALE`.
@@ -114,7 +115,7 @@ exit is considered.
 `TRADE_TIMEFRAMES` allows overriding which candle intervals are fetched for analysis. Specify as `M1:20,M5:50,M15:50,H1:120,H4:90,D:90` to cover short to long horizons.
 The system derives a dynamic pullback requirement from ATR, ADX and recent price swings. If indicators are missing, the fallback is `PULLBACK_PIPS`.
 `TP_BB_RATIO` scales the Bollinger band width when deriving a fallback take-profit target. For example, `0.6` uses 60% of the band width.
-`RANGE_ENTRY_OFFSET_PIPS` determines how far from the Bollinger band center price must be (in pips) before keeping a market entry. When closer, the entry switches to a LIMIT at the band high or low. The default is `3`.
+`RANGE_ENTRY_OFFSET_PIPS` determines how far from the Bollinger band center price must be (in pips) before converting a market order to a LIMIT when `ENABLE_RANGE_ENTRY` is active. If the price is within this range, `entry_logic.py` places the order near the band high or low. The default is `3`.
 `想定ノイズ` is automatically computed from ATR and Bollinger Band width and included in the AI prompt to help choose wider stop-loss levels.
 The indicators module also calculates `adx_bb_score`, a composite value derived from ADX changes and Bollinger Band width. This score is passed to the AI so it can gauge momentum strength from multiple angles.
 `NOISE_SL_MULT` は AI が算出した SL をこの倍率で拡大します (default `1.5`).
