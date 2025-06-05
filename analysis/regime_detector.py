@@ -76,4 +76,17 @@ class RegimeDetector:
         return {"transition": False}
 
 
-__all__ = ["RegimeDetector"]
+class ATRBoostDetector:
+    """ATR 比率が閾値を超えたか判定するクラス."""
+
+    def __init__(self, length: int = 14, threshold: float = 1.2) -> None:
+        self.atr = RollingATR(length)
+        self.threshold = threshold
+
+    def update(self, tick: Dict[str, Any]) -> bool:
+        """ATR / ATR EMA が閾値を上回ると True."""
+        ratio = self.atr.update(tick)
+        return ratio > self.threshold
+
+
+__all__ = ["RegimeDetector", "ATRBoostDetector"]

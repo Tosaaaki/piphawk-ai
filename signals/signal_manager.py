@@ -40,7 +40,6 @@ def mark_liquidity_sweep(candles: Sequence[dict]) -> bool:
         return True
     return False
 
-
 def follow_through_ok(entry: dict, next_m1: dict, side: str) -> bool:
     """Return True if the next M1 candle continues in the entry direction."""
     try:
@@ -60,3 +59,39 @@ __all__ = [
     "mark_liquidity_sweep",
     "follow_through_ok",
 ]
+
+def compute_trade_score(
+    vwap_dev: float,
+    atr_boost: float,
+    engulfing: bool,
+    confluence: bool,
+    *,
+    reversal_threshold: float = 1.0,
+    breakout_threshold: float = 1.5,
+    weights: dict[str, float] | None = None,
+) -> str | None:
+    """複数シグナルを統合してモードを判定する."""
+
+    if weights is None:
+        weights = {
+            "vwap": 0.4,
+            "atr": 0.3,
+            "engulfing": 0.2,
+            "confluence": 0.1,
+        }
+
+    score = (
+        vwap_dev * weights.get("vwap", 0)
+        + atr_boost * weights.get("atr", 0)
+        + (1.0 if engulfing else 0.0) * weights.get("engulfing", 0)
+        + (1.0 if confluence else 0.0) * weights.get("confluence", 0)
+    )
+
+    if score >= breakout_threshold:
+        return "breakout"
+    if score >= reversal_threshold:
+        return "range_reversal"
+    return None
+
+
+__all__ = ["has_long_wick", "is_engulfing", "mark_liquidity_sweep", "compute_trade_score"]

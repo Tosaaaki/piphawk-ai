@@ -437,3 +437,10 @@ profit. The job runner calls `order_manager.place_trailing_stop()` to update the
 stop on the first trade ID, which replaces the previous order. OANDA cancels the
 old trailing stop automatically once the new one is applied. See
 `backend/strategy/exit_logic.py` lines 510-525 for the exact logic.
+
+## 4 レイヤー・スコアリングと TP/SL 最適化
+
+エントリーロジックではトレンド、モメンタム、ボラティリティ、パターンの4要素を組み合わせたスコアリング方式を採用しています。重みは `SCORE_WEIGHTS` で調整でき、総合スコアが `ENTRY_SCORE_MIN` を上回った場合のみポジションを開きます。
+
+TP/SL の組み合わせは複数候補から期待値を計算し、最も利益が見込めるものを自動選択します。`MIN_RRR` と `ENFORCE_RRR` を有効にするとリスクリワード比を維持したまま最適化されます。詳細は `docs/four_layer_scoring.md` を参照してください。
+
