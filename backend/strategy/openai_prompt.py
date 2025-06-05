@@ -131,12 +131,33 @@ def build_trade_plan_prompt(
     except Exception:
         pass
 
+    adx_last = None
+    adx_avg3 = None
+    try:
+        adx_series = ind_m5.get("adx")
+        if adx_series is not None and len(adx_series):
+            adx_last = (
+                float(adx_series.iloc[-1]) if hasattr(adx_series, "iloc") else float(adx_series[-1])
+            )
+            if len(adx_series) >= 3:
+                if hasattr(adx_series, "iloc"):
+                    adx_avg3 = float(sum(adx_series.iloc[-3:]) / 3)
+                else:
+                    adx_avg3 = float(sum(adx_series[-3:]) / 3)
+    except Exception:
+        adx_last = None
+        adx_avg3 = None
+
     # 上位足のトレンド方向を明示的に記載
     direction_line = (
         "\n### Higher Timeframe Direction\n" + str(higher_tf_direction) + "\n"
         if higher_tf_direction
         else ""
     )
+
+    adx_last_val = f"{adx_last:.2f}" if adx_last is not None else "N/A"
+    adx_avg3_val = f"{adx_avg3:.2f}" if adx_avg3 is not None else "N/A"
+    adx_snapshot = f"\n### ADX Snapshot\nlast:{adx_last_val}, last3_avg:{adx_avg3_val}\n"
 
     prompt = f"""
 ⚠️【Market Regime Classification – Flexible Criteria】
@@ -217,7 +238,7 @@ EMA_s: {_series_tail_list(ind_d1.get('ema_slow'), 20)}
 ### D1 Candles
 {candles_d1[-60:]}
 
-{pattern_text}{direction_line}
+{adx_snapshot}{pattern_text}{direction_line}
 ### How to use the provided candles:
 - Use the medium-term view (50 candles) to understand the general market trend, key support/resistance levels, and to avoid noisy, short-lived moves.
 - Use the short-term view (20 candles) specifically for optimizing entry timing (such as waiting for pullbacks or breakouts) and to confirm recent price momentum.
@@ -242,7 +263,7 @@ Pivot: {ind_m5.get('pivot')}, R1: {ind_m5.get('pivot_r1')}, S1: {ind_m5.get('piv
 Your task:
 1. Clearly classify the current regime as "trend" or "range". If "trend", specify direction as "long" or "short". Output this at JSON key "regime".
 2. Decide whether to open a trade now, strictly adhering to the above criteria. Return JSON key "entry" with: {{ "side":"long"|"short"|"no", "rationale":"…" }}. Also include numeric key "entry_confidence" between 0 and 1 representing your confidence.
-3. If side is not "no", propose TP/SL distances **in pips** along with their {TP_PROB_HOURS}-hour hit probabilities: {{ "tp_pips":int, "sl_pips":int, "tp_prob":float, "sl_prob":float }}. Output this at JSON key "risk".
+3. If side is not "no", propose TP/SL distances **in pips** along with their {TP_PROB_HOURS}-hour hit probabilities: {{ "tp_pips":int, "sl_pips":int, "tp_prob":float, "sl_prob":float }}. Output this at JSON key "risk". These four keys must always be included.
    - Constraints:
     • tp_prob must be ≥ {MIN_TP_PROB:.2f}
     • Expected value (tp_pips*tp_prob - sl_pips*sl_prob) must be positive

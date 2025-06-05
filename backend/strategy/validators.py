@@ -6,12 +6,12 @@ from backend.config.defaults import MIN_ABS_SL_PIPS
 
 
 def normalize_probs(tp_prob: float, sl_prob: float) -> tuple[float, float]:
-    """Return probabilities normalized to sum to 1 when total within [0.9, 1.1]."""
+    """Return probabilities normalized to sum to 1 when total within [0.5, 1.5]."""
     try:
         tp = float(tp_prob)
         sl = float(sl_prob)
         total = tp + sl
-        if 0.9 <= total <= 1.1 and total > 0:
+        if 0.5 <= total <= 1.5 and total > 0:
             tp /= total
             sl /= total
         return tp, sl
@@ -24,11 +24,11 @@ def risk_autofix(risk: dict | None) -> dict:
     if risk is None:
         risk = {}
     try:
-        tp = float(risk.get("tp_pips", 8))
+        tp = float(risk.get("tp_pips", 10))
     except Exception:
         tp = 8.0
     try:
-        sl = float(risk.get("sl_pips", 4))
+        sl = float(risk.get("sl_pips", 6))
     except Exception:
         sl = 4.0
     sl = max(sl, MIN_ABS_SL_PIPS)
