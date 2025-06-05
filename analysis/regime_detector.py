@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Dict, Any
+from collections import deque
 
 from backend.indicators.rolling import (
     RollingATR,
@@ -24,6 +25,7 @@ class RegimeDetector:
         adx_slope: float = 0.5,
         bb_window: int = 20,
         keltner_window: int = 20,
+        low_window: int = 20,
     ) -> None:
         self.adx = RollingADX(len_fast)
         self.bbwidth = RollingBBWidth(window=bb_window)
@@ -37,6 +39,9 @@ class RegimeDetector:
         self.cross_wait = 0
         self.prev_di_plus: float | None = None
         self.prev_di_minus: float | None = None
+        self.lows: deque[float] = deque(maxlen=low_window)
+        self.low_n: float | None = None
+        self.atr_ratio: float | None = None
 
     def update(self, tick: Dict[str, Any]) -> Dict[str, Any]:
         """Tick データを処理して状態遷移を返す."""
@@ -74,6 +79,27 @@ class RegimeDetector:
 
         self.state = "RANGE"
         return {"transition": False}
+
+    def breakout_entry(self, price: Dict[str, Any]) -> Dict[str, str] | None:
+        """Breakout entry 判定を行う."""
+        close = float(price.get("close", price.get("c", 0)))
+        low = float(price.get("low", price.get("l", 0)))
+
+        prev_low_n = min(self.lows) if self.lows else None
+        self.lows.append(low)
+        self.low_n = min(self.lows)
+
+        adx_val, _ = self.adx.update(price)
+        self.atr_ratio = self.atr.update(price)
+
+        if (
+            prev_low_n is not None
+            and close < prev_low_n
+            and adx_val > 22
+            and self.atr_ratio > 1.3
+        ):
+            return {"side": "short", "type": "breakout"}
+        return None
 
 
 class ATRBoostDetector:
