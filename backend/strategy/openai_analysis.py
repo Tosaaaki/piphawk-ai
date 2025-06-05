@@ -47,6 +47,9 @@ COOL_ATR_PCT: float = float(env_loader.get_env("COOL_ATR_PCT", "0"))
 ADX_NO_TRADE_MIN: float = float(env_loader.get_env("ADX_NO_TRADE_MIN", "20"))
 ADX_NO_TRADE_MAX: float = float(env_loader.get_env("ADX_NO_TRADE_MAX", "30"))
 ADX_SLOPE_LOOKBACK: int = int(env_loader.get_env("ADX_SLOPE_LOOKBACK", "3"))
+ALLOW_NO_PULLBACK_WHEN_ADX: float = float(
+    env_loader.get_env("ALLOW_NO_PULLBACK_WHEN_ADX", "0")
+)
 ENABLE_RANGE_ENTRY: bool = (
     env_loader.get_env("ENABLE_RANGE_ENTRY", "false").lower() == "true"
 )
@@ -1020,6 +1023,20 @@ def get_trade_plan(
     noise_series = _OneVal(noise_pips) if noise_pips is not None else None
     pullback_needed = calculate_dynamic_pullback({**ind_m5, 'noise': noise_series}, recent_high or 0.0, recent_low or 0.0)
     pattern_text = f"\n### Detected Chart Pattern\n{pattern_line}\n" if pattern_line else "\n### Detected Chart Pattern\nNone\n"
+    # ADX が高い場合はプルバック不要メッセージを追加する
+    no_pullback_msg = ""
+    try:
+        adx_series = ind_m5.get("adx")
+        if (
+            ALLOW_NO_PULLBACK_WHEN_ADX > 0
+            and adx_series is not None
+            and len(adx_series)
+        ):
+            adx_val = adx_series.iloc[-1] if hasattr(adx_series, "iloc") else adx_series[-1]
+            if float(adx_val) >= ALLOW_NO_PULLBACK_WHEN_ADX:
+                no_pullback_msg = "\nPullback not required when ADX is high."
+    except Exception:
+        pass
     # ここからAIへの英語プロンプト
 
     prompt = f"""
@@ -1043,7 +1060,7 @@ Allow short-term counter-trend trades only when all of the following are true:
 - TP kept small (5–10 pips) and risk tightly controlled.
 
 📈【Trend Entry Clarification】
-Once a TREND is confirmed, prioritize entries on pullbacks. Shorts enter after price rises {pullback_needed:.1f} pips above the latest low, longs after price drops {pullback_needed:.1f} pips below the latest high. This pullback rule overrides RSI extremes.
+Once a TREND is confirmed, prioritize entries on pullbacks. Shorts enter after price rises {pullback_needed:.1f} pips above the latest low, longs after price drops {pullback_needed:.1f} pips below the latest high. This pullback rule overrides RSI extremes.{no_pullback_msg}
 """ + (
     "\n\n⏳【Trend Overshoot Handling】\n"
     "When RSI exceeds 70 in an uptrend or falls below 30 in a downtrend, do not immediately set side to 'no'.\n"
