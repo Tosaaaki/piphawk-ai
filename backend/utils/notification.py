@@ -44,3 +44,8 @@ def send_line_message(text: str, token: str | None = None, user_id: str | None =
     except Exception as exc:  # noqa: BLE001
         logger.error("LINE API error: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+def send_range_break_alert(direction: str) -> None:
+    """Send a short Range Break notification."""
+    send_line_message(f"⚡️Range Break! {direction}")
