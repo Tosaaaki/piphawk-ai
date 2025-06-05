@@ -198,10 +198,6 @@ SCALE_TRIGGER_ATR=0.5
 - SCALP_TP_PIPS / SCALP_SL_PIPS: スキャル時のTP/SL幅
 - SCALP_COND_TF: スキャルプ時に市場判定へ使う時間足 (デフォルト M1)
 - H1_BOUNCE_RANGE_PIPS: H1安値/高値からこのpips以内ならエントリーを見送る
-- SCALP_MODE: スキャルプモードを有効にする
-- SCALP_ADX_MIN: スキャルプ実行に必要なADX下限
-- SCALP_TP_PIPS / SCALP_SL_PIPS: スキャルプ用のTP/SL幅
-- SCALP_COND_TF: スキャルプ時に市場判定へ使う時間足 (デフォルト M1)
 ■ OANDA_MATCH_SEC
   ローカルトレードと OANDA 取引を照合するときの許容秒数。デフォルトは60秒。
 
