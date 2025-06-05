@@ -83,7 +83,7 @@ TRADES_DB_PATH=trades-002.db
 `AI_PROFIT_TRIGGER_RATIO` defines what portion of the take-profit target must
 be reached before an AI exit check occurs. The default value is `0.5` (50%).
 `SCALE_LOT_SIZE` sets how many lots are added when the AI exit decision is `SCALE`.
-`MIN_SL_PIPS` enforces a minimum stop-loss size. If the AI suggests a smaller value the system uses this floor instead (default `8`).
+`MIN_SL_PIPS` enforces a minimum stop-loss size. If the AI suggests a smaller value the system uses this floor instead (default `8`). OpenAI プラン生成時にもこの値を下回らないよう補正し、ATR と直近スイング幅から算出される動的下限も適用される。
 `SL_COOLDOWN_SEC` is the waiting period after a stop-loss exit before another entry in the same direction is allowed. Default is `300` seconds.
 `AI_COOLDOWN_SEC_OPEN` sets the minimum interval in seconds between AI calls while a position is open.
 `AI_COOLDOWN_SEC_FLAT` defines the cooldown when no position is held.

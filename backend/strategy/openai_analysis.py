@@ -12,6 +12,11 @@ except Exception:  # pragma: no cover - pandas may be unavailable
 from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 from backend.indicators.adx import calculate_adx_slope
 from backend.indicators import get_candle_features, compute_volume_sma
+from backend.risk_manager import (
+    calc_min_sl,
+    get_recent_swing_diff,
+    is_high_vol_session,
+)
 
 # --- Added for AI-based exit decision ---
 # Consolidated exit decision helpers live in exit_ai_decision
@@ -1182,6 +1187,47 @@ Respond with **one-line valid JSON** exactly as:
 
             noise_sl_mult = float(env_loader.get_env("NOISE_SL_MULT", "1.5"))
             sl *= noise_sl_mult
+            min_sl = float(env_loader.get_env("MIN_SL_PIPS", "0"))
+
+            # --- 動的SL下限を計算して適用 -------------------------
+            try:
+                pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+                atr_series = ind_m5.get("atr")
+                atr_val = None
+                if atr_series is not None:
+                    atr_val = (
+                        float(atr_series.iloc[-1])
+                        if hasattr(atr_series, "iloc")
+                        else float(atr_series[-1])
+                    )
+                atr_pips = atr_val / pip_size if atr_val is not None else None
+
+                side = entry.get("side", "no")
+                bid = market_data.get("bid")
+                ask = market_data.get("ask")
+                entry_price = (
+                    float(bid) if side == "long" else float(ask)
+                ) if bid is not None and ask is not None else None
+                swing_diff = None
+                if entry_price is not None:
+                    swing_diff = get_recent_swing_diff(
+                        candles_m5,
+                        side,
+                        entry_price,
+                        pip_size,
+                    )
+                session_factor = 1.3 if is_high_vol_session() else 1.0
+                dynamic_sl = calc_min_sl(
+                    atr_pips,
+                    swing_diff,
+                    atr_mult=float(env_loader.get_env("MIN_ATR_MULT", "1.2")),
+                    swing_buffer_pips=5.0,
+                    session_factor=session_factor,
+                )
+                sl = max(sl, dynamic_sl, min_sl)
+            except Exception:
+                sl = max(sl, min_sl)
+
             risk["sl_pips"] = sl
 
             if p < 0 or p > 1 or q < 0 or q > 1:
