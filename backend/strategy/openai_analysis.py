@@ -90,7 +90,6 @@ if _cw_env:
         )
 
 # Global variables to store last AI call timestamps
-_last_entry_ai_call_time = 0.0
 _last_exit_ai_call_time = 0.0
 # Regime‑AI cache
 _last_regime_ai_call_time = 0.0
@@ -1159,7 +1158,7 @@ After calculating TP hit probability, widen the SL by at least {env_loader.get_e
 ### Composite Trend Score
 {tv_score}
 
-### Higher Timeframe Direction
+### Higher TF Direction
 {higher_tf_direction or "unknown"}
 
 ### Pivot Levels
