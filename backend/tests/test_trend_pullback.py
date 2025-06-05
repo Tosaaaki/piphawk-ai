@@ -77,6 +77,32 @@ class TestTrendPullback(unittest.TestCase):
         ]
         self.assertFalse(self.tp.should_enter_long(candles, indicators))
 
+    def test_should_enter_short_true(self):
+        indicators = {
+            "adx": FakeSeries([20, 30]),
+            "ema_fast": FakeSeries([1.05, 1.0]),
+            "ema_slow": FakeSeries([1.05, 1.04]),
+            "atr": FakeSeries([0.1]),
+        }
+        candles = [
+            _c(1.03, 1.07, 0.99, 1.06),
+            _c(1.06, 1.08, 1.02, 1.03),
+        ]
+        self.assertTrue(self.tp.should_enter_short(candles, indicators))
+
+    def test_should_enter_short_false(self):
+        indicators = {
+            "adx": FakeSeries([20, 30]),
+            "ema_fast": FakeSeries([1.05, 1.0]),
+            "ema_slow": FakeSeries([1.05, 1.04]),
+            "atr": FakeSeries([0.1]),
+        }
+        candles = [
+            _c(1.03, 1.07, 0.99, 1.06),
+            _c(1.06, 1.08, 1.02, 1.07),
+        ]
+        self.assertFalse(self.tp.should_enter_short(candles, indicators))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -7,9 +7,15 @@ except ModuleNotFoundError:  # pragma: no cover - fallback for optional import
     def false_break_skip(*_a, **_k):
         return False
 try:
-    from backend.filters.trend_pullback import should_enter_long as trend_pb_ok
+    import importlib
+    tp_mod = importlib.import_module("backend.filters.trend_pullback")
+    should_enter_long = getattr(tp_mod, "should_enter_long", lambda *_a, **_k: True)
+    should_enter_short = getattr(tp_mod, "should_enter_short", lambda *_a, **_k: True)
 except ModuleNotFoundError:  # pragma: no cover
-    def trend_pb_ok(*_a, **_k):
+    def should_enter_long(*_a, **_k):
+        return True
+
+    def should_enter_short(*_a, **_k):
         return True
 try:
     from backend.filters.breakout_entry import should_enter_breakout
@@ -367,7 +373,20 @@ def process_entry(
         logging.debug(f"[process_entry] breakout check failed: {exc}")
 
     try:
-        if side == "long" and not breakout_entry and not trend_pb_ok(indicators, candles_dict.get("M5", candles)):
+        if (
+            not is_break
+            and side == "long"
+            and not breakout_entry
+            and not should_enter_long(indicators, candles_dict.get("M5", candles))
+        ):
+            logging.info("Trend pullback conditions not met → skip entry")
+            return False
+        if (
+            not is_break
+            and side == "short"
+            and not breakout_entry
+            and not should_enter_short(indicators, candles_dict.get("M5", candles))
+        ):
             logging.info("Trend pullback conditions not met → skip entry")
             return False
     except Exception as exc:
