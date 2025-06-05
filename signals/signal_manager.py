@@ -53,12 +53,6 @@ def follow_through_ok(entry: dict, next_m1: dict, side: str) -> bool:
         return next_close < entry_close
     return False
 
-__all__ = [
-    "has_long_wick",
-    "is_engulfing",
-    "mark_liquidity_sweep",
-    "follow_through_ok",
-]
 
 def compute_trade_score(
     vwap_dev: float,
@@ -94,4 +88,10 @@ def compute_trade_score(
     return None
 
 
-__all__ = ["has_long_wick", "is_engulfing", "mark_liquidity_sweep", "compute_trade_score"]
+__all__ = [
+    "has_long_wick",
+    "is_engulfing",
+    "mark_liquidity_sweep",
+    "follow_through_ok",
+    "compute_trade_score",
+]
