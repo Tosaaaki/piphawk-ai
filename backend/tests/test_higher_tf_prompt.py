@@ -38,6 +38,7 @@ class TestHigherTFPrompt(unittest.TestCase):
         self.oa.ask_openai = lambda prompt, **k: (captured.append(prompt) or '{"entry": {"side": "no"}}')
         self.oa.get_trade_plan({}, {"M5": {}}, {"M5": []}, higher_tf_direction="long")
         self.assertTrue(captured)
+        # プロンプトに Higher Timeframe Direction ラベルが含まれることを確認
         self.assertIn("Higher Timeframe Direction", captured[0])
         self.assertIn("long", captured[0])
 
