@@ -154,7 +154,8 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - REV_BLOCK_BARS / TAIL_RATIO_BLOCK / VOL_SPIKE_PERIOD:
   Recent Candle Bias フィルターで参照する設定。直近のローソク足本数、ヒゲ比率、出来高急増判定期間を指定する。
   デフォルトは 3 / 2.0 / 5。
- - STRICT_TF_ALIGN: マルチTF整合が取れない場合のキャンセル可否
+- VOL_SPIKE_ADX_MULT / VOL_SPIKE_ATR_MULT: BB幅がしきい値を下回っていても、ADXまたはATRがこの倍率で急拡大した場合は成行エントリーに切り替える
+- STRICT_TF_ALIGN: マルチTF整合が取れない場合のキャンセル可否
 - ALIGN_STRICT: 上記と同義のエイリアス
 - TF_EMA_WEIGHTS: 上位足EMA整合の重み付け (例 `M5:0.4,H1:0.3,H4:0.3`)
 - AI_ALIGN_WEIGHT: AIの方向性をEMA整合に加味する重み

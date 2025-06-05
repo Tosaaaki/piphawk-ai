@@ -66,6 +66,8 @@ ALLOW_NO_PULLBACK_WHEN_ADX: float = float(
 ENABLE_RANGE_ENTRY: bool = (
     env_loader.get_env("ENABLE_RANGE_ENTRY", "false").lower() == "true"
 )
+VOL_SPIKE_ADX_MULT: float = float(env_loader.get_env("VOL_SPIKE_ADX_MULT", "1.5"))
+VOL_SPIKE_ATR_MULT: float = float(env_loader.get_env("VOL_SPIKE_ATR_MULT", "1.5"))
 ADX_TREND_ON: int = 25
 ADX_TREND_OFF: int = 18
 USE_LOCAL_PATTERN: bool = (
@@ -1366,6 +1368,35 @@ Respond with **one-line valid JSON** exactly as:
         ):
             plan["entry"]["side"] = "no"
     except (TypeError, ValueError, IndexError):
+        pass
+
+    # Narrow Bollinger Band override: switch to market on volatility spike
+    try:
+        bb_upper = ind_m5.get("bb_upper")
+        bb_lower = ind_m5.get("bb_lower")
+        if bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
+            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+            bw_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
+            bw_thresh = float(env_loader.get_env("BAND_WIDTH_THRESH_PIPS", "4"))
+            if bw_pips <= bw_thresh:
+                lookback = 3
+                adx_spike = False
+                atr_spike = False
+                adx_series = ind_m5.get("adx")
+                if adx_series is not None and len(adx_series) > lookback:
+                    adx_last = float(adx_series.iloc[-1]) if hasattr(adx_series, "iloc") else float(adx_series[-1])
+                    adx_prev = float(adx_series.iloc[-lookback-1]) if hasattr(adx_series, "iloc") else float(adx_series[-lookback-1])
+                    if adx_prev > 0 and adx_last / adx_prev >= VOL_SPIKE_ADX_MULT:
+                        adx_spike = True
+                atr_series = ind_m5.get("atr")
+                if atr_series is not None and len(atr_series) > lookback:
+                    atr_last = float(atr_series.iloc[-1]) if hasattr(atr_series, "iloc") else float(atr_series[-1])
+                    atr_prev = float(atr_series.iloc[-lookback-1]) if hasattr(atr_series, "iloc") else float(atr_series[-lookback-1])
+                    if atr_prev > 0 and atr_last / atr_prev >= VOL_SPIKE_ATR_MULT:
+                        atr_spike = True
+                if adx_spike or atr_spike:
+                    plan.setdefault("entry", {})["mode"] = "market"
+    except Exception:
         pass
     return plan
 
