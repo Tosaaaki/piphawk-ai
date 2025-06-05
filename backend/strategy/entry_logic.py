@@ -155,6 +155,42 @@ def process_entry(
     except Exception:
         spread_pips = None
 
+    # --- Scalp entry shortcut ----------------------------------
+    scalp_mode = env_loader.get_env("SCALP_MODE", "false").lower() == "true"
+    if scalp_mode:
+        try:
+            adx_series = indicators.get("adx")
+            adx_val = None
+            if adx_series is not None and len(adx_series):
+                if hasattr(adx_series, "iloc"):
+                    adx_val = float(adx_series.iloc[-1])
+                else:
+                    adx_val = float(adx_series[-1])
+            adx_min = float(env_loader.get_env("SCALP_ADX_MIN", "0"))
+            if adx_val is not None and adx_val >= adx_min:
+                side = (market_cond or {}).get("trend_direction", "long")
+                params = {
+                    "instrument": market_data["prices"][0]["instrument"]
+                    if isinstance(market_data, dict)
+                    else env_loader.get_env("DEFAULT_PAIR", "USD_JPY"),
+                    "tp_pips": float(env_loader.get_env("SCALP_TP_PIPS", "2")),
+                    "sl_pips": float(env_loader.get_env("SCALP_SL_PIPS", "1")),
+                    "mode": "market",
+                    "limit_price": None,
+                    "ai_response": "scalp",
+                    "market_cond": market_cond,
+                }
+                result = order_manager.enter_trade(
+                    side=side,
+                    lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
+                    market_data=market_data,
+                    strategy_params=params,
+                    force_limit_only=False,
+                )
+                return bool(result)
+        except Exception as exc:
+            logging.debug(f"[process_entry] scalp mode failed: {exc}")
+
     # ------------------------------------------------------------
     #  Chart pattern scan (local) --------------------------------
     # ------------------------------------------------------------

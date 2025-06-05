@@ -1159,7 +1159,7 @@ After calculating TP hit probability, widen the SL by at least {env_loader.get_e
 ### Composite Trend Score
 {tv_score}
 
-### Higher Timeframe Direction
+### Higher TF Direction
 {higher_tf_direction or "unknown"}
 
 ### Pivot Levels
