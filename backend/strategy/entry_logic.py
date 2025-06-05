@@ -44,6 +44,7 @@ from backend.risk_manager import (
 )
 from datetime import datetime, timezone
 from backend.utils import env_loader
+import os
 import logging
 import json
 import uuid
@@ -154,6 +155,15 @@ def process_entry(
             spread_pips = (ask - bid) / pip_size
     except Exception:
         spread_pips = None
+
+    # ADXの値によってSCALP_MODEを自動切替え
+    adx_series = indicators.get("adx")
+    adx_val = None
+    if adx_series is not None and len(adx_series):
+        adx_val = float(adx_series.iloc[-1]) if hasattr(adx_series, "iloc") else float(adx_series[-1])
+    adx_min = float(env_loader.get_env("SCALP_ADX_MIN", "0"))
+    if adx_val is not None:
+        os.environ["SCALP_MODE"] = "true" if adx_val >= adx_min else "false"
 
     # --- Scalp entry shortcut ----------------------------------
     scalp_mode = env_loader.get_env("SCALP_MODE", "false").lower() == "true"
