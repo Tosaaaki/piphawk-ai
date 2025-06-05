@@ -38,6 +38,8 @@ class TestProbValidation(unittest.TestCase):
     def test_sum_within_margin(self):
         os.environ["MIN_TP_PROB"] = "0.5"
         os.environ["PROB_MARGIN"] = "0.02"
+        import importlib
+        importlib.reload(self.oa)
         self.oa.ask_openai = lambda *a, **k: {
             "entry": {"side": "long"},
             "risk": {"tp_pips": 10, "sl_pips": 5, "tp_prob": 0.51, "sl_prob": 0.51},
@@ -48,6 +50,8 @@ class TestProbValidation(unittest.TestCase):
     def test_prob_clamped(self):
         os.environ["MIN_TP_PROB"] = "0.5"
         os.environ["PROB_MARGIN"] = "0.02"
+        import importlib
+        importlib.reload(self.oa)
         self.oa.ask_openai = lambda *a, **k: {
             "entry": {"side": "long"},
             "risk": {"tp_pips": 10, "sl_pips": 5, "tp_prob": 1.5, "sl_prob": -0.2},
@@ -56,6 +60,20 @@ class TestProbValidation(unittest.TestCase):
         risk = result.get("risk", {})
         self.assertEqual(risk.get("tp_prob"), 1.0)
         self.assertEqual(risk.get("sl_prob"), 0.0)
+        self.assertEqual(result.get("entry", {}).get("side"), "long")
+
+    def test_prob_normalized(self):
+        os.environ["MIN_TP_PROB"] = "0.5"
+        os.environ["PROB_MARGIN"] = "0.02"
+        import importlib
+        importlib.reload(self.oa)
+        self.oa.ask_openai = lambda *a, **k: {
+            "entry": {"side": "long"},
+            "risk": {"tp_pips": 10, "sl_pips": 5, "tp_prob": 0.6, "sl_prob": 0.44},
+        }
+        result = self.oa.get_trade_plan({}, {"M5": {}}, {"M5": []})
+        risk = result.get("risk", {})
+        self.assertAlmostEqual(risk.get("tp_prob", 0) + risk.get("sl_prob", 0), 1.0)
         self.assertEqual(result.get("entry", {}).get("side"), "long")
 
 if __name__ == "__main__":
