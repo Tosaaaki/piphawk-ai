@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from backend.utils import env_loader
 
 
@@ -19,7 +19,7 @@ class ReentryManager:
 
     def record_sl_hit(self, price: float, side: str) -> None:
         """SLが実行された価格と方向を記録する。"""
-        self.sl_hit_time = datetime.utcnow()
+        self.sl_hit_time = datetime.now(timezone.utc)
         self.sl_hit_price = float(price)
         self.side = side
 

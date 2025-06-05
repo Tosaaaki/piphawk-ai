@@ -3,7 +3,7 @@ import sys
 import types
 import importlib
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 
 class TestMinHoldExit(unittest.TestCase):
     def setUp(self):
@@ -83,7 +83,7 @@ class TestMinHoldExit(unittest.TestCase):
         sys.modules['backend.indicators.calculate_indicators'].calculate_indicators_multi = lambda *a, **k: {'M5': {}, 'M1': {}, 'H1': {}, 'H4': {}, 'D': {}}
         self.exit_called = []
         sys.modules['backend.strategy.exit_logic'].process_exit = lambda *a, **k: self.exit_called.append(True)
-        now_str = datetime.utcnow().isoformat() + 'Z'
+        now_str = datetime.now(timezone.utc).isoformat() + 'Z'
         sys.modules['backend.orders.position_manager'].check_current_position = lambda *a, **k: {
             'instrument': 'EUR_USD',
             'long': {'units': '1', 'averagePrice': '1.0000', 'tradeIDs': ['t1']},

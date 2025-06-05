@@ -1,6 +1,6 @@
 import logging
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from backend.logs.log_manager import get_db_connection, init_db
 from backend.utils import env_loader

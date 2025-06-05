@@ -3,7 +3,7 @@ import sys
 import types
 import importlib
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 
 class FakeSeries:
     def __init__(self, data):
@@ -98,7 +98,7 @@ class TestScaleEntry(unittest.TestCase):
             'M1': {}, 'H1': {}, 'H4': {}, 'D': {}
         }
         sys.modules['backend.strategy.exit_logic'].process_exit = lambda *a, **k: False
-        now_str = datetime.utcnow().isoformat() + 'Z'
+        now_str = datetime.now(timezone.utc).isoformat() + 'Z'
         sys.modules['backend.orders.position_manager'].check_current_position = lambda *a, **k: {
             'instrument': 'USD_JPY',
             'long': {'units': '1', 'averagePrice': '1.0000', 'tradeIDs': ['t1']},

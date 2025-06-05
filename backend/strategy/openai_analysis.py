@@ -17,7 +17,7 @@ from backend.indicators import get_candle_features, compute_volume_sma
 # Consolidated exit decision helpers live in exit_ai_decision
 from backend.strategy.exit_ai_decision import AIDecision, evaluate as evaluate_exit
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 # ----------------------------------------------------------------------
 # Config – driven by environment variables
@@ -676,7 +676,7 @@ def get_exit_decision(
             entry_time_str = current_position.get("entry_time") or current_position.get("openTime")
             if entry_time_str:
                 entry_dt = datetime.fromisoformat(entry_time_str.replace("Z", "+00:00"))
-                secs_since_entry = (datetime.utcnow() - entry_dt).total_seconds()
+                secs_since_entry = (datetime.now(timezone.utc) - entry_dt).total_seconds()
         except Exception:
             secs_since_entry = None
 

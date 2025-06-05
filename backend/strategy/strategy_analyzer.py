@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from backend.utils import env_loader
 import json
@@ -60,7 +60,7 @@ def ensure_param_change_table():
 
 def backup_settings():
     """Create a timestamped backup of the current settings.env file."""
-    ts = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
     backup_path = f"{SETTINGS_PATH}.{ts}.bak"
     shutil.copy2(SETTINGS_PATH, backup_path)
     return backup_path
@@ -123,7 +123,7 @@ def suggest_parameter_adjustments(settings, summary_text: str):
         logger.info("[戦略分析AI] 有効な変更提案はありません。")
 
 def fetch_recent_trades(hours=1):
-    since = datetime.utcnow() - timedelta(hours=hours)
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute("""
@@ -133,7 +133,7 @@ def fetch_recent_trades(hours=1):
         return cursor.fetchall()
 
 def fetch_ai_decisions(hours=1):
-    since = datetime.utcnow() - timedelta(hours=hours)
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute("""
@@ -157,7 +157,7 @@ def analyze_performance(trades):
 
     logger.info(
         "[戦略分析AIレポート] %s UTC",
-        datetime.utcnow().isoformat(),
+        datetime.now(timezone.utc).isoformat(),
     )
     logger.info("トレード数: %s", total)
     logger.info("勝率: %.2f%%", win_rate)
