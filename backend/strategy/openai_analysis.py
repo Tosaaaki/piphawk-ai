@@ -1191,7 +1191,15 @@ Respond with **one-line valid JSON** exactly as:
                 risk["tp_prob"] = p
                 risk["sl_prob"] = q
 
-            if p + q > 1.0 + PROB_MARGIN:
+            total = p + q
+            if abs(total - 1.0) <= 0.05:
+                p_norm = p / total
+                q_norm = q / total
+                risk["tp_prob"] = p_norm
+                risk["sl_prob"] = q_norm
+                p = p_norm
+                q = q_norm
+            elif total > 1.0 + PROB_MARGIN or total < 1.0 - PROB_MARGIN:
                 logger.warning("Probabilities invalid — skipping plan")
                 plan["entry"]["side"] = "no"
                 return plan
