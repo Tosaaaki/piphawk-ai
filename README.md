@@ -40,6 +40,7 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
 
 - `DEFAULT_PAIR` … 取引する通貨ペア
 - `MIN_RRR` … 最低リスクリワード比。`ENFORCE_RRR` と併用すると常にこの比率を保ちます
+- `TREND_ADX_THRESH` … トレンド判定に使う ADX のしきい値 (デフォルト 20)
 - `SCALE_LOT_SIZE` … 追加エントリー時のロット数
 - `AI_MODEL` … OpenAI モデル名
 - `LINE_CHANNEL_TOKEN` / `LINE_USER_ID` … LINE 通知に使用する認証情報

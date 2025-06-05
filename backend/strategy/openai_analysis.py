@@ -18,7 +18,7 @@ from backend.risk_manager import (
     is_high_vol_session,
 )
 
-from backend.strategy.openai_prompt import build_trade_plan_prompt
+from backend.strategy.openai_prompt import build_trade_plan_prompt, TREND_ADX_THRESH
 from backend.strategy.validators import normalize_probs, risk_autofix
 from backend.config.defaults import MIN_ABS_SL_PIPS
 
@@ -340,7 +340,7 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     try:
         if (
             adx_latest is not None
-            and adx_latest > 20
+            and adx_latest > TREND_ADX_THRESH
             and plus_di is not None
             and minus_di is not None
         ):
@@ -401,7 +401,7 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
         ema_sign_consistent = False
     ema_ok = 1.0 if ema_sign_consistent and ema_trend != "flat" else 0.0
 
-    adx_ok = 1.0 if adx_latest is not None and adx_latest >= 20 else 0.0
+    adx_ok = 1.0 if adx_latest is not None and adx_latest >= TREND_ADX_THRESH else 0.0
     if adx_ok > 0 and adx_slope is not None and adx_slope < 0:
         adx_ok *= 0.5
 
@@ -1065,7 +1065,7 @@ def get_trade_plan(
     prompt = f"""
 ⚠️【Market Regime Classification – Flexible Criteria】
 Classify as "TREND" if ANY TWO of the following conditions are met:
-- ADX ≥ 20 maintained over at least the last 3 candles.
+- ADX ≥ {TREND_ADX_THRESH} maintained over at least the last 3 candles.
 - EMA consistently sloping upwards or downwards without major reversals within the last 3 candles.
 - Price consistently outside the Bollinger Band midline (above for bullish, below for bearish).
 
@@ -1076,7 +1076,7 @@ Under clearly identified TREND conditions, avoid counter-trend trades and never 
 
 🔄【Counter-Trend Trade Allowance】
 Allow short-term counter-trend trades only when all of the following are true:
-- ADX ≤ 20 or clearly declining.
+- ADX ≤ {TREND_ADX_THRESH} or clearly declining.
 - A clear reversal pattern (double top/bottom, head-and-shoulders) is present.
 - RSI ≤ 30 for LONG or ≥ 70 for SHORT, showing potential exhaustion.
 - Price action has stabilized with minor reversal candles.
@@ -1094,16 +1094,16 @@ Once a TREND is confirmed, prioritize entries on pullbacks. Shorts enter after p
 🔎【Minor Retracement Clarification】
 Do not interpret short-term retracements as trend reversals. Genuine trend reversals require ALL of the following simultaneously:
 - EMA direction reversal sustained for at least 3 candles.
-- ADX clearly drops below 20, indicating weakening trend momentum.
+- ADX clearly drops below {TREND_ADX_THRESH}, indicating weakening trend momentum.
 
 🎯【Improved Exit Strategy】
 Avoid exiting during normal trend pullbacks. Only exit a trend trade if **ALL** of the following are true:
 - EMA reverses direction and this is sustained for at least 3 consecutive candles.
-- ADX drops clearly below 20, showing momentum has faded.
+- ADX drops clearly below {TREND_ADX_THRESH}, showing momentum has faded.
 If these are not all met, HOLD the position even if RSI is extreme or price briefly retraces.
 
 ♻️【Immediate Re-entry Policy】
-If a stop-loss is triggered but original trend conditions remain intact (ADX≥20, clear EMA slope), immediately re-enter in the same direction upon the next valid signal.
+If a stop-loss is triggered but original trend conditions remain intact (ADX≥{TREND_ADX_THRESH}, clear EMA slope), immediately re-enter in the same direction upon the next valid signal.
 
 ### Recent Indicators (last 20 values each)
 ## M5
