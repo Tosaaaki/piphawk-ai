@@ -243,6 +243,9 @@ class JobRunner:
         # recent M5 candles for peak detection
         self.last_candles_m5: list[dict] | None = None
 
+        # SCALP_MODE 時に市場判断へ使う時間足
+        self.scalp_cond_tf = env_loader.get_env("SCALP_COND_TF", "M1").upper()
+
         # Restore TP adjustment flags based on existing TP order comment
         try:
             pos = get_position_details(DEFAULT_PAIR)
@@ -265,6 +268,13 @@ class JobRunner:
             bool(token),
             bool(user_id),
         )
+
+    def _get_cond_indicators(self) -> dict:
+        """Return indicators for market condition check."""
+        tf = "M5"
+        if env_loader.get_env("SCALP_MODE", "false").lower() == "true":
+            tf = env_loader.get_env("SCALP_COND_TF", self.scalp_cond_tf).upper()
+        return getattr(self, f"indicators_{tf}", {}) or {}
 
     # ────────────────────────────────────────────────────────────
     #  Poll & renew pending LIMIT orders
@@ -367,11 +377,12 @@ class JobRunner:
                             ai_raw = None
 
                         try:
+                            cond_ind = self._get_cond_indicators()
                             ctx = {
                                 "indicators": {
                                     k: float(val.iloc[-1]) if hasattr(val, "iloc") and val.iloc[-1] is not None
                                     else float(val) if val is not None else None
-                                    for k, val in indicators.items()
+                                    for k, val in cond_ind.items()
                                 },
                                 "indicators_h1": {
                                     k: float(v.iloc[-1]) if hasattr(v, "iloc") and v.iloc[-1] is not None
@@ -977,18 +988,19 @@ class JobRunner:
                                 if pass_exit_filter(indicators, position_side):
                                     logger.info("Filter OK → Processing exit decision with AI.")
                                     self.last_ai_call = datetime.now()
+                                    cond_ind = self._get_cond_indicators()
                                     market_cond = get_market_condition(
                                         {
                                             "indicators": {
                                                 key: float(val.iloc[-1]) if hasattr(val, "iloc") and val.iloc[-1] is not None
                                                 else float(val) if val is not None else None
-                                                for key, val in indicators.items()
-                                        },
-                                        "indicators_h1": {
-                                            key: float(v.iloc[-1]) if hasattr(v, "iloc") and v.iloc[-1] is not None
-                                            else float(v) if v is not None else None
-                                            for key, v in (self.indicators_H1 or {}).items()
-                                        },
+                                                for key, val in cond_ind.items()
+                                            },
+                                            "indicators_h1": {
+                                                key: float(v.iloc[-1]) if hasattr(v, "iloc") and v.iloc[-1] is not None
+                                                else float(v) if v is not None else None
+                                                for key, v in (self.indicators_H1 or {}).items()
+                                            },
                                         "indicators_h4": {
                                             key: float(v.iloc[-1]) if hasattr(v, "iloc") and v.iloc[-1] is not None
                                             else float(v) if v is not None else None
@@ -1153,12 +1165,13 @@ class JobRunner:
                         if pass_exit:
                             logger.info("Filter OK → Processing periodic exit decision with AI.")
                             self.last_ai_call = datetime.now()
+                            cond_ind = self._get_cond_indicators()
                             market_cond = get_market_condition(
                                 {
                                     "indicators": {
                                         key: float(val.iloc[-1]) if hasattr(val, "iloc") and val.iloc[-1] is not None
                                         else float(val) if val is not None else None
-                                        for key, val in indicators.items()
+                                        for key, val in cond_ind.items()
                                     },
                                     "indicators_h1": {
                                         key: float(v.iloc[-1]) if hasattr(v, "iloc") and v.iloc[-1] is not None
@@ -1321,12 +1334,13 @@ class JobRunner:
                         ):
                             logger.info("Filter OK → Processing entry decision with AI.")
                             self.last_ai_call = datetime.now()  # record AI call time *before* the call
+                            cond_ind = self._get_cond_indicators()
                             market_cond = get_market_condition(
                                 {
                                     "indicators": {
                                         key: float(val.iloc[-1]) if hasattr(val, "iloc") and val.iloc[-1] is not None
                                         else float(val) if val is not None else None
-                                        for key, val in indicators.items()
+                                        for key, val in cond_ind.items()
                                     },
                                     "indicators_h1": {
                                         key: float(v.iloc[-1]) if hasattr(v, "iloc") and v.iloc[-1] is not None
