@@ -663,6 +663,8 @@ def get_exit_decision(
     units_val = float(current_position.get("units", 0))
     side = "SHORT" if units_val < 0 else "LONG"
 
+    pips_from_entry = None
+    unreal_pnl = 0
     # --- 現在値とエントリ価格からサイド別の差分を算出する ---
     try:
         bid = float(market_data.get("bid")) if isinstance(market_data, dict) else None
@@ -678,7 +680,8 @@ def get_exit_decision(
             pips_from_entry = 0
             unreal_pnl = 0
     except (ValueError, TypeError):
-        pips_from_entry = 0
+        # ここでは値を設定せず、後続のフォールバックに任せる
+        pips_from_entry = None
         unreal_pnl = 0
 
     secs_since_entry = market_data.get("secs_since_entry")
