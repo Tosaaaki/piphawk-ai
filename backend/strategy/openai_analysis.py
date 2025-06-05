@@ -17,8 +17,11 @@ from backend.risk_manager import (
     get_recent_swing_diff,
     is_high_vol_session,
 )
+
+from backend.strategy.openai_prompt import build_trade_plan_prompt
 from backend.strategy.validators import normalize_probs, risk_autofix
 from backend.config.defaults import MIN_ABS_SL_PIPS
+
 
 # --- Added for AI-based exit decision ---
 # Consolidated exit decision helpers live in exit_ai_decision
@@ -615,8 +618,8 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
 # ----------------------------------------------------------------------
 # Entry decision
 # ----------------------------------------------------------------------
-def get_entry_decision(market_data, strategy_params, indicators=None, candles_dict=None, market_cond=None, higher_tf=None):
-    plan = get_trade_plan(market_data, indicators or {}, candles_dict or {}, strategy_params)
+def get_entry_decision(market_data, strategy_params, indicators=None, candles_dict=None, market_cond=None, higher_tf=None, higher_tf_direction=None):
+    plan = get_trade_plan(market_data, indicators or {}, candles_dict or {}, strategy_params, higher_tf_direction=higher_tf_direction)
     return plan.get("entry", {"side": "no"})
 
 
@@ -904,6 +907,7 @@ def get_trade_plan(
     *,
     higher_tf_direction: str | None = None,
     allow_delayed_entry: bool | None = None,
+    higher_tf_direction: str | None = None,
 ) -> dict:
     """
     Single‑shot call to the LLM that returns a dict:
@@ -960,6 +964,12 @@ def get_trade_plan(
     elif pattern_name:
         pattern_line = pattern_name
 
+    prompt, comp_val = build_trade_plan_prompt(
+        ind_m5, ind_m1, ind_d1, candles_m5, candles_m1, candles_d1,
+        hist_stats, pattern_line,
+        allow_delayed_entry=allow_delayed_entry,
+        higher_tf_direction=higher_tf_direction,
+    )
     # --------------------------------------------------------------
     # Estimate market "noise" from ATR and Bollinger band width
     # --------------------------------------------------------------
@@ -1179,6 +1189,17 @@ Respond with **one-line valid JSON** exactly as:
     plan, err = parse_json_answer(raw)
     if plan is None:
         return {"entry": {"side": "no"}, "raw": raw}
+
+    entry_conf = plan.get("entry_confidence")
+    try:
+        entry_conf = float(entry_conf) if entry_conf is not None else None
+    except (TypeError, ValueError):
+        entry_conf = None
+    side_planned = plan.get("entry", {}).get("side")
+    if entry_conf is not None and higher_tf_direction in ("long", "short") and side_planned in ("long", "short"):
+        if (higher_tf_direction == "long" and side_planned == "short") or (higher_tf_direction == "short" and side_planned == "long"):
+            entry_conf = max(0.0, entry_conf - 0.3)
+    plan["entry_confidence"] = entry_conf
 
     # ---- local guards -------------------------------------------------
     risk = risk_autofix(plan.get("risk"))
