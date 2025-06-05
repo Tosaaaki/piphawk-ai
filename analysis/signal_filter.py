@@ -56,6 +56,47 @@ def is_multi_tf_aligned(
             except ValueError:
                 continue
 
+    lt_adx_thresh = float(env_loader.get_env("LT_TF_PRIORITY_ADX", "0"))
+    lt_weight_factor = float(env_loader.get_env("LT_TF_WEIGHT_FACTOR", "1"))
+    if lt_adx_thresh > 0 and lt_weight_factor < 1:
+        lt_key = "M1" if any(k.lower() == "m1" for k in indicators_by_tf.keys()) else "M5"
+        lt_ind = indicators_by_tf.get(lt_key) or indicators_by_tf.get(lt_key.lower())
+        if lt_ind:
+            adx = lt_ind.get("adx")
+            ema_fast = lt_ind.get("ema_fast")
+            ema_slow = lt_ind.get("ema_slow")
+            try:
+                adx_latest = (
+                    float(adx.iloc[-1]) if hasattr(adx, "iloc") else float(adx[-1])
+                )
+                prev_fast = (
+                    ema_fast.iloc[-2] if hasattr(ema_fast, "iloc") else ema_fast[-2]
+                )
+                latest_fast = (
+                    ema_fast.iloc[-1] if hasattr(ema_fast, "iloc") else ema_fast[-1]
+                )
+                prev_slow = (
+                    ema_slow.iloc[-2] if hasattr(ema_slow, "iloc") else ema_slow[-2]
+                )
+                latest_slow = (
+                    ema_slow.iloc[-1] if hasattr(ema_slow, "iloc") else ema_slow[-1]
+                )
+                cross = (
+                    (prev_fast < prev_slow and latest_fast > latest_slow)
+                    or (prev_fast > prev_slow and latest_fast < latest_slow)
+                )
+                if adx_latest >= lt_adx_thresh and cross:
+                    logger.debug(
+                        "Lower TF dominance: ADX %.2f >= %.2f with EMA cross",
+                        adx_latest,
+                        lt_adx_thresh,
+                    )
+                    for k in list(weights.keys()):
+                        if k != lt_key:
+                            weights[k] *= lt_weight_factor
+            except Exception:
+                pass
+
     scores: Dict[Direction, float] = {"long": 0.0, "short": 0.0}
     for tf, ind in indicators_by_tf.items():
         dir_ = _ema_direction(ind.get("ema_fast"), ind.get("ema_slow"))

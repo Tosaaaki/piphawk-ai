@@ -650,7 +650,7 @@ def process_entry(
         pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
         spread = (ask - bid) / pip_size if bid is not None and ask is not None else 0.0
         slip = float(env_loader.get_env("ENTRY_SLIPPAGE_PIPS", "0"))
-        min_rrr_cost = float(env_loader.get_env("MIN_RRR_AFTER_COST", "1.2"))
+        min_rrr_cost = float(env_loader.get_env("MIN_RRR_AFTER_COST", "0"))
         if not validate_rrr_after_cost(tp_pips, sl_pips, spread + slip, min_rrr_cost):
             logging.info(
                 f"RRR after cost {(tp_pips - (spread + slip)) / sl_pips if sl_pips else 0:.2f} < {min_rrr_cost} → skip entry"

@@ -101,6 +101,7 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 ■ MIN_RRR_AFTER_COST
   スプレッドやスリッページなどコスト控除後のRRRが
   この値以上でなければエントリーを行わない。
+  デフォルトは 0 (チェック無効)。
 
 ■ ENTRY_SLIPPAGE_PIPS
   エントリー時に想定するスリッページ幅(pips)。
@@ -153,6 +154,8 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - TF_EMA_WEIGHTS: 上位足EMA整合の重み付け (例 `M5:0.4,H1:0.3,H4:0.3`)
 - AI_ALIGN_WEIGHT: AIの方向性をEMA整合に加味する重み
 - ALIGN_BYPASS_ADX: M5 ADXがこの値以上でAI方向が設定されている場合、整合チェックをスキップ
+- LT_TF_PRIORITY_ADX: 下位足ADXがこの値以上でEMAクロスが発生したら他タイムフレームの重みを減少
+- LT_TF_WEIGHT_FACTOR: 上記条件を満たした際に適用する重み係数 (0.5なら半減)
 
 - LINE_CHANNEL_TOKEN: LINE 通知に使用するチャンネルアクセストークン
 - LINE_USER_ID: 通知を送るユーザーのLINE ID
