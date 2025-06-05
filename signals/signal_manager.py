@@ -4,6 +4,24 @@ from __future__ import annotations
 from typing import Sequence
 
 
+class SignalManager:
+    """Simple signal manager calling RegimeDetector."""
+
+    def __init__(self, detector) -> None:
+        self.detector = detector
+        self.opened: list[dict] = []
+
+    def open_position(self, signal: dict) -> None:
+        """Record opened position."""
+        self.opened.append(signal)
+
+    def handle_price(self, price: dict) -> None:
+        """Check breakout entry and open position when signaled."""
+        res = self.detector.breakout_entry(price)
+        if res:
+            self.open_position(res)
+
+
 def _body_wick(candle: dict) -> tuple[float, float, float]:
     """ローソク足の実体と上下ヒゲ長を計算."""
     o = float(candle.get("o"))
@@ -117,4 +135,5 @@ __all__ = [
     "follow_through_ok",
     "compute_trade_score",
     "detect_range_reversal",
+    "SignalManager",
 ]
