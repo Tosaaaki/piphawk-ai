@@ -13,6 +13,7 @@ import math
 import pandas as pd
 import logging
 import datetime
+from datetime import timezone
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from backend.market_data.tick_fetcher import fetch_tick_data
 from backend.indicators.adx import calculate_adx_slope
@@ -364,7 +365,7 @@ def pass_entry_filter(
     else:
         quiet2_start = quiet2_end = None
 
-    now_jst = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+    now_jst = datetime.datetime.now(timezone.utc) + datetime.timedelta(hours=9)
     current_time = now_jst.hour + now_jst.minute / 60.0
 
     def _in_range(start: float | None, end: float | None) -> bool:

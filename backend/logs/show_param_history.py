@@ -1,6 +1,6 @@
 import sqlite3
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import argparse
 
 # パラメータ変更履歴を格納した SQLite DB のパス
@@ -43,7 +43,7 @@ def main() -> None:
     since: str | None = None
     until: str | None = None
     if args.days:
-        since = (datetime.utcnow() - timedelta(days=args.days)).isoformat()
+        since = (datetime.now(timezone.utc) - timedelta(days=args.days)).isoformat()
     if args.start:
         since = args.start
     if args.end:

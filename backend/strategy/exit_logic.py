@@ -6,7 +6,7 @@ from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
 from backend.logs.trade_logger import ExitReason
 from backend.logs.exit_logger import append_exit_log
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import os
 from backend.utils import env_loader
@@ -99,7 +99,7 @@ def decide_exit(
         entry_time_str = position.get("entry_time") or position.get("openTime")
         if entry_time_str:
             entry_dt = datetime.fromisoformat(entry_time_str.replace("Z", "+00:00"))
-            secs_since_entry = (datetime.utcnow() - entry_dt).total_seconds()
+            secs_since_entry = (datetime.now(timezone.utc) - entry_dt).total_seconds()
     except Exception:
         secs_since_entry = None
 
@@ -204,7 +204,7 @@ def process_exit(
     if regime_action == "EXIT":
         logging.info("Regime shift unfavorable → closing position early.")
         order_manager.exit_trade(position)
-        exit_time = datetime.utcnow().isoformat()
+        exit_time = datetime.now(timezone.utc).isoformat()
         units = (
             int(position["long"]["units"])
             if position_side == "long"
@@ -311,7 +311,7 @@ def process_exit(
                 if entry_ts:
                     try:
                         et = datetime.fromisoformat(entry_ts.replace("Z", "+00:00"))
-                        held_sec = (datetime.utcnow() - et).total_seconds()
+                        held_sec = (datetime.now(timezone.utc) - et).total_seconds()
                         if held_sec >= STAGNANT_EXIT_SEC and profit_pips > 0:
                             early_exit = True
                     except Exception:
@@ -348,7 +348,7 @@ def process_exit(
 
             if exit_decision["decision"] == "EXIT":
                 order_manager.exit_trade(position)
-                exit_time = datetime.utcnow().isoformat()
+                exit_time = datetime.now(timezone.utc).isoformat()
                 units = (
                     int(position["long"]["units"])
                     if position_side == "long"
@@ -404,7 +404,7 @@ def process_exit(
             return False
 
         entry_time = position.get(
-            "entry_time", position.get("openTime", datetime.utcnow().isoformat())
+            "entry_time", position.get("openTime", datetime.now(timezone.utc).isoformat())
         )
 
         exit_price = (
@@ -412,7 +412,7 @@ def process_exit(
             if units > 0
             else float(market_data["prices"][0]["asks"][0]["price"])
         )
-        exit_time = datetime.utcnow().isoformat()
+        exit_time = datetime.now(timezone.utc).isoformat()
 
         log_trade(
             instrument,
@@ -460,11 +460,11 @@ def process_exit(
                         order_manager.close_partial(trade_ids[0], close_units)
                         log_trade(
                             position["instrument"],
-                            entry_time=position.get("entry_time", position.get("openTime", datetime.utcnow().isoformat())),
+                            entry_time=position.get("entry_time", position.get("openTime", datetime.now(timezone.utc).isoformat())),
                             entry_price=entry_price,
                             units=close_units,
                             ai_reason="partial close",
-                            exit_time=datetime.utcnow().isoformat(),
+                            exit_time=datetime.now(timezone.utc).isoformat(),
                             exit_price=current_price,
                             exit_reason=ExitReason.RISK,
                         )
@@ -559,7 +559,7 @@ def process_exit(
                                 )
                                 append_exit_log(
                                     {
-                                        "timestamp": datetime.utcnow().isoformat(),
+                                        "timestamp": datetime.now(timezone.utc).isoformat(),
                                         "instrument": position["instrument"],
                                         "price": current_price,
                                         "spread": spread,

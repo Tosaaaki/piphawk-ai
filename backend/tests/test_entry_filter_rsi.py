@@ -1,6 +1,7 @@
 import os
 import unittest
 import datetime
+from datetime import timezone
 import types
 import sys
 
@@ -64,7 +65,7 @@ class TestEntryFilterRSICross(unittest.TestCase):
         pass_entry_filter = sf.pass_entry_filter
         _rsi_cross_up_or_down = sf._rsi_cross_up_or_down
         self.sf_logger = sf.logger
-        now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+        now = datetime.datetime.now(timezone.utc) + datetime.timedelta(hours=9)
         start = (now.hour + 1) % 24
         end = (start + 1) % 24
         os.environ["QUIET_START_HOUR_JST"] = str(start)

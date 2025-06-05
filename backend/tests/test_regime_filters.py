@@ -5,6 +5,7 @@ import importlib
 import unittest
 import csv
 import datetime
+from datetime import timezone
 
 class FakeSeries:
     def __init__(self, data):

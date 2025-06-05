@@ -1,7 +1,7 @@
 import requests
 from backend.utils import env_loader
 from backend.logs.log_manager import get_db_connection, init_db, log_oanda_trade
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 
 # env_loader automatically loads default env files at import time
@@ -29,8 +29,8 @@ def initial_fetch_oanda_trades():
     base_url = f"{OANDA_API_URL}/v3/accounts/{OANDA_ACCOUNT_ID}/transactions"
     params = {
         "type": "ORDER_FILL,STOP_LOSS_ORDER,TAKE_PROFIT_ORDER,MARKET_ORDER",
-        "from": (datetime.utcnow() - timedelta(days=100)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "to": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "from": (datetime.now(timezone.utc) - timedelta(days=100)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "to": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "pageSize": 1000
     }
 

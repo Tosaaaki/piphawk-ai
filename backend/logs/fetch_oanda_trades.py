@@ -6,7 +6,7 @@ from backend.utils import env_loader
 
 import requests
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import backend.logs.log_manager
 
@@ -20,8 +20,8 @@ def fetch_oanda_trades():
     url = f'https://api-fxtrade.oanda.com/v3/accounts/{account_id}/transactions'
     params = {
         'type': 'ORDER_FILL',
-        'from': (datetime.utcnow() - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        'to': datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        'from': (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        'to': datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         'pageSize': 1000
     }
     headers = {

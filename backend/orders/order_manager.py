@@ -8,7 +8,7 @@ from backend.risk_manager import (
     validate_rrr_after_cost,
     validate_sl,
 )
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import time
 import json
 import logging
@@ -105,7 +105,7 @@ class OrderManager:
                 "type": "LIMIT",
                 "positionFill": "DEFAULT",
                 "clientExtensions": {"comment": comment_json, "tag": tag},
-                "gtdTime": (datetime.utcnow() + timedelta(seconds=valid_sec)).isoformat(
+                "gtdTime": (datetime.now(timezone.utc) + timedelta(seconds=valid_sec)).isoformat(
                     "T"
                 )
                 + "Z",
@@ -151,7 +151,7 @@ class OrderManager:
         payload = {
             "order": {
                 "price": format_price(instrument, new_price),
-                "gtdTime": (datetime.utcnow() + timedelta(seconds=valid_sec)).isoformat(
+                "gtdTime": (datetime.now(timezone.utc) + timedelta(seconds=valid_sec)).isoformat(
                     "T"
                 )
                 + "Z",
@@ -425,7 +425,7 @@ class OrderManager:
                 pass
 
         units = int(lot_size * 1000) if side == "long" else -int(lot_size * 1000)
-        entry_time = datetime.utcnow().isoformat()
+        entry_time = datetime.now(timezone.utc).isoformat()
 
         rrr = None
         try:
@@ -579,11 +579,11 @@ class OrderManager:
 
         log_trade(
             instrument=instrument,
-            entry_time=position.get("entry_time", datetime.utcnow().isoformat()),
+            entry_time=position.get("entry_time", datetime.now(timezone.utc).isoformat()),
             entry_price=entry_price,
             units=units,
             ai_reason="exit",
-            exit_time=datetime.utcnow().isoformat(),
+            exit_time=datetime.now(timezone.utc).isoformat(),
             exit_reason=ExitReason.MANUAL,
         )
         return result
@@ -736,7 +736,7 @@ class OrderManager:
         result = response.json()
         log_trade(
             instrument,
-            datetime.utcnow().isoformat(),
+            datetime.now(timezone.utc).isoformat(),
             new_sl_price,
             0,
             "SL dynamically updated",

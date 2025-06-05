@@ -5,7 +5,7 @@ import os
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.base import STATE_RUNNING
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel
 
 from backend.utils.notification import send_line_message
@@ -123,7 +123,7 @@ def analyze(start_date: str | None = None, end_date: str | None = None, group_by
     return {f"by_{group_by}": by_group, "overall": overall}
 
 def send_hourly_summary():
-    end = datetime.utcnow()
+    end = datetime.now(timezone.utc)
     start = end - timedelta(hours=1)
     conn = sqlite3.connect(DATABASE_PATH)
     cur = conn.cursor()
@@ -164,7 +164,7 @@ def get_trade_summary():
     """
     Returns a summary of trades in the past hour for testing purposes.
     """
-    end = datetime.utcnow()
+    end = datetime.now(timezone.utc)
     start = end - timedelta(hours=1)
     conn = sqlite3.connect(DATABASE_PATH)
     cur = conn.cursor()
