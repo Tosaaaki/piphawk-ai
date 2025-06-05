@@ -45,6 +45,7 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
 - `SCALP_MODE` … スキャルプエントリーを有効にするフラグ
 - `SCALP_ADX_MIN` … スキャルプ実行時に必要なADX値
 - `SCALP_TP_PIPS` / `SCALP_SL_PIPS` … スキャルプ用の固定TP/SL幅
+- `SCALP_COND_TF` … スキャルプ時に市場判断へ使用する時間足 (デフォルト `M1`)
 - `AI_MODEL` … OpenAI モデル名
 - `LINE_CHANNEL_TOKEN` / `LINE_USER_ID` … LINE 通知に使用する認証情報
 
@@ -63,6 +64,7 @@ SCALP_MODE: true
 SCALP_ADX_MIN: 35
 SCALP_TP_PIPS: 4
 SCALP_SL_PIPS: 2
+SCALP_COND_TF: M1
 ```
 
 
