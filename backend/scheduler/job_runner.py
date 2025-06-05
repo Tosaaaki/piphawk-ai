@@ -62,6 +62,7 @@ from backend.strategy.openai_analysis import (
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from backend.strategy import pattern_scanner
 from backend.strategy.momentum_follow import follow_breakout
+from analysis.regime_detector import RegimeDetector
 import requests
 
 from backend.utils.notification import send_line_message
@@ -206,6 +207,7 @@ class JobRunner:
         self.last_position_review_ts = None  # datetime of last position review
         # Epoch timestamp of last AI call (seconds)
         self.last_ai_call = datetime.min
+        self.regime_detector = RegimeDetector()
         # Entry cooldown settings
         self.entry_cooldown_sec = int(env_loader.get_env("ENTRY_COOLDOWN_SEC", "30"))
         self.last_close_ts: datetime | None = None
@@ -686,6 +688,14 @@ class JobRunner:
                     tick_data = fetch_tick_data(DEFAULT_PAIR)
                     # ティックデータ詳細はDEBUGレベルで出力
                     logger.debug(f"Tick data fetched: {tick_data}")
+                    try:
+                        price = float(tick_data["prices"][0]["bids"][0]["price"])
+                        tick = {"high": price, "low": price, "close": price}
+                        rd_res = self.regime_detector.update(tick)
+                        if rd_res.get("transition"):
+                            self.last_ai_call = datetime.min
+                    except Exception as exc:
+                        logger.debug(f"RegimeDetector update failed: {exc}")
 
                     # ---- Market closed guard (price feed says non‑tradeable) ----
                     try:

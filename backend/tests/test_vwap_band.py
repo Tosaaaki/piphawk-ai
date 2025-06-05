@@ -20,6 +20,14 @@ class TestVWAPBand(unittest.TestCase):
         self.assertNotEqual(r, 0.0)
         self.assertAlmostEqual(d, 1 - (4/3), places=5)
 
+    def test_vwap_bias(self):
+        prices = [1, 2, 3]
+        vols = [1, 1, 1]
+        bias = vb.get_vwap_bias(prices, vols)
+        vwap = sum(p * v for p, v in zip(prices, vols)) / sum(vols)
+        expected = (prices[-1] - vwap) / vwap
+        self.assertAlmostEqual(bias, expected)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -38,6 +38,8 @@ BE_TRIGGER_PIPS: int = int(env_loader.get_env("BE_TRIGGER_PIPS", 10))
 BE_TRIGGER_R: float = float(env_loader.get_env("BE_TRIGGER_R", "0"))
 AI_LIMIT_CONVERT_MODEL: str = env_loader.get_env("AI_LIMIT_CONVERT_MODEL", "gpt-4.1-nano")
 MIN_RRR: float = float(env_loader.get_env("MIN_RRR", "0.8"))
+# --- Composite score threshold ---
+COMPOSITE_MIN: float = float(env_loader.get_env("COMPOSITE_MIN", "1.0"))
 # --- Exit bias factor ---
 EXIT_BIAS_FACTOR: float = float(env_loader.get_env("EXIT_BIAS_FACTOR", "1.0"))
 
@@ -983,16 +985,18 @@ def get_trade_plan(
 
     noise_val = f"{noise_pips:.1f}" if noise_pips is not None else "N/A"
     tv_score = "N/A"
+    comp_val = None
     try:
         adx_series = ind_m5.get("adx")
         bb_upper = ind_m5.get("bb_upper")
         bb_lower = ind_m5.get("bb_lower")
         if adx_series is not None and bb_upper is not None and bb_lower is not None:
             from backend.indicators.adx import calculate_adx_bb_score
-            val = calculate_adx_bb_score(adx_series, bb_upper, bb_lower)
-            tv_score = f"{val:.2f}"
+            comp_val = calculate_adx_bb_score(adx_series, bb_upper, bb_lower)
+            tv_score = f"{comp_val:.2f}"
     except Exception:
         tv_score = "N/A"
+        comp_val = None
     # --- calculate dynamic pullback threshold ----------------------------
     recent_high = None
     recent_low = None
@@ -1201,6 +1205,13 @@ Respond with **one-line valid JSON** exactly as:
 
         if p < MIN_TP_PROB or (tp * p - sl * q) <= 0:
             plan["entry"]["side"] = "no"
+
+    # Composite score check
+    try:
+        if comp_val is not None and comp_val < COMPOSITE_MIN:
+            plan["entry"]["side"] = "no"
+    except Exception:
+        pass
 
     if plan.get("entry", {}).get("side") == "no":
         plan["risk"] = {}

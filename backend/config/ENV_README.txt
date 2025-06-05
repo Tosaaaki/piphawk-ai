@@ -31,8 +31,11 @@ ATR（ボラティリティ指標）の計算期間。
 ■ SCALE_LOT_SIZE
 AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 
+■ AI_COOLDOWN_SEC
+ AI呼び出しの基本クールダウン時間。デフォルトは 30 秒。
+
 ■ AI_COOLDOWN_SEC_OPEN / AI_COOLDOWN_SEC_FLAT / AI_REGIME_COOLDOWN_SEC
- AI呼び出しの最小間隔（秒）を設定する。OPENはポジション保有時、FLATはノーポジ時、REGIMEはトレンド判定用。デフォルトは OPEN=60、FLAT=30、REGIME=20。
+ AI呼び出しの最小間隔（秒）を個別に設定する。OPENはポジション保有時、FLATはノーポジ時、REGIMEはトレンド判定用。デフォルトは OPEN=60、FLAT=30、REGIME=20。
 
 ■ フィルター設定（AI呼び出し制御用）
 
@@ -145,6 +148,7 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - MIN_VOL_MA / MIN_VOL_M1: ボリュームフィルタの最小値
 - ADX_SLOPE_LOOKBACK: ADX の傾き計算に使う本数
 - ADX_DYNAMIC_COEFF: BB 幅によって ADX しきい値を補正する係数
+- COMPOSITE_MIN: ADXとBB幅から算出するComposite Trend Scoreのしきい値
 - EMA_FLAT_PIPS: EMA の傾きをフラットとみなす幅
 - OVERSHOOT_ATR_MULT: BB下限をATR×この倍率だけ割り込むとエントリーをブロック
 - REV_BLOCK_BARS / TAIL_RATIO_BLOCK / VOL_SPIKE_PERIOD:

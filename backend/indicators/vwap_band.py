@@ -26,4 +26,15 @@ def get_vwap_delta(prices: Sequence[float], volumes: Sequence[float]) -> Tuple[f
     return deviation, shrink
 
 
-__all__ = ["get_vwap_delta"]
+def get_vwap_bias(prices: Sequence[float], volumes: Sequence[float]) -> float:
+    """Return VWAP bias rate of the latest price."""
+    if len(prices) != len(volumes) or not prices:
+        return 0.0
+    vwap = _compute_vwap(prices, volumes)
+    if vwap == 0:
+        return 0.0
+    cur_price = float(prices[-1])
+    return (cur_price - vwap) / vwap
+
+
+__all__ = ["get_vwap_delta", "get_vwap_bias"]
