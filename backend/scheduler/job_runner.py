@@ -138,6 +138,8 @@ OANDA_ACCOUNT_ID = env_loader.get_env("OANDA_ACCOUNT_ID")
 MARGIN_WARNING_THRESHOLD = float(env_loader.get_env("MARGIN_WARNING_THRESHOLD", "0"))
 # Additional lot size for scaling into an existing position
 SCALE_LOT_SIZE = float(env_loader.get_env("SCALE_LOT_SIZE", "0.5"))
+SCALE_MAX_POS = int(env_loader.get_env("SCALE_MAX_POS", "0"))
+SCALE_TRIGGER_ATR = float(env_loader.get_env("SCALE_TRIGGER_ATR", "0"))
 # ----- limit‑order housekeeping ------------------------------------
 MAX_LIMIT_AGE_SEC = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))  # seconds before a pending LIMIT is cancelled
 PENDING_GRACE_MIN = int(env_loader.get_env("PENDING_GRACE_MIN", "3"))
@@ -227,6 +229,8 @@ class JobRunner:
         self.patterns_by_tf: dict[str, str | None] = {}
         # Highest profit observed since entry
         self.max_profit_pips: float = 0.0
+        # Count of additional SCALE entries for current position
+        self.scale_count: int = 0
         # recent M5 candles for peak detection
         self.last_candles_m5: list[dict] | None = None
 
@@ -784,6 +788,7 @@ class JobRunner:
                         self.tp_extended = False
                         self.tp_reduced = False
                         self.max_profit_pips = 0.0
+                        self.scale_count = 0
 
                     # ---- Dynamic cooldown (OPEN / FLAT) ---------------
                     # ポジション保有時はエグジット用、未保有時はエントリー用
@@ -990,20 +995,58 @@ class JobRunner:
                                         logger.warning(f"exit AI evaluation failed: {exc}")
                                         ai_dec = None
                                     if ai_dec and ai_dec.action == "SCALE":
-                                        try:
-                                            order_mgr.enter_trade(
-                                                side=position_side,
-                                                lot_size=SCALE_LOT_SIZE,
-                                                market_data=tick_data,
-                                                strategy_params={"instrument": DEFAULT_PAIR, "mode": "market"},
-                                            )
+                                        pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+                                        entry_price = float(has_position[position_side].get("averagePrice", 0.0))
+                                        cur_price = (
+                                            float(tick_data["prices"][0]["bids"][0]["price"])
+                                            if position_side == "long"
+                                            else float(tick_data["prices"][0]["asks"][0]["price"])
+                                        )
+                                        diff_pips = (
+                                            (cur_price - entry_price) / pip_size
+                                            if position_side == "long"
+                                            else (entry_price - cur_price) / pip_size
+                                        )
+                                        atr_val = (
+                                            indicators["atr"].iloc[-1]
+                                            if hasattr(indicators.get("atr"), "iloc")
+                                            else indicators.get("atr", [0])[-1]
+                                        )
+                                        allow_scale = True
+                                        if SCALE_MAX_POS > 0 and self.scale_count >= SCALE_MAX_POS:
+                                            logger.info("Scale limit reached → ignoring SCALE signal")
+                                            allow_scale = False
+                                        if allow_scale and SCALE_TRIGGER_ATR > 0 and diff_pips < (atr_val / pip_size) * SCALE_TRIGGER_ATR:
                                             logger.info(
-                                                f"Scaled into position ({position_side}) by {SCALE_LOT_SIZE} lots"
+                                                f"Scale trigger {diff_pips:.1f} < {(atr_val / pip_size) * SCALE_TRIGGER_ATR:.1f} pips"
                                             )
-                                            has_position = check_current_position(DEFAULT_PAIR)
-                                        except Exception as exc:
-                                            logger.warning(f"Failed to scale position: {exc}")
-                                        exit_executed = False
+                                            allow_scale = False
+                                        if allow_scale:
+                                            try:
+                                                order_mgr.enter_trade(
+                                                    side=position_side,
+                                                    lot_size=SCALE_LOT_SIZE,
+                                                    market_data=tick_data,
+                                                    strategy_params={"instrument": DEFAULT_PAIR, "mode": "market"},
+                                                )
+                                                logger.info(
+                                                    f"Scaled into position ({position_side}) by {SCALE_LOT_SIZE} lots"
+                                                )
+                                                self.scale_count += 1
+                                                has_position = check_current_position(DEFAULT_PAIR)
+                                            except Exception as exc:
+                                                logger.warning(f"Failed to scale position: {exc}")
+                                            exit_executed = False
+                                        else:
+                                            exit_executed = process_exit(
+                                                indicators,
+                                                tick_data,
+                                                market_cond,
+                                                higher_tf,
+                                                indicators_m1=self.indicators_M1,
+                                                patterns=PATTERN_NAMES,
+                                                pattern_names=self.patterns_by_tf,
+                                            )
                                     else:
                                         exit_executed = process_exit(
                                             indicators,
@@ -1020,6 +1063,7 @@ class JobRunner:
                                         send_line_message(
                                             f"【EXIT】{DEFAULT_PAIR} {current_price} で決済しました。PL={current_profit_pips:.1f}pips"
                                         )
+                                        self.scale_count = 0
                                     else:
                                         logger.info("AI decision was HOLD → No exit executed.")
                                 else:
@@ -1127,20 +1171,58 @@ class JobRunner:
                                 logger.warning(f"exit AI evaluation failed: {exc}")
                                 ai_dec = None
                             if ai_dec and ai_dec.action == "SCALE":
-                                try:
-                                    order_mgr.enter_trade(
-                                        side=position_side,
-                                        lot_size=SCALE_LOT_SIZE,
-                                        market_data=tick_data,
-                                        strategy_params={"instrument": DEFAULT_PAIR, "mode": "market"},
-                                    )
+                                pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+                                entry_price = float(has_position[position_side].get("averagePrice", 0.0))
+                                cur_price = (
+                                    float(tick_data["prices"][0]["bids"][0]["price"])
+                                    if position_side == "long"
+                                    else float(tick_data["prices"][0]["asks"][0]["price"])
+                                )
+                                diff_pips = (
+                                    (cur_price - entry_price) / pip_size
+                                    if position_side == "long"
+                                    else (entry_price - cur_price) / pip_size
+                                )
+                                atr_val = (
+                                    indicators["atr"].iloc[-1]
+                                    if hasattr(indicators.get("atr"), "iloc")
+                                    else indicators.get("atr", [0])[-1]
+                                )
+                                allow_scale = True
+                                if SCALE_MAX_POS > 0 and self.scale_count >= SCALE_MAX_POS:
+                                    logger.info("Scale limit reached → ignoring SCALE signal")
+                                    allow_scale = False
+                                if allow_scale and SCALE_TRIGGER_ATR > 0 and diff_pips < (atr_val / pip_size) * SCALE_TRIGGER_ATR:
                                     logger.info(
-                                        f"Scaled into position ({position_side}) by {SCALE_LOT_SIZE} lots"
+                                        f"Scale trigger {diff_pips:.1f} < {(atr_val / pip_size) * SCALE_TRIGGER_ATR:.1f} pips"
                                     )
-                                    has_position = check_current_position(DEFAULT_PAIR)
-                                except Exception as exc:
-                                    logger.warning(f"Failed to scale position: {exc}")
-                                exit_executed = False
+                                    allow_scale = False
+                                if allow_scale:
+                                    try:
+                                        order_mgr.enter_trade(
+                                            side=position_side,
+                                            lot_size=SCALE_LOT_SIZE,
+                                            market_data=tick_data,
+                                            strategy_params={"instrument": DEFAULT_PAIR, "mode": "market"},
+                                        )
+                                        logger.info(
+                                            f"Scaled into position ({position_side}) by {SCALE_LOT_SIZE} lots"
+                                        )
+                                        self.scale_count += 1
+                                        has_position = check_current_position(DEFAULT_PAIR)
+                                    except Exception as exc:
+                                        logger.warning(f"Failed to scale position: {exc}")
+                                    exit_executed = False
+                                else:
+                                    exit_executed = process_exit(
+                                        indicators,
+                                        tick_data,
+                                        market_cond,
+                                        higher_tf,
+                                        indicators_m1=self.indicators_M1,
+                                        patterns=PATTERN_NAMES,
+                                        pattern_names=self.patterns_by_tf,
+                                    )
                             else:
                                 exit_executed = process_exit(
                                     indicators,
@@ -1157,6 +1239,7 @@ class JobRunner:
                                 send_line_message(
                                     f"【EXIT】{DEFAULT_PAIR} {cur_price} で決済しました。PL={profit_pips * pip_size:.2f}"
                                 )
+                                self.scale_count = 0
                             else:
                                 logger.info("AI decision was HOLD → No exit executed.")
                         else:
@@ -1419,6 +1502,7 @@ class JobRunner:
                             # Send LINE notification on entry
                             price = float(tick_data["prices"][0]["bids"][0]["price"])
                             send_line_message(f"【ENTRY】{DEFAULT_PAIR} {price} でエントリーしました。")
+                            self.scale_count = 0
                         else:
                             logger.info("Filter NG → AI entry decision skipped.")
                             self.last_position_review_ts = None
