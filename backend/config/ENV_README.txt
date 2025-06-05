@@ -190,6 +190,7 @@ SCALE_TRIGGER_ATR=0.5
 - CLIMAX_ZSCORE: ATR Z スコアの閾値
 - CLIMAX_TP_PIPS / CLIMAX_SL_PIPS: クライマックス時に使用する TP/SL
 - ALLOW_DELAYED_ENTRY: トレンドが過熱している場合に "wait" を返させ、押し目到来で再問い合わせする
+- TREND_ADX_THRESH: トレンド判定に用いるADXの基準値。プロンプトの条件とローカル判定で参照される
 - MIN_EARLY_EXIT_PROFIT_PIPS: 早期撤退を検討する際に必要な最低利益幅
 - H1_BOUNCE_RANGE_PIPS: H1安値/高値からこのpips以内ならエントリーを見送る
 ■ OANDA_MATCH_SEC
