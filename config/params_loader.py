@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import yaml
 
 # YAML内キーと環境変数名のマッピング
 _KEY_ALIASES = {
@@ -14,58 +15,11 @@ _KEY_ALIASES = {
 }
 
 
-def _parse_value(val: str):
-    val = val.strip()
-    if val.lower() in {"true", "false"}:
-        return val.lower() == "true"
-    try:
-        if "." in val:
-            return float(val)
-        return int(val)
-    except ValueError:
-        return val
-
-
 def _parse_yaml_file(path: Path) -> dict:
-    lines = path.read_text().splitlines()
-
-    def parse(start: int, indent: int):
-        data: dict[str, object] = {}
-        items: list[object] | None = None
-        i = start
-        while i < len(lines):
-            raw = lines[i]
-            if not raw.strip() or raw.lstrip().startswith("#"):
-                i += 1
-                continue
-            cur_indent = len(raw) - len(raw.lstrip())
-            if cur_indent < indent:
-                break
-            text = raw.strip()
-            if text.startswith("- "):
-                if items is None:
-                    items = []
-                items.append(_parse_value(text[2:]))
-                i += 1
-                continue
-            if ":" in text:
-                key, val = text.split(":", 1)
-                key = key.strip()
-                val = val.strip()
-                i += 1
-                if val == "":
-                    child, i = parse(i, cur_indent + 2)
-                    data[key] = child
-                else:
-                    data[key] = _parse_value(val)
-                continue
-            i += 1
-        if items is not None and not data:
-            return items, i
-        return data, i
-
-    parsed, _ = parse(0, 0)
-    return parsed
+    """YAMLファイルを読み込み、辞書として返す"""
+    with path.open("r", encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    return data or {}
 
 
 def _flatten(d: object, prefix: str = "") -> dict[str, object]:
