@@ -72,7 +72,7 @@ from backend.strategy import pattern_scanner
 from backend.strategy.momentum_follow import follow_breakout
 from analysis.regime_detector import RegimeDetector
 import requests
-from signals.adx_strategy import determine_trade_mode
+from signals.composite_mode import decide_trade_mode
 
 from backend.utils.notification import send_line_message
 from backend.logs.trade_logger import log_trade, ExitReason
@@ -819,24 +819,8 @@ class JobRunner:
 
                     logger.info("Indicators calculation successful.")
 
-                    # ADX を使ってトレードモードを判定
-                    adx_series = indicators.get("adx")
-                    if adx_series is not None and len(adx_series):
-                        adx_val = (
-                            float(adx_series.iloc[-1])
-                            if hasattr(adx_series, "iloc")
-                            else float(adx_series[-1])
-                        )
-                    else:
-                        adx_val = 0.0
-                    tf_mode = env_loader.get_env("SCALP_COND_TF", self.scalp_cond_tf).upper()
-                    candles_tf = candles_dict.get(tf_mode, [])
-                    closes_tf = [
-                        float(c.get("mid", {}).get("c"))
-                        for c in candles_tf
-                        if c.get("mid")
-                    ]
-                    new_mode = determine_trade_mode(adx_val, closes_tf, scalp_tf=tf_mode)
+                    # 指標からトレードモードを判定
+                    new_mode = decide_trade_mode(indicators)
                     if new_mode != self.trade_mode:
                         self.reload_params_for_mode(new_mode)
                         self.trade_mode = new_mode
