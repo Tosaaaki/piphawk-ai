@@ -123,7 +123,8 @@ TRADES_DB_PATH=trades-002.db
    range mode regardless of ADX. When the width falls below this value the system
    treats the market as ranging and the AI prompt notes that *BB width is
    contracting*.
-   `ENABLE_RANGE_ENTRY` を `true` にすると、ADX のノートレード判定を無視してレンジ相場でもエントリーを許可します。価格がボリンジャーバンド中心から `RANGE_ENTRY_OFFSET_PIPS` pips 以内にある場合は、市場注文をバンド端の LIMIT に変換します。この処理は `backend/strategy/entry_logic.py` で行われます。
+`ENABLE_RANGE_ENTRY` を `true` にすると、ADX のノートレード判定を無視してレンジ相場でもエントリーを許可します。価格がボリンジャーバンド中心から `RANGE_ENTRY_OFFSET_PIPS` pips 以内にある場合は、市場注文をバンド端の LIMIT に変換します。この処理は `backend/strategy/entry_logic.py` で行われます。
+`RANGE_ENTRY_NOTE` を指定すると、その内容が AI プロンプトに追記され、レンジ相場での細かな指示を外部から設定できます。
 `AI_PROFIT_TRIGGER_RATIO` defines what portion of the take-profit target must
 be reached before an AI exit check occurs. The default value is `0.5` (50%).
 `SCALE_LOT_SIZE` sets how many lots are added when the AI exit decision is `SCALE`.

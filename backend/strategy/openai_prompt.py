@@ -13,6 +13,11 @@ MIN_RRR = float(env_loader.get_env("MIN_RRR", "0.8"))
 MIN_NET_TP_PIPS = float(env_loader.get_env("MIN_NET_TP_PIPS", "2"))
 TREND_ADX_THRESH = float(env_loader.get_env("TREND_ADX_THRESH", "20"))
 TREND_PROMPT_BIAS = env_loader.get_env("TREND_PROMPT_BIAS", "normal").lower()
+# レンジ相場でのトレード方針を任意に追記できる環境変数
+RANGE_ENTRY_NOTE = env_loader.get_env(
+    "RANGE_ENTRY_NOTE",
+    "When the market is RANGE, consider quick trades near Bollinger Band edges with small targets."
+)
 
 
 def _series_tail_list(series, n: int = 20) -> list:
@@ -169,6 +174,7 @@ Classify as "TREND" if ANY TWO of the following conditions are met:
 - Price consistently outside the Bollinger Band midline (above for bullish, below for bearish).
 
 If these conditions are not clearly met, classify the market as "RANGE".
+{RANGE_ENTRY_NOTE}
 
 🚫【Counter-trend Trade Prohibition】
 Under clearly identified TREND conditions, avoid counter-trend trades and never rely solely on RSI extremes. Treat pullbacks as trend continuation. However, if a strong reversal pattern such as a double top/bottom or head-and-shoulders is detected and ADX is turning down, a small counter-trend position is acceptable.
