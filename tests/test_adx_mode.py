@@ -58,3 +58,32 @@ def test_entry_signal_trend():
     assert side == "long"
     os.environ.pop("ADX_SCALP_MIN")
     os.environ.pop("ADX_TREND_MIN")
+
+
+def test_determine_trade_mode(monkeypatch):
+    os.environ["ADX_SCALP_MIN"] = "20"
+    os.environ["ADX_TREND_MIN"] = "40"
+    mod = _reload_module()
+
+    monkeypatch.setattr(mod, "analyze_environment_tf", lambda closes, tf: "trend")
+    assert (
+        mod.determine_trade_mode(45, [1, 2, 3], [1, 2, 3], scalp_tf="M1", trend_tf="M5")
+        == "trend_follow"
+    )
+
+    monkeypatch.setattr(mod, "analyze_environment_tf", lambda closes, tf: "range")
+    assert (
+        mod.determine_trade_mode(45, [1, 2, 3], [1, 2, 3], scalp_tf="M1", trend_tf="M5")
+        == "scalp"
+    )
+
+    assert (
+        mod.determine_trade_mode(15, [1, 2], scalp_tf="M1", trend_tf="M5") == "none"
+    )
+
+    assert (
+        mod.determine_trade_mode(25, [1, 2], scalp_tf="M1", trend_tf="M5") == "scalp"
+    )
+
+    os.environ.pop("ADX_SCALP_MIN")
+    os.environ.pop("ADX_TREND_MIN")
