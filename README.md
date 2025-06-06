@@ -52,6 +52,9 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
 - `MODE_ATR_PIPS_MIN` / `MODE_BBWIDTH_PIPS_MIN` … ボラティリティ判定用の閾値
 - `MODE_EMA_SLOPE_MIN` / `MODE_ADX_MIN` … モメンタム判定のしきい値
 - `MODE_VOL_MA_MIN` … 流動性判定に使う出来高平均
+- `MODE_ATR_QTL` / `MODE_ADX_QTL` … ATR・ADX の分位点を利用する場合の割合
+- `MODE_QTL_LOOKBACK` … 分位点計算に使う過去本数
+- `HTF_SLOPE_MIN` … 上位足 EMA 傾きチェック用のしきい値
 - `AI_MODEL` … OpenAI モデル名
 - `LINE_CHANNEL_TOKEN` / `LINE_USER_ID` … LINE 通知に使用する認証情報
 
@@ -144,6 +147,8 @@ threshold passes.
 opposite Bollinger Band the close must be, and the minimum ADX, before a reversal
 exit is considered.
 `POLARITY_EXIT_THRESHOLD` sets the absolute polarity required to trigger a polarity-based early exit. The default is `0.4`.
+`HIGH_ATR_PIPS` defines the ATR level in pips considered "high". When this is met and `ADX` falls below `LOW_ADX_THRESH`, the system exits early.
+`LOW_ADX_THRESH` is the ADX threshold paired with `HIGH_ATR_PIPS` for this early-exit rule.
 `MM_DRAW_MAX_ATR_RATIO` controls how much drawdown from the peak is allowed before the peak exit guard triggers. The value is multiplied by ATR to derive the threshold.
 `PULLBACK_LIMIT_OFFSET_PIPS` is the base distance for a pullback LIMIT order when the AI proposes a market entry. The actual offset is derived from ATR and ADX, and if price runs away while the trend persists the order can be switched to a market order under AI control.
 `AI_LIMIT_CONVERT_MODEL` sets the OpenAI model used when asking whether a pending LIMIT should be switched to a market order. The default is `gpt-4.1-nano`.

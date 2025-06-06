@@ -126,6 +126,7 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - REVERSAL_EXIT_ATR_MULT / REVERSAL_EXIT_ADX_MIN: 反対側 BB を終値で超えた際の早期撤退条件
 - REVERSAL_RSI_DIFF: M5 と M15 の RSI 差分がこの値以上で MACD ヒストグラムが同じ方向ならエントリーをブロック
 - POLARITY_EXIT_THRESHOLD: ポラリティによる早期決済を行う閾値
+- HIGH_ATR_PIPS / LOW_ADX_THRESH: ATRがHIGH_ATR_PIPS以上でADXがLOW_ADX_THRESH未満の場合に早期撤退
 - PULLBACK_LIMIT_OFFSET_PIPS: 指値エントリーへ切り替える際の基本オフセット
 - AI_LIMIT_CONVERT_MODEL: 指値を成行に変換するか判断する AI モデル
 - PULLBACK_PIPS: ピボット抑制中に使用するオフセット
@@ -152,6 +153,9 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - MODE_ATR_PIPS_MIN / MODE_BBWIDTH_PIPS_MIN: トレードモード判定に使うボラティリティ基準
 - MODE_EMA_SLOPE_MIN / MODE_ADX_MIN: モメンタム判定のしきい値
 - MODE_VOL_MA_MIN: 流動性判定に使う出来高平均
+- MODE_ATR_QTL / MODE_ADX_QTL: ATR・ADXの分位点を使ったモード判定割合
+- MODE_QTL_LOOKBACK: 分位点計算に用いる過去本数
+- HTF_SLOPE_MIN: 上位足EMA傾きチェックのしきい値
 - EMA_FLAT_PIPS: EMA の傾きをフラットとみなす幅
 - OVERSHOOT_ATR_MULT: BB下限をATR×この倍率だけ割り込むとエントリーをブロック
 - REV_BLOCK_BARS / TAIL_RATIO_BLOCK / VOL_SPIKE_PERIOD:
