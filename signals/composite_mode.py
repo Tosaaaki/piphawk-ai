@@ -26,6 +26,10 @@ MODE_BONUS_END_JST = float(env_loader.get_env("MODE_BONUS_END_JST", "1"))
 MODE_PENALTY_START_JST = float(env_loader.get_env("MODE_PENALTY_START_JST", "2"))
 MODE_PENALTY_END_JST = float(env_loader.get_env("MODE_PENALTY_END_JST", "8"))
 MODE_LOG_PATH = env_loader.get_env("MODE_LOG_PATH", "analysis/trade_mode_log.csv")
+MODE_ATR_QTL = float(env_loader.get_env("MODE_ATR_QTL", "0"))
+MODE_ADX_QTL = float(env_loader.get_env("MODE_ADX_QTL", "0"))
+MODE_QTL_LOOKBACK = int(env_loader.get_env("MODE_QTL_LOOKBACK", "20"))
+HTF_SLOPE_MIN = float(env_loader.get_env("HTF_SLOPE_MIN", "0.1"))
 
 # --- Vol-Trend matrix parameters ------------------------------------
 ATR_HIGH_RATIO = float(env_loader.get_env("ATR_HIGH_RATIO", "1.4"))
@@ -77,6 +81,21 @@ def decide_trade_mode_matrix(
     if atr_ratio <= atr_low_thr and adx >= adx_trend_thr:
         return "trend_follow"
     return "flat"
+def _quantile(data: Iterable, q: float) -> float | None:
+    """Return q-th quantile from sequence ``data``."""
+    try:
+        vals = [float(v) for v in data if v is not None]
+    except Exception:
+        return None
+    if not vals:
+        return None
+    vals.sort()
+    k = (len(vals) - 1) * q
+    f = int(k)
+    c = min(f + 1, len(vals) - 1)
+    if f == c:
+        return vals[int(k)]
+    return vals[f] * (c - k) + vals[c] * (k - f)
 
 
 def decide_trade_mode_detail(indicators: dict) -> tuple[str, int, list[str]]:
@@ -90,11 +109,25 @@ def decide_trade_mode_detail(indicators: dict) -> tuple[str, int, list[str]]:
         bb_width_pips = (float(bb_u) - float(bb_l)) / pip_size
     atr_pips = float(atr) / pip_size
 
+    atr_thresh = MODE_ATR_PIPS_MIN
+    if MODE_ATR_QTL > 0:
+        series = indicators.get("atr")
+        if series is not None:
+            if hasattr(series, "iloc"):
+                recent = series.iloc[-MODE_QTL_LOOKBACK:]
+            else:
+                recent = series[-MODE_QTL_LOOKBACK:]
+            qval = _quantile(recent, MODE_ATR_QTL)
+            if qval is not None:
+                atr_thresh = qval / pip_size
+
+    adx_thresh = MODE_ADX_MIN
+
     score = 0
     reasons: list[str] = []
 
     # --- Volatility -----------------------------------------------------
-    if atr_pips >= MODE_ATR_PIPS_MIN:
+    if atr_pips >= atr_thresh:
         score += 1
         reasons.append(f"ATR {atr_pips:.1f}p")
     if bb_width_pips >= MODE_BBWIDTH_PIPS_MIN:
@@ -108,10 +141,17 @@ def decide_trade_mode_detail(indicators: dict) -> tuple[str, int, list[str]]:
     plus_di = _last(indicators.get("plus_di"))
     minus_di = _last(indicators.get("minus_di"))
 
+    if MODE_ADX_QTL > 0:
+        adx_series = indicators.get("adx")
+        if adx_series is not None:
+            recent_adx = adx_series.iloc[-MODE_QTL_LOOKBACK:] if hasattr(adx_series, "iloc") else adx_series[-MODE_QTL_LOOKBACK:]
+            q_adx = _quantile(recent_adx, MODE_ADX_QTL)
+            if q_adx is not None:
+                adx_thresh = q_adx
     if adx is not None:
         if adx >= MODE_ADX_STRONG:
             score += 2
-        elif adx >= MODE_ADX_MIN:
+        elif adx >= adx_thresh:
             score += 1
         reasons.append(f"ADX {adx:.1f}")
 
@@ -165,6 +205,14 @@ def decide_trade_mode_detail(indicators: dict) -> tuple[str, int, list[str]]:
         score -= 1
 
     mode = "trend_follow" if score >= MODE_TREND_SCORE_MIN else "scalp"
+
+    if mode == "trend_follow":
+        h1_slope = _last(indicators.get("ema_slope_h1"))
+        h4_slope = _last(indicators.get("ema_slope_h4"))
+        slopes = [abs(s) for s in (h1_slope, h4_slope) if s is not None]
+        if slopes and max(slopes) < HTF_SLOPE_MIN:
+            mode = "scalp"
+            reasons.append("HTF slope weak")
 
     # --- Logging --------------------------------------------------------
     try:
@@ -255,4 +303,8 @@ __all__ = [
     "ATR_LOW_RATIO",
     "ADX_TREND_THR",
     "ADX_FLAT_THR",
+    "MODE_ATR_QTL",
+    "MODE_ADX_QTL",
+    "MODE_QTL_LOOKBACK",
+    "HTF_SLOPE_MIN",
 ]

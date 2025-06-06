@@ -152,6 +152,9 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - MODE_ATR_PIPS_MIN / MODE_BBWIDTH_PIPS_MIN: トレードモード判定に使うボラティリティ基準
 - MODE_EMA_SLOPE_MIN / MODE_ADX_MIN: モメンタム判定のしきい値
 - MODE_VOL_MA_MIN: 流動性判定に使う出来高平均
+- MODE_ATR_QTL / MODE_ADX_QTL: ATR・ADXの分位点を使ったモード判定割合
+- MODE_QTL_LOOKBACK: 分位点計算に用いる過去本数
+- HTF_SLOPE_MIN: 上位足EMA傾きチェックのしきい値
 - EMA_FLAT_PIPS: EMA の傾きをフラットとみなす幅
 - OVERSHOOT_ATR_MULT: BB下限をATR×この倍率だけ割り込むとエントリーをブロック
 - REV_BLOCK_BARS / TAIL_RATIO_BLOCK / VOL_SPIKE_PERIOD:
