@@ -66,6 +66,7 @@ from backend.risk_manager import (
 )
 from datetime import datetime, timezone
 from backend.utils import env_loader
+from signals.adx_strategy import choose_strategy
 import os
 import logging
 import json
@@ -223,28 +224,34 @@ def process_entry(
     except Exception:
         spread_pips = None
 
-    # ADXの値によってSCALP_MODEを自動切替え
+    # ADX からトレードモードを判定
     adx_series = indicators.get("adx")
     adx_val = None
     if adx_series is not None and len(adx_series):
-
         adx_val = (
             float(adx_series.iloc[-1])
             if hasattr(adx_series, "iloc")
             else float(adx_series[-1])
         )
-    adx_min = float(env_loader.get_env("SCALP_ADX_MIN", "0"))
+    scalp_env = os.getenv("SCALP_MODE")
+    if scalp_env in ("true", "false"):
+        trade_mode = "scalp" if scalp_env == "true" else "trend_follow"
+    else:
+        trade_mode = choose_strategy(adx_val or 0.0)
+    logging.info(f"Trade mode decided: {trade_mode}")
+    scalp_mode = trade_mode == "scalp"
     adx_max = float(env_loader.get_env("SCALP_SUPPRESS_ADX_MAX", "0"))
-    if adx_val is not None:
-        if adx_max > 0 and adx_val > adx_max:
-            os.environ["SCALP_MODE"] = "false"
-        else:
-            os.environ["SCALP_MODE"] = "true" if adx_val >= adx_min else "false"
+    if adx_val is not None and adx_max > 0 and adx_val > adx_max:
+        scalp_mode = False
+    os.environ["SCALP_MODE"] = "true" if scalp_mode else "false"
 
-    # --- Scalp entry shortcut ----------------------------------
-    scalp_mode = env_loader.get_env("SCALP_MODE", "false").lower() == "true"
-    # SCALP_MODE の状態をログに残す
+    # スキャル専用の条件
     logging.info("SCALP_MODE is %s", "ON" if scalp_mode else "OFF")
+    if scalp_mode and os.getenv("SCALP_OVERRIDE_RANGE", "false").lower() == "true":
+        if market_cond is not None:
+            market_cond["market_condition"] = "trend"
+            logging.info("SCALP_OVERRIDE_RANGE active – regime forced to trend")
+
     if scalp_mode:
         try:
             adx_series = indicators.get("adx")

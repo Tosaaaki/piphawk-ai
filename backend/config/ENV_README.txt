@@ -199,14 +199,16 @@ SCALE_TRIGGER_ATR=0.5
 - ADX_SCALP_MIN: SCALP_MODE時に必要な最小ADX
 - SCALP_SUPPRESS_ADX_MAX: この値を超えるADXではSCALP_MODEをオフにする
  - SCALP_TP_PIPS / SCALP_SL_PIPS: ボリンジャーバンドが使えない場合の固定TP/SL幅
- - SCALP_COND_TF: スキャルプ時に市場判定へ使う時間足 (デフォルト M1)。
-   S10 を指定すると 10 秒足データも取得する
+- SCALP_COND_TF: スキャルプ時に市場判定へ使う時間足 (デフォルト M1)。
+  S10 を指定すると 10 秒足データも取得する
+- SCALP_OVERRIDE_RANGE: true でレンジ判定を無視してスキャルを実行
 - H1_BOUNCE_RANGE_PIPS: H1安値/高値からこのpips以内ならエントリーを見送る
 - SCALP_MODE: スキャルプモードを有効にする
 - ADX_SCALP_MIN: スキャルプ実行に必要なADX下限
 - SCALP_SUPPRESS_ADX_MAX: この値を超えるADXではSCALP_MODEをオフにする
  - SCALP_TP_PIPS / SCALP_SL_PIPS: ボリバン幅を参照できないときのTP/SL
 - SCALP_COND_TF: スキャルプ時に市場判定へ使う時間足 (デフォルト M1)
+- SCALP_OVERRIDE_RANGE: true でレンジ判定を無視してスキャルを実行
 ■ OANDA_MATCH_SEC
   ローカルトレードと OANDA 取引を照合するときの許容秒数。デフォルトは60秒。
 
