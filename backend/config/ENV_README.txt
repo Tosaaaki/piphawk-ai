@@ -144,6 +144,7 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - PATTERN_MIN_BARS / PATTERN_TOLERANCE: パターン成立条件の細かい調整
 - PATTERN_EXCLUDE_TFS / PATTERN_TFS: チャートパターン検出を行う/除外する時間足
 - STRICT_ENTRY_FILTER: M1 RSI クロス必須判定のオン/オフ
+- SCALP_STRICT_FILTER: スキャル時にもクロスを要求するか
 - HIGHER_TF_ENABLED: 上位足ピボットをTP計算に利用するか
 - VOL_MA_PERIOD: 出来高平均を計算する期間
 - MIN_VOL_MA / MIN_VOL_M1: ボリュームフィルタの最小値

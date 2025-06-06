@@ -21,6 +21,8 @@ from backend.indicators.adx import calculate_adx_slope
 logger = logging.getLogger(__name__)
 
 REVERSAL_RSI_DIFF = float(os.getenv("REVERSAL_RSI_DIFF", "15"))
+# スキャル専用の厳格判定フラグ
+SCALP_STRICT_FILTER = os.getenv("SCALP_STRICT_FILTER", "false").lower() == "true"
 
 
 def _ema_direction(fast, slow) -> str | None:
@@ -440,6 +442,8 @@ def pass_entry_filter(
 
     # --- M1 RSI cross-up/down check ----------------------------------
     strict = os.getenv("STRICT_ENTRY_FILTER", "true").lower() == "true"
+    if mode == "scalp":
+        strict = SCALP_STRICT_FILTER
     if strict:
         if indicators_m1 is None:
             try:
@@ -613,7 +617,7 @@ def pass_entry_filter(
     else:
         atr_condition = (latest_atr / pip_size) >= (atr_th / pip_size)
 
-    if mode == "scalp":
+    if mode in ("scalp", "scalp_momentum"):
         atr_condition = True
         required = 1
     elif mode == "trend_follow":

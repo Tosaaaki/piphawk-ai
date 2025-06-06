@@ -174,6 +174,7 @@ The indicators module also calculates `adx_bb_score`, a composite value derived 
 `PATTERN_EXCLUDE_TFS` に `M1` などを指定すると、その時間足ではパターン検出を行いません。
 `PATTERN_TFS` を `M1,M5` のように設定すると、指定した時間足のみをスキャンします。
 `STRICT_ENTRY_FILTER` controls whether the M1 RSI cross signal is required. Set to `false` to skip the cross check (default `true`).
+`SCALP_STRICT_FILTER` applies the same rule only in scalp mode. Set to `true` when an M1 RSI cross must be observed for scalping entries.
 `HIGHER_TF_ENABLED` を `true` にすると、上位足ピボットとの距離も TP 計算に利用します。
 `VOL_MA_PERIOD` sets the averaging window for volume checks. If the average falls below `MIN_VOL_MA` (or `MIN_VOL_M1`) the entry is blocked.
 `ADX_SLOPE_LOOKBACK` defines how many candles to look back when computing ADX slope, and `ADX_DYNAMIC_COEFF` scales the ADX threshold based on Bollinger width.

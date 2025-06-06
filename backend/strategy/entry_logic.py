@@ -235,7 +235,7 @@ def process_entry(
         )
     trade_mode = decide_trade_mode(indicators)
     logging.info("Trade mode decided: %s", trade_mode)
-    scalp_mode = trade_mode == "scalp"
+    scalp_mode = trade_mode in ("scalp", "scalp_momentum") and adx_val is not None
     adx_max = float(env_loader.get_env("SCALP_SUPPRESS_ADX_MAX", "0"))
     if adx_val is not None and adx_max > 0 and adx_val > adx_max:
         scalp_mode = False
