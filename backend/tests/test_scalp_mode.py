@@ -51,6 +51,14 @@ class TestScalpMode(unittest.TestCase):
         oa.EXIT_BIAS_FACTOR = 1.0
         add("backend.strategy.openai_analysis", oa)
 
+        scalp_ai = types.ModuleType("backend.strategy.openai_scalp_analysis")
+        scalp_ai.get_scalp_plan = lambda *a, **k: {
+            "side": "long",
+            "tp_pips": 2,
+            "sl_pips": 1,
+        }
+        add("backend.strategy.openai_scalp_analysis", scalp_ai)
+
         om = types.ModuleType("backend.orders.order_manager")
 
         class DummyMgr:
@@ -83,6 +91,8 @@ class TestScalpMode(unittest.TestCase):
         os.environ["ADX_TREND_MIN"] = "50"
         os.environ["SCALP_TP_PIPS"] = "2"
         os.environ["SCALP_SL_PIPS"] = "1"
+        os.environ["SCALP_AI_ADX_MIN"] = "25"
+        os.environ["SCALP_AI_BBWIDTH_MAX"] = "4"
 
         import backend.strategy.entry_logic as el
 
@@ -101,6 +111,8 @@ class TestScalpMode(unittest.TestCase):
             "SCALP_TP_PIPS",
             "SCALP_SL_PIPS",
             "SCALP_MODE",
+            "SCALP_AI_ADX_MIN",
+            "SCALP_AI_BBWIDTH_MAX",
         ]:
             os.environ.pop(key, None)
 
