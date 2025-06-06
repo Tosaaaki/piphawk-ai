@@ -23,6 +23,8 @@
 - `COUNTER_BYPASS_ADX`: M5 ADX がこの値以上でポジションと同方向なら逆張り判定を無視。
 - `LT_TF_PRIORITY_ADX`: 下位足のADXがこの値を超えEMAクロスが発生すると上位足の重みを減少。
 - `LT_TF_WEIGHT_FACTOR`: 重みを減らす際に掛ける係数。
+- `ALIGN_ADX_WEIGHT`: マルチTF整合計算でADX方向を加味する重み。0なら無効。
+- `MIN_ALIGN_ADX`: ADXがこの値以上ならDI方向を評価する。
 
 ## 急反転フィルタの例
 

@@ -162,6 +162,8 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - ALIGN_BYPASS_ADX: M5 ADXがこの値以上でAI方向が設定されている場合、整合チェックをスキップ
 - LT_TF_PRIORITY_ADX: 下位足ADXがこの値以上でEMAクロスが発生したら他タイムフレームの重みを減少
 - LT_TF_WEIGHT_FACTOR: 上記条件を満たした際に適用する重み係数 (0.5なら半減)
+- ALIGN_ADX_WEIGHT: ADXのDI方向を整合評価へ加える重み
+- MIN_ALIGN_ADX: ADXがこの値以上のときのみDI方向を採用
 
 - LINE_CHANNEL_TOKEN: LINE 通知に使用するチャンネルアクセストークン
 - LINE_USER_ID: 通知を送るユーザーのLINE ID
