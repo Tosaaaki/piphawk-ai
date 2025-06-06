@@ -92,9 +92,10 @@ TRADES_DB_PATH=trades-002.db
 エントリーフィルタの詳細は `docs/entry_filter.md` を参照してください。
 高位足の使い方に関する補足は `docs/higher_tf_strategy.md` を参照してください。
 低ボラ時のエントリー仕様は `docs/low_vol_entry.md` を参照してください。
+より積極的にスキャルプするための設定例は `docs/aggressive_scalp.md` にまとめています。
    `RANGE_CENTER_BLOCK_PCT` controls how close to the Bollinger band center price
-   can be when ADX is below `ADX_RANGE_THRESHOLD`. Set to `0.3` (30%) to block
-   entries near the middle of a range, helping suppress counter-trend trades.
+    can be when ADX is below `ADX_RANGE_THRESHOLD`. Set to `0.3` (30%) to block
+    entries near the middle of a range, helping suppress counter-trend trades.
    `BAND_WIDTH_THRESH_PIPS` defines the Bollinger band width that triggers
    range mode regardless of ADX. When the width falls below this value the system
    treats the market as ranging and the AI prompt notes that *BB width is
