@@ -167,6 +167,8 @@ def process_entry(
 
     # --- Scalp entry shortcut ----------------------------------
     scalp_mode = env_loader.get_env("SCALP_MODE", "false").lower() == "true"
+    # SCALP_MODE の状態をログに残す
+    logging.info("SCALP_MODE is %s", "ON" if scalp_mode else "OFF")
     if scalp_mode:
         try:
             adx_series = indicators.get("adx")
