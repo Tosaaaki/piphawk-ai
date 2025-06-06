@@ -182,7 +182,8 @@ def calc_consistency(
     if not local or not ai:
         ai_score = 0.5
     else:
-        ai_score = 1.0 if local == ai else 0.0
+        # When local and AI disagree, use a neutral score instead of zero
+        ai_score = 1.0 if local == ai else 0.5
 
     local_score = (
         ema_ok * _get_dynamic_weight("ema")

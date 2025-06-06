@@ -46,9 +46,10 @@ def load_params(
 
     env_params: dict[str, object] = {}
 
-    p = Path(path)
-    if p.exists():
-        env_params.update(_flatten(_parse_yaml_file(p)))
+    if path is not None:
+        p = Path(path)
+        if p.exists():
+            env_params.update(_flatten(_parse_yaml_file(p)))
 
     if strategy_path is not None:
         sp = Path(strategy_path)
