@@ -17,6 +17,8 @@ from signals.scalp_strategy import (
 
 ADX_SCALP_MIN = float(env_loader.get_env("ADX_SCALP_MIN", "20"))
 ADX_TREND_MIN = float(env_loader.get_env("ADX_TREND_MIN", "30"))
+SCALP_COND_TF = env_loader.get_env("SCALP_COND_TF", "M1").upper()
+TREND_COND_TF = env_loader.get_env("TREND_COND_TF", "M5").upper()
 
 
 def choose_strategy(adx_value: float) -> str:
@@ -30,11 +32,20 @@ def choose_strategy(adx_value: float) -> str:
 
 def determine_trade_mode(
     adx_value: float,
-    closes_tf: Sequence[float],
+    closes_scalp: Sequence[float],
+    closes_trend: Sequence[float] | None = None,
     *,
-    tf: str | None = None,
+    scalp_tf: str | None = None,
+    trend_tf: str | None = None,
 ) -> str:
     """市場状態からトレードモードを返す."""
+    scalp_tf = (scalp_tf or SCALP_COND_TF).upper()
+    trend_tf = (trend_tf or TREND_COND_TF).upper()
+    mode = choose_strategy(adx_value)
+    if mode == "trend_follow":
+        ref = closes_trend if closes_trend is not None else closes_scalp
+        if analyze_environment_tf(ref, trend_tf) == "range":
+            return "scalp"
     logger = logging.getLogger(__name__)
     env = analyze_environment_tf(closes_tf, tf)
 
@@ -60,23 +71,33 @@ def entry_signal(
     adx_value: float,
     closes_m1: Sequence[float],
     closes_s10: Sequence[float],
+    closes_trend: Sequence[float] | None = None,
 ) -> Optional[str]:
     """ADXとBBからモードを決定して方向を返す."""
-    tf = env_loader.get_env("SCALP_COND_TF", "M1").upper()
-    ref_closes = closes_s10 if tf == "S10" else closes_m1
-    mode = determine_trade_mode(adx_value, ref_closes, tf=tf)
+    tf_scalp = env_loader.get_env("SCALP_COND_TF", SCALP_COND_TF).upper()
+    tf_trend = env_loader.get_env("TREND_COND_TF", TREND_COND_TF).upper()
+    ref_closes = closes_s10 if tf_scalp == "S10" else closes_m1
+    if closes_trend is None:
+        closes_trend = closes_m1
+    mode = determine_trade_mode(
+        adx_value,
+        ref_closes,
+        closes_trend,
+        scalp_tf=tf_scalp,
+        trend_tf=tf_trend,
+    )
     if mode == "scalp":
-        if tf == "S10":
-            direction = analyze_environment_tf(closes_s10, tf)
+        if tf_scalp == "S10":
+            direction = analyze_environment_tf(closes_s10, tf_scalp)
         else:
-            direction = analyze_environment_tf(closes_m1, tf)
+            direction = analyze_environment_tf(closes_m1, tf_scalp)
         bands = multi_bollinger({"S10": closes_s10})["S10"]
         return should_enter_trade_s10(direction, closes_s10, bands)
     if mode == "trend_follow":
-        if len(closes_m1) < 2:
+        if len(closes_trend) < 2:
             return None
-        last = closes_m1[-1]
-        prev = closes_m1[-2]
+        last = closes_trend[-1]
+        prev = closes_trend[-2]
         if last > prev:
             return "long"
         if last < prev:
@@ -90,4 +111,6 @@ __all__ = [
     "entry_signal",
     "ADX_SCALP_MIN",
     "ADX_TREND_MIN",
+    "SCALP_COND_TF",
+    "TREND_COND_TF",
 ]
