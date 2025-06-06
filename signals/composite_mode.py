@@ -146,10 +146,19 @@ def decide_trade_mode_detail(
         return (val - vmin) / (vmax - vmin)
 
     m5 = indicators
-    vols = m5.get("volume") or []
+    vols = m5.get("volume")
+    if vols is None:
+        vols = []
+    elif hasattr(vols, "tolist"):
+        vols = vols.tolist()
     vol_ma = sum(vols[-VOL_MA_PERIOD:]) / min(len(vols), VOL_MA_PERIOD) if vols else None
+
     atr_val = _last(m5.get("atr"))
-    adx_vals = m5.get("adx") or []
+    adx_vals = m5.get("adx")
+    if adx_vals is None:
+        adx_vals = []
+    elif hasattr(adx_vals, "tolist"):
+        adx_vals = adx_vals.tolist()
     adx_val = _last(adx_vals)
 
     vol_score = max(0.0, min(1.0, _scale(vol_ma, MODE_VOL_MA_MIN, MODE_VOL_MA_MIN * 1.5)))
