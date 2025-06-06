@@ -24,6 +24,30 @@ def _ema_direction(ema_fast, ema_slow) -> Direction | None:
     return None
 
 
+def _adx_direction(adx, plus_di, minus_di, min_adx: float) -> Direction | None:
+    """Return direction based on ADX DI values when ADX >= min_adx."""
+    try:
+        adx_val = (
+            float(adx.iloc[-1]) if hasattr(adx, "iloc") else float(adx[-1])
+        )
+        p = plus_di.iloc[-1] if hasattr(plus_di, "iloc") else plus_di[-1]
+        m = minus_di.iloc[-1] if hasattr(minus_di, "iloc") else minus_di[-1]
+    except Exception:
+        return None
+    try:
+        p = float(p)
+        m = float(m)
+    except Exception:
+        return None
+    if adx_val < min_adx:
+        return None
+    if p > m:
+        return "long"
+    if p < m:
+        return "short"
+    return None
+
+
 def is_multi_tf_aligned(
     indicators_by_tf: Dict[str, Dict], ai_side: Direction | None = None
 ) -> Direction | None:
@@ -55,6 +79,9 @@ def is_multi_tf_aligned(
                 weights[key.strip().upper()] = float(val)
             except ValueError:
                 continue
+
+    adx_weight = float(env_loader.get_env("ALIGN_ADX_WEIGHT", "0"))
+    min_adx = float(env_loader.get_env("MIN_ALIGN_ADX", "20"))
 
     lt_adx_thresh = float(env_loader.get_env("LT_TF_PRIORITY_ADX", "0"))
     lt_weight_factor = float(env_loader.get_env("LT_TF_WEIGHT_FACTOR", "1"))
@@ -105,6 +132,16 @@ def is_multi_tf_aligned(
             scores[dir_] += w
         else:
             logger.debug("%s: insufficient EMA data for alignment", tf)
+
+        if adx_weight > 0:
+            adx_dir = _adx_direction(
+                ind.get("adx"),
+                ind.get("plus_di"),
+                ind.get("minus_di"),
+                min_adx,
+            )
+            if adx_dir:
+                scores[adx_dir] += w * adx_weight
 
     if ai_side in ("long", "short"):
         ai_w = float(env_loader.get_env("AI_ALIGN_WEIGHT", "0.2"))
