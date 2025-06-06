@@ -307,6 +307,7 @@ class JobRunner:
         """Load YAML parameters for the given mode and optionally restart."""
         file_map = {
             "scalp": "config/scalp.yml",
+            "scalp_momentum": "config/scalp.yml",
             "trend_follow": "config/trend.yml",
         }
         path = file_map.get(mode, "config/strategy.yml")
