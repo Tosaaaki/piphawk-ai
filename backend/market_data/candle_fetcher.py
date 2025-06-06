@@ -95,6 +95,11 @@ def fetch_multiple_timeframes(instrument=None, timeframes=None):
             "D": 90,    # 日足
         }
 
+    scalp_tf = os.getenv("SCALP_COND_TF", "").upper()
+    if scalp_tf and scalp_tf not in timeframes:
+        default_count = 60
+        timeframes[scalp_tf] = default_count
+
     candles_by_timeframe = {}
     for granularity, count in timeframes.items():
         fetch_gran = "D" if granularity == "D1" else granularity

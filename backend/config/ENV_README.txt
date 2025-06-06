@@ -197,7 +197,8 @@ SCALE_TRIGGER_ATR=0.5
 - SCALP_ADX_MIN: SCALP_MODE時に必要な最小ADX
 - SCALP_SUPPRESS_ADX_MAX: この値を超えるADXではSCALP_MODEをオフにする
 - SCALP_TP_PIPS / SCALP_SL_PIPS: スキャル時のTP/SL幅
-- SCALP_COND_TF: スキャルプ時に市場判定へ使う時間足 (デフォルト M1)
+ - SCALP_COND_TF: スキャルプ時に市場判定へ使う時間足 (デフォルト M1)。
+   S10 を指定すると 10 秒足データも取得する
 - H1_BOUNCE_RANGE_PIPS: H1安値/高値からこのpips以内ならエントリーを見送る
 - SCALP_MODE: スキャルプモードを有効にする
 - SCALP_ADX_MIN: スキャルプ実行に必要なADX下限
