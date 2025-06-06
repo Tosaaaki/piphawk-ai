@@ -79,6 +79,7 @@
     "MIN_TP_PROB": 0.75,
     "TP_PROB_HOURS": 24,
     "AI_TRADE_MODEL": "gpt-4.1-nano",
+    "AI_SCALP_MODEL": "gpt-4.1-nano",
     "AI_LIMIT_CONVERT_MODEL": "gpt-4.1-nano",
     "LIMIT_THRESHOLD_ATR_RATIO": 0.3,
     "MAX_LIMIT_AGE_SEC": 180,
@@ -114,5 +115,7 @@
     "CLIMAX_TP_PIPS": 7,
     "CLIMAX_SL_PIPS": 10,
     "REV_BLOCK_BARS": 3,
-    "TAIL_RATIO_BLOCK": 2.0
+    "TAIL_RATIO_BLOCK": 2.0,
+    "SCALP_AI_ADX_MIN": 25,
+    "SCALP_AI_BBWIDTH_MAX": 4
   }
