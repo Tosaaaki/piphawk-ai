@@ -71,6 +71,7 @@ from backend.strategy import pattern_scanner
 from backend.strategy.momentum_follow import follow_breakout
 from analysis.regime_detector import RegimeDetector
 import requests
+from signals.adx_strategy import determine_trade_mode
 
 from backend.utils.notification import send_line_message
 from backend.logs.trade_logger import log_trade, ExitReason
@@ -246,6 +247,9 @@ class JobRunner:
 
         # SCALP_MODE 時に市場判断へ使う時間足
         self.scalp_cond_tf = env_loader.get_env("SCALP_COND_TF", "M1").upper()
+
+        # 現在のトレードモード（scalp / trend_follow / none）
+        self.trade_mode: str | None = None
 
         # Restore TP adjustment flags based on existing TP order comment
         try:
@@ -789,6 +793,26 @@ class JobRunner:
                     logger.info(f"Multi‑TF alignment: {align}")
 
                     logger.info("Indicators calculation successful.")
+
+                    # ADX を使ってトレードモードを判定
+                    adx_series = indicators.get("adx")
+                    if adx_series is not None and len(adx_series):
+                        adx_val = (
+                            float(adx_series.iloc[-1])
+                            if hasattr(adx_series, "iloc")
+                            else float(adx_series[-1])
+                        )
+                    else:
+                        adx_val = 0.0
+                    tf_mode = env_loader.get_env("SCALP_COND_TF", self.scalp_cond_tf).upper()
+                    candles_tf = candles_dict.get(tf_mode, [])
+                    closes_tf = [
+                        float(c.get("mid", {}).get("c"))
+                        for c in candles_tf
+                        if c.get("mid")
+                    ]
+                    self.trade_mode = determine_trade_mode(adx_val, closes_tf, tf=tf_mode)
+                    logger.info("Current trade mode: %s", self.trade_mode)
 
                     # チェック：保留LIMIT注文の更新
                     self._manage_pending_limits(DEFAULT_PAIR, indicators, candles_m5, tick_data)
