@@ -41,7 +41,7 @@ def test_entry_signal_scalp():
     adx = 25
     closes_m1 = [1] * 20 + [2]
     closes_s10 = list(range(20)) + [50]
-    side = mod.entry_signal(adx, closes_m1, closes_s10)
+    side = mod.entry_signal(adx, closes_m1, closes_s10, closes_m1)
     assert side == "long"
     os.environ.pop("ADX_SCALP_MIN")
     os.environ.pop("ADX_TREND_MIN")
@@ -54,7 +54,7 @@ def test_entry_signal_trend():
     adx = 45
     closes_m1 = [1, 2, 3]
     closes_s10 = [1, 2, 3]
-    side = mod.entry_signal(adx, closes_m1, closes_s10)
+    side = mod.entry_signal(adx, closes_m1, closes_s10, closes_m1)
     assert side == "long"
     os.environ.pop("ADX_SCALP_MIN")
     os.environ.pop("ADX_TREND_MIN")
