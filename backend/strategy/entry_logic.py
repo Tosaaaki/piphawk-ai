@@ -380,6 +380,23 @@ def process_entry(
         allow_delayed_entry=allow_delayed_entry,
     )
 
+    # -- "no" の場合は攻めたバイアスで再試行 --------------------
+    if (
+        plan.get("entry", {}).get("side", "no").lower() not in ("long", "short")
+        and env_loader.get_env("AI_RETRY_ON_NO", "false").lower() == "true"
+    ):
+        plan = oa.get_trade_plan(
+            market_data,
+            indicators_multi,
+            candles_dict,
+            patterns=patterns,
+            detected_patterns=detected,
+            allow_delayed_entry=allow_delayed_entry,
+            trend_prompt_bias="aggressive",
+        )
+        ai_raw = json.dumps(plan, ensure_ascii=False)
+        logging.info(f"AI trade plan aggressive retry: {ai_raw}")
+
     # Raw JSON for audit log
     ai_raw = json.dumps(plan, ensure_ascii=False)
     logging.info(f"AI trade plan raw: {ai_raw}")

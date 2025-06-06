@@ -51,6 +51,7 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
 - `ADX_SCALP_MIN` … ADX がこの値以上でスキャルプモード
 - `ADX_TREND_MIN` … ADX がこの値以上でトレンドフォローモード
 - `TREND_PROMPT_BIAS` … `aggressive` にするとトレンドフォローAIがより積極的
+- `AI_RETRY_ON_NO` … true にするとAIが "no" を返した際に再度 "aggressive" バイアスで判定
 - `MODE_ATR_PIPS_MIN` / `MODE_BBWIDTH_PIPS_MIN` … ボラティリティ判定用の閾値
 - `MODE_EMA_SLOPE_MIN` / `MODE_ADX_MIN` … モメンタム判定のしきい値
 - `MODE_VOL_MA_MIN` … 流動性判定に使う出来高平均
