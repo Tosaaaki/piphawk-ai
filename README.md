@@ -199,6 +199,7 @@ reentry:
 ```
 
 `min_atr_sl_multiplier` は ATR を基にした最小ストップ幅の倍率、`min_rr_ratio` は最低リスクリワード比を示します。`avoid_false_break` ではブレイク失敗回避のための期間と閾値を設定し、`reentry` を有効にするとブレイク後に再びエントリーする条件を制御できます。
+これらの値は `params_loader.load_params()` により `MIN_ATR_MULT` などの環境変数に変換されます。
 
 ## パラメータ変更履歴の確認
 
