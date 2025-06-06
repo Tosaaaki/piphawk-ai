@@ -304,7 +304,7 @@ class JobRunner:
     def _get_cond_indicators(self) -> dict:
         """Return indicators for market condition check."""
         tf = env_loader.get_env("TREND_COND_TF", "M5").upper()
-        if self.trade_mode == "scalp":
+        if self.trade_mode in ("scalp", "scalp_momentum"):
             tf = env_loader.get_env("SCALP_COND_TF", self.scalp_cond_tf).upper()
         return getattr(self, f"indicators_{tf}", {}) or {}
 
