@@ -69,8 +69,33 @@ class TestConsistencyWeights(unittest.TestCase):
             adx_ok=1.0,
             rsi_cross_ok=1.0,
         )
-        expected_local = 0.1 + 0.1 + 0.8
-        expected_alpha = self.oa.LOCAL_WEIGHT_THRESHOLD * expected_local + (1 - self.oa.LOCAL_WEIGHT_THRESHOLD)
+        expected_local = (
+            self.oa._get_dynamic_weight("ema")
+            + self.oa._get_dynamic_weight("adx")
+            + self.oa._get_dynamic_weight("rsi")
+        )
+        expected_alpha = (
+            self.oa.LOCAL_WEIGHT_THRESHOLD * expected_local
+            + (1 - self.oa.LOCAL_WEIGHT_THRESHOLD)
+        )
+        self.assertAlmostEqual(alpha, expected_alpha)
+
+    def test_disagreement_partial_score(self):
+        alpha = self.oa.calc_consistency(
+            "trend",
+            "range",
+            ema_ok=1.0,
+            adx_ok=1.0,
+            rsi_cross_ok=0.0,
+        )
+        expected_local = (
+            self.oa._get_dynamic_weight("ema") + self.oa._get_dynamic_weight("adx")
+        )
+        expected_ai = 0.5
+        expected_alpha = (
+            self.oa.LOCAL_WEIGHT_THRESHOLD * expected_local
+            + (1 - self.oa.LOCAL_WEIGHT_THRESHOLD) * expected_ai
+        )
         self.assertAlmostEqual(alpha, expected_alpha)
 
 
