@@ -61,7 +61,7 @@ class TestScalpMode(unittest.TestCase):
 
         os.environ["PIP_SIZE"] = "0.01"
         os.environ["SCALP_MODE"] = "true"
-        os.environ["SCALP_ADX_MIN"] = "30"
+        os.environ["ADX_SCALP_MIN"] = "30"
         os.environ["SCALP_TP_PIPS"] = "2"
         os.environ["SCALP_SL_PIPS"] = "1"
 
@@ -76,7 +76,7 @@ class TestScalpMode(unittest.TestCase):
         for key in [
             "PIP_SIZE",
             "SCALP_MODE",
-            "SCALP_ADX_MIN",
+            "ADX_SCALP_MIN",
             "SCALP_SUPPRESS_ADX_MAX",
             "SCALP_TP_PIPS",
             "SCALP_SL_PIPS",
