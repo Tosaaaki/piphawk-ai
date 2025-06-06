@@ -4,6 +4,15 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+# YAML内キーと環境変数名のマッピング
+_KEY_ALIASES = {
+    "RISK_MIN_ATR_SL_MULTIPLIER": "MIN_ATR_MULT",
+    "RISK_MIN_RR_RATIO": "MIN_RRR",
+    "FILTERS_AVOID_FALSE_BREAK_LOOKBACK_CANDLES": "FALSE_BREAK_LOOKBACK",
+    "FILTERS_AVOID_FALSE_BREAK_THRESHOLD_RATIO": "FALSE_BREAK_RATIO",
+    "REENTRY_TRIGGER_PIPS_OVER_BREAK": "REENTRY_TRIGGER_PIPS",
+}
+
 
 def _parse_value(val: str):
     val = val.strip()
@@ -95,6 +104,11 @@ def load_params(
         se = Path(settings_path)
         if se.exists():
             env_params.update(_flatten(_parse_yaml_file(se)))
+
+    # キーエイリアスの適用
+    for src, target in _KEY_ALIASES.items():
+        if src in env_params and target not in env_params:
+            env_params[target] = env_params[src]
 
     for k, v in env_params.items():
         os.environ[k] = str(v)
