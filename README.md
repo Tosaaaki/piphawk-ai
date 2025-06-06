@@ -147,6 +147,8 @@ threshold passes.
 opposite Bollinger Band the close must be, and the minimum ADX, before a reversal
 exit is considered.
 `POLARITY_EXIT_THRESHOLD` sets the absolute polarity required to trigger a polarity-based early exit. The default is `0.4`.
+`HIGH_ATR_PIPS` defines the ATR level in pips considered "high". When this is met and `ADX` falls below `LOW_ADX_THRESH`, the system exits early.
+`LOW_ADX_THRESH` is the ADX threshold paired with `HIGH_ATR_PIPS` for this early-exit rule.
 `MM_DRAW_MAX_ATR_RATIO` controls how much drawdown from the peak is allowed before the peak exit guard triggers. The value is multiplied by ATR to derive the threshold.
 `PULLBACK_LIMIT_OFFSET_PIPS` is the base distance for a pullback LIMIT order when the AI proposes a market entry. The actual offset is derived from ATR and ADX, and if price runs away while the trend persists the order can be switched to a market order under AI control.
 `AI_LIMIT_CONVERT_MODEL` sets the OpenAI model used when asking whether a pending LIMIT should be switched to a market order. The default is `gpt-4.1-nano`.

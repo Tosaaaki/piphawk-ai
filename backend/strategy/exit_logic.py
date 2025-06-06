@@ -37,6 +37,10 @@ STAGNANT_ATR_PIPS = float(os.getenv("STAGNANT_ATR_PIPS", "0"))
 REVERSAL_EXIT_ATR_MULT = float(os.getenv("REVERSAL_EXIT_ATR_MULT", "1.0"))
 REVERSAL_EXIT_ADX_MIN = float(os.getenv("REVERSAL_EXIT_ADX_MIN", "25"))
 
+# ATRが高くADXが低いときの早期撤退判定に使う閾値
+HIGH_ATR_PIPS = float(os.getenv("HIGH_ATR_PIPS", "10"))
+LOW_ADX_THRESH = float(os.getenv("LOW_ADX_THRESH", "20"))
+
 # polarity-based exit threshold
 POLARITY_EXIT_THRESHOLD = float(os.getenv("POLARITY_EXIT_THRESHOLD", "0.4"))
 
@@ -282,6 +286,15 @@ def process_exit(
             bb_lower = float(bb_lower.iloc[-1])
         if hasattr(adx_val, "iloc"):
             adx_val = float(adx_val.iloc[-1])
+
+        # ATR が非常に大きく ADX が低い場合は早期撤退を検討
+        if (
+            atr_val is not None
+            and adx_val is not None
+            and (atr_val / pip_size) >= HIGH_ATR_PIPS
+            and adx_val < LOW_ADX_THRESH
+        ):
+            early_exit = True
 
         if (
             atr_val is not None
