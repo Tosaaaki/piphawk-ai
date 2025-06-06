@@ -58,7 +58,7 @@ YAML はあくまで設定を切り替えるためのオプションで、`param
 
 ## 自動切り替え
 
-`signals.adx_strategy.determine_trade_mode()` が返すモードに応じて
+`signals.composite_mode.decide_trade_mode()` が返すモードに応じて
 `backend/scheduler/job_runner.py` は `config/scalp.yml` もしくは
 `config/trend.yml` を自動で読み込みます。モードが変化した際は
 `params_loader.load_params()` を実行し、`AUTO_RESTART=true` を設定すると

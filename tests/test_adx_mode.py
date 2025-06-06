@@ -9,6 +9,11 @@ def _reload_module():
     return importlib.reload(mod)
 
 
+def _reload_composite():
+    import signals.composite_mode as cm
+    return importlib.reload(cm)
+
+
 def test_choose_strategy_default():
     os.environ.pop("ADX_SCALP_MIN", None)
     os.environ.pop("ADX_TREND_MIN", None)
@@ -51,39 +56,52 @@ def test_entry_signal_trend():
     os.environ["ADX_SCALP_MIN"] = "20"
     os.environ["ADX_TREND_MIN"] = "40"
     mod = _reload_module()
+    from _pytest.monkeypatch import MonkeyPatch
+    mp = MonkeyPatch()
+    mp.setattr(mod, "analyze_environment_tf", lambda closes, tf: "trend")
     adx = 45
     closes_m1 = [1, 2, 3]
     closes_s10 = [1, 2, 3]
     side = mod.entry_signal(adx, closes_m1, closes_s10, closes_m1)
     assert side == "long"
+    mp.undo()
     os.environ.pop("ADX_SCALP_MIN")
     os.environ.pop("ADX_TREND_MIN")
 
 
-def test_determine_trade_mode(monkeypatch):
-    os.environ["ADX_SCALP_MIN"] = "20"
-    os.environ["ADX_TREND_MIN"] = "40"
-    mod = _reload_module()
+def test_decide_trade_mode_trend(monkeypatch):
+    monkeypatch.setenv("MODE_ATR_PIPS_MIN", "4")
+    monkeypatch.setenv("MODE_BBWIDTH_PIPS_MIN", "2")
+    monkeypatch.setenv("MODE_EMA_SLOPE_MIN", "0.1")
+    monkeypatch.setenv("MODE_ADX_MIN", "20")
+    monkeypatch.setenv("MODE_VOL_MA_MIN", "50")
+    cm = _reload_composite()
+    inds = {
+        "atr": [0.05],
+        "bb_upper": [101.0],
+        "bb_lower": [100.0],
+        "ema_slope": [0.2],
+        "macd_hist": [0.3],
+        "adx": [30],
+        "volume": [60, 70, 80, 90, 100],
+    }
+    assert cm.decide_trade_mode(inds) == "trend_follow"
 
-    monkeypatch.setattr(mod, "analyze_environment_tf", lambda closes, tf: "trend")
-    assert (
-        mod.determine_trade_mode(45, [1, 2, 3], [1, 2, 3], scalp_tf="M1", trend_tf="M5")
-        == "trend_follow"
-    )
 
-    monkeypatch.setattr(mod, "analyze_environment_tf", lambda closes, tf: "range")
-    assert (
-        mod.determine_trade_mode(45, [1, 2, 3], [1, 2, 3], scalp_tf="M1", trend_tf="M5")
-        == "scalp"
-    )
-
-    assert (
-        mod.determine_trade_mode(15, [1, 2], scalp_tf="M1", trend_tf="M5") == "none"
-    )
-
-    assert (
-        mod.determine_trade_mode(25, [1, 2], scalp_tf="M1", trend_tf="M5") == "scalp"
-    )
-
-    os.environ.pop("ADX_SCALP_MIN")
-    os.environ.pop("ADX_TREND_MIN")
+def test_decide_trade_mode_scalp(monkeypatch):
+    monkeypatch.setenv("MODE_ATR_PIPS_MIN", "6")
+    monkeypatch.setenv("MODE_BBWIDTH_PIPS_MIN", "4")
+    monkeypatch.setenv("MODE_EMA_SLOPE_MIN", "0.5")
+    monkeypatch.setenv("MODE_ADX_MIN", "50")
+    monkeypatch.setenv("MODE_VOL_MA_MIN", "100")
+    cm = _reload_composite()
+    inds = {
+        "atr": [0.03],
+        "bb_upper": [100.03],
+        "bb_lower": [100.0],
+        "ema_slope": [0.1],
+        "macd_hist": [0.05],
+        "adx": [20],
+        "volume": [20, 30, 40, 50, 60],
+    }
+    assert cm.decide_trade_mode(inds) == "scalp"

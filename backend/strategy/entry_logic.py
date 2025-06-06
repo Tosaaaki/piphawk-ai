@@ -66,7 +66,7 @@ from backend.risk_manager import (
 )
 from datetime import datetime, timezone
 from backend.utils import env_loader
-from signals.adx_strategy import choose_strategy
+from signals.composite_mode import decide_trade_mode
 import os
 import logging
 import json
@@ -233,19 +233,8 @@ def process_entry(
             if hasattr(adx_series, "iloc")
             else float(adx_series[-1])
         )
-    reason = ""
-    trade_mode = choose_strategy(adx_val or 0.0)
-    min_scalp = float(env_loader.get_env("ADX_SCALP_MIN", "20"))
-    min_trend = float(env_loader.get_env("ADX_TREND_MIN", "30"))
-    if adx_val is None:
-        reason = "ADX unavailable"
-    elif trade_mode == "none":
-        reason = f"ADX {adx_val:.1f} < {min_scalp}"
-    elif trade_mode == "scalp":
-        reason = f"{min_scalp} <= ADX {adx_val:.1f} < {min_trend}"
-    else:
-        reason = f"ADX {adx_val:.1f} >= {min_trend}"
-    logging.info(f"Trade mode decided: {trade_mode} ({reason})")
+    trade_mode = decide_trade_mode(indicators)
+    logging.info("Trade mode decided: %s", trade_mode)
     scalp_mode = trade_mode == "scalp"
     adx_max = float(env_loader.get_env("SCALP_SUPPRESS_ADX_MAX", "0"))
     if adx_val is not None and adx_max > 0 and adx_val > adx_max:
