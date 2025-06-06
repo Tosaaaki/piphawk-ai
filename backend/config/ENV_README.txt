@@ -195,7 +195,7 @@ SCALE_TRIGGER_ATR=0.5
 - ALLOW_DELAYED_ENTRY: トレンドが過熱している場合に "wait" を返させ、押し目到来で再問い合わせする
 - TREND_ADX_THRESH: トレンド判定に用いるADXの基準値。プロンプトの条件とローカル判定で参照される
 - MIN_EARLY_EXIT_PROFIT_PIPS: 早期撤退を検討する際に必要な最低利益幅
-- SCALP_MODE: スキャルピング用の固定TP/SLエントリーを有効化
+ - SCALP_MODE: スキャルプモードを強制したい場合に true/false を指定
 - ADX_SCALP_MIN: SCALP_MODE時に必要な最小ADX
 - SCALP_SUPPRESS_ADX_MAX: この値を超えるADXではSCALP_MODEをオフにする
  - SCALP_TP_PIPS / SCALP_SL_PIPS: ボリンジャーバンドが使えない場合の固定TP/SL幅
@@ -204,7 +204,7 @@ SCALE_TRIGGER_ATR=0.5
 - TREND_COND_TF: トレンドフォロー時に市場判定へ使う時間足 (デフォルト M5)
 - SCALP_OVERRIDE_RANGE: true でレンジ判定を無視してスキャルを実行
 - H1_BOUNCE_RANGE_PIPS: H1安値/高値からこのpips以内ならエントリーを見送る
-- SCALP_MODE: スキャルプモードを有効にする
+ - SCALP_MODE: スキャルプモードを強制したい場合に true/false を指定
 - ADX_SCALP_MIN: スキャルプ実行に必要なADX下限
 - SCALP_SUPPRESS_ADX_MAX: この値を超えるADXではSCALP_MODEをオフにする
  - SCALP_TP_PIPS / SCALP_SL_PIPS: ボリバン幅を参照できないときのTP/SL
