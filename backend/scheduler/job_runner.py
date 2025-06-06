@@ -846,7 +846,9 @@ class JobRunner:
                     logger.info("Indicators calculation successful.")
 
                     # 指標からトレードモードを判定
-                    new_mode, _score, reasons = decide_trade_mode_detail(indicators)
+                    new_mode, _score, reasons = decide_trade_mode_detail(
+                        indicators, candles_m5
+                    )
                     if new_mode != self.trade_mode:
                         self.reload_params_for_mode(new_mode)
                         self.trade_mode = new_mode

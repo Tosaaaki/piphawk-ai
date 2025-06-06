@@ -92,6 +92,21 @@ if _cw_env:
             "Invalid CONSISTENCY_WEIGHTS: %s", exc
         )
 
+# --- Dynamic weight multipliers ------------------------------------
+HIGH_VOL_WEIGHT_MULT: float = float(
+    env_loader.get_env("HIGH_VOL_WEIGHT_MULT", "1.2")
+)
+LOW_VOL_WEIGHT_MULT: float = float(
+    env_loader.get_env("LOW_VOL_WEIGHT_MULT", "1.0")
+)
+
+
+def _get_dynamic_weight(key: str) -> float:
+    """Return indicator weight adjusted by session volatility."""
+    base = _consistency_weights.get(key, 0.0)
+    factor = HIGH_VOL_WEIGHT_MULT if is_high_vol_session() else LOW_VOL_WEIGHT_MULT
+    return base * factor
+
 # Global variables to store last AI call timestamps
 _last_exit_ai_call_time = 0.0
 # Regime‑AI cache
@@ -167,9 +182,9 @@ def calc_consistency(
         ai_score = 1.0 if local == ai else 0.0
 
     local_score = (
-        ema_ok * _consistency_weights.get("ema", 0.0)
-        + adx_ok * _consistency_weights.get("adx", 0.0)
-        + rsi_cross_ok * _consistency_weights.get("rsi", 0.0)
+        ema_ok * _get_dynamic_weight("ema")
+        + adx_ok * _get_dynamic_weight("adx")
+        + rsi_cross_ok * _get_dynamic_weight("rsi")
     )
 
     alpha = LOCAL_WEIGHT_THRESHOLD * local_score + (1 - LOCAL_WEIGHT_THRESHOLD) * ai_score

@@ -2,6 +2,7 @@ from __future__ import annotations
 """Composite trade mode decision utility."""
 
 from typing import Sequence, Iterable
+from indicators.candlestick import detect_upper_wick_cluster
 import logging
 
 from backend.utils import env_loader
@@ -102,7 +103,9 @@ def _quantile(data: Iterable, q: float) -> float | None:
     return vals[f] * (c - k) + vals[c] * (k - f)
 
 
-def decide_trade_mode_detail(indicators: dict) -> tuple[str, int, list[str]]:
+def decide_trade_mode_detail(
+    indicators: dict, candles: Sequence[dict] | None = None
+) -> tuple[str, int, list[str]]:
     """Return mode, score and reasons for the given indicators."""
     pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
     atr = _last(indicators.get("atr")) or 0.0
@@ -144,6 +147,15 @@ def decide_trade_mode_detail(indicators: dict) -> tuple[str, int, list[str]]:
     if bb_width_pips >= MODE_BBWIDTH_PIPS_MIN:
         score += 1
         reasons.append(f"BB width {bb_width_pips:.1f}p")
+
+    # --- Upper wick cluster penalty ------------------------------------
+    if candles is not None:
+        try:
+            if detect_upper_wick_cluster(candles, ratio=0.6, count=3):
+                score -= 1
+                reasons.append("upper wicks")
+        except Exception:
+            pass
 
     # --- Momentum -------------------------------------------------------
     ema_slope = _last(indicators.get("ema_slope"))
