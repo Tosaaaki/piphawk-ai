@@ -273,14 +273,14 @@ class JobRunner:
             bool(token),
             bool(user_id),
         )
-        # SCALP_MODE の状態を起動時に記録
+        # 初期の SCALP_MODE 設定をログへ記録
         scalp_active = env_loader.get_env("SCALP_MODE", "false").lower() == "true"
-        logger.info("SCALP_MODE is %s", "ON" if scalp_active else "OFF")
+        logger.info("Initial SCALP_MODE is %s", "ON" if scalp_active else "OFF")
 
     def _get_cond_indicators(self) -> dict:
         """Return indicators for market condition check."""
-        tf = "M5"
-        if env_loader.get_env("SCALP_MODE", "false").lower() == "true":
+        tf = env_loader.get_env("TREND_COND_TF", "M5").upper()
+        if self.trade_mode == "scalp":
             tf = env_loader.get_env("SCALP_COND_TF", self.scalp_cond_tf).upper()
         return getattr(self, f"indicators_{tf}", {}) or {}
 

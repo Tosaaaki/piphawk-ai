@@ -233,23 +233,18 @@ def process_entry(
             if hasattr(adx_series, "iloc")
             else float(adx_series[-1])
         )
-    scalp_env = os.getenv("SCALP_MODE")
     reason = ""
-    if scalp_env in ("true", "false"):
-        trade_mode = "scalp" if scalp_env == "true" else "trend_follow"
-        reason = f"override SCALP_MODE={scalp_env}"
+    trade_mode = choose_strategy(adx_val or 0.0)
+    min_scalp = float(env_loader.get_env("ADX_SCALP_MIN", "20"))
+    min_trend = float(env_loader.get_env("ADX_TREND_MIN", "30"))
+    if adx_val is None:
+        reason = "ADX unavailable"
+    elif trade_mode == "none":
+        reason = f"ADX {adx_val:.1f} < {min_scalp}"
+    elif trade_mode == "scalp":
+        reason = f"{min_scalp} <= ADX {adx_val:.1f} < {min_trend}"
     else:
-        trade_mode = choose_strategy(adx_val or 0.0)
-        min_scalp = float(env_loader.get_env("ADX_SCALP_MIN", "20"))
-        min_trend = float(env_loader.get_env("ADX_TREND_MIN", "30"))
-        if adx_val is None:
-            reason = "ADX unavailable"
-        elif trade_mode == "none":
-            reason = f"ADX {adx_val:.1f} < {min_scalp}"
-        elif trade_mode == "scalp":
-            reason = f"{min_scalp} <= ADX {adx_val:.1f} < {min_trend}"
-        else:
-            reason = f"ADX {adx_val:.1f} >= {min_trend}"
+        reason = f"ADX {adx_val:.1f} >= {min_trend}"
     logging.info(f"Trade mode decided: {trade_mode} ({reason})")
     scalp_mode = trade_mode == "scalp"
     adx_max = float(env_loader.get_env("SCALP_SUPPRESS_ADX_MAX", "0"))

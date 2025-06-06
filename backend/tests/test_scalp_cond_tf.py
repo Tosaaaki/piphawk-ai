@@ -31,14 +31,12 @@ class TestScalpCondTf(unittest.TestCase):
         os.environ.setdefault("OPENAI_API_KEY", "dummy")
         os.environ.setdefault("OANDA_API_KEY", "dummy")
         os.environ.setdefault("OANDA_ACCOUNT_ID", "dummy")
-        os.environ["SCALP_MODE"] = "true"
         os.environ["SCALP_COND_TF"] = "M1"
 
         import backend.scheduler.job_runner as jr
         importlib.reload(jr)
         self.jr = jr.JobRunner(interval_seconds=1)
-        os.environ["SCALP_MODE"] = "true"
-        os.environ["SCALP_COND_TF"] = "M1"
+        self.jr.trade_mode = "scalp"
         self.jr.indicators_M1 = {"foo": 1}
         self.jr.indicators_M5 = {"foo": 5}
         self.jr.scalp_cond_tf = "M1"
@@ -46,7 +44,6 @@ class TestScalpCondTf(unittest.TestCase):
     def tearDown(self):
         for n in self._mods:
             sys.modules.pop(n, None)
-        os.environ.pop("SCALP_MODE", None)
         os.environ.pop("SCALP_COND_TF", None)
         os.environ.pop("OANDA_API_KEY", None)
         os.environ.pop("OANDA_ACCOUNT_ID", None)
