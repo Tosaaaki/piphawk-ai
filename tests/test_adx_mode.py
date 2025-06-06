@@ -69,12 +69,11 @@ def test_entry_signal_trend():
     os.environ.pop("ADX_TREND_MIN")
 
 
-def test_decide_trade_mode_trend(monkeypatch):
-    monkeypatch.setenv("MODE_ATR_PIPS_MIN", "4")
-    monkeypatch.setenv("MODE_BBWIDTH_PIPS_MIN", "2")
-    monkeypatch.setenv("MODE_EMA_SLOPE_MIN", "0.1")
-    monkeypatch.setenv("MODE_ADX_MIN", "20")
-    monkeypatch.setenv("MODE_VOL_MA_MIN", "50")
+def test_decide_trade_mode_matrix(monkeypatch):
+    monkeypatch.setenv("ATR_HIGH_RATIO", "1.3")
+    monkeypatch.setenv("ATR_LOW_RATIO", "0.8")
+    monkeypatch.setenv("ADX_TREND_THR", "25")
+    monkeypatch.setenv("ADX_FLAT_THR", "15")
     cm = _reload_composite()
     inds = {
         "atr": [0.05],
@@ -121,3 +120,7 @@ def test_decide_trade_mode_high_atr_low_adx(monkeypatch):
         "volume": [50, 50, 50, 50, 50],
     }
     assert cm.decide_trade_mode(inds) == "scalp"
+    assert cm.decide_trade_mode_matrix(1.5, 1.0, 10) == "scalp_range"
+    assert cm.decide_trade_mode_matrix(1.5, 1.0, 30) == "scalp_momentum"
+    assert cm.decide_trade_mode_matrix(0.7, 1.0, 30) == "trend_follow"
+    assert cm.decide_trade_mode_matrix(1.0, 1.0, 20) == "flat"

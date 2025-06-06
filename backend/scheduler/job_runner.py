@@ -816,7 +816,13 @@ class JobRunner:
                     self.indicators_H1 = indicators_multi.get("H1")
                     self.indicators_H4 = indicators_multi.get("H4")
                     self.indicators_D = indicators_multi.get("D")
-                    indicators = self.indicators_M5
+                    indicators = dict(self.indicators_M5 or {})
+                    if self.indicators_H1:
+                        indicators["ema_slope_h1"] = self.indicators_H1.get("ema_slope")
+                        indicators["adx_h1"] = self.indicators_H1.get("adx")
+                    if self.indicators_H4:
+                        indicators["ema_slope_h4"] = self.indicators_H4.get("ema_slope")
+                        indicators["adx_h4"] = self.indicators_H4.get("adx")
 
                     align = is_multi_tf_aligned(
                         {
