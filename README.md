@@ -129,7 +129,7 @@ exit is considered.
 `PULLBACK_PIPS` defines the offset used specifically when the price is within the pivot suppression range. The defaults are `2` and `3` respectively.
 `PULLBACK_ATR_RATIO` は ATR に基づくプルバック深度の調整係数で、1.0 なら ATR と同じ値、0.5 なら半分の深さを待ちます。
 `PIP_SIZE` specifies the pip value for the traded pair (e.g. `0.01` for JPY pairs) and is used when calculating the new volatility‑based pullback threshold.
-`TRADE_TIMEFRAMES` allows overriding which candle intervals are fetched for analysis. Specify as `M1:20,M5:50,M15:50,H1:120,H4:90,D:90` to cover short to long horizons.
+`TRADE_TIMEFRAMES` allows overriding which candle intervals are fetched for analysis. Specify as `S10:60,M1:20,M5:50,M15:50,H1:120,H4:90,D:90` to cover short to long horizons. `S10` denotes 10‑second candles.
 The system derives a dynamic pullback requirement from ATR, ADX and recent price swings. If indicators are missing, the fallback is `PULLBACK_PIPS`.
 `TP_BB_RATIO` scales the Bollinger band width when deriving a fallback take-profit target. For example, `0.6` uses 60% of the band width.
 `RANGE_ENTRY_OFFSET_PIPS` determines how far from the Bollinger band center price must be (in pips) before converting a market order to a LIMIT when `ENABLE_RANGE_ENTRY` is active. If the price is within this range, `entry_logic.py` places the order near the band high or low. The default is `3`.

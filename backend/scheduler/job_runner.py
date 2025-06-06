@@ -224,6 +224,7 @@ class JobRunner:
         self.sl_cooldown_sec = SL_COOLDOWN_SEC
         # Storage for latest indicators by timeframe
         self.indicators_M1: dict | None = None
+        self.indicators_S10: dict | None = None
         self.indicators_M5: dict | None = None
         self.indicators_M15: dict | None = None
         self.indicators_H1: dict | None = None
@@ -738,6 +739,7 @@ class JobRunner:
                     # ---- Chart pattern detection per timeframe ----
                     self.patterns_by_tf = pattern_scanner.scan(candles_dict, PATTERN_NAMES)
 
+                    candles_s10 = candles_dict.get("S10", [])
                     candles_m1 = candles_dict.get("M1", [])
                     candles_m5 = candles_dict.get("M5", [])
                     candles_h1 = candles_dict.get("H1", [])
@@ -758,6 +760,7 @@ class JobRunner:
                         candles_dict,
                         allow_incomplete=True,
                     )
+                    self.indicators_S10 = indicators_multi.get("S10")
                     self.indicators_M1 = indicators_multi.get("M1")
                     self.indicators_M5 = indicators_multi.get("M5")
                     self.indicators_M15 = indicators_multi.get("M15")
