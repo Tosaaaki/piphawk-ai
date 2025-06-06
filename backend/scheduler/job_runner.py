@@ -14,8 +14,13 @@ from backend.utils import env_loader, trade_age_seconds
 
 try:
     from config import params_loader
-    # strategy.yml などから環境変数を読み込む
-    params_loader.load_params()
+    last_mode = getattr(params_loader, "load_last_mode", lambda: None)()
+    if last_mode in ("scalp", "scalp_momentum"):
+        params_loader.load_params(path="config/scalp.yml")
+    elif last_mode == "trend_follow":
+        params_loader.load_params(path="config/trend.yml")
+    else:
+        params_loader.load_params()
 except Exception:
     pass
 
@@ -311,6 +316,10 @@ class JobRunner:
             "trend_follow": "config/trend.yml",
         }
         path = file_map.get(mode, "config/strategy.yml")
+        try:
+            params_loader.save_last_mode(mode)
+        except Exception:
+            pass
         if self.current_params_file == path:
             return
         try:
