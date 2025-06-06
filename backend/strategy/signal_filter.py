@@ -617,7 +617,7 @@ def pass_entry_filter(
     else:
         atr_condition = (latest_atr / pip_size) >= (atr_th / pip_size)
 
-    if mode == "scalp":
+    if mode in ("scalp", "scalp_momentum"):
         atr_condition = True
         required = 1
     elif mode == "trend_follow":
