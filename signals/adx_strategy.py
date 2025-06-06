@@ -4,15 +4,21 @@ from __future__ import annotations
 
 from typing import Sequence, Optional
 
+from backend.utils import env_loader
+
 from indicators.bollinger import multi_bollinger
 from signals.scalp_strategy import analyze_environment_m1, should_enter_trade_s10
 
 
+ADX_SCALP_MIN = float(env_loader.get_env("ADX_SCALP_MIN", "20"))
+ADX_TREND_MIN = float(env_loader.get_env("ADX_TREND_MIN", "30"))
+
+
 def choose_strategy(adx_value: float) -> str:
     """ADXの値からモードを判定."""
-    if adx_value < 20:
+    if adx_value < ADX_SCALP_MIN:
         return "none"
-    if adx_value < 30:
+    if adx_value < ADX_TREND_MIN:
         return "scalp"
     return "trend_follow"
 
@@ -40,4 +46,9 @@ def entry_signal(
     return None
 
 
-__all__ = ["choose_strategy", "entry_signal"]
+__all__ = [
+    "choose_strategy",
+    "entry_signal",
+    "ADX_SCALP_MIN",
+    "ADX_TREND_MIN",
+]
