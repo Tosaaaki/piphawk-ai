@@ -1,32 +1,46 @@
 from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
+
 try:
     from backend.filters.false_break_filter import should_skip as false_break_skip
 except ModuleNotFoundError:  # pragma: no cover - fallback for optional import
+
     def false_break_skip(*_a, **_k):
         return False
+
+
 try:
     import importlib
+
     tp_mod = importlib.import_module("backend.filters.trend_pullback")
     should_enter_long = getattr(tp_mod, "should_enter_long", lambda *_a, **_k: True)
     should_enter_short = getattr(tp_mod, "should_enter_short", lambda *_a, **_k: True)
 except ModuleNotFoundError:  # pragma: no cover
+
     def should_enter_long(*_a, **_k):
         return True
 
     def should_enter_short(*_a, **_k):
         return True
+
+
 try:
     from backend.filters.breakout_entry import should_enter_breakout
 except ModuleNotFoundError:  # pragma: no cover
+
     def should_enter_breakout(*_a, **_k):
         return False
+
+
 try:
     from backend.filters.extension_block import extension_block
 except ModuleNotFoundError:  # pragma: no cover
+
     def extension_block(*_a, **_k):
         return False
+
+
 try:
 
     from backend.filters.h1_level_block import (
@@ -34,12 +48,14 @@ try:
         is_near_h1_resistance,
     )
 except ModuleNotFoundError:  # pragma: no cover
+
     def is_near_h1_support(*_a, **_k):
         return False
 
     def is_near_h1_resistance(*_a, **_k):
         return False
-      
+
+
 from backend.risk_manager import (
     validate_rrr,
     validate_rrr_after_cost,
@@ -54,12 +70,15 @@ import os
 import logging
 import json
 import uuid
+
 # optional helper; fallback stub if module is absent
 try:
     from backend.utils.oanda_client import get_pending_entry_order  # type: ignore
 except ModuleNotFoundError:
+
     def get_pending_entry_order(instrument: str):
         return None
+
 
 # env_loader automatically loads default env files at import time
 
@@ -69,14 +88,17 @@ order_manager = OrderManager()
 _pending_limits: dict[str, dict] = {}
 
 # 逆張りエントリー機能の有効/無効フラグ
-PEAK_ENTRY_ENABLED = (
-    env_loader.get_env("PEAK_ENTRY_ENABLED", "false").lower() == "true"
-)
+PEAK_ENTRY_ENABLED = env_loader.get_env("PEAK_ENTRY_ENABLED", "false").lower() == "true"
+
 
 def pullback_limit(side: str, price: float, offset_pips: float) -> float:
     """Return limit price offset by given pips in the direction of a pullback."""
     pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-    return price - offset_pips * pip_size if side == "long" else price + offset_pips * pip_size
+    return (
+        price - offset_pips * pip_size
+        if side == "long"
+        else price + offset_pips * pip_size
+    )
 
 
 def calculate_pullback_offset(indicators: dict, market_cond: dict | None) -> float:
@@ -91,7 +113,9 @@ def calculate_pullback_offset(indicators: dict, market_cond: dict | None) -> flo
 
         atr_series = indicators.get("atr")
         if atr_series is not None and len(atr_series):
-            atr_val = atr_series.iloc[-1] if hasattr(atr_series, "iloc") else atr_series[-1]
+            atr_val = (
+                atr_series.iloc[-1] if hasattr(atr_series, "iloc") else atr_series[-1]
+            )
             atr_pips = float(atr_val) / pip_size
             ratio = float(env_loader.get_env("PULLBACK_ATR_RATIO", "0.5"))
             offset = offset + atr_pips * ratio
@@ -103,7 +127,9 @@ def calculate_pullback_offset(indicators: dict, market_cond: dict | None) -> flo
             and adx_series is not None
             and len(adx_series)
         ):
-            adx_val = adx_series.iloc[-1] if hasattr(adx_series, "iloc") else adx_series[-1]
+            adx_val = (
+                adx_series.iloc[-1] if hasattr(adx_series, "iloc") else adx_series[-1]
+            )
             if float(adx_val) >= 30:
                 offset *= 1.5
             elif float(adx_val) < 20:
@@ -112,6 +138,41 @@ def calculate_pullback_offset(indicators: dict, market_cond: dict | None) -> flo
         logging.debug(f"[calculate_pullback_offset] failed: {exc}")
 
     return offset
+
+
+def _calc_scalp_tp_sl(
+    indicators: dict,
+    indicators_multi: dict[str, dict] | None,
+    tf: str,
+    price: float,
+    side: str,
+    pip_size: float,
+) -> tuple[float | None, float | None]:
+    """Return TP/SL distances in pips based on Bollinger Bands."""
+
+    src = indicators
+    if indicators_multi and isinstance(indicators_multi.get(tf), dict):
+        src = indicators_multi[tf]
+
+    bb_upper = src.get("bb_upper")
+    bb_lower = src.get("bb_lower")
+    if not bb_upper or not bb_lower:
+        return None, None
+
+    try:
+        up = bb_upper.iloc[-1] if hasattr(bb_upper, "iloc") else bb_upper[-1]
+        low = bb_lower.iloc[-1] if hasattr(bb_lower, "iloc") else bb_lower[-1]
+    except Exception:
+        return None, None
+
+    if side == "long":
+        tp = (up - price) / pip_size
+        sl = (price - low) / pip_size
+    else:
+        tp = (price - low) / pip_size
+        sl = (up - price) / pip_size
+
+    return max(tp, 0.0), max(sl, 0.0)
 
 
 def process_entry(
@@ -166,8 +227,13 @@ def process_entry(
     adx_series = indicators.get("adx")
     adx_val = None
     if adx_series is not None and len(adx_series):
-        adx_val = float(adx_series.iloc[-1]) if hasattr(adx_series, "iloc") else float(adx_series[-1])
-    adx_min = float(env_loader.get_env("ADX_SCALP_MIN", "0"))
+
+        adx_val = (
+            float(adx_series.iloc[-1])
+            if hasattr(adx_series, "iloc")
+            else float(adx_series[-1])
+        )
+    adx_min = float(env_loader.get_env("SCALP_ADX_MIN", "0"))
     adx_max = float(env_loader.get_env("SCALP_SUPPRESS_ADX_MAX", "0"))
     if adx_val is not None:
         if adx_max > 0 and adx_val > adx_max:
@@ -191,12 +257,28 @@ def process_entry(
             adx_min = float(env_loader.get_env("ADX_SCALP_MIN", "0"))
             if adx_val is not None and adx_val >= adx_min:
                 side = (market_cond or {}).get("trend_direction", "long")
+                price = bid if side == "long" else ask
+                tf = env_loader.get_env("SCALP_COND_TF", "M1").upper()
+                tp_pips, sl_pips = _calc_scalp_tp_sl(
+                    indicators,
+                    indicators_multi,
+                    tf,
+                    price,
+                    side,
+                    pip_size,
+                )
+                if tp_pips is None:
+                    tp_pips = float(env_loader.get_env("SCALP_TP_PIPS", "2"))
+                if sl_pips is None:
+                    sl_pips = float(env_loader.get_env("SCALP_SL_PIPS", "1"))
                 params = {
-                    "instrument": market_data["prices"][0]["instrument"]
-                    if isinstance(market_data, dict)
-                    else env_loader.get_env("DEFAULT_PAIR", "USD_JPY"),
-                    "tp_pips": float(env_loader.get_env("SCALP_TP_PIPS", "2")),
-                    "sl_pips": float(env_loader.get_env("SCALP_SL_PIPS", "1")),
+                    "instrument": (
+                        market_data["prices"][0]["instrument"]
+                        if isinstance(market_data, dict)
+                        else env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
+                    ),
+                    "tp_pips": tp_pips,
+                    "sl_pips": sl_pips,
                     "mode": "market",
                     "limit_price": None,
                     "ai_response": "scalp",
@@ -244,9 +326,14 @@ def process_entry(
     #  Step 1: call unified LLM helper
     # ------------------------------------------------------------
     import importlib
+
     oa = importlib.import_module("backend.strategy.openai_analysis")
 
-    indicators_multi = {"M5": indicators} if indicators_multi is None else {k.upper(): v for k, v in indicators_multi.items()}
+    indicators_multi = (
+        {"M5": indicators}
+        if indicators_multi is None
+        else {k.upper(): v for k, v in indicators_multi.items()}
+    )
     plan = oa.get_trade_plan(
         market_data,
         indicators_multi,
@@ -286,6 +373,7 @@ def process_entry(
 
     if spread_pips is not None:
         from backend.risk_manager import cost_guard
+
         if not cost_guard(risk_info.get("tp_pips"), spread_pips):
             min_net = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
             net = float(risk_info.get("tp_pips", 0)) - spread_pips
@@ -295,6 +383,7 @@ def process_entry(
     if PEAK_ENTRY_ENABLED:
         try:
             from backend.strategy.signal_filter import detect_peak_reversal
+
             m5 = candles_dict.get("M5", candles)
             if detect_peak_reversal(m5, side):
                 side = "short" if side == "long" else "long"
@@ -305,26 +394,34 @@ def process_entry(
     if tf_align:
         try:
             from analysis.signal_filter import is_multi_tf_aligned
+
             align = is_multi_tf_aligned(indicators_multi, ai_side=side)
             if align and side != align:
-                logging.info(
-                    f"AI side {side} realigned to {align} by multi‑TF check"
-                )
+                logging.info(f"AI side {side} realigned to {align} by multi‑TF check")
                 side = align
-            elif align is None and env_loader.get_env(
-                "ALIGN_STRICT", env_loader.get_env("STRICT_TF_ALIGN", "false")
-            ).lower() == "true":
+            elif (
+                align is None
+                and env_loader.get_env(
+                    "ALIGN_STRICT", env_loader.get_env("STRICT_TF_ALIGN", "false")
+                ).lower()
+                == "true"
+            ):
                 logging.info("Multi‑TF alignment missing → skip entry")
                 return False
         except Exception as exc:
             logging.debug(f"alignment adjust failed: {exc}")
-            if env_loader.get_env(
-                "ALIGN_STRICT", env_loader.get_env("STRICT_TF_ALIGN", "false")
-            ).lower() == "true":
+            if (
+                env_loader.get_env(
+                    "ALIGN_STRICT", env_loader.get_env("STRICT_TF_ALIGN", "false")
+                ).lower()
+                == "true"
+            ):
                 return False
 
     try:
-        if getattr(oa, "is_entry_blocked_by_recent_candles", lambda *a, **k: False)(side, candles):
+        if getattr(oa, "is_entry_blocked_by_recent_candles", lambda *a, **k: False)(
+            side, candles
+        ):
             logging.info("Entry blocked by recent candle bias")
             return False
     except Exception as exc:
@@ -345,18 +442,16 @@ def process_entry(
     try:
         rsi_series = indicators.get("rsi")
         if rsi_series is not None and len(rsi_series):
-            rsi_val = rsi_series.iloc[-1] if hasattr(rsi_series, "iloc") else rsi_series[-1]
+            rsi_val = (
+                rsi_series.iloc[-1] if hasattr(rsi_series, "iloc") else rsi_series[-1]
+            )
             os_thresh = float(env_loader.get_env("RSI_OVERSOLD_BLOCK", "35"))
             ob_thresh = float(env_loader.get_env("RSI_OVERBOUGHT_BLOCK", "65"))
             if side == "short" and rsi_val < os_thresh:
-                logging.info(
-                    f"RSI {rsi_val:.1f} < {os_thresh} → Sell 禁止"
-                )
+                logging.info(f"RSI {rsi_val:.1f} < {os_thresh} → Sell 禁止")
                 return False
             if side == "long" and rsi_val > ob_thresh:
-                logging.info(
-                    f"RSI {rsi_val:.1f} > {ob_thresh} → Buy 禁止"
-                )
+                logging.info(f"RSI {rsi_val:.1f} > {ob_thresh} → Buy 禁止")
                 return False
     except Exception as exc:
         logging.debug(f"[process_entry] oversold filter failed: {exc}")
@@ -374,7 +469,9 @@ def process_entry(
 
     breakout_entry = False
     try:
-        breakout_entry = should_enter_breakout(candles_dict.get("M5", candles), indicators)
+        breakout_entry = should_enter_breakout(
+            candles_dict.get("M5", candles), indicators
+        )
     except Exception as exc:
         logging.debug(f"[process_entry] breakout check failed: {exc}")
 
@@ -414,26 +511,30 @@ def process_entry(
                 bw_val = float(bb_upper.iloc[-1]) - float(bb_lower.iloc[-1])
             atr_pips = atr_val / pip_size if atr_val is not None else 0.0
             bw_pips = bw_val / pip_size if bw_val is not None else 0.0
+
             class _OneVal:
                 def __init__(self, val):
                     class _IL:
                         def __getitem__(self, idx):
                             return val
+
                     self.iloc = _IL()
 
             noise_series = _OneVal(max(atr_pips, bw_pips))
             highs = []
             lows = []
             for c in candles[-20:]:
-                if 'mid' in c:
-                    highs.append(float(c['mid']['h']))
-                    lows.append(float(c['mid']['l']))
+                if "mid" in c:
+                    highs.append(float(c["mid"]["h"]))
+                    lows.append(float(c["mid"]["l"]))
                 else:
-                    highs.append(float(c.get('h')))
-                    lows.append(float(c.get('l')))
+                    highs.append(float(c.get("h")))
+                    lows.append(float(c.get("l")))
             recent_high = max(highs) if highs else 0.0
             recent_low = min(lows) if lows else 0.0
-            pullback_needed = calculate_dynamic_pullback({**indicators, 'noise': noise_series}, recent_high, recent_low)
+            pullback_needed = calculate_dynamic_pullback(
+                {**indicators, "noise": noise_series}, recent_high, recent_low
+            )
         except Exception:
             pass
 
@@ -444,7 +545,12 @@ def process_entry(
                 thresh > 0
                 and adx_series is not None
                 and len(adx_series)
-                and float(adx_series.iloc[-1] if hasattr(adx_series, "iloc") else adx_series[-1]) >= thresh
+                and float(
+                    adx_series.iloc[-1]
+                    if hasattr(adx_series, "iloc")
+                    else adx_series[-1]
+                )
+                >= thresh
             ):
                 pullback_needed = None
         except Exception:
@@ -507,7 +613,12 @@ def process_entry(
         try:
             bb_upper = indicators.get("bb_upper")
             bb_lower = indicators.get("bb_lower")
-            if bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
+            if (
+                bb_upper is not None
+                and bb_lower is not None
+                and len(bb_upper)
+                and len(bb_lower)
+            ):
                 pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
                 bw_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
                 bw_thresh = float(env_loader.get_env("BAND_WIDTH_THRESH_PIPS", "4"))
@@ -521,9 +632,15 @@ def process_entry(
     if not is_break:
         try:
             if (
-                (market_cond and market_cond.get("market_condition") == "range")
-                or narrow_range
-            ) and bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
+                (
+                    (market_cond and market_cond.get("market_condition") == "range")
+                    or narrow_range
+                )
+                and bb_upper is not None
+                and bb_lower is not None
+                and len(bb_upper)
+                and len(bb_lower)
+            ):
                 pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
                 price_ref = bid if side == "long" else ask
                 if price_ref is not None:
@@ -533,7 +650,9 @@ def process_entry(
                         env_loader.get_env("RANGE_ENTRY_OFFSET_PIPS", "3")
                     )
                     if distance_pips <= offset_threshold:
-                        target = bb_lower.iloc[-1] if side == "long" else bb_upper.iloc[-1]
+                        target = (
+                            bb_lower.iloc[-1] if side == "long" else bb_upper.iloc[-1]
+                        )
                         offset_pips = abs(price_ref - target) / pip_size
                         limit_price = pullback_limit(side, price_ref, offset_pips)
                         mode = "limit"
@@ -578,9 +697,17 @@ def process_entry(
                 atr_val = float(atr_series[-1])
             pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
             atr_pips = atr_val / pip_size
-            mult_sl = float(env_loader.get_env("ATR_MULT_SL", env_loader.get_env("ATR_SL_MULTIPLIER", "2.0")))
+            mult_sl = float(
+                env_loader.get_env(
+                    "ATR_MULT_SL", env_loader.get_env("ATR_SL_MULTIPLIER", "2.0")
+                )
+            )
             fallback_sl = atr_pips * mult_sl
-            mult_tp = float(env_loader.get_env("ATR_MULT_TP", env_loader.get_env("SHORT_TP_ATR_RATIO", "0.6")))
+            mult_tp = float(
+                env_loader.get_env(
+                    "ATR_MULT_TP", env_loader.get_env("SHORT_TP_ATR_RATIO", "0.6")
+                )
+            )
             fallback_tp = atr_pips * mult_tp
         price_ref = bid if side == "long" else ask
         # SL用ピボットレベル
@@ -625,11 +752,7 @@ def process_entry(
             pass
         bb_upper = indicators.get("bb_upper")
         bb_lower = indicators.get("bb_lower")
-        if (
-            bb_upper is not None
-            and bb_lower is not None
-            and price_ref is not None
-        ):
+        if bb_upper is not None and bb_lower is not None and price_ref is not None:
             if hasattr(bb_upper, "iloc"):
                 width = float(bb_upper.iloc[-1]) - float(bb_lower.iloc[-1])
             else:
@@ -671,7 +794,11 @@ def process_entry(
         logging.debug(f"[process_entry] ATR-based SL calc failed: {exc}")
 
     if tp_pips is None:
-        tp_pips = fallback_tp if fallback_tp is not None else float(env_loader.get_env("INIT_TP_PIPS", "30"))
+        tp_pips = (
+            fallback_tp
+            if fallback_tp is not None
+            else float(env_loader.get_env("INIT_TP_PIPS", "30"))
+        )
     else:
         try:
             tp_pips = float(tp_pips)
@@ -679,7 +806,11 @@ def process_entry(
             tp_pips = float(env_loader.get_env("INIT_TP_PIPS", "30"))
 
     if sl_pips is None:
-        sl_pips = fallback_sl if fallback_sl is not None else float(env_loader.get_env("INIT_SL_PIPS", "20"))
+        sl_pips = (
+            fallback_sl
+            if fallback_sl is not None
+            else float(env_loader.get_env("INIT_SL_PIPS", "20"))
+        )
     else:
         try:
             sl_pips = float(sl_pips)
@@ -748,7 +879,9 @@ def process_entry(
             return False
         existing = get_pending_entry_order(instrument)
         if existing:
-            logging.info("Pending LIMIT order already exists – skip new limit placement.")
+            logging.info(
+                "Pending LIMIT order already exists – skip new limit placement."
+            )
             return False
 
         entry_uuid = str(uuid.uuid4())[:8]
@@ -783,7 +916,9 @@ def process_entry(
         return bool(result)
     else:
         # --- MARKET order path ---
-        if hasattr(order_manager, "get_open_orders") and order_manager.get_open_orders(instrument, side):
+        if hasattr(order_manager, "get_open_orders") and order_manager.get_open_orders(
+            instrument, side
+        ):
             logging.info("Existing pending order found – skip market entry.")
             return False
         params = {
@@ -803,14 +938,14 @@ def process_entry(
         lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
         market_data=market_data,
         strategy_params=params,
-        force_limit_only=False
+        force_limit_only=False,
     )
 
     if trade_result and mode == "market":
         instrument = params["instrument"]
         lot_size = float(env_loader.get_env("TRADE_LOT_SIZE", "1.0"))
         units = int(lot_size * 1000) if side == "long" else -int(lot_size * 1000)
-        entry_price = float(market_data['prices'][0]['bids'][0]['price'])
+        entry_price = float(market_data["prices"][0]["bids"][0]["price"])
         entry_time = datetime.now(timezone.utc).isoformat()
         rrr = None
         try:
