@@ -253,7 +253,11 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     bw_thresh = float(env_loader.get_env("BAND_WIDTH_THRESH_PIPS", "4"))
     adx_base = float(env_loader.get_env("ADX_RANGE_THRESHOLD", "25"))
     coeff = float(env_loader.get_env("ADX_DYNAMIC_COEFF", "0"))
-    width_ratio = ((bw_pips - bw_thresh) / bw_thresh) if bw_pips is not None else 0.0
+    width_ratio = (
+        (bw_pips - bw_thresh) / bw_thresh
+        if bw_pips is not None and bw_thresh != 0
+        else 0.0
+    )
     adx_dynamic_thresh = adx_base * (1 + coeff * width_ratio)
 
     # DI cross detection for trend reversal
