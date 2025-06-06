@@ -45,7 +45,7 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
 - `SCALP_MODE` … スキャルプエントリーを有効にするフラグ
 - `SCALP_ADX_MIN` … スキャルプ実行時に必要なADX値
 - `SCALP_SUPPRESS_ADX_MAX` … この値を超えるADXではSCALP_MODEを無効化
-- `SCALP_TP_PIPS` / `SCALP_SL_PIPS` … スキャルプ用の固定TP/SL幅
+- `SCALP_TP_PIPS` / `SCALP_SL_PIPS` … ボリンジャーバンドが取得できない場合に使う固定TP/SL幅
 - `SCALP_COND_TF` … スキャルプ時に市場判断へ使用する時間足 (デフォルト `M1`)
 - `ADX_SCALP_MIN` … ADX がこの値以上でスキャルプモード
 - `ADX_TREND_MIN` … ADX がこの値以上でトレンドフォローモード
