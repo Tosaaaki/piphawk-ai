@@ -7,6 +7,7 @@ from backend.utils import env_loader, parse_json_answer
 logger = logging.getLogger(__name__)
 
 AI_SCALP_MODEL = env_loader.get_env("AI_SCALP_MODEL", "gpt-4.1-nano")
+SCALP_PROMPT_BIAS = env_loader.get_env("SCALP_PROMPT_BIAS", "normal").lower()
 
 
 def _series_tail_list(series, n: int = 20) -> list:
@@ -29,11 +30,17 @@ def get_scalp_plan(indicators: dict, candles: list, *, higher_tf_direction: str 
     rsi_vals = _series_tail_list(indicators.get("rsi"), 5)
     bb_upper = _series_tail_list(indicators.get("bb_upper"), 5)
     bb_lower = _series_tail_list(indicators.get("bb_lower"), 5)
+    bias_note = ""
+    if SCALP_PROMPT_BIAS == "aggressive":
+        bias_note = (
+            "\nWhen conditions are unclear, prefer taking a position rather than returning 'no'."
+        )
     prompt = (
         "You are a forex scalping assistant.\n"
         "Analyze the short-term indicators and decide whether to buy, sell or stay flat.\n"
         f"ADX:{adx_vals}\nRSI:{rsi_vals}\nBB_upper:{bb_upper}\nBB_lower:{bb_lower}\n"
         f"Candles:{candles[-20:]}\nHigher direction:{higher_tf_direction}\n"
+        f"{bias_note}\n"
         "Respond with JSON as {\"side\":\"long|short|no\",\"tp_pips\":float,\"sl_pips\":float}"
     )
     try:
@@ -47,4 +54,4 @@ def get_scalp_plan(indicators: dict, candles: list, *, higher_tf_direction: str 
     return plan
 
 
-__all__ = ["get_scalp_plan", "AI_SCALP_MODEL"]
+__all__ = ["get_scalp_plan", "AI_SCALP_MODEL", "SCALP_PROMPT_BIAS"]
