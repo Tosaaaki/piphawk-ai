@@ -928,6 +928,8 @@ def get_trade_plan(
     higher_tf_direction: str | None = None,
     allow_delayed_entry: bool | None = None,
     instrument: str | None = None,
+    trade_mode: str | None = None,
+    mode_reason: str | None = None,
 ) -> dict:
     """
     Single‑shot call to the LLM that returns a dict:
@@ -1087,7 +1089,13 @@ def get_trade_plan(
         pass
     # ここからAIへの英語プロンプト
 
-    prompt = f"""
+    mode_prefix = ""
+    if trade_mode:
+        mode_prefix = f"mode: {trade_mode}\n"
+        if mode_reason:
+            mode_prefix += "reason:\n" + mode_reason + "\n"
+
+    prompt = mode_prefix + f"""
 ⚠️【Market Regime Classification – Flexible Criteria】
 Classify as "TREND" if ANY TWO of the following conditions are met:
 - ADX ≥ {TREND_ADX_THRESH} maintained over at least the last 3 candles.

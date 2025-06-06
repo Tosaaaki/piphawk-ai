@@ -13,6 +13,20 @@ MODE_ADX_MIN = float(env_loader.get_env("MODE_ADX_MIN", "25"))
 MODE_VOL_MA_MIN = float(env_loader.get_env("MODE_VOL_MA_MIN", env_loader.get_env("MIN_VOL_MA", "80")))
 VOL_MA_PERIOD = int(env_loader.get_env("VOL_MA_PERIOD", "5"))
 
+# --- Additional scoring parameters -------------------------------------
+MODE_TREND_SCORE_MIN = int(env_loader.get_env("MODE_TREND_SCORE_MIN", "4"))
+MODE_ADX_STRONG = float(env_loader.get_env("MODE_ADX_STRONG", "40"))
+MODE_DI_DIFF_MIN = float(env_loader.get_env("MODE_DI_DIFF_MIN", "10"))
+MODE_DI_DIFF_STRONG = float(env_loader.get_env("MODE_DI_DIFF_STRONG", "25"))
+MODE_EMA_SLOPE_STRONG = float(env_loader.get_env("MODE_EMA_SLOPE_STRONG", "0.3"))
+MODE_VOL_RATIO_MIN = float(env_loader.get_env("MODE_VOL_RATIO_MIN", "1"))
+MODE_VOL_RATIO_STRONG = float(env_loader.get_env("MODE_VOL_RATIO_STRONG", "2"))
+MODE_BONUS_START_JST = float(env_loader.get_env("MODE_BONUS_START_JST", "16"))
+MODE_BONUS_END_JST = float(env_loader.get_env("MODE_BONUS_END_JST", "1"))
+MODE_PENALTY_START_JST = float(env_loader.get_env("MODE_PENALTY_START_JST", "2"))
+MODE_PENALTY_END_JST = float(env_loader.get_env("MODE_PENALTY_END_JST", "8"))
+MODE_LOG_PATH = env_loader.get_env("MODE_LOG_PATH", "analysis/trade_mode_log.csv")
+
 
 def _last(value: Iterable | Sequence | None) -> float | None:
     """Return last element from list or pandas Series."""
@@ -30,8 +44,15 @@ def _last(value: Iterable | Sequence | None) -> float | None:
     return None
 
 
-def decide_trade_mode(indicators: dict) -> str:
-    """Return ``trend_follow`` or ``scalp`` based on three factors."""
+def _in_window(now: float, start: float, end: float) -> bool:
+    """Return True if ``now`` hour is within start-end range (JST)."""
+    if start <= end:
+        return start <= now < end
+    return now >= start or now < end
+
+
+def decide_trade_mode_detail(indicators: dict) -> tuple[str, int, list[str]]:
+    """Return mode, score and reasons for the given indicators."""
     pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
     atr = _last(indicators.get("atr")) or 0.0
     bb_u = _last(indicators.get("bb_upper"))
@@ -40,20 +61,55 @@ def decide_trade_mode(indicators: dict) -> str:
     if bb_u is not None and bb_l is not None:
         bb_width_pips = (float(bb_u) - float(bb_l)) / pip_size
     atr_pips = float(atr) / pip_size
-    volatility = atr_pips >= MODE_ATR_PIPS_MIN or bb_width_pips >= MODE_BBWIDTH_PIPS_MIN
 
+    score = 0
+    reasons: list[str] = []
+
+    # --- Volatility -----------------------------------------------------
+    if atr_pips >= MODE_ATR_PIPS_MIN:
+        score += 1
+        reasons.append(f"ATR {atr_pips:.1f}p")
+    if bb_width_pips >= MODE_BBWIDTH_PIPS_MIN:
+        score += 1
+        reasons.append(f"BB width {bb_width_pips:.1f}p")
+
+    # --- Momentum -------------------------------------------------------
     ema_slope = _last(indicators.get("ema_slope"))
     macd_hist = _last(indicators.get("macd_hist"))
     adx = _last(indicators.get("adx"))
-    mom_checks = [
-        abs(ema_slope) >= MODE_EMA_SLOPE_MIN if ema_slope is not None else False,
-        abs(macd_hist) >= MODE_EMA_SLOPE_MIN if macd_hist is not None else False,
-        adx is not None and adx >= MODE_ADX_MIN,
-    ]
-    momentum = sum(mom_checks) >= 2
+    plus_di = _last(indicators.get("plus_di"))
+    minus_di = _last(indicators.get("minus_di"))
 
+    if adx is not None:
+        if adx >= MODE_ADX_STRONG:
+            score += 2
+        elif adx >= MODE_ADX_MIN:
+            score += 1
+        reasons.append(f"ADX {adx:.1f}")
+
+    if plus_di is not None and minus_di is not None:
+        diff = abs(plus_di - minus_di)
+        if diff >= MODE_DI_DIFF_STRONG:
+            score += 2
+        elif diff >= MODE_DI_DIFF_MIN:
+            score += 1
+        reasons.append(f"DI diff {diff:.1f}")
+
+    if ema_slope is not None:
+        sabs = abs(ema_slope)
+        if sabs >= MODE_EMA_SLOPE_STRONG:
+            score += 2
+        elif sabs >= MODE_EMA_SLOPE_MIN:
+            score += 1
+        reasons.append(f"EMA slope {sabs:.2f}")
+
+    if macd_hist is not None and abs(macd_hist) >= MODE_EMA_SLOPE_MIN:
+        score += 1
+        reasons.append("MACD hist")
+
+    # --- Liquidity ------------------------------------------------------
     vol_series = indicators.get("volume")
-    liquidity = True
+    vol_ratio = None
     if vol_series is not None and len(vol_series) >= VOL_MA_PERIOD:
         if hasattr(vol_series, "iloc"):
             recent = vol_series.iloc[-VOL_MA_PERIOD:]
@@ -61,21 +117,95 @@ def decide_trade_mode(indicators: dict) -> str:
             recent = vol_series[-VOL_MA_PERIOD:]
         try:
             avg_vol = sum(float(v) for v in recent) / len(recent)
-            liquidity = avg_vol >= MODE_VOL_MA_MIN
+            vol_ratio = avg_vol / atr_pips if atr_pips else 0.0
+            if vol_ratio >= MODE_VOL_RATIO_STRONG:
+                score += 2
+            elif vol_ratio >= MODE_VOL_RATIO_MIN:
+                score += 1
+            reasons.append(f"Vol ratio {vol_ratio:.1f}")
         except Exception:
-            liquidity = True
+            pass
 
-    score = sum([volatility, momentum, liquidity])
-    mode = "trend_follow" if score >= 2 else "scalp"
+    # --- Time bonus -----------------------------------------------------
+    import datetime
+
+    now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+    hour = now.hour + now.minute / 60.0
+    if _in_window(hour, MODE_BONUS_START_JST, MODE_BONUS_END_JST):
+        score += 1
+    if _in_window(hour, MODE_PENALTY_START_JST, MODE_PENALTY_END_JST):
+        score -= 1
+
+    mode = "trend_follow" if score >= MODE_TREND_SCORE_MIN else "scalp"
+
+    # --- Logging --------------------------------------------------------
+    try:
+        import csv, os
+
+        exists = os.path.exists(MODE_LOG_PATH)
+        with open(MODE_LOG_PATH, "a", newline="") as f:
+            fieldnames = [
+                "timestamp",
+                "atr_pips",
+                "bb_width_pips",
+                "ema_slope",
+                "macd_hist",
+                "adx",
+                "di_diff",
+                "vol_ratio",
+                "hour_jst",
+                "score",
+                "mode",
+            ]
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            if not exists:
+                writer.writeheader()
+            writer.writerow(
+                {
+                    "timestamp": now.isoformat(),
+                    "atr_pips": atr_pips,
+                    "bb_width_pips": bb_width_pips,
+                    "ema_slope": ema_slope,
+                    "macd_hist": macd_hist,
+                    "adx": adx,
+                    "di_diff": None if (plus_di is None or minus_di is None) else abs(plus_di - minus_di),
+                    "vol_ratio": vol_ratio,
+                    "hour_jst": hour,
+                    "score": score,
+                    "mode": mode,
+                }
+            )
+    except Exception:
+        logging.getLogger(__name__).debug("mode log failed", exc_info=True)
+
     logging.getLogger(__name__).info("decide_trade_mode -> %s (score=%d)", mode, score)
+    return mode, score, reasons
+
+
+def decide_trade_mode(indicators: dict) -> str:
+    """Return ``trend_follow`` or ``scalp``."""
+    mode, _score, _reasons = decide_trade_mode_detail(indicators)
     return mode
 
 
 __all__ = [
     "decide_trade_mode",
+    "decide_trade_mode_detail",
     "MODE_ATR_PIPS_MIN",
     "MODE_BBWIDTH_PIPS_MIN",
     "MODE_EMA_SLOPE_MIN",
     "MODE_ADX_MIN",
     "MODE_VOL_MA_MIN",
+    "MODE_TREND_SCORE_MIN",
+    "MODE_ADX_STRONG",
+    "MODE_DI_DIFF_MIN",
+    "MODE_DI_DIFF_STRONG",
+    "MODE_EMA_SLOPE_STRONG",
+    "MODE_VOL_RATIO_MIN",
+    "MODE_VOL_RATIO_STRONG",
+    "MODE_BONUS_START_JST",
+    "MODE_BONUS_END_JST",
+    "MODE_PENALTY_START_JST",
+    "MODE_PENALTY_END_JST",
+    "MODE_LOG_PATH",
 ]

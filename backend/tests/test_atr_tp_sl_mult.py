@@ -65,6 +65,9 @@ class TestAtrTpSlMult(unittest.TestCase):
         os.environ["ATR_MULT_TP"] = "0.8"
         os.environ["ATR_MULT_SL"] = "1.1"
         os.environ["MIN_ATR_MULT"] = "1.1"
+        os.environ["MODE_TREND_SCORE_MIN"] = "1"
+        import signals.composite_mode as cm
+        importlib.reload(cm)
 
         # risk_manager.is_high_vol_session を常に False を返すように上書き
         import backend.risk_manager as rm
@@ -87,6 +90,7 @@ class TestAtrTpSlMult(unittest.TestCase):
         os.environ.pop("ATR_MULT_TP", None)
         os.environ.pop("ATR_MULT_SL", None)
         os.environ.pop("MIN_ATR_MULT", None)
+        os.environ.pop("MODE_TREND_SCORE_MIN", None)
         sys.modules.pop("backend.strategy.entry_logic", None)
 
     def test_atr_based_tp_sl(self):
