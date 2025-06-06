@@ -63,6 +63,9 @@ ADX_SLOPE_LOOKBACK: int = int(env_loader.get_env("ADX_SLOPE_LOOKBACK", "3"))
 ALLOW_NO_PULLBACK_WHEN_ADX: float = float(
     env_loader.get_env("ALLOW_NO_PULLBACK_WHEN_ADX", "0")
 )
+BYPASS_PULLBACK_ADX_MIN: float = float(
+    env_loader.get_env("BYPASS_PULLBACK_ADX_MIN", "0")
+)
 ENABLE_RANGE_ENTRY: bool = (
     env_loader.get_env("ENABLE_RANGE_ENTRY", "false").lower() == "true"
 )
@@ -1092,13 +1095,10 @@ def get_trade_plan(
     no_pullback_msg = ""
     try:
         adx_series = ind_m5.get("adx")
-        if (
-            ALLOW_NO_PULLBACK_WHEN_ADX > 0
-            and adx_series is not None
-            and len(adx_series)
-        ):
+        if adx_series is not None and len(adx_series):
             adx_val = adx_series.iloc[-1] if hasattr(adx_series, "iloc") else adx_series[-1]
-            if float(adx_val) >= ALLOW_NO_PULLBACK_WHEN_ADX:
+            threshold = max(ALLOW_NO_PULLBACK_WHEN_ADX, BYPASS_PULLBACK_ADX_MIN)
+            if threshold > 0 and float(adx_val) >= threshold:
                 no_pullback_msg = "\nPullback not required when ADX is high."
     except Exception:
         pass

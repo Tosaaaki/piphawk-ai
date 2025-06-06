@@ -52,8 +52,20 @@ class TestNoPullbackPrompt(unittest.TestCase):
         for name in getattr(self, "_mods", []):
             sys.modules.pop(name, None)
         os.environ.pop("ALLOW_NO_PULLBACK_WHEN_ADX", None)
+        os.environ.pop("BYPASS_PULLBACK_ADX_MIN", None)
 
     def test_prompt_mentions_no_pullback(self):
+        captured = []
+        self.oa.ask_openai = lambda prompt, **k: (captured.append(prompt) or '{"entry": {"side": "no"}}')
+        indicators = {"adx": FakeSeries([60])}
+        self.oa.get_trade_plan({}, {"M5": indicators}, {"M5": []})
+        self.assertTrue(captured)
+        self.assertIn("Pullback not required when ADX is high.", captured[0])
+
+    def test_prompt_mentions_no_pullback_bypass(self):
+        os.environ.pop("ALLOW_NO_PULLBACK_WHEN_ADX", None)
+        os.environ["BYPASS_PULLBACK_ADX_MIN"] = "55"
+        importlib.reload(self.oa)
         captured = []
         self.oa.ask_openai = lambda prompt, **k: (captured.append(prompt) or '{"entry": {"side": "no"}}')
         indicators = {"adx": FakeSeries([60])}
