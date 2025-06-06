@@ -6,6 +6,16 @@ from indicators.candlestick import detect_upper_wick_cluster
 import logging
 
 from backend.utils import env_loader
+from .mode_params import get_params
+
+MODE_PARAMS = get_params()
+WEIGHTS = MODE_PARAMS.get("weights", {})
+VOL_LEVELS = MODE_PARAMS.get("volatility_levels", {})
+SCALP_PARAMS = MODE_PARAMS.get("scalp", {})
+HYSTERESIS = MODE_PARAMS.get("hysteresis", {"trend": 3, "scalp": 3})
+TREND_SCORE_MIN_CFG = int(MODE_PARAMS.get("trend_score_min", 3))
+SCALP_SCORE_MAX_CFG = int(MODE_PARAMS.get("scalp_score_max", -1))
+EMA_SLOPE_THRESH = MODE_PARAMS.get("ema_slope", {"mild": 0.05, "strong": 0.15})
 
 MODE_ATR_PIPS_MIN = float(env_loader.get_env("MODE_ATR_PIPS_MIN", "5"))
 MODE_BBWIDTH_PIPS_MIN = float(env_loader.get_env("MODE_BBWIDTH_PIPS_MIN", "3"))
@@ -59,6 +69,20 @@ def _last(value: Iterable | Sequence | None) -> float | None:
     return None
 
 
+def _vol_level(atr_pct: float | None) -> str:
+    if atr_pct is None:
+        return "normal"
+    if atr_pct < 33:
+        return "low"
+    if atr_pct > 66:
+        return "high"
+    return "normal"
+
+
+_LAST_MODE: str | None = None
+_LAST_SWITCH: int = 0
+
+
 def _in_window(now: float, start: float, end: float) -> bool:
     """Return True if ``now`` hour is within start-end range (JST)."""
     if start <= end:
@@ -107,175 +131,81 @@ def decide_trade_mode_detail(
     indicators: dict, candles: Sequence[dict] | None = None
 ) -> tuple[str, int, list[str]]:
     """Return mode, score and reasons for the given indicators."""
-    pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-    atr = _last(indicators.get("atr")) or 0.0
-    bb_u = _last(indicators.get("bb_upper"))
-    bb_l = _last(indicators.get("bb_lower"))
-    bb_width_pips = 0.0
-    if bb_u is not None and bb_l is not None:
-        bb_width_pips = (float(bb_u) - float(bb_l)) / pip_size
-    atr_pips = float(atr) / pip_size
-    adx = _last(indicators.get("adx"))
+    m5 = indicators
+    m1 = indicators.get("M1", {})
+    s10 = indicators.get("S10", {})
 
-    if adx is not None and atr_pips >= HIGH_ATR_PIPS and adx < LOW_ADX_THRESH:
-        logging.getLogger(__name__).info(
-            "decide_trade_mode: scalp override by ATR/ADX"
-        )
-        return "scalp", 0, [f"ATR {atr_pips:.1f}p", f"ADX {adx:.1f}"]
+    atr_pct_m5 = _last(m5.get("atr_pct"))
+    level = _vol_level(atr_pct_m5)
+    thr = VOL_LEVELS.get(level, VOL_LEVELS.get("normal", {}))
 
-    atr_thresh = MODE_ATR_PIPS_MIN
-    if MODE_ATR_QTL > 0:
-        series = indicators.get("atr")
-        if series is not None:
-            if hasattr(series, "iloc"):
-                recent = series.iloc[-MODE_QTL_LOOKBACK:]
-            else:
-                recent = series[-MODE_QTL_LOOKBACK:]
-            qval = _quantile(recent, MODE_ATR_QTL)
-            if qval is not None:
-                atr_thresh = qval / pip_size
-
-    adx_thresh = MODE_ADX_MIN
+    adx_m5 = _last(m5.get("adx"))
+    adx_m1 = _last(m1.get("adx"))
+    atr_pct_m1 = _last(m1.get("atr_pct"))
+    adx_s10 = _last(s10.get("adx"))
+    atr_pct_s10 = _last(s10.get("atr_pct"))
+    ema_slope = _last(m5.get("ema_slope"))
 
     score = 0
     reasons: list[str] = []
 
-    # --- Volatility -----------------------------------------------------
-    if atr_pips >= atr_thresh:
-        score += 1
-        reasons.append(f"ATR {atr_pips:.1f}p")
-    if bb_width_pips >= MODE_BBWIDTH_PIPS_MIN:
-        score += 1
-        reasons.append(f"BB width {bb_width_pips:.1f}p")
+    if adx_m5 is not None and adx_m5 >= thr.get("adx_m5_min", MODE_ADX_MIN):
+        score += 2 * float(WEIGHTS.get("adx_m5", 1))
+        reasons.append(f"ADX_M5 {adx_m5:.1f}")
+    if atr_pct_m5 is not None and atr_pct_m5 >= thr.get("atr_pct_m5_min", 0.004):
+        score += float(WEIGHTS.get("atr_pct_m5", 1))
+        reasons.append(f"ATR%M5 {atr_pct_m5:.4f}")
+    if adx_m1 is not None and adx_m1 >= thr.get("adx_m1_min", 20):
+        score += float(WEIGHTS.get("adx_m1", 1))
+        reasons.append(f"ADX_M1 {adx_m1:.1f}")
+    if atr_pct_m1 is not None and atr_pct_m1 >= thr.get("atr_pct_m1_min", 0.0025):
+        score += float(WEIGHTS.get("atr_pct_m1", 1))
+        reasons.append(f"ATR%M1 {atr_pct_m1:.4f}")
 
-    # --- Upper wick cluster penalty ------------------------------------
-    if candles is not None:
+    if adx_m5 is not None and adx_m5 <= SCALP_PARAMS.get("adx_m5_max", 15):
+        score -= 2
+    if atr_pct_m5 is not None and atr_pct_m5 <= SCALP_PARAMS.get("atr_pct_m5_max", 0.0025):
+        score -= 1
+    if adx_m1 is not None and adx_m1 <= SCALP_PARAMS.get("adx_m1_max", 12):
+        score -= 1
+
+    if candles is not None and len(candles) >= 3:
         try:
-            if detect_upper_wick_cluster(candles, ratio=0.6, count=3):
+            bodies = [abs(float(c["mid"]["c"]) - float(c["mid"]["o"])) for c in candles[-3:]]
+            widths = [float(c["mid"]["h"]) - float(c["mid"]["l"]) for c in candles[-3:]]
+            ratio = sum(bodies) / sum(widths) if sum(widths) else 1
+            if ratio <= SCALP_PARAMS.get("body_shrink_ratio", 0.35):
                 score -= 1
-                reasons.append("upper wicks")
         except Exception:
             pass
 
-    # --- Momentum -------------------------------------------------------
-    ema_slope = _last(indicators.get("ema_slope"))
-    macd_hist = _last(indicators.get("macd_hist"))
-    adx = _last(indicators.get("adx"))
-    plus_di = _last(indicators.get("plus_di"))
-    minus_di = _last(indicators.get("minus_di"))
-
-    if MODE_ADX_QTL > 0:
-        adx_series = indicators.get("adx")
-        if adx_series is not None:
-            recent_adx = adx_series.iloc[-MODE_QTL_LOOKBACK:] if hasattr(adx_series, "iloc") else adx_series[-MODE_QTL_LOOKBACK:]
-            q_adx = _quantile(recent_adx, MODE_ADX_QTL)
-            if q_adx is not None:
-                adx_thresh = q_adx
-    if adx is not None:
-        if adx >= MODE_ADX_STRONG:
-            score += 2
-        elif adx >= adx_thresh:
-            score += 1
-        reasons.append(f"ADX {adx:.1f}")
-
-    if plus_di is not None and minus_di is not None:
-        diff = abs(plus_di - minus_di)
-        if diff >= MODE_DI_DIFF_STRONG:
-            score += 2
-        elif diff >= MODE_DI_DIFF_MIN:
-            score += 1
-        reasons.append(f"DI diff {diff:.1f}")
+    if adx_s10 is not None and atr_pct_s10 is not None:
+        if adx_s10 > SCALP_PARAMS.get("s10_adx_min", 20) and atr_pct_s10 >= SCALP_PARAMS.get("s10_atr_pct_min", 0.001):
+            score -= 1
 
     if ema_slope is not None:
         sabs = abs(ema_slope)
-        if sabs >= MODE_EMA_SLOPE_STRONG:
-            score += 2
-        elif sabs >= MODE_EMA_SLOPE_MIN:
-            score += 1
-        reasons.append(f"EMA slope {sabs:.2f}")
+        if sabs >= EMA_SLOPE_THRESH.get("strong", 0.15):
+            score += float(WEIGHTS.get("ema_slope_strong", 2))
+        elif sabs >= EMA_SLOPE_THRESH.get("mild", 0.05):
+            score += float(WEIGHTS.get("ema_slope_base", 1))
+        reasons.append(f"EMA {sabs:.2f}")
 
-    if macd_hist is not None and abs(macd_hist) >= MODE_EMA_SLOPE_MIN:
-        score += 1
-        reasons.append("MACD hist")
+    global _LAST_MODE, _LAST_SWITCH
+    candle_len = len(candles) if candles else 0
+    if _LAST_MODE and candle_len - _LAST_SWITCH < HYSTERESIS.get(_LAST_MODE.split("_")[0], 3):
+        return _LAST_MODE, score, reasons
 
-    # --- Liquidity ------------------------------------------------------
-    vol_series = indicators.get("volume")
-    vol_ratio = None
-    if vol_series is not None and len(vol_series) >= VOL_MA_PERIOD:
-        if hasattr(vol_series, "iloc"):
-            recent = vol_series.iloc[-VOL_MA_PERIOD:]
-        else:
-            recent = vol_series[-VOL_MA_PERIOD:]
-        try:
-            avg_vol = sum(float(v) for v in recent) / len(recent)
-            vol_ratio = avg_vol / atr_pips if atr_pips else 0.0
-            if vol_ratio >= MODE_VOL_RATIO_STRONG:
-                score += 2
-            elif vol_ratio >= MODE_VOL_RATIO_MIN:
-                score += 1
-            reasons.append(f"Vol ratio {vol_ratio:.1f}")
-        except Exception:
-            pass
+    if score >= TREND_SCORE_MIN_CFG:
+        mode = "trend_follow"
+    elif score <= SCALP_SCORE_MAX_CFG:
+        mode = "scalp_momentum"
+    else:
+        mode = "flat"
 
-    # --- Time bonus -----------------------------------------------------
-    import datetime
-
-    now = datetime.datetime.utcnow() + datetime.timedelta(hours=9)
-    hour = now.hour + now.minute / 60.0
-    if _in_window(hour, MODE_BONUS_START_JST, MODE_BONUS_END_JST):
-        score += 1
-    if _in_window(hour, MODE_PENALTY_START_JST, MODE_PENALTY_END_JST):
-        score -= 1
-
-    mode = "trend_follow" if score >= MODE_TREND_SCORE_MIN else "scalp"
-
-    if mode == "trend_follow":
-        h1_slope = _last(indicators.get("ema_slope_h1"))
-        h4_slope = _last(indicators.get("ema_slope_h4"))
-        slopes = [abs(s) for s in (h1_slope, h4_slope) if s is not None]
-        if slopes and max(slopes) < HTF_SLOPE_MIN:
-            mode = "scalp"
-            reasons.append("HTF slope weak")
-
-    # --- Logging --------------------------------------------------------
-    try:
-        import csv, os
-
-        exists = os.path.exists(MODE_LOG_PATH)
-        with open(MODE_LOG_PATH, "a", newline="") as f:
-            fieldnames = [
-                "timestamp",
-                "atr_pips",
-                "bb_width_pips",
-                "ema_slope",
-                "macd_hist",
-                "adx",
-                "di_diff",
-                "vol_ratio",
-                "hour_jst",
-                "score",
-                "mode",
-            ]
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            if not exists:
-                writer.writeheader()
-            writer.writerow(
-                {
-                    "timestamp": now.isoformat(),
-                    "atr_pips": atr_pips,
-                    "bb_width_pips": bb_width_pips,
-                    "ema_slope": ema_slope,
-                    "macd_hist": macd_hist,
-                    "adx": adx,
-                    "di_diff": None if (plus_di is None or minus_di is None) else abs(plus_di - minus_di),
-                    "vol_ratio": vol_ratio,
-                    "hour_jst": hour,
-                    "score": score,
-                    "mode": mode,
-                }
-            )
-    except Exception:
-        logging.getLogger(__name__).debug("mode log failed", exc_info=True)
+    if mode != _LAST_MODE:
+        _LAST_MODE = mode
+        _LAST_SWITCH = candle_len
 
     logging.getLogger(__name__).info("decide_trade_mode -> %s (score=%d)", mode, score)
     return mode, score, reasons

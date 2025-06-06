@@ -824,6 +824,11 @@ class JobRunner:
                         indicators["ema_slope_h4"] = self.indicators_H4.get("ema_slope")
                         indicators["adx_h4"] = self.indicators_H4.get("adx")
 
+                    if self.indicators_M1:
+                        indicators["M1"] = self.indicators_M1
+                    if self.indicators_S10:
+                        indicators["S10"] = self.indicators_S10
+
                     align = is_multi_tf_aligned(
                         {
                             "M1": self.indicators_M1 or {},
