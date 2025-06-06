@@ -93,6 +93,7 @@ TRADES_DB_PATH=trades-002.db
 高位足の使い方に関する補足は `docs/higher_tf_strategy.md` を参照してください。
 低ボラ時のエントリー仕様は `docs/low_vol_entry.md` を参照してください。
 より積極的にスキャルプするための設定例は `docs/aggressive_scalp.md` にまとめています。
+現在の `settings.env` ではこれらの値がデフォルトとして採用されています。
    `RANGE_CENTER_BLOCK_PCT` controls how close to the Bollinger band center price
     can be when ADX is below `ADX_RANGE_THRESHOLD`. Set to `0.3` (30%) to block
     entries near the middle of a range, helping suppress counter-trend trades.
