@@ -270,23 +270,9 @@ def decide_trade_mode_detail(indicators: dict) -> tuple[str, int, list[str]]:
 
 
 def decide_trade_mode(indicators: dict) -> str:
-    """Return trade mode based on ATR/ADX matrix."""
-    atr_series = indicators.get("atr")
-    adx_series = indicators.get("adx")
-    atr = _last(atr_series) or 0.0
-    adx = _last(adx_series) or 0.0
-    atr_base = 0.0
-    try:
-        if atr_series is not None:
-            length = min(len(atr_series), 150)
-            if hasattr(atr_series, "iloc"):
-                vals = atr_series.iloc[-length:]
-            else:
-                vals = atr_series[-length:]
-            atr_base = sum(float(v) for v in vals) / length if length else 0.0
-    except Exception:
-        atr_base = 0.0
-    return decide_trade_mode_matrix(atr, atr_base, adx)
+    """Return trade mode based on scoring approach."""
+    mode, _score, _reasons = decide_trade_mode_detail(indicators)
+    return mode
 
 
 __all__ = [

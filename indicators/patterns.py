@@ -58,7 +58,7 @@ class DoubleBottomSignal:
 class DoubleTopSignal:
     """Detect double-top pattern and compute features."""
 
-    def __init__(self, max_separation: int = 10, tolerance: float = 0.001, volume_window: int = 5) -> None:
+    def __init__(self, max_separation: int = 10, tolerance: float = 0.2, volume_window: int = 5) -> None:
         self.max_separation = max_separation
         self.tolerance = tolerance
         self.volume_window = volume_window
