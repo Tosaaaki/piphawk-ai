@@ -31,6 +31,12 @@ MODE_ADX_QTL = float(env_loader.get_env("MODE_ADX_QTL", "0"))
 MODE_QTL_LOOKBACK = int(env_loader.get_env("MODE_QTL_LOOKBACK", "20"))
 HTF_SLOPE_MIN = float(env_loader.get_env("HTF_SLOPE_MIN", "0.1"))
 
+# --- Vol-Trend matrix parameters ------------------------------------
+ATR_HIGH_RATIO = float(env_loader.get_env("ATR_HIGH_RATIO", "1.4"))
+ATR_LOW_RATIO = float(env_loader.get_env("ATR_LOW_RATIO", "0.8"))
+ADX_TREND_THR = float(env_loader.get_env("ADX_TREND_THR", "25"))
+ADX_FLAT_THR = float(env_loader.get_env("ADX_FLAT_THR", "17"))
+
 
 def _last(value: Iterable | Sequence | None) -> float | None:
     """Return last element from list or pandas Series."""
@@ -55,6 +61,26 @@ def _in_window(now: float, start: float, end: float) -> bool:
     return now >= start or now < end
 
 
+def decide_trade_mode_matrix(
+    atr: float,
+    atr_base: float,
+    adx: float,
+    atr_high_thr: float = ATR_HIGH_RATIO,
+    atr_low_thr: float = ATR_LOW_RATIO,
+    adx_trend_thr: float = ADX_TREND_THR,
+    adx_flat_thr: float = ADX_FLAT_THR,
+) -> str:
+    """Return mode based on volatility and trend strength."""
+    if atr_base <= 0:
+        return "flat"
+    atr_ratio = atr / atr_base
+    if atr_ratio >= atr_high_thr and adx <= adx_flat_thr:
+        return "scalp_range"
+    if atr_ratio >= atr_high_thr and adx >= adx_trend_thr:
+        return "scalp_momentum"
+    if atr_ratio <= atr_low_thr and adx >= adx_trend_thr:
+        return "trend_follow"
+    return "flat"
 def _quantile(data: Iterable, q: float) -> float | None:
     """Return q-th quantile from sequence ``data``."""
     try:
@@ -233,14 +259,29 @@ def decide_trade_mode_detail(indicators: dict) -> tuple[str, int, list[str]]:
 
 
 def decide_trade_mode(indicators: dict) -> str:
-    """Return ``trend_follow`` or ``scalp``."""
-    mode, _score, _reasons = decide_trade_mode_detail(indicators)
-    return mode
+    """Return trade mode based on ATR/ADX matrix."""
+    atr_series = indicators.get("atr")
+    adx_series = indicators.get("adx")
+    atr = _last(atr_series) or 0.0
+    adx = _last(adx_series) or 0.0
+    atr_base = 0.0
+    try:
+        if atr_series is not None:
+            length = min(len(atr_series), 150)
+            if hasattr(atr_series, "iloc"):
+                vals = atr_series.iloc[-length:]
+            else:
+                vals = atr_series[-length:]
+            atr_base = sum(float(v) for v in vals) / length if length else 0.0
+    except Exception:
+        atr_base = 0.0
+    return decide_trade_mode_matrix(atr, atr_base, adx)
 
 
 __all__ = [
     "decide_trade_mode",
     "decide_trade_mode_detail",
+    "decide_trade_mode_matrix",
     "MODE_ATR_PIPS_MIN",
     "MODE_BBWIDTH_PIPS_MIN",
     "MODE_EMA_SLOPE_MIN",
@@ -258,6 +299,10 @@ __all__ = [
     "MODE_PENALTY_START_JST",
     "MODE_PENALTY_END_JST",
     "MODE_LOG_PATH",
+    "ATR_HIGH_RATIO",
+    "ATR_LOW_RATIO",
+    "ADX_TREND_THR",
+    "ADX_FLAT_THR",
     "MODE_ATR_QTL",
     "MODE_ADX_QTL",
     "MODE_QTL_LOOKBACK",
