@@ -18,6 +18,7 @@
 - `ENFORCE_RRR=false`
 - `SCALP_TP_PIPS=4`
 - `SCALP_SL_PIPS=4`
+- `SCALP_PROMPT_BIAS=aggressive`
 
 ## 反映手順
 

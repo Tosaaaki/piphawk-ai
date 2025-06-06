@@ -12,6 +12,7 @@ TP_PROB_HOURS = int(env_loader.get_env("TP_PROB_HOURS", "24"))
 MIN_RRR = float(env_loader.get_env("MIN_RRR", "0.8"))
 MIN_NET_TP_PIPS = float(env_loader.get_env("MIN_NET_TP_PIPS", "2"))
 TREND_ADX_THRESH = float(env_loader.get_env("TREND_ADX_THRESH", "20"))
+TREND_PROMPT_BIAS = env_loader.get_env("TREND_PROMPT_BIAS", "normal").lower()
 
 
 def _series_tail_list(series, n: int = 20) -> list:
@@ -277,4 +278,10 @@ Your task:
 Respond with **one-line valid JSON** exactly as:
 {{"regime":{{...}},"entry":{{...}},"risk":{{...}},"entry_confidence":0.0}}
 """
+    bias_note = ""
+    if TREND_PROMPT_BIAS == "aggressive":
+        bias_note = (
+            "\nBe proactive: when signals are mixed, favor taking a position rather than returning 'no'."
+        )
+    prompt += bias_note
     return prompt, comp_val
