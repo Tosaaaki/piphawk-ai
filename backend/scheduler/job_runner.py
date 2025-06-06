@@ -811,7 +811,7 @@ class JobRunner:
                         for c in candles_tf
                         if c.get("mid")
                     ]
-                    self.trade_mode = determine_trade_mode(adx_val, closes_tf, tf=tf_mode)
+                    self.trade_mode = determine_trade_mode(adx_val, closes_tf, scalp_tf=tf_mode)
                     logger.info("Current trade mode: %s", self.trade_mode)
 
                     # チェック：保留LIMIT注文の更新
