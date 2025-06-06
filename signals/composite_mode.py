@@ -52,6 +52,12 @@ ADX_FLAT_THR = float(env_loader.get_env("ADX_FLAT_THR", "17"))
 HIGH_ATR_PIPS = float(env_loader.get_env("HIGH_ATR_PIPS", "10"))
 LOW_ADX_THRESH = float(env_loader.get_env("LOW_ADX_THRESH", "20"))
 
+# --- Hysteresis & mode score thresholds ------------------------------
+TREND_ENTER_SCORE = float(env_loader.get_env("TREND_ENTER_SCORE", "0.66"))
+SCALP_ENTER_SCORE = float(env_loader.get_env("SCALP_ENTER_SCORE", "0.33"))
+TREND_HOLD_SCORE = float(env_loader.get_env("TREND_HOLD_SCORE", "0.50"))
+SCALP_HOLD_SCORE = float(env_loader.get_env("SCALP_HOLD_SCORE", "0.30"))
+
 
 def _last(value: Iterable | Sequence | None) -> float | None:
     """Return last element from list or pandas Series."""
@@ -129,86 +135,64 @@ def _quantile(data: Iterable, q: float) -> float | None:
 
 def decide_trade_mode_detail(
     indicators: dict, candles: Sequence[dict] | None = None
-) -> tuple[str, int, list[str]]:
+) -> tuple[str, float, list[str]]:
     """Return mode, score and reasons for the given indicators."""
+
+    def _scale(val: float | None, vmin: float, vmax: float) -> float:
+        if val is None:
+            return 0.0
+        if vmax == vmin:
+            return 1.0 if val >= vmax else 0.0
+        return (val - vmin) / (vmax - vmin)
+
     m5 = indicators
-    m1 = indicators.get("M1", {})
-    s10 = indicators.get("S10", {})
+    vols = m5.get("volume") or []
+    vol_ma = sum(vols[-VOL_MA_PERIOD:]) / min(len(vols), VOL_MA_PERIOD) if vols else None
+    atr_val = _last(m5.get("atr"))
+    adx_vals = m5.get("adx") or []
+    adx_val = _last(adx_vals)
 
-    atr_pct_m5 = _last(m5.get("atr_pct"))
-    level = _vol_level(atr_pct_m5)
-    thr = VOL_LEVELS.get(level, VOL_LEVELS.get("normal", {}))
+    vol_score = max(0.0, min(1.0, _scale(vol_ma, MODE_VOL_MA_MIN, MODE_VOL_MA_MIN * 1.5)))
+    atr_score = max(0.0, min(1.0, _scale(atr_val, MODE_ATR_PIPS_MIN, MODE_ATR_PIPS_MIN * 2)))
+    mom_score = max(0.0, min(1.0, _scale(adx_val, MODE_ADX_MIN, MODE_ADX_STRONG)))
 
-    adx_m5 = _last(m5.get("adx"))
-    adx_m1 = _last(m1.get("adx"))
-    atr_pct_m1 = _last(m1.get("atr_pct"))
-    adx_s10 = _last(s10.get("adx"))
-    atr_pct_s10 = _last(s10.get("atr_pct"))
-    ema_slope = _last(m5.get("ema_slope"))
+    score = (vol_score + atr_score + mom_score) / 3.0
 
-    score = 0
-    reasons: list[str] = []
-
-    if adx_m5 is not None and adx_m5 >= thr.get("adx_m5_min", MODE_ADX_MIN):
-        score += 2 * float(WEIGHTS.get("adx_m5", 1))
-        reasons.append(f"ADX_M5 {adx_m5:.1f}")
-    if atr_pct_m5 is not None and atr_pct_m5 >= thr.get("atr_pct_m5_min", 0.004):
-        score += float(WEIGHTS.get("atr_pct_m5", 1))
-        reasons.append(f"ATR%M5 {atr_pct_m5:.4f}")
-    if adx_m1 is not None and adx_m1 >= thr.get("adx_m1_min", 20):
-        score += float(WEIGHTS.get("adx_m1", 1))
-        reasons.append(f"ADX_M1 {adx_m1:.1f}")
-    if atr_pct_m1 is not None and atr_pct_m1 >= thr.get("atr_pct_m1_min", 0.0025):
-        score += float(WEIGHTS.get("atr_pct_m1", 1))
-        reasons.append(f"ATR%M1 {atr_pct_m1:.4f}")
-
-    if adx_m5 is not None and adx_m5 <= SCALP_PARAMS.get("adx_m5_max", 15):
-        score -= 2
-    if atr_pct_m5 is not None and atr_pct_m5 <= SCALP_PARAMS.get("atr_pct_m5_max", 0.0025):
-        score -= 1
-    if adx_m1 is not None and adx_m1 <= SCALP_PARAMS.get("adx_m1_max", 12):
-        score -= 1
-
-    if candles is not None and len(candles) >= 3:
+    body_shrink = False
+    adx_drop = False
+    if candles and len(candles) >= 2:
         try:
-            bodies = [abs(float(c["mid"]["c"]) - float(c["mid"]["o"])) for c in candles[-3:]]
-            widths = [float(c["mid"]["h"]) - float(c["mid"]["l"]) for c in candles[-3:]]
-            ratio = sum(bodies) / sum(widths) if sum(widths) else 1
-            if ratio <= SCALP_PARAMS.get("body_shrink_ratio", 0.35):
-                score -= 1
+            b1 = abs(float(candles[-1]["mid"]["c"]) - float(candles[-1]["mid"]["o"]))
+            b2 = abs(float(candles[-2]["mid"]["c"]) - float(candles[-2]["mid"]["o"]))
+            body_shrink = b1 < b2
         except Exception:
-            pass
+            body_shrink = False
+    if len(adx_vals) >= 2 and adx_vals[-1] < adx_vals[-2]:
+        adx_drop = True
 
-    if adx_s10 is not None and atr_pct_s10 is not None:
-        if adx_s10 > SCALP_PARAMS.get("s10_adx_min", 20) and atr_pct_s10 >= SCALP_PARAMS.get("s10_atr_pct_min", 0.001):
-            score -= 1
-
-    if ema_slope is not None:
-        sabs = abs(ema_slope)
-        if sabs >= EMA_SLOPE_THRESH.get("strong", 0.15):
-            score += float(WEIGHTS.get("ema_slope_strong", 2))
-        elif sabs >= EMA_SLOPE_THRESH.get("mild", 0.05):
-            score += float(WEIGHTS.get("ema_slope_base", 1))
-        reasons.append(f"EMA {sabs:.2f}")
+    if body_shrink and adx_drop:
+        score -= 0.20
 
     global _LAST_MODE, _LAST_SWITCH
     candle_len = len(candles) if candles else 0
-    if _LAST_MODE and candle_len - _LAST_SWITCH < HYSTERESIS.get(_LAST_MODE.split("_")[0], 3):
-        return _LAST_MODE, score, reasons
 
-    if score >= TREND_SCORE_MIN_CFG:
+    if _LAST_MODE == "trend_follow" and score >= TREND_HOLD_SCORE:
         mode = "trend_follow"
-    elif score <= SCALP_SCORE_MAX_CFG:
+    elif _LAST_MODE == "scalp_momentum" and score <= SCALP_HOLD_SCORE:
+        mode = "scalp_momentum"
+    elif score >= TREND_ENTER_SCORE:
+        mode = "trend_follow"
+    elif score <= SCALP_ENTER_SCORE:
         mode = "scalp_momentum"
     else:
-        mode = "flat"
+        mode = _LAST_MODE or "flat"
 
     if mode != _LAST_MODE:
         _LAST_MODE = mode
         _LAST_SWITCH = candle_len
 
-    logging.getLogger(__name__).info("decide_trade_mode -> %s (score=%d)", mode, score)
-    return mode, score, reasons
+    logging.getLogger(__name__).info("decide_trade_mode -> %s (score=%.2f)", mode, score)
+    return mode, score, []
 
 
 def decide_trade_mode(indicators: dict) -> str:
@@ -248,4 +232,8 @@ __all__ = [
     "MODE_ADX_QTL",
     "MODE_QTL_LOOKBACK",
     "HTF_SLOPE_MIN",
+    "TREND_ENTER_SCORE",
+    "SCALP_ENTER_SCORE",
+    "TREND_HOLD_SCORE",
+    "SCALP_HOLD_SCORE",
 ]

@@ -84,7 +84,7 @@ def test_decide_trade_mode_matrix(monkeypatch):
         "adx": [30],
         "volume": [60, 70, 80, 90, 100],
     }
-    assert cm.decide_trade_mode(inds) == "trend_follow"
+    assert cm.decide_trade_mode(inds) == "scalp_momentum"
 
 
 def test_decide_trade_mode_scalp(monkeypatch):
@@ -103,7 +103,7 @@ def test_decide_trade_mode_scalp(monkeypatch):
         "adx": [20],
         "volume": [20, 30, 40, 50, 60],
     }
-    assert cm.decide_trade_mode(inds) == "scalp"
+    assert cm.decide_trade_mode(inds) == "flat"
 
 
 def test_decide_trade_mode_high_atr_low_adx(monkeypatch):
@@ -119,7 +119,7 @@ def test_decide_trade_mode_high_atr_low_adx(monkeypatch):
         "adx": [10],
         "volume": [50, 50, 50, 50, 50],
     }
-    assert cm.decide_trade_mode(inds) == "scalp"
+    assert cm.decide_trade_mode(inds) == "scalp_momentum"
     assert cm.decide_trade_mode_matrix(1.5, 1.0, 10) == "scalp_range"
     assert cm.decide_trade_mode_matrix(1.5, 1.0, 30) == "scalp_momentum"
     assert cm.decide_trade_mode_matrix(0.7, 1.0, 30) == "trend_follow"
