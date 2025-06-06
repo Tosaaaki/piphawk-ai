@@ -261,22 +261,14 @@ class JobRunner:
         mode_env = env_loader.get_env("SCALP_MODE")
         if mode_env is None:
             self.trade_mode = None
-            self.current_params_file = "config/strategy.yml"
-        elif mode_env.lower() == "true":
-            self.trade_mode = "scalp"
+        else:
+            self.trade_mode = "scalp" if mode_env.lower() == "true" else "trend_follow"
+        if self.trade_mode == "scalp":
             self.current_params_file = "config/scalp.yml"
-        else:
-            self.trade_mode = "trend_follow"
+        elif self.trade_mode == "trend_follow":
             self.current_params_file = "config/trend.yml"
-        scalp_env = env_loader.get_env("SCALP_MODE")
-        if scalp_env is None:
-            self.trade_mode = None
-            self.current_params_file = "config/strategy.yml"
         else:
-            self.trade_mode = "scalp" if scalp_env.lower() == "true" else "trend_follow"
-            self.current_params_file = (
-                "config/scalp.yml" if self.trade_mode == "scalp" else "config/trend.yml"
-            )
+            self.current_params_file = "config/strategy.yml"
 
         # Restore TP adjustment flags based on existing TP order comment
         try:
