@@ -10,5 +10,6 @@ reentry:
   trigger_pips_over_break: 1.5
 SCALP_MODE: false
 SCALP_ADX_MIN: 45
+SCALP_SUPPRESS_ADX_MAX: 70
 SCALP_TP_PIPS: 5
 SCALP_SL_PIPS: 3

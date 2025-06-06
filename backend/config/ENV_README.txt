@@ -195,11 +195,13 @@ SCALE_TRIGGER_ATR=0.5
 - MIN_EARLY_EXIT_PROFIT_PIPS: 早期撤退を検討する際に必要な最低利益幅
 - SCALP_MODE: スキャルピング用の固定TP/SLエントリーを有効化
 - SCALP_ADX_MIN: SCALP_MODE時に必要な最小ADX
+- SCALP_SUPPRESS_ADX_MAX: この値を超えるADXではSCALP_MODEをオフにする
 - SCALP_TP_PIPS / SCALP_SL_PIPS: スキャル時のTP/SL幅
 - SCALP_COND_TF: スキャルプ時に市場判定へ使う時間足 (デフォルト M1)
 - H1_BOUNCE_RANGE_PIPS: H1安値/高値からこのpips以内ならエントリーを見送る
 - SCALP_MODE: スキャルプモードを有効にする
 - SCALP_ADX_MIN: スキャルプ実行に必要なADX下限
+- SCALP_SUPPRESS_ADX_MAX: この値を超えるADXではSCALP_MODEをオフにする
 - SCALP_TP_PIPS / SCALP_SL_PIPS: スキャルプ用のTP/SL幅
 - SCALP_COND_TF: スキャルプ時に市場判定へ使う時間足 (デフォルト M1)
 ■ OANDA_MATCH_SEC
