@@ -40,6 +40,7 @@ def load_params(
     strategy_path: str | Path | None = Path(__file__).resolve().parent
     / "strategy.yml",
     settings_path: str | Path | None = Path(__file__).resolve().parent / "settings.yaml",
+    mode_path: str | Path | None = Path(__file__).resolve().parent / "mode_thresholds.yml",
 ):
     """Load YAML parameters and export them as environment variables."""
 
@@ -58,6 +59,11 @@ def load_params(
         se = Path(settings_path)
         if se.exists():
             env_params.update(_flatten(_parse_yaml_file(se)))
+
+    if mode_path is not None:
+        mp = Path(mode_path)
+        if mp.exists():
+            env_params.update(_flatten(_parse_yaml_file(mp)))
 
     # キーエイリアスの適用
     for src, target in _KEY_ALIASES.items():
