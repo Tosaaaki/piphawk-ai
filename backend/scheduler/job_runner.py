@@ -77,7 +77,7 @@ from backend.strategy import pattern_scanner
 from backend.strategy.momentum_follow import follow_breakout
 from analysis.regime_detector import RegimeDetector
 import requests
-from signals.composite_mode import decide_trade_mode
+from signals.composite_mode import decide_trade_mode, decide_trade_mode_detail
 
 from backend.utils.notification import send_line_message
 from backend.logs.trade_logger import log_trade, ExitReason
@@ -264,6 +264,7 @@ class JobRunner:
             self.current_params_file = (
                 "config/scalp.yml" if self.trade_mode == "scalp" else "config/trend.yml"
             )
+        self.mode_reason = ""
 
         # Restore TP adjustment flags based on existing TP order comment
         try:
@@ -412,6 +413,8 @@ class JobRunner:
                                 candles_dict or {},
                                 patterns=PATTERN_NAMES,
                                 detected_patterns=self.patterns_by_tf,
+                                trade_mode=self.trade_mode,
+                                mode_reason=self.mode_reason,
                             )
                             risk = plan.get("risk", {})
                             ai_raw = json.dumps(plan, ensure_ascii=False)
@@ -498,6 +501,8 @@ class JobRunner:
                 candles_dict or {},
                 patterns=PATTERN_NAMES,
                 detected_patterns=self.patterns_by_tf,
+                trade_mode=self.trade_mode,
+                mode_reason=self.mode_reason,
             )
         except Exception as exc:
             logger.warning(f"get_trade_plan failed: {exc}")
@@ -831,10 +836,11 @@ class JobRunner:
                     logger.info("Indicators calculation successful.")
 
                     # 指標からトレードモードを判定
-                    new_mode = decide_trade_mode(indicators)
+                    new_mode, _score, reasons = decide_trade_mode_detail(indicators)
                     if new_mode != self.trade_mode:
                         self.reload_params_for_mode(new_mode)
                         self.trade_mode = new_mode
+                    self.mode_reason = "\n".join(f"- {r}" for r in reasons)
                     logger.info("Current trade mode: %s", self.trade_mode)
 
                     # チェック：保留LIMIT注文の更新
@@ -1469,6 +1475,8 @@ class JobRunner:
                                     {"M1": candles_m1, "M5": candles_m5},
                                     patterns=PATTERN_NAMES,
                                     detected_patterns=self.patterns_by_tf,
+                                    trade_mode=self.trade_mode,
+                                    mode_reason=self.mode_reason,
                                 )
                                 side = plan_check.get("entry", {}).get("side", "no").lower()
                             except Exception as exc:
