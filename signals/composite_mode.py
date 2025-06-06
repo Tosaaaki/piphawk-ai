@@ -27,6 +27,10 @@ MODE_PENALTY_START_JST = float(env_loader.get_env("MODE_PENALTY_START_JST", "2")
 MODE_PENALTY_END_JST = float(env_loader.get_env("MODE_PENALTY_END_JST", "8"))
 MODE_LOG_PATH = env_loader.get_env("MODE_LOG_PATH", "analysis/trade_mode_log.csv")
 
+# 高ATRかつADX低下時のスキャルプ判定用閾値
+HIGH_ATR_PIPS = float(env_loader.get_env("HIGH_ATR_PIPS", "10"))
+LOW_ADX_THRESH = float(env_loader.get_env("LOW_ADX_THRESH", "20"))
+
 
 def _last(value: Iterable | Sequence | None) -> float | None:
     """Return last element from list or pandas Series."""
@@ -61,6 +65,13 @@ def decide_trade_mode_detail(indicators: dict) -> tuple[str, int, list[str]]:
     if bb_u is not None and bb_l is not None:
         bb_width_pips = (float(bb_u) - float(bb_l)) / pip_size
     atr_pips = float(atr) / pip_size
+    adx = _last(indicators.get("adx"))
+
+    if adx is not None and atr_pips >= HIGH_ATR_PIPS and adx < LOW_ADX_THRESH:
+        logging.getLogger(__name__).info(
+            "decide_trade_mode: scalp override by ATR/ADX"
+        )
+        return "scalp", 0, [f"ATR {atr_pips:.1f}p", f"ADX {adx:.1f}"]
 
     score = 0
     reasons: list[str] = []
@@ -208,4 +219,6 @@ __all__ = [
     "MODE_PENALTY_START_JST",
     "MODE_PENALTY_END_JST",
     "MODE_LOG_PATH",
+    "HIGH_ATR_PIPS",
+    "LOW_ADX_THRESH",
 ]

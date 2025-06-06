@@ -105,3 +105,19 @@ def test_decide_trade_mode_scalp(monkeypatch):
         "volume": [20, 30, 40, 50, 60],
     }
     assert cm.decide_trade_mode(inds) == "scalp"
+
+
+def test_decide_trade_mode_high_atr_low_adx(monkeypatch):
+    monkeypatch.setenv("HIGH_ATR_PIPS", "3")
+    monkeypatch.setenv("LOW_ADX_THRESH", "20")
+    cm = _reload_composite()
+    inds = {
+        "atr": [0.03],
+        "bb_upper": [101.0],
+        "bb_lower": [100.0],
+        "ema_slope": [0.0],
+        "macd_hist": [0.0],
+        "adx": [10],
+        "volume": [50, 50, 50, 50, 50],
+    }
+    assert cm.decide_trade_mode(inds) == "scalp"
