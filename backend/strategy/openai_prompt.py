@@ -179,6 +179,9 @@ Allow short-term counter-trend trades only when all of the following are true:
 - Price action has stabilized with minor reversal candles.
 - TP kept small (5–10 pips) and risk tightly controlled.
 
+Price has just printed multiple upper shadows and ADX(S10) fell >30% from its peak.
+Evaluate if a short scalp is favorable given potential exhaustion.
+
 📈【Trend Entry Clarification】
 Once a TREND is confirmed, prioritize entries on pullbacks. Shorts enter after price rises {pullback_needed:.1f} pips above the latest low, longs after price drops {pullback_needed:.1f} pips below the latest high. This pullback rule overrides RSI extremes.{no_pullback_msg}""" + (
         "\n\n⏳【Trend Overshoot Handling】\n"
