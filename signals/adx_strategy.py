@@ -3,6 +3,7 @@ from __future__ import annotations
 """ADX値に基づくシンプルなストラテジー切換ユーティリティ."""
 
 from typing import Sequence, Optional
+import logging
 
 from backend.utils import env_loader
 
@@ -34,10 +35,24 @@ def determine_trade_mode(
     tf: str | None = None,
 ) -> str:
     """市場状態からトレードモードを返す."""
+    logger = logging.getLogger(__name__)
+    env = analyze_environment_tf(closes_tf, tf)
+
     mode = choose_strategy(adx_value)
-    if mode == "trend_follow":
-        if analyze_environment_tf(closes_tf, tf) == "range":
-            return "scalp"
+    reason = ""
+
+    if mode == "none":
+        reason = f"ADX {adx_value:.1f} < {ADX_SCALP_MIN}"
+    elif mode == "scalp":
+        reason = f"{ADX_SCALP_MIN} <= ADX {adx_value:.1f} < {ADX_TREND_MIN}"
+    else:  # trend_follow
+        if env == "range":
+            reason = f"{tf or 'M1'} range despite ADX {adx_value:.1f} >= {ADX_TREND_MIN}"
+            mode = "scalp"
+        else:
+            reason = f"ADX {adx_value:.1f} >= {ADX_TREND_MIN} and {tf or 'M1'} trend"
+
+    logger.info("determine_trade_mode -> %s (%s)", mode, reason)
     return mode
 
 
