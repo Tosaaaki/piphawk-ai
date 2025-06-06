@@ -61,6 +61,7 @@ MIN_RRR: 1.5
 ATR_RATIO: 1.8
 ```
 `config.params_loader.load_params("config/strategy.yml")` を呼び出すと `.env` より後から読み込まれ、簡単にパラメータを切り替えられます。
+設定変更後はジョブランナーを再起動するか、この関数を再度実行して環境変数を更新してください。
 
 スキャルピング用の設定例は以下の通りです。
 ```yaml
@@ -73,6 +74,14 @@ SCALP_COND_TF: M1
 TREND_COND_TF: M5
 SCALP_OVERRIDE_RANGE: true
 ```
+
+スキャルプとトレンドフォローを完全に分けたい場合は
+`config/scalp.yml` と `config/trend.yml` を用意し、
+`params_loader.load_params()` へ読み込ませます。
+詳しくは `docs/scalp_vs_trend.md` を参照してください。
+YAML ファイルの変更は `settings.env` と同様、ジョブランナー起動時に読み込まれ
+ます。値を変えた後はジョブランナーを再起動するか、明示的に
+`params_loader.load_params()` を実行してください。
 
 
 ### Switching OANDA accounts
