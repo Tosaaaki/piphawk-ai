@@ -312,7 +312,8 @@ class JobRunner:
         if os.getenv("AUTO_RESTART", "false").lower() == "true":
             logger.info("AUTO_RESTART enabled – restarting process")
             python = sys.executable
-            os.execv(python, [python] + sys.argv)
+            # preserve module-based execution to keep import paths intact
+            os.execv(python, [python, "-m", "backend.scheduler.job_runner", *sys.argv[1:]])
 
     # ────────────────────────────────────────────────────────────
     #  Poll & renew pending LIMIT orders
