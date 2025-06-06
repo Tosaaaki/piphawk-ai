@@ -7,7 +7,7 @@ from typing import Sequence, Optional
 from backend.utils import env_loader
 
 from indicators.bollinger import multi_bollinger
-from signals.scalp_strategy import analyze_environment_m1, should_enter_trade_s10
+from signals.scalp_strategy import analyze_environment_tf, analyze_environment_m1, should_enter_trade_s10
 
 
 ADX_SCALP_MIN = float(env_loader.get_env("ADX_SCALP_MIN", "20"))
@@ -31,7 +31,11 @@ def entry_signal(
     """ADXに応じたトレード方向を組織."""
     mode = choose_strategy(adx_value)
     if mode == "scalp":
-        direction = analyze_environment_m1(closes_m1)
+        tf = env_loader.get_env("SCALP_COND_TF", "M1").upper()
+        if tf == "S10":
+            direction = analyze_environment_tf(closes_s10, tf)
+        else:
+            direction = analyze_environment_tf(closes_m1, tf)
         bands = multi_bollinger({"S10": closes_s10})["S10"]
         return should_enter_trade_s10(direction, closes_s10, bands)
     if mode == "trend_follow":
