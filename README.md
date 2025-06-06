@@ -52,6 +52,9 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
 - `MODE_ATR_PIPS_MIN` / `MODE_BBWIDTH_PIPS_MIN` … ボラティリティ判定用の閾値
 - `MODE_EMA_SLOPE_MIN` / `MODE_ADX_MIN` … モメンタム判定のしきい値
 - `MODE_VOL_MA_MIN` … 流動性判定に使う出来高平均
+- `MODE_ATR_QTL` / `MODE_ADX_QTL` … ATR・ADX の分位点を利用する場合の割合
+- `MODE_QTL_LOOKBACK` … 分位点計算に使う過去本数
+- `HTF_SLOPE_MIN` … 上位足 EMA 傾きチェック用のしきい値
 - `AI_MODEL` … OpenAI モデル名
 - `LINE_CHANNEL_TOKEN` / `LINE_USER_ID` … LINE 通知に使用する認証情報
 
