@@ -1402,6 +1402,7 @@ class JobRunner:
                             self.indicators_M1,
                             self.indicators_M15,
                             self.indicators_H1,
+                            mode=self.trade_mode,
                         ):
                             logger.info("Filter OK → Processing entry decision with AI.")
                             self.last_ai_call = datetime.now()  # record AI call time *before* the call

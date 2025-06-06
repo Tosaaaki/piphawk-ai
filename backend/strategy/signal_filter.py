@@ -332,6 +332,8 @@ def pass_entry_filter(
     indicators_m1: dict | None = None,
     indicators_m15: dict | None = None,
     indicators_h1: dict | None = None,
+    *,
+    mode: str | None = None,
 ) -> bool:
     """
     Pure rule‑based entry filter.
@@ -351,6 +353,9 @@ def pass_entry_filter(
         checks. If omitted, the function fetches M15 candles as needed.
     indicators_h1 : dict | None
         Optional H1 timeframe indicators used for counter-trend blocking.
+    mode : str | None, default None
+        Trade mode such as ``"scalp"`` or ``"trend_follow"``. When specified
+        the filter adjusts certain thresholds accordingly.
     """
     if os.getenv("DISABLE_ENTRY_FILTER", "false").lower() == "true":
         return True
@@ -608,6 +613,14 @@ def pass_entry_filter(
     else:
         atr_condition = (latest_atr / pip_size) >= (atr_th / pip_size)
 
+    if mode == "scalp":
+        atr_condition = True
+        required = 1
+    elif mode == "trend_follow":
+        required = 2
+    else:
+        required = 1
+
     rsi_condition = latest_rsi < lower or latest_rsi > upper
 
     ema_cross_up = prev_ema_fast < prev_ema_slow and latest_ema_fast > latest_ema_slow
@@ -615,7 +628,6 @@ def pass_entry_filter(
     ema_condition = ema_cross_up or ema_cross_down
 
     score = sum([rsi_condition, atr_condition, ema_condition])
-    required = 1  # adjust if you want stricter logic
 
     if not band_width_ok:
         logger.debug(
