@@ -15,6 +15,7 @@ COPY backend /app/backend
 COPY analysis /app/analysis
 COPY signals /app/signals
 COPY indicators /app/indicators
+COPY config /app/config
 
 # create an empty SQLite database if not provided
 RUN touch /app/trades.db

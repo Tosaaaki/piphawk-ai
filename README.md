@@ -287,6 +287,10 @@ the `linux/amd64` platform so they run correctly:
 docker build --platform linux/amd64 -f Dockerfile .
 ```
 
+The Dockerfile copies the `config` directory so YAML files like `strategy.yml`
+are bundled into the image. When you start the job runner container, these
+parameters are loaded automatically.
+
 Use the same flag when building `backend/Dockerfile.api` or
 `backend/Dockerfile.job`. Note that running these x86 containers under
 emulation can be slower and some dependencies may not behave exactly the same
