@@ -4,6 +4,27 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import yaml
+import json
+
+STATE_FILE = Path("/tmp/last_trade_mode.json")
+
+
+def load_last_mode() -> str | None:
+    """Return last trade mode stored in STATE_FILE."""
+    if STATE_FILE.exists():
+        try:
+            return json.loads(STATE_FILE.read_text()).get("mode")
+        except Exception:
+            return None
+    return None
+
+
+def save_last_mode(mode: str) -> None:
+    """Persist current trade mode to STATE_FILE."""
+    try:
+        STATE_FILE.write_text(json.dumps({"mode": mode}))
+    except Exception:
+        pass
 
 # YAML内キーと環境変数名のマッピング
 _KEY_ALIASES = {
