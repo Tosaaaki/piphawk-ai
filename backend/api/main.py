@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 logger = logging.getLogger(__name__)
 
+
 # ------------------------------------------------------------------
 # simple health‑check endpoint for Cloud Run / load‑balancers
 # ------------------------------------------------------------------
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 def health():
     """Return 200 OK with a tiny JSON payload."""
     return {"status": "ok"}
+
 
 # --- CORS ---
 # Allow requests from any origin (frontend dev & Cloud Run UI).
@@ -45,8 +47,6 @@ scheduler = BackgroundScheduler()
 scheduler.start()
 
 
-
-
 @app.get("/logs/errors")
 def get_error_logs():
     try:
@@ -56,7 +56,6 @@ def get_error_logs():
         return {"errors": errors[-50:]}
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Error log file not found")
-
 
 
 # In-memory settings store
@@ -72,10 +71,12 @@ class RuntimeSettings(BaseModel):
     ai_cooldown_open: int | None = None
     review_sec: int | None = None
 
+
 class NotificationSettings(BaseModel):
     enabled: bool
     token: str
     user_id: str
+
 
 # In-memory notification settings
 notification_settings = {"enabled": False, "token": "", "user_id": ""}
@@ -87,40 +88,46 @@ logger.info(
 
 
 @app.get("/strategy/backtest")
-def backtest(start_date: str, end_date: str, strategy: str = "ema_cross", capital: float = 10000.0, risk_pct: float = 1.0):
+def backtest(
+    start_date: str,
+    end_date: str,
+    strategy: str = "ema_cross",
+    capital: float = 10000.0,
+    risk_pct: float = 1.0,
+):
     """
     Placeholder for backtest endpoint.
     Returns a dummy equity curve and summary.
     """
     equity_curve = [
         {"date": start_date, "equity": capital},
-        {"date": end_date, "equity": capital + 1000.0}
+        {"date": end_date, "equity": capital + 1000.0},
     ]
     summary = {
         "trades": 0,
         "total_pl": 0.0,
         "win_rate": 0.0,
         "max_dd": 0.0,
-        "sharpe": 0.0
+        "sharpe": 0.0,
     }
     return {"equity_curve": equity_curve, "summary": summary}
 
+
 @app.get("/strategy/analyze")
-def analyze(start_date: str | None = None, end_date: str | None = None, group_by: str = "month"):
+def analyze(
+    start_date: str | None = None, end_date: str | None = None, group_by: str = "month"
+):
     """
     Placeholder for analyze endpoint.
     Returns dummy grouped performance and overall summary.
     """
     by_group = [
         {"group": "2025-01", "trades": 0, "pl": 0.0},
-        {"group": "2025-02", "trades": 0, "pl": 0.0}
+        {"group": "2025-02", "trades": 0, "pl": 0.0},
     ]
-    overall = {
-        "trades": 0,
-        "total_pl": 0.0,
-        "win_rate": 0.0
-    }
+    overall = {"trades": 0, "total_pl": 0.0, "win_rate": 0.0}
     return {f"by_{group_by}": by_group, "overall": overall}
+
 
 def send_hourly_summary():
     end = datetime.now(timezone.utc)
@@ -153,10 +160,12 @@ def send_hourly_summary():
 
 def schedule_hourly_summary_job():
     """Register hourly summary job with the scheduler."""
-    scheduler.add_job(send_hourly_summary, 'cron', minute=0)
+    scheduler.add_job(send_hourly_summary, "cron", minute=0)
+
 
 # Schedule the job to run every hour at minute 0
 schedule_hourly_summary_job()
+
 
 # Test endpoint: Get trade summary for the last hour (no notification)
 @app.get("/trades/summary")
@@ -191,8 +200,8 @@ def get_trade_summary():
             "wins": wins or 0,
             "losses": losses or 0,
             "win_rate": win_rate,
-            "total_pl": total_pl or 0
-        }
+            "total_pl": total_pl or 0,
+        },
     }
 
 
@@ -230,10 +239,13 @@ def control_scheduler(action: str):
 # ------------------------------------------------------------------
 @app.get("/settings")
 def ui_get_settings():
+    """Return the current LINE notification settings."""
     return notification_settings
+
 
 @app.post("/settings")
 def ui_update_settings(settings: NotificationSettings):
+    """Update LINE notification settings from the UI and return the new values."""
     notification_settings.update(settings.dict())
     os.environ["LINE_CHANNEL_TOKEN"] = notification_settings["token"]
     os.environ["LINE_USER_ID"] = notification_settings["user_id"]
@@ -258,23 +270,31 @@ def update_runtime_settings(settings: RuntimeSettings):
             current_settings[key] = value
     return {"status": "ok", "settings": current_settings}
 
+
 notifications_router = APIRouter(prefix="/notifications")
+
 
 @notifications_router.get("/settings")
 def get_notification_settings():
+    """Return the current LINE notification settings."""
     return notification_settings
+
 
 @notifications_router.post("/settings")
 def update_notification_settings(settings: NotificationSettings):
+    """Update LINE notification settings and return the new values."""
     notification_settings.update(settings.dict())
     os.environ["LINE_CHANNEL_TOKEN"] = notification_settings["token"]
     os.environ["LINE_USER_ID"] = notification_settings["user_id"]
     logger.info("LINE settings updated via /notifications/settings")
     return {"status": "ok", "settings": notification_settings}
 
+
 @notifications_router.post("/send")
 def send_test_notification():
+    """Send a test LINE notification to verify configuration."""
     send_line_message("This is a test LINE notification.")
     return {"status": "sent"}
+
 
 app.include_router(notifications_router)
