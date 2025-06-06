@@ -14,14 +14,26 @@ try:
     import importlib
 
     tp_mod = importlib.import_module("backend.filters.trend_pullback")
-    should_enter_long = getattr(tp_mod, "should_enter_long", lambda *_a, **_k: True)
-    should_enter_short = getattr(tp_mod, "should_enter_short", lambda *_a, **_k: True)
+    should_enter_long_trend = getattr(tp_mod, "should_enter_long", lambda *_a, **_k: True)
+    should_enter_short_trend = getattr(tp_mod, "should_enter_short", lambda *_a, **_k: True)
 except ModuleNotFoundError:  # pragma: no cover
 
-    def should_enter_long(*_a, **_k):
+    def should_enter_long_trend(*_a, **_k):
         return True
 
-    def should_enter_short(*_a, **_k):
+    def should_enter_short_trend(*_a, **_k):
+        return True
+
+try:
+    scalp_mod = importlib.import_module("backend.filters.scalp_entry")
+    should_enter_long_scalp = getattr(scalp_mod, "should_enter_long", lambda *_a, **_k: True)
+    should_enter_short_scalp = getattr(scalp_mod, "should_enter_short", lambda *_a, **_k: True)
+except ModuleNotFoundError:  # pragma: no cover
+
+    def should_enter_long_scalp(*_a, **_k):
+        return True
+
+    def should_enter_short_scalp(*_a, **_k):
         return True
 
 
@@ -235,7 +247,7 @@ def process_entry(
         )
     trade_mode = decide_trade_mode(indicators)
     logging.info("Trade mode decided: %s", trade_mode)
-    scalp_mode = trade_mode == "scalp"
+    scalp_mode = trade_mode in ("scalp", "scalp_momentum") and adx_val is not None
     adx_max = float(env_loader.get_env("SCALP_SUPPRESS_ADX_MAX", "0"))
     if adx_val is not None and adx_max > 0 and adx_val > adx_max:
         scalp_mode = False
@@ -530,19 +542,21 @@ def process_entry(
         logging.debug(f"[process_entry] breakout check failed: {exc}")
 
     try:
+        filter_long = should_enter_long_scalp if scalp_mode else should_enter_long_trend
         if (
             not is_break
             and side == "long"
             and not breakout_entry
-            and not should_enter_long(indicators, candles_dict.get("M5", candles))
+            and not filter_long(candles_dict.get("M5", candles), indicators)
         ):
             logging.info("Trend pullback conditions not met → skip entry")
             return False
+        filter_short = should_enter_short_scalp if scalp_mode else should_enter_short_trend
         if (
             not is_break
             and side == "short"
             and not breakout_entry
-            and not should_enter_short(indicators, candles_dict.get("M5", candles))
+            and not filter_short(candles_dict.get("M5", candles), indicators)
         ):
             logging.info("Trend pullback conditions not met → skip entry")
             return False
