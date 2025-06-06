@@ -7,7 +7,11 @@ from typing import Sequence, Optional
 from backend.utils import env_loader
 
 from indicators.bollinger import multi_bollinger
-from signals.scalp_strategy import analyze_environment_tf, analyze_environment_m1, should_enter_trade_s10
+from signals.scalp_strategy import (
+    analyze_environment_tf,
+    analyze_environment_m1,
+    should_enter_trade_s10,
+)
 
 
 ADX_SCALP_MIN = float(env_loader.get_env("ADX_SCALP_MIN", "20"))
@@ -23,15 +27,30 @@ def choose_strategy(adx_value: float) -> str:
     return "trend_follow"
 
 
+def determine_trade_mode(
+    adx_value: float,
+    closes_tf: Sequence[float],
+    *,
+    tf: str | None = None,
+) -> str:
+    """市場状態からトレードモードを返す."""
+    mode = choose_strategy(adx_value)
+    if mode == "trend_follow":
+        if analyze_environment_tf(closes_tf, tf) == "range":
+            return "scalp"
+    return mode
+
+
 def entry_signal(
     adx_value: float,
     closes_m1: Sequence[float],
     closes_s10: Sequence[float],
 ) -> Optional[str]:
-    """ADXに応じたトレード方向を組織."""
-    mode = choose_strategy(adx_value)
+    """ADXとBBからモードを決定して方向を返す."""
+    tf = env_loader.get_env("SCALP_COND_TF", "M1").upper()
+    ref_closes = closes_s10 if tf == "S10" else closes_m1
+    mode = determine_trade_mode(adx_value, ref_closes, tf=tf)
     if mode == "scalp":
-        tf = env_loader.get_env("SCALP_COND_TF", "M1").upper()
         if tf == "S10":
             direction = analyze_environment_tf(closes_s10, tf)
         else:
@@ -52,6 +71,7 @@ def entry_signal(
 
 __all__ = [
     "choose_strategy",
+    "determine_trade_mode",
     "entry_signal",
     "ADX_SCALP_MIN",
     "ADX_TREND_MIN",
