@@ -4,6 +4,7 @@ import uuid
 import logging
 import json
 import os
+import sys
 from backend.utils import env_loader, trade_age_seconds
 
 try:
@@ -251,6 +252,9 @@ class JobRunner:
         # 現在のトレードモード（scalp / trend_follow / none）
         self.trade_mode: str | None = None
 
+        # 現在読み込んでいるパラメータファイルパス
+        self.current_params_file: str = "config/strategy.yml"
+
         # Restore TP adjustment flags based on existing TP order comment
         try:
             pos = get_position_details(DEFAULT_PAIR)
@@ -283,6 +287,27 @@ class JobRunner:
         if self.trade_mode == "scalp":
             tf = env_loader.get_env("SCALP_COND_TF", self.scalp_cond_tf).upper()
         return getattr(self, f"indicators_{tf}", {}) or {}
+
+    def reload_params_for_mode(self, mode: str) -> None:
+        """Load YAML parameters for the given mode and optionally restart."""
+        file_map = {
+            "scalp": "config/scalp.yml",
+            "trend_follow": "config/trend.yml",
+        }
+        path = file_map.get(mode, "config/strategy.yml")
+        if self.current_params_file == path:
+            return
+        try:
+            logger.info("Reloading params from %s", path)
+            params_loader.load_params(path=path)
+            self.current_params_file = path
+        except Exception as exc:
+            logger.error("Param reload failed: %s", exc)
+            return
+        if os.getenv("AUTO_RESTART", "false").lower() == "true":
+            logger.info("AUTO_RESTART enabled – restarting process")
+            python = sys.executable
+            os.execv(python, [python] + sys.argv)
 
     # ────────────────────────────────────────────────────────────
     #  Poll & renew pending LIMIT orders
@@ -811,7 +836,10 @@ class JobRunner:
                         for c in candles_tf
                         if c.get("mid")
                     ]
-                    self.trade_mode = determine_trade_mode(adx_val, closes_tf, scalp_tf=tf_mode)
+                    new_mode = determine_trade_mode(adx_val, closes_tf, scalp_tf=tf_mode)
+                    if new_mode != self.trade_mode:
+                        self.reload_params_for_mode(new_mode)
+                        self.trade_mode = new_mode
                     logger.info("Current trade mode: %s", self.trade_mode)
 
                     # チェック：保留LIMIT注文の更新
