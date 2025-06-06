@@ -36,6 +36,13 @@ class TestScalpMode(unittest.TestCase):
         dotenv_stub.load_dotenv = lambda *a, **k: None
         add("dotenv", dotenv_stub)
 
+        oa = types.ModuleType("backend.strategy.openai_analysis")
+        oa.get_trade_plan = lambda *a, **k: {"entry": {"side": "no"}, "risk": {}}
+        oa.should_convert_limit_to_market = lambda ctx: False
+        oa.evaluate_exit = lambda *a, **k: types.SimpleNamespace(action="HOLD", confidence=0.0, reason="")
+        oa.EXIT_BIAS_FACTOR = 1.0
+        add("backend.strategy.openai_analysis", oa)
+
         om = types.ModuleType("backend.orders.order_manager")
         class DummyMgr:
             def __init__(self):
@@ -70,6 +77,7 @@ class TestScalpMode(unittest.TestCase):
             "PIP_SIZE",
             "SCALP_MODE",
             "SCALP_ADX_MIN",
+            "SCALP_SUPPRESS_ADX_MAX",
             "SCALP_TP_PIPS",
             "SCALP_SL_PIPS",
         ]:
@@ -91,6 +99,22 @@ class TestScalpMode(unittest.TestCase):
         self.assertEqual(self.el.order_manager.last_params["tp_pips"], 2.0)
         self.assertEqual(self.el.order_manager.last_params["sl_pips"], 1.0)
         self.assertEqual(self.el.order_manager.last_params["mode"], "market")
+
+    def test_scalp_disabled_on_high_adx(self):
+        os.environ["SCALP_SUPPRESS_ADX_MAX"] = "50"
+        indicators = {"adx": FakeSeries([55])}
+        candles = []
+        market_data = {
+            "prices": [{"instrument": "USD_JPY", "bids": [{"price": "1"}], "asks": [{"price": "1.01"}]}]
+        }
+        result = self.el.process_entry(
+            indicators,
+            candles,
+            market_data,
+            market_cond={"market_condition": "trend", "trend_direction": "long"},
+        )
+        self.assertFalse(result)
+        self.assertEqual(os.environ.get("SCALP_MODE"), "false")
 
 
 if __name__ == "__main__":

@@ -168,8 +168,12 @@ def process_entry(
     if adx_series is not None and len(adx_series):
         adx_val = float(adx_series.iloc[-1]) if hasattr(adx_series, "iloc") else float(adx_series[-1])
     adx_min = float(env_loader.get_env("SCALP_ADX_MIN", "0"))
+    adx_max = float(env_loader.get_env("SCALP_SUPPRESS_ADX_MAX", "0"))
     if adx_val is not None:
-        os.environ["SCALP_MODE"] = "true" if adx_val >= adx_min else "false"
+        if adx_max > 0 and adx_val > adx_max:
+            os.environ["SCALP_MODE"] = "false"
+        else:
+            os.environ["SCALP_MODE"] = "true" if adx_val >= adx_min else "false"
 
     # --- Scalp entry shortcut ----------------------------------
     scalp_mode = env_loader.get_env("SCALP_MODE", "false").lower() == "true"
