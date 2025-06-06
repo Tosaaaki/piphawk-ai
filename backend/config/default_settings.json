@@ -122,5 +122,9 @@
     "REV_BLOCK_BARS": 3,
     "TAIL_RATIO_BLOCK": 2.0,
     "SCALP_AI_ADX_MIN": 25,
+    "ATR_HIGH_RATIO": 1.4,
+    "ATR_LOW_RATIO": 0.8,
+    "ADX_TREND_THR": 25,
+    "ADX_FLAT_THR": 17,
     "SCALP_AI_BBWIDTH_MAX": 4
   }
