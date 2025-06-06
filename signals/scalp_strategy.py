@@ -5,18 +5,28 @@ from __future__ import annotations
 from typing import Sequence, Optional
 
 from indicators.bollinger import multi_bollinger
+from backend.utils import env_loader
 
 
-def analyze_environment_m1(closes: Sequence[float]) -> str:
+SCALP_COND_TF = env_loader.get_env("SCALP_COND_TF", "M1").upper()
+
+
+def analyze_environment_tf(closes: Sequence[float], tf: str | None = None) -> str:
     """Return ``"trend"`` or ``"range"`` based on Bollinger band width."""
-    data = {"M1": closes}
-    bands = multi_bollinger(data)["M1"]
+    tf = (tf or env_loader.get_env("SCALP_COND_TF", SCALP_COND_TF)).upper()
+    data = {tf: closes}
+    bands = multi_bollinger(data)[tf]
     width = bands["upper"] - bands["lower"]
     if len(closes) < 2:
         return "range"
-    prev = multi_bollinger({"M1": closes[:-1]})["M1"]
+    prev = multi_bollinger({tf: closes[:-1]})[tf]
     prev_width = prev["upper"] - prev["lower"]
     return "trend" if width > prev_width else "range"
+
+
+def analyze_environment_m1(closes: Sequence[float]) -> str:
+    """Compatibility wrapper using the M1 timeframe."""
+    return analyze_environment_tf(closes, "M1")
 
 
 def should_enter_trade_s10(
@@ -46,5 +56,5 @@ def should_enter_trade_s10(
     return None
 
 
-__all__ = ["analyze_environment_m1", "should_enter_trade_s10"]
+__all__ = ["analyze_environment_tf", "analyze_environment_m1", "should_enter_trade_s10"]
 

@@ -1,7 +1,7 @@
 import pytest
 
 from indicators.bollinger import multi_bollinger
-from signals.scalp_strategy import analyze_environment_m1, should_enter_trade_s10
+from signals.scalp_strategy import analyze_environment_m1, analyze_environment_tf, should_enter_trade_s10
 
 
 def test_multi_bollinger_basic():
@@ -19,6 +19,12 @@ def test_analyze_environment_m1():
     prices = [1] * 10 + [2] * 10
     mode = analyze_environment_m1(prices)
     assert mode in {"trend", "range"}
+
+
+def test_analyze_environment_tf_env_override(monkeypatch):
+    prices = [1] * 10 + [2] * 10
+    monkeypatch.setenv("SCALP_COND_TF", "M1")
+    assert analyze_environment_tf(prices) in {"trend", "range"}
 
 
 def test_should_enter_trade_s10_trend_breakout():
