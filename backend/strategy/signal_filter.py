@@ -535,7 +535,11 @@ def pass_entry_filter(
     # --- Dynamic ADX threshold based on BB width -----------------------
     adx_base = float(os.getenv("ADX_RANGE_THRESHOLD", "25"))
     coeff = float(os.getenv("ADX_DYNAMIC_COEFF", "0"))
-    width_ratio = ((bw_pips - bw_thresh) / bw_thresh) if bw_pips is not None else 0.0
+    width_ratio = (
+        (bw_pips - bw_thresh) / bw_thresh
+        if bw_pips is not None and bw_thresh != 0
+        else 0.0
+    )
     adx_thresh = adx_base * (1 + coeff * width_ratio)
     range_mode = latest_adx is not None and latest_adx < adx_thresh
 
