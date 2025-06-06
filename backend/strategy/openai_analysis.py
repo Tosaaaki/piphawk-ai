@@ -949,6 +949,7 @@ def get_trade_plan(
     instrument: str | None = None,
     trade_mode: str | None = None,
     mode_reason: str | None = None,
+    trend_prompt_bias: str | None = None,
 ) -> dict:
     """
     Single‑shot call to the LLM that returns a dict:
@@ -1009,10 +1010,17 @@ def get_trade_plan(
         pattern_line = pattern_name
 
     prompt, comp_val = build_trade_plan_prompt(
-        ind_m5, ind_m1, ind_d1, candles_m5, candles_m1, candles_d1,
-        hist_stats, pattern_line,
+        ind_m5,
+        ind_m1,
+        ind_d1,
+        candles_m5,
+        candles_m1,
+        candles_d1,
+        hist_stats,
+        pattern_line,
         allow_delayed_entry=allow_delayed_entry,
         higher_tf_direction=higher_tf_direction,
+        trend_prompt_bias=trend_prompt_bias,
     )
     # --------------------------------------------------------------
     # Estimate market "noise" from ATR and Bollinger band width

@@ -41,6 +41,7 @@ def build_trade_plan_prompt(
     *,
     allow_delayed_entry: bool = False,
     higher_tf_direction: str | None = None,
+    trend_prompt_bias: str | None = None,
 ) -> Tuple[str, float | None]:
     """Return the prompt string for ``get_trade_plan`` and the composite score."""
     # --------------------------------------------------------------
@@ -278,8 +279,9 @@ Your task:
 Respond with **one-line valid JSON** exactly as:
 {{"regime":{{...}},"entry":{{...}},"risk":{{...}},"entry_confidence":0.0}}
 """
+    bias = trend_prompt_bias or TREND_PROMPT_BIAS
     bias_note = ""
-    if TREND_PROMPT_BIAS == "aggressive":
+    if bias == "aggressive":
         bias_note = (
             "\nBe proactive: when signals are mixed, favor taking a position rather than returning 'no'."
         )
