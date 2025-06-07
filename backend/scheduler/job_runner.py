@@ -801,12 +801,19 @@ class JobRunner:
                     logger.info(f"Running job at {now.isoformat()}")
 
                     # ティックデータ取得（発注用）
-                    tick_data = fetch_tick_data(DEFAULT_PAIR)
+                    tick_data = fetch_tick_data(DEFAULT_PAIR, include_liquidity=True)
                     # ティックデータ詳細はDEBUGレベルで出力
                     logger.debug(f"Tick data fetched: {tick_data}")
                     try:
                         price = float(tick_data["prices"][0]["bids"][0]["price"])
-                        tick = {"high": price, "low": price, "close": price}
+                        bid_liq = float(tick_data["prices"][0]["bids"][0].get("liquidity", 0))
+                        ask_liq = float(tick_data["prices"][0]["asks"][0].get("liquidity", 0))
+                        tick = {
+                            "high": price,
+                            "low": price,
+                            "close": price,
+                            "volume": bid_liq + ask_liq,
+                        }
                         rd_res = self.regime_detector.update(tick)
                         if rd_res.get("transition"):
                             self.last_ai_call = datetime.min
