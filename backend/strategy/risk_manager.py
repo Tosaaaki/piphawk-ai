@@ -1,12 +1,18 @@
 """Risk management helper functions."""
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Protocol
 
-try:
-    from risk.portfolio_risk_manager import PortfolioRiskManager
-except Exception:  # pragma: no cover - optional dependency during tests
-    PortfolioRiskManager = None  # type: ignore
+
+class RiskEngine(Protocol):
+    def get_allowed_lot(
+        self,
+        balance: float,
+        risk_pct: float,
+        sl_pips: float,
+        pip_value: float,
+    ) -> float:
+        ...
 
 
 def calc_lot_size(
@@ -14,7 +20,7 @@ def calc_lot_size(
     risk_pct: float,
     sl_pips: float,
     pip_value: float,
-    risk_engine: Optional[PortfolioRiskManager] = None,
+    risk_engine: Optional[RiskEngine] = None,
 ) -> float:
     """Return allowed lot size based on account balance and risk percent."""
     if risk_engine is not None:

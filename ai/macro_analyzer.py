@@ -7,8 +7,8 @@ from typing import Any
 import httpx
 
 from backend.utils import env_loader
-from ai.local_model import ask_model, ask_model_async
-from ai.prompt_templates import get_template
+from piphawk_ai.ai.local_model import ask_model, ask_model_async
+from piphawk_ai.ai.prompt_templates import get_template
 
 
 class MacroAnalyzer:
