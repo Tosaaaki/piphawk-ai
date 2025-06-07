@@ -39,3 +39,4 @@ kafka-python==2.0.2
 prometheus-client==0.20.0
 hdbscan==0.8.33
 d3rlpy==2.1.0
+transformers==4.41.2

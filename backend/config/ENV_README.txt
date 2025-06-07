@@ -222,3 +222,11 @@ SCALE_TRIGGER_ATR=0.5
 ■ OANDA_MATCH_SEC
   ローカルトレードと OANDA 取引を照合するときの許容秒数。デフォルトは60秒。
 
+
+## 追加環境変数
+- USE_LOCAL_MODEL: OpenAI APIの代わりにローカルモデルを使用するか (true/false)
+- LOCAL_MODEL_NAME: 使用するローカルモデル名 (例: distilgpt2)
+- USE_LOCAL_PATTERN: チャートパターン検出をローカルで行うか (true/false)
+- FRED_API_KEY: 米国経済指標取得に使用するFRED APIキー
+- KAFKA_SERVERS: Kafkaブローカーの接続先リスト (例: localhost:9092)
+- METRICS_TOPIC: メトリクス送信用のKafkaトピック名

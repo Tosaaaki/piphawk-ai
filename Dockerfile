@@ -13,8 +13,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend /app/backend
 COPY analysis /app/analysis
+COPY ai /app/ai
 COPY signals /app/signals
 COPY indicators /app/indicators
+COPY monitoring /app/monitoring
+COPY risk /app/risk
 COPY config /app/config
 
 # create an empty SQLite database if not provided
