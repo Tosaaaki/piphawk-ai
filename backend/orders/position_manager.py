@@ -43,6 +43,25 @@ def get_margin_used(retries: int = 2, delay: float = 1.0) -> Optional[float]:
                 logger.warning(f"get_margin_used failed: {exc}")
     return None
 
+def get_account_balance(retries: int = 2, delay: float = 1.0) -> Optional[float]:
+    """Return current account balance."""
+    url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/summary"
+    for attempt in range(retries + 1):
+        try:
+            response = requests.get(url, headers=HEADERS, timeout=10)
+            response.raise_for_status()
+            account = response.json().get("account", {})
+            return float(account.get("balance", 0.0))
+        except Exception as exc:
+            if attempt < retries:
+                logger.warning(
+                    f"get_account_balance attempt {attempt + 1} failed: {exc}; retrying"
+                )
+                time.sleep(delay)
+            else:
+                logger.warning(f"get_account_balance failed: {exc}")
+    return None
+
 def get_open_positions() -> Optional[List[Dict[str, Any]]]:
     """
     Fetch open positions for the account.
