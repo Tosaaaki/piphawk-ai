@@ -1,40 +1,46 @@
-"""Apply offline-learned policy to strategy selector."""
+"""Background updater for offline policy files."""
+from __future__ import annotations
 
-import json
+import logging
+import threading
+import time
 from pathlib import Path
-from typing import Any, Dict
 
-import numpy as np
-from d3rlpy.algos import DiscreteCQL
+from backend.utils import env_loader
+from piphawk_ai.policy.offline import OfflinePolicy
 
-MODEL_PATH = Path(__file__).resolve().parents[2] / "models" / "policy_model.d3"
+logger = logging.getLogger(__name__)
 
 
-class OfflinePolicy:
-    def __init__(self, model_path: Path = MODEL_PATH):
-        self.model_path = Path(model_path)
-        self.algo: DiscreteCQL | None = None
-        self.actions: list[str] = []
-        self.load()
+class PolicyUpdater(threading.Thread):
+    """Periodically reload OfflinePolicy from file and apply to a StrategySelector."""
 
-    def load(self) -> None:
-        if not self.model_path.exists():
-            return
-        self.algo = DiscreteCQL.from_json(str(self.model_path))
-        actions_file = self.model_path.with_suffix(".json")
-        if actions_file.exists():
-            with open(actions_file) as f:
-                data = json.load(f)
-            self.actions = [k for k, _ in sorted(data["actions"].items(), key=lambda x: x[1])]
+    def __init__(self, runner: "JobRunner", interval_min: int | None = None) -> None:
+        super().__init__(daemon=True)
+        self.runner = runner
+        self.interval_min = interval_min or int(env_loader.get_env("POLICY_RELOAD_MIN", "5"))
+        self.path = Path(env_loader.get_env("POLICY_PATH", "policies/latest_policy.pkl"))
+        self._stop = False
+        self.last_mtime = 0.0
 
-    def _vec(self, context: Dict[str, Any]) -> np.ndarray:
-        return np.array([[float(context.get(k, 0.0)) for k in sorted(context.keys())]], dtype=np.float32)
+    def run(self) -> None:  # pragma: no cover - background thread
+        while not self._stop:
+            try:
+                if self.path.exists():
+                    mtime = self.path.stat().st_mtime
+                    if mtime != self.last_mtime:
+                        policy = OfflinePolicy(self.path)
+                        if policy.model is not None:
+                            self.runner.current_policy = policy
+                            self.last_mtime = mtime
+                            logger.info("OfflinePolicy reloaded from %s", self.path)
+                time.sleep(self.interval_min * 60)
+            except Exception as exc:
+                logger.warning("PolicyUpdater error: %s", exc)
+                time.sleep(self.interval_min * 60)
 
-    def select(self, context: Dict[str, Any]) -> str | None:
-        if self.algo is None or not self.actions:
-            return None
-        q_values = self.algo.predict_value(self._vec(context))[0]
-        idx = int(np.argmax(q_values))
-        if idx < len(self.actions):
-            return self.actions[idx]
-        return None
+    def stop(self) -> None:
+        self._stop = True
+
+
+__all__ = ["PolicyUpdater"]

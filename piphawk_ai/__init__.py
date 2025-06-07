@@ -11,6 +11,7 @@ _submodules = [
     "monitoring",
     "risk",
     "strategies",
+    "policy",
     "regime",
     "core",
     "models",

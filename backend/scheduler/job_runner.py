@@ -88,6 +88,7 @@ from backend.orders.position_manager import get_account_balance, get_open_positi
 from backend.utils.notification import send_line_message
 from backend.logs.trade_logger import log_trade, ExitReason
 from strategies import ScalpStrategy, TrendStrategy, StrategySelector
+from backend.scheduler.policy_updater import PolicyUpdater
 from strategies.context_builder import build_context, recent_strategy_performance
 from backend.logs.log_manager import log_policy_transition
 import json
@@ -249,6 +250,14 @@ class JobRunner:
         # LIMIT order age threshold
         self.max_limit_age_sec = MAX_LIMIT_AGE_SEC
         self.pending_grace_sec = PENDING_GRACE_MIN * 60
+        self.current_policy = None
+        self.policy_updater = None
+        if env_loader.get_env("USE_OFFLINE_POLICY", "false").lower() == "true":
+            try:
+                self.policy_updater = PolicyUpdater(self)
+                self.policy_updater.start()
+            except Exception as exc:  # pragma: no cover - optional
+                logger.warning(f"PolicyUpdater start failed: {exc}")
         # ----- Additional runtime state --------------------------------
         # Toggle for higher‑timeframe reference levels (daily / H4)
         self.higher_tf_enabled = env_loader.get_env("HIGHER_TF_ENABLED", "true").lower() == "true"
@@ -383,8 +392,10 @@ class JobRunner:
         use_policy = env_loader.get_env("USE_OFFLINE_POLICY", "false").lower() == "true"
         self.strategy_selector = StrategySelector(
             {"scalp": ScalpStrategy(), "trend": TrendStrategy()},
-            use_offline_policy=use_policy,
+            use_offline_policy=False,
         )
+        if use_policy and self.current_policy is not None:
+            self.strategy_selector.offline_policy = self.current_policy
         self.last_entry_context = None
         self.last_entry_strategy = None
         self.current_context = None
