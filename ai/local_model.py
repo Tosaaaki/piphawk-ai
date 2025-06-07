@@ -7,6 +7,7 @@ from typing import Any
 
 from backend.utils import env_loader
 from backend.utils import openai_client
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -55,3 +56,44 @@ def ask_model(
             model=model,
             **kwargs,
         )
+
+
+async def ask_model_async(
+    prompt: str,
+    system_prompt: str = "You are a helpful assistant.",
+    model: str | None = None,
+    *,
+    fallback_to_local: bool = True,
+    **kwargs: Any,
+) -> dict:
+    """Async wrapper that falls back to the local model when OpenAI fails."""
+
+    if USE_LOCAL_MODEL:
+        return await asyncio.to_thread(
+            ask_model,
+            prompt,
+            system_prompt=system_prompt,
+            model=model,
+            **kwargs,
+        )
+    try:
+        return await openai_client.ask_openai_async(
+            prompt,
+            system_prompt=system_prompt,
+            model=model,
+            **kwargs,
+        )
+    except Exception as exc:  # pragma: no cover - network failure
+        logger.warning("ask_model_async fallback to local model: %s", exc)
+        if fallback_to_local:
+            return await asyncio.to_thread(
+                ask_model,
+                prompt,
+                system_prompt=system_prompt,
+                model=model,
+                **kwargs,
+            )
+        raise
+
+
+__all__ = ["ask_model", "ask_model_async", "USE_LOCAL_MODEL"]
