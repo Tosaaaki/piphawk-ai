@@ -633,8 +633,24 @@ class OrderManager:
                 f"Partial close failed: {code} {msg}",
                 resp.text,
             )
-            resp.raise_for_status()
+        resp.raise_for_status()
         return resp.json()
+
+    def close_all_positions(self) -> list:
+        """Close every open position."""
+        from backend.orders.position_manager import get_open_positions
+
+        positions = get_open_positions() or []
+        results = []
+        for pos in positions:
+            instr = pos.get("instrument")
+            if not instr:
+                continue
+            try:
+                results.append(self.close_position(instr, side="both"))
+            except Exception as exc:  # pragma: no cover - network failure ignored
+                logger.warning(f"close_all_positions failed for {instr}: {exc}")
+        return results
 
     # --- Trailing‑Stop helper -------------------------------------------------
     def place_trailing_stop(

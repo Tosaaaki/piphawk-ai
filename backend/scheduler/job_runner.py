@@ -85,6 +85,9 @@ from backend.strategy.momentum_follow import follow_breakout
 from analysis.regime_detector import RegimeDetector
 import requests
 from signals.composite_mode import decide_trade_mode, decide_trade_mode_detail
+from risk.portfolio_risk_manager import PortfolioRiskManager
+from backend.strategy.risk_manager import calc_lot_size
+from backend.orders.position_manager import get_account_balance, get_open_positions
 
 from backend.utils.notification import send_line_message
 from backend.logs.trade_logger import log_trade, ExitReason
@@ -214,6 +217,14 @@ class JobRunner:
         err_lim = int(env_loader.get_env("ERROR_LIMIT", "0"))
         self.safety = SafetyTrigger(loss_limit=loss_lim, error_limit=err_lim)
         self.safety.attach(self.stop)
+        bal = get_account_balance()
+        if bal is None:
+            bal = float(env_loader.get_env("ACCOUNT_BALANCE", "10000"))
+        self.account_balance = bal
+        max_cvar = float(env_loader.get_env("MAX_CVAR", "0"))
+        self.risk_mgr = (
+            PortfolioRiskManager(max_cvar=max_cvar) if max_cvar > 0 else None
+        )
         # --- AI cooldown values ---------------------------------------
         #   * AI_COOLDOWN_SEC_OPEN : エントリー用クールダウン時間
         #   * AI_COOLDOWN_SEC_FLAT : エグジット用クールダウン時間
@@ -317,6 +328,45 @@ class JobRunner:
         # 初期の SCALP_MODE 設定をログへ記録
         scalp_active = env_loader.get_env("SCALP_MODE", "false").lower() == "true"
         logger.info("Initial SCALP_MODE is %s", "ON" if scalp_active else "OFF")
+
+    def _get_recent_trade_pl(self, limit: int = 50) -> list[float]:
+        from backend.logs.log_manager import get_db_connection
+
+        try:
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT profit_loss FROM trades ORDER BY trade_id DESC LIMIT ?",
+                    (limit,),
+                )
+                rows = cur.fetchall()
+            return [float(r[0]) for r in rows if r[0] is not None]
+        except Exception as exc:  # pragma: no cover
+            logger.warning(f"fetch PL failed: {exc}")
+            return []
+
+    def _update_portfolio_risk(self) -> None:
+        if not self.risk_mgr:
+            return
+        trade_pl = self._get_recent_trade_pl()
+        open_pl: list[float] = []
+        try:
+            positions = get_open_positions() or []
+            for pos in positions:
+                try:
+                    open_pl.append(float(pos.get("unrealizedPL", 0.0)))
+                except Exception:
+                    pass
+        except Exception as exc:  # pragma: no cover
+            logger.debug(f"open position fetch failed: {exc}")
+        self.risk_mgr.update_risk_metrics(trade_pl, open_pl)
+        if self.risk_mgr.check_stop_conditions():
+            logger.warning("Portfolio CVaR limit exceeded")
+            if env_loader.get_env("FORCE_CLOSE_ON_RISK", "false").lower() == "true":
+                try:
+                    order_mgr.close_all_positions()
+                except Exception as exc:  # pragma: no cover
+                    logger.error(f"Force close failed: {exc}")
 
     def _get_cond_indicators(self) -> dict:
         """Return indicators for market condition check."""
@@ -488,9 +538,19 @@ class JobRunner:
                             "market_cond": market_cond,
                             "ai_response": ai_raw,
                         }
+                        sl_val = params.get("sl_pips") or float(env_loader.get_env("INIT_SL_PIPS", "20"))
+                        risk_pct = float(env_loader.get_env("ENTRY_RISK_PCT", "0.01"))
+                        pip_val = float(env_loader.get_env("PIP_VALUE_JPY", "100"))
+                        lot = calc_lot_size(
+                            self.account_balance,
+                            risk_pct,
+                            float(sl_val),
+                            pip_val,
+                            risk_engine=self.risk_mgr,
+                        )
                         result = order_mgr.enter_trade(
                             side=local_info.get("side"),
-                            lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
+                            lot_size=lot if lot > 0 else 0.0,
                             market_data=tick_data,
                             strategy_params=params,
                         )
@@ -563,9 +623,19 @@ class JobRunner:
             "valid_for_sec": int(entry.get("valid_for_sec", self.max_limit_age_sec)),
             "risk": risk,
         }
+        sl_val = params.get("sl_pips") or float(env_loader.get_env("INIT_SL_PIPS", "20"))
+        risk_pct = float(env_loader.get_env("ENTRY_RISK_PCT", "0.01"))
+        pip_val = float(env_loader.get_env("PIP_VALUE_JPY", "100"))
+        lot = calc_lot_size(
+            self.account_balance,
+            risk_pct,
+            float(sl_val),
+            pip_val,
+            risk_engine=self.risk_mgr,
+        )
         result = order_mgr.enter_trade(
             side=side,
-            lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
+            lot_size=lot if lot > 0 else 0.0,
             market_data=tick_data,
             strategy_params=params,
         )
@@ -772,6 +842,7 @@ class JobRunner:
                     self.last_run = datetime.now(timezone.utc)
                     timer.stop()
                     continue
+                self._update_portfolio_risk()
                 # Refresh POSITION_REVIEW_SEC dynamically each loop
                 self.review_sec = int(env_loader.get_env("POSITION_REVIEW_SEC", str(self.review_sec)))
                 logger.debug(f"review_sec={self.review_sec}")
@@ -1167,9 +1238,19 @@ class JobRunner:
                                             allow_scale = False
                                         if allow_scale:
                                             try:
+                                                risk_pct = float(env_loader.get_env("ENTRY_RISK_PCT", "0.01"))
+                                                pip_val = float(env_loader.get_env("PIP_VALUE_JPY", "100"))
+                                                base_lot = calc_lot_size(
+                                                    self.account_balance,
+                                                    risk_pct,
+                                                    float(env_loader.get_env("INIT_SL_PIPS", "20")),
+                                                    pip_val,
+                                                    risk_engine=self.risk_mgr,
+                                                )
+                                                lot_sz = min(SCALE_LOT_SIZE, base_lot)
                                                 order_mgr.enter_trade(
                                                     side=position_side,
-                                                    lot_size=SCALE_LOT_SIZE,
+                                                    lot_size=lot_sz,
                                                     market_data=tick_data,
                                                     strategy_params={"instrument": DEFAULT_PAIR, "mode": "market"},
                                                 )
@@ -1344,9 +1425,19 @@ class JobRunner:
                                     allow_scale = False
                                 if allow_scale:
                                     try:
+                                        risk_pct = float(env_loader.get_env("ENTRY_RISK_PCT", "0.01"))
+                                        pip_val = float(env_loader.get_env("PIP_VALUE_JPY", "100"))
+                                        base_lot = calc_lot_size(
+                                            self.account_balance,
+                                            risk_pct,
+                                            float(env_loader.get_env("INIT_SL_PIPS", "20")),
+                                            pip_val,
+                                            risk_engine=self.risk_mgr,
+                                        )
+                                        lot_sz = min(SCALE_LOT_SIZE, base_lot)
                                         order_mgr.enter_trade(
                                             side=position_side,
-                                            lot_size=SCALE_LOT_SIZE,
+                                            lot_size=lot_sz,
                                             market_data=tick_data,
                                             strategy_params={"instrument": DEFAULT_PAIR, "mode": "market"},
                                         )
@@ -1486,9 +1577,18 @@ class JobRunner:
                                     "mode": "market",
                                     "market_cond": market_cond,
                                 }
+                                risk_pct = float(env_loader.get_env("ENTRY_RISK_PCT", "0.01"))
+                                pip_val = float(env_loader.get_env("PIP_VALUE_JPY", "100"))
+                                lot = calc_lot_size(
+                                    self.account_balance,
+                                    risk_pct,
+                                    float(params["sl_pips"]),
+                                    pip_val,
+                                    risk_engine=self.risk_mgr,
+                                )
                                 order_mgr.enter_trade(
                                     side=climax_side,
-                                    lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
+                                    lot_size=lot if lot > 0 else 0.0,
                                     market_data=tick_data,
                                     strategy_params=params,
                                 )
@@ -1617,6 +1717,7 @@ class JobRunner:
                                 "M5": self.indicators_M5 or {},
                                 "H1": self.indicators_H1 or {},
                             },
+                            risk_engine=self.risk_mgr,
                         )
                             if not result:
                                 pend = get_pending_entry_order(DEFAULT_PAIR)

@@ -1,6 +1,7 @@
 from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
+from backend.strategy.risk_manager import calc_lot_size
 
 try:
     from backend.filters.false_break_filter import should_skip as false_break_skip
@@ -202,6 +203,7 @@ def process_entry(
     tf_align: str | None = None,
     indicators_multi: dict[str, dict] | None = None,
     allow_delayed_entry: bool | None = None,
+    risk_engine=None,
 ):
     """
     Ask OpenAI whether to enter a trade.
@@ -333,9 +335,18 @@ def process_entry(
                 "ai_response": "scalp",
                 "market_cond": market_cond,
             }
+            risk_pct = float(env_loader.get_env("ENTRY_RISK_PCT", "0.01"))
+            pip_val = float(env_loader.get_env("PIP_VALUE_JPY", "100"))
+            lot = calc_lot_size(
+                float(env_loader.get_env("ACCOUNT_BALANCE", "10000")),
+                risk_pct,
+                sl_pips,
+                pip_val,
+                risk_engine=risk_engine,
+            )
             result = order_manager.enter_trade(
                 side=side,
-                lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
+                lot_size=lot if lot > 0 else 0.0,
                 market_data=market_data,
                 strategy_params=params,
                 force_limit_only=False,
@@ -967,7 +978,13 @@ def process_entry(
         }
         result = order_manager.enter_trade(
             side=side,
-            lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
+            lot_size=calc_lot_size(
+                float(env_loader.get_env("ACCOUNT_BALANCE", "10000")),
+                float(env_loader.get_env("ENTRY_RISK_PCT", "0.01")),
+                sl_pips,
+                float(env_loader.get_env("PIP_VALUE_JPY", "100")),
+                risk_engine=risk_engine,
+            ),
             market_data=market_data,
             strategy_params=params_limit,
             force_limit_only=False,
@@ -1003,7 +1020,13 @@ def process_entry(
 
     trade_result = order_manager.enter_trade(
         side=side,
-        lot_size=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
+        lot_size=calc_lot_size(
+            float(env_loader.get_env("ACCOUNT_BALANCE", "10000")),
+            float(env_loader.get_env("ENTRY_RISK_PCT", "0.01")),
+            sl_pips,
+            float(env_loader.get_env("PIP_VALUE_JPY", "100")),
+            risk_engine=risk_engine,
+        ),
         market_data=market_data,
         strategy_params=params,
         force_limit_only=False,
@@ -1011,7 +1034,13 @@ def process_entry(
 
     if trade_result and mode == "market":
         instrument = params["instrument"]
-        lot_size = float(env_loader.get_env("TRADE_LOT_SIZE", "1.0"))
+        lot_size = calc_lot_size(
+            float(env_loader.get_env("ACCOUNT_BALANCE", "10000")),
+            float(env_loader.get_env("ENTRY_RISK_PCT", "0.01")),
+            sl_pips,
+            float(env_loader.get_env("PIP_VALUE_JPY", "100")),
+            risk_engine=risk_engine,
+        )
         units = int(lot_size * 1000) if side == "long" else -int(lot_size * 1000)
         entry_price = float(market_data["prices"][0]["bids"][0]["price"])
         entry_time = datetime.now(timezone.utc).isoformat()
