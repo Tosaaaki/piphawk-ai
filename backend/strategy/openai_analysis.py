@@ -991,11 +991,14 @@ def get_trade_plan(
     candles_d1 = candles_dict.get("D1", candles_dict.get("D", []))
 
     macro_summary = ""
+    macro_sentiment = None
     try:
         macro = macro_analyzer.get_market_summary()
         macro_summary = macro.get("summary", "")
+        macro_sentiment = macro.get("sentiment")
     except Exception:
         macro_summary = ""
+        macro_sentiment = None
 
     pattern_name = None
     if patterns:
@@ -1033,6 +1036,7 @@ def get_trade_plan(
         hist_stats,
         pattern_line,
         macro_summary,
+        macro_sentiment,
         allow_delayed_entry=allow_delayed_entry,
         higher_tf_direction=higher_tf_direction,
         trend_prompt_bias=trend_prompt_bias,
