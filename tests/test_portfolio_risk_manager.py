@@ -1,0 +1,18 @@
+from risk.portfolio_risk_manager import PortfolioRiskManager
+from backend.strategy.risk_manager import calc_lot_size
+
+
+def test_portfolio_risk_manager_basic():
+    mgr = PortfolioRiskManager(max_cvar=2.0, alpha=0.5)
+    mgr.update_risk_metrics([-1.0, -3.0], [])
+    assert mgr.check_stop_conditions()
+    lot = calc_lot_size(10000, 0.01, 20, 0.1, risk_engine=mgr)
+    assert lot == 0.0
+
+
+def test_portfolio_risk_manager_reduction():
+    mgr = PortfolioRiskManager(max_cvar=5.0, alpha=0.5)
+    mgr.update_risk_metrics([-1.0, -3.0], [])
+    lot = calc_lot_size(10000, 0.01, 20, 0.1, risk_engine=mgr)
+    base = calc_lot_size(10000, 0.01, 20, 0.1)
+    assert 0 < lot < base

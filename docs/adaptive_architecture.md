@@ -24,7 +24,7 @@
 ## 3. 統合リスクエンジン
 
 - ロット数計算や TP/SL 管理は `strategy/risk_manager.py` の `calc_lot_size` に代表される
-  関数群で処理します【F:backend/strategy/risk_manager.py†L1-L12】。
+  関数群で処理します【F:backend/strategy/risk_manager.py†L1-L25】。
 - ポジション全体のリスクを CVaR 等で監視し、必要に応じてポジション縮小や強制決済を
   行います。`risk/cvar.py` に `calc_cvar` 関数を実装し、損益系列から簡単に計算でき
   るようにしました【F:risk/cvar.py†L1-L19】。
