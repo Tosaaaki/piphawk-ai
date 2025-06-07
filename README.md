@@ -430,6 +430,12 @@ npm install
 npm start
 ```
 
+Create `.env.development` with the backend URL before running `npm start`:
+
+```bash
+echo "REACT_APP_API_URL=http://localhost:8080" > .env.development
+```
+
 Node.js **14 or later** is required (Node 18 LTS recommended). The React UI is
 built with **React 18** and should be run with that major version.
 
