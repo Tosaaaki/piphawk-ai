@@ -45,6 +45,7 @@ def build_trade_plan_prompt(
     candles_d1: list,
     hist_stats: dict | None,
     pattern_line: str | None,
+    macro_summary: str | None = None,
     *,
     allow_delayed_entry: bool = False,
     higher_tf_direction: str | None = None,
@@ -284,6 +285,9 @@ Pivot: {ind_m5.get('pivot')}, R1: {ind_m5.get('pivot_r1')}, S1: {ind_m5.get('piv
 
 ### N-Wave Target
 {ind_m5.get('n_wave_target')}
+
+### Macro News Summary
+{macro_summary if macro_summary else 'N/A'}
 
 Your task:
 1. Clearly classify the current regime as "trend" or "range". If "trend", specify direction as "long" or "short". Output this at JSON key "regime".

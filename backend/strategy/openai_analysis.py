@@ -1,6 +1,7 @@
 import logging
 import json
-from backend.utils.openai_client import ask_openai
+from ai.local_model import ask_model
+from ai.macro_analyzer import MacroAnalyzer
 from backend.logs.log_manager import log_ai_decision
 from backend.utils import env_loader, parse_json_answer
 from backend.strategy.pattern_ai_detection import detect_chart_pattern
@@ -29,6 +30,8 @@ from backend.config.defaults import MIN_ABS_SL_PIPS
 from backend.strategy.exit_ai_decision import AIDecision, evaluate as evaluate_exit
 import time
 from datetime import datetime, timezone
+
+macro_analyzer = MacroAnalyzer()
 
 # ----------------------------------------------------------------------
 # Config – driven by environment variables
@@ -556,7 +559,7 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
 
     try:
         # Request JSON‑object response if the client supports it
-        llm_raw = ask_openai(
+        llm_raw = ask_model(
             prompt,
             response_format={"type": "json_object"},
         )
@@ -846,7 +849,7 @@ def get_exit_decision(
         "- Example: {\"action\":\"EXIT\",\"reason\":\"RSI overbought and price stalling at upper Bollinger Band.\"}\n"
     )
     try:
-        response_json = ask_openai(prompt)
+        response_json = ask_model(prompt)
     except Exception as exc:
         try:
             log_ai_decision("ERROR", instrument, str(exc))
@@ -987,6 +990,13 @@ def get_trade_plan(
     candles_m15 = candles_dict.get("M15", [])
     candles_d1 = candles_dict.get("D1", candles_dict.get("D", []))
 
+    macro_summary = ""
+    try:
+        macro = macro_analyzer.get_market_summary()
+        macro_summary = macro.get("summary", "")
+    except Exception:
+        macro_summary = ""
+
     pattern_name = None
     if patterns:
         try:
@@ -1022,6 +1032,7 @@ def get_trade_plan(
         candles_d1,
         hist_stats,
         pattern_line,
+        macro_summary,
         allow_delayed_entry=allow_delayed_entry,
         higher_tf_direction=higher_tf_direction,
         trend_prompt_bias=trend_prompt_bias,
@@ -1244,7 +1255,7 @@ Respond with **one-line valid JSON** exactly as:
 {{"regime":{{...}},"entry":{{...}},"risk":{{...}}}}
 """
     try:
-        raw = ask_openai(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano"))
+        raw = ask_model(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano"))
     except Exception as exc:
         try:
             log_ai_decision("ERROR", instrument, str(exc))
@@ -1505,7 +1516,7 @@ def should_convert_limit_to_market(context: dict) -> bool:
         "Respond with YES or NO."
     )
     try:
-        result = ask_openai(prompt, model=AI_LIMIT_CONVERT_MODEL)
+        result = ask_model(prompt, model=AI_LIMIT_CONVERT_MODEL)
     except Exception as exc:
         logger.warning(f"should_convert_limit_to_market failed: {exc}")
         return False
