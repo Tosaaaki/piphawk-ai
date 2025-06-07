@@ -70,6 +70,10 @@ loaded from environment variables and optional YAML files under `config/`.
 - `MODE_ATR_PIPS_MIN` / `MODE_BBWIDTH_PIPS_MIN` … ボラティリティ判定用の閾値
 - `MODE_EMA_SLOPE_MIN` / `MODE_ADX_MIN` … モメンタム判定のしきい値
 - `MODE_VOL_MA_MIN` … 流動性判定に使う出来高平均
+- `MODE_DI_DIFF_MIN` / `MODE_DI_DIFF_STRONG` … +DIと−DIの差を評価する閾値
+- `MODE_VOL_RATIO_MIN` / `MODE_VOL_RATIO_STRONG` … 出来高比率判定に使用
+- `MODE_BONUS_START_JST` / `MODE_BONUS_END_JST` … トレンドを優遇する時間帯
+- `MODE_PENALTY_START_JST` / `MODE_PENALTY_END_JST` … スキャルプを優遇する時間帯
 - `MODE_ATR_QTL` / `MODE_ADX_QTL` … ATR・ADX の分位点を利用する場合の割合
 - `MODE_QTL_LOOKBACK` … 分位点計算に使う過去本数
 - `HTF_SLOPE_MIN` … 上位足 EMA 傾きチェック用のしきい値
