@@ -163,6 +163,16 @@ def init_db():
             )
         ''')
 
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS policy_transitions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                state TEXT NOT NULL,
+                action TEXT NOT NULL,
+                reward REAL NOT NULL
+            )
+        ''')
+
 def log_trade(
     instrument,
     entry_time,
@@ -214,6 +224,18 @@ def log_trade(
             exit_reason,
             is_manual,
         ))
+
+def log_policy_transition(state: str, action: str, reward: float) -> None:
+    """Store a (state, action, reward) tuple for offline RL."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO policy_transitions (timestamp, state, action, reward)
+            VALUES (?, ?, ?, ?)
+        ''',
+            (datetime.now(timezone.utc).isoformat(), state, action, reward),
+        )
 
 def log_ai_decision(decision_type, instrument, ai_response):
     with get_db_connection() as conn:

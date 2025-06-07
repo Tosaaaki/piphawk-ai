@@ -234,6 +234,16 @@ class JobRunner:
         # Epoch timestamp of last AI call (seconds)
         self.last_ai_call = datetime.min
         self.regime_detector = RegimeDetector()
+        model_file = os.path.join(PROJECT_ROOT, "models", "regime_gmm.pkl")
+        if os.path.exists(model_file):
+            try:
+                from analysis.cluster_regime import ClusterRegime
+                self.cluster_regime = ClusterRegime(model_file)
+            except Exception as exc:  # pragma: no cover - optional model
+                logger.warning(f"ClusterRegime load failed: {exc}")
+                self.cluster_regime = None
+        else:
+            self.cluster_regime = None
         # Entry cooldown settings
         self.entry_cooldown_sec = int(env_loader.get_env("ENTRY_COOLDOWN_SEC", "30"))
         self.last_close_ts: datetime | None = None
@@ -782,6 +792,10 @@ class JobRunner:
                         rd_res = self.regime_detector.update(tick)
                         if rd_res.get("transition"):
                             self.last_ai_call = datetime.min
+                        if self.cluster_regime:
+                            cr_res = self.cluster_regime.update(tick)
+                            if cr_res.get("transition"):
+                                self.last_ai_call = datetime.min
                     except Exception as exc:
                         logger.debug(f"RegimeDetector update failed: {exc}")
 
