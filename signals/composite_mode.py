@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Sequence, Iterable
 from indicators.candlestick import detect_upper_wick_cluster
 import logging
+import datetime
 
 from backend.utils import env_loader
 from .mode_params import get_params
@@ -138,13 +139,6 @@ def decide_trade_mode_detail(
 ) -> tuple[str, float, list[str]]:
     """Return mode, score and reasons for the given indicators."""
 
-    def _scale(val: float | None, vmin: float, vmax: float) -> float:
-        if val is None:
-            return 0.0
-        if vmax == vmin:
-            return 1.0 if val >= vmax else 0.0
-        return (val - vmin) / (vmax - vmin)
-
     m5 = indicators
     vols = m5.get("volume")
     if vols is None:
@@ -161,11 +155,57 @@ def decide_trade_mode_detail(
         adx_vals = adx_vals.tolist()
     adx_val = _last(adx_vals)
 
-    vol_score = max(0.0, min(1.0, _scale(vol_ma, MODE_VOL_MA_MIN, MODE_VOL_MA_MIN * 1.5)))
-    atr_score = max(0.0, min(1.0, _scale(atr_val, MODE_ATR_PIPS_MIN, MODE_ATR_PIPS_MIN * 2)))
-    mom_score = max(0.0, min(1.0, _scale(adx_val, MODE_ADX_MIN, MODE_ADX_STRONG)))
+    plus_di = m5.get("plus_di")
+    minus_di = m5.get("minus_di")
+    di_diff = None
+    p_val = _last(plus_di)
+    m_val = _last(minus_di)
+    if p_val is not None and m_val is not None:
+        di_diff = abs(p_val - m_val)
 
-    score = (vol_score + atr_score + mom_score) / 3.0
+    ema_val = _last(m5.get("ema_slope"))
+
+    points = 0
+    max_points = 0
+    reasons: list[str] = []
+
+    def _score_step(val: float | None, low: float, high: float, name: str) -> None:
+        nonlocal points, max_points
+        max_points += 2
+        if val is None:
+            reasons.append(f"{name} N/A")
+            return
+        if val >= high:
+            points += 2
+            reasons.append(f"{name} strong {val:.2f}")
+        elif val >= low:
+            points += 1
+            reasons.append(f"{name} {val:.2f}")
+        else:
+            reasons.append(f"{name} weak {val:.2f}")
+
+    _score_step(adx_val, MODE_ADX_MIN, MODE_ADX_STRONG, "ADX")
+    _score_step(di_diff, MODE_DI_DIFF_MIN, MODE_DI_DIFF_STRONG, "DI diff")
+    _score_step(abs(ema_val) if ema_val is not None else None, MODE_EMA_SLOPE_MIN, MODE_EMA_SLOPE_STRONG, "EMA slope")
+    if vol_ma is not None:
+        ratio = vol_ma / MODE_VOL_MA_MIN
+    else:
+        ratio = None
+    _score_step(ratio, MODE_VOL_RATIO_MIN, MODE_VOL_RATIO_STRONG, "Volume")
+    _score_step(atr_val, MODE_ATR_PIPS_MIN, MODE_ATR_PIPS_MIN * 2, "ATR")
+
+    bonus = 0
+    now_jst = datetime.datetime.utcnow().timestamp() + 9 * 3600
+    hour = (now_jst % 86400) / 3600
+    if _in_window(hour, MODE_BONUS_START_JST, MODE_BONUS_END_JST):
+        bonus += 1
+        reasons.append("session bonus")
+    if _in_window(hour, MODE_PENALTY_START_JST, MODE_PENALTY_END_JST):
+        bonus -= 1
+        reasons.append("session penalty")
+
+    score = (points + bonus) / max_points if max_points else 0.0
+    score = max(0.0, min(1.0, score))
 
     body_shrink = False
     adx_drop = False
@@ -201,7 +241,7 @@ def decide_trade_mode_detail(
         _LAST_SWITCH = candle_len
 
     logging.getLogger(__name__).info("decide_trade_mode -> %s (score=%.2f)", mode, score)
-    return mode, score, []
+    return mode, score, reasons
 
 
 def decide_trade_mode(indicators: dict) -> str:
