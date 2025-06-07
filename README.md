@@ -310,9 +310,9 @@ EOF
 
 ## Running the API
 
-The API exposes endpoints for status checks, a simple dashboard and runtime settings. Start it with Uvicorn:
+The API exposes endpoints for status checks, a simple dashboard and runtime settings. Start it from the packaged module:
 ```bash
-uvicorn backend.api.main:app --host 0.0.0.0 --port 8080
+python -m piphawk_ai.main api
 ```
 
 ## LINE 通知設定
@@ -327,7 +327,7 @@ LINE_USER_ID=<your_line_user_id>
 次のコマンドで API を起動してください。
 
 ```bash
-uvicorn backend.api.main:app --host 0.0.0.0 --port 8080
+python -m piphawk_ai.main api
 ```
 
 テスト用エンドポイント `/notifications/send` を利用すると送信確認ができます。
@@ -341,16 +341,16 @@ curl -X POST http://localhost:8080/notifications/send
 
 ## Running the Job Scheduler
 
-The job runner performs market data collection, indicator calculation and trading decisions. Run it directly with Python:
+The job runner performs market data collection, indicator calculation and trading decisions. Start it via the packaged module:
 ```bash
-python3 -m backend.scheduler.job_runner
+python -m piphawk_ai.main job
 ```
 If the optional performance logger was added earlier, each job loop's timing
 will be appended to `backend/logs/perf_stats.jsonl`.
 
-Both the API and the job runner can run in a single container using `Dockerfile`.
-If you prefer two containers, build the same image twice and start each with the
-appropriate command.
+Both the API and the job runner can run from the same Docker image.
+For an API-only container, tag the build separately and override the command with
+`python -m piphawk_ai.main api`.
 
 ## Metrics Monitoring
 
@@ -372,6 +372,12 @@ are bundled into the image. When you start the job runner container, these
 parameters are loaded automatically.
 
 Use the same flag if building separate images for the API and job runner.
+The default tag launches the job scheduler. Create an API image with a custom
+tag and command override:
+```bash
+docker build --platform linux/amd64 -t piphawk-ai:api .
+docker run --rm piphawk-ai:api python -m piphawk_ai.main api
+```
 Running x86 containers under emulation can be slower and some dependencies may not behave exactly the same
 as on native x86 hardware.
 
