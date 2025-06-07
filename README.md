@@ -50,6 +50,8 @@ loaded from environment variables and optional YAML files under `config/`.
    The indicator modules require **pandas**. If it is not installed, add it with:
    ```bash
    pip install pandas
+   # optional linting
+   pip install flake8
    ```
 3. **Environment variables**
    まず `backend/config/secret.env.example` をコピーして `.env` を作成するか、
@@ -572,6 +574,8 @@ virtual environment and execute:
 ```bash
 pytest
 ```
+Ensure all dependencies from `backend/requirements.txt` are installed before
+running tests.
 
 This will run all tests defined in the project to verify core modules and
 configuration loaders.
