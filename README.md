@@ -17,6 +17,22 @@ The backend resides in the `backend/` directory and is designed to run either
 directly with Python or inside Docker containers. Configuration values are
 loaded from environment variables and optional YAML files under `config/`.
 
+## Features
+
+- Automated entry and exit decisions using OpenAI models with technical
+  indicator context.
+- Composite trade mode logic that switches between **scalp** and
+  **trend_follow** based on ATR, ADX, EMA slope and volume conditions.
+- Multi-timeframe indicators and a regime detector to track transitions
+  from range to trend.
+- Optional chart pattern detection via OpenAI or a local scanner.
+- Parameters managed through environment variables and YAML files with
+  hot reload support.
+- Trade and parameter history stored in SQLite.
+- LINE notifications including hourly summaries via the API.
+- React dashboard and API endpoints for runtime control.
+- Dockerfiles provided for containerized deployment.
+
 ## Setup
 
 1. **Clone the repository**
