@@ -523,6 +523,13 @@ profit. The job runner calls `order_manager.place_trailing_stop()` to update the
 stop on the first trade ID, which replaces the previous order. OANDA cancels the
 old trailing stop automatically once the new one is applied. See
 `backend/strategy/exit_logic.py` lines 510-525 for the exact logic.
+Mode-specific parameters can be set in `config/scalp.yml` and `config/trend.yml`.
+For example, trend mode may use a wider trailing stop:
+
+```yaml
+TRAIL_TRIGGER_PIPS: 20
+TRAIL_DISTANCE_PIPS: 10
+```
 
 ## 4 レイヤー・スコアリングと TP/SL 最適化
 
