@@ -8,23 +8,16 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Apple Silicon 向けにビルドする場合は下記のように `--platform` を指定してください
+# docker build --platform linux/amd64 -t piphawk-ai:dev .
 
-COPY backend /app/backend
-COPY analysis /app/analysis
-COPY ai /app/ai
-COPY signals /app/signals
-COPY indicators /app/indicators
-COPY monitoring /app/monitoring
-COPY risk /app/risk
-COPY strategies /app/strategies
-COPY regime /app/regime
-COPY config /app/config
 COPY pyproject.toml /app/pyproject.toml
 COPY piphawk_ai /app/piphawk_ai
+COPY ./backend ./analysis ./indicators ./config \
+     ./risk ./monitoring ./strategies ./regime ./piphawk-ui ./tests \
+     /app/
 
-# install project as package
+# install project as package via pyproject.toml
 RUN pip install --no-cache-dir .
 
 # create an empty SQLite database if not provided
@@ -33,4 +26,4 @@ RUN touch /app/trades.db
 ENV PYTHONUNBUFFERED=1
 ENV TZ=Asia/Tokyo
 
-CMD ["uvicorn", "backend.api.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["python", "-m", "piphawk_ai.main", "job"]
