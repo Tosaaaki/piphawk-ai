@@ -342,6 +342,12 @@ will be appended to `backend/logs/perf_stats.jsonl`.
 
 Both services can also be launched via Docker using `Dockerfile.api` and `Dockerfile.job` respectively.
 
+## Metrics Monitoring
+
+The API exposes Prometheus metrics at `/metrics`. The job runner also starts a
+Prometheus server so monitoring tools can scrape data. Set `METRICS_PORT` to
+control the port (default `8001`).
+
 ### Apple Silicon (ARM) users
 
 If you are on an M1/M2 Mac or other ARM-based machine, build the images for

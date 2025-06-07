@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, APIRouter
+from fastapi import FastAPI, HTTPException, APIRouter, Response
 from backend.utils import env_loader
 import sqlite3
 import os
@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from backend.utils.notification import send_line_message
 
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 
 app = FastAPI()
@@ -24,6 +25,16 @@ logger = logging.getLogger(__name__)
 def health():
     """Return 200 OK with a tiny JSON payload."""
     return {"status": "ok"}
+
+
+# ------------------------------------------------------------------
+# Prometheus metrics endpoint
+# ------------------------------------------------------------------
+@app.get("/metrics")
+def metrics() -> Response:
+    """Expose Prometheus metrics."""
+    data = generate_latest()
+    return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
 
 # --- CORS ---
