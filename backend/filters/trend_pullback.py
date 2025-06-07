@@ -1,6 +1,6 @@
 """Trend pullback entry filter."""
 
-from typing import List, Dict
+from typing import List, Dict, Sequence
 from backend.utils import env_loader
 
 
@@ -8,6 +8,17 @@ def _get_val(candle: Dict, key: str) -> float:
     """Return float value from candle or its 'mid' subdict."""
     base = candle.get("mid", candle)
     return float(base.get(key))
+
+
+def _ema(values: Sequence[float], period: int) -> float:
+    """Simple EMA calculation used for deviation checks."""
+    if not values:
+        return 0.0
+    k = 2 / (period + 1)
+    ema = values[0]
+    for v in values[1:]:
+        ema = v * k + ema * (1 - k)
+    return ema
 
 
 def _last_val(series):
@@ -111,4 +122,24 @@ def should_enter_short(candles: List[Dict], indicators: dict) -> bool:
     return True
 
 
-__all__ = ["should_enter_long", "should_enter_short"]
+def should_skip(candles: List[Dict], ema_period: int = 20) -> bool:
+    """EMA乖離からの強い戻しがあればエントリーを避ける."""
+    if len(candles) < ema_period + 1:
+        return False
+
+    closes = [_get_val(c, "c") for c in candles[-(ema_period + 1) :]]
+    ema_val = _ema(closes[:-1], ema_period)
+    if not ema_val:
+        return False
+
+    last = candles[-1]
+    open_v = _get_val(last, "o")
+    close_v = _get_val(last, "c")
+    dev = abs(open_v - ema_val) / ema_val
+    if dev > 0.01 and ((open_v > ema_val and close_v < ema_val) or (open_v < ema_val and close_v > ema_val)):
+        return True
+
+    return False
+
+
+__all__ = ["should_enter_long", "should_enter_short", "should_skip"]

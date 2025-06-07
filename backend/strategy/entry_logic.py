@@ -2,28 +2,14 @@ from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
 from backend.strategy.risk_manager import calc_lot_size
+import importlib
 
-try:
-    from backend.filters.false_break_filter import should_skip as false_break_skip
-except ModuleNotFoundError:  # pragma: no cover - fallback for optional import
-
-    def false_break_skip(*_a, **_k):
-        return False
-
-
-try:
-    import importlib
-
-    tp_mod = importlib.import_module("backend.filters.trend_pullback")
-    should_enter_long_trend = getattr(tp_mod, "should_enter_long", lambda *_a, **_k: True)
-    should_enter_short_trend = getattr(tp_mod, "should_enter_short", lambda *_a, **_k: True)
-except ModuleNotFoundError:  # pragma: no cover
-
-    def should_enter_long_trend(*_a, **_k):
-        return True
-
-    def should_enter_short_trend(*_a, **_k):
-        return True
+from backend.filters.false_break_filter import should_skip as false_break_skip
+from backend.filters.trend_pullback import (
+    should_enter_long as should_enter_long_trend,
+    should_enter_short as should_enter_short_trend,
+    should_skip as trend_pullback_skip,
+)
 
 try:
     scalp_mod = importlib.import_module("backend.filters.scalp_entry")
@@ -46,12 +32,7 @@ except ModuleNotFoundError:  # pragma: no cover
         return False
 
 
-try:
-    from backend.filters.extension_block import extension_block
-except ModuleNotFoundError:  # pragma: no cover
-
-    def extension_block(*_a, **_k):
-        return False
+from backend.filters.extension_block import is_extension
 
 
 try:
@@ -506,10 +487,13 @@ def process_entry(
 
     # --- extension block filter ----------------------------------
     try:
-        ratio = float(env_loader.get_env("EXT_BLOCK_ATR", "0"))
-        if ratio > 0:
+        atr_series = indicators.get("atr")
+        if atr_series is not None and len(atr_series):
+            atr_val = (
+                atr_series.iloc[-1] if hasattr(atr_series, "iloc") else atr_series[-1]
+            )
             m5 = candles_dict.get("M5", candles)
-            if extension_block(m5, ratio):
+            if is_extension(m5, float(atr_val)):
                 logging.info("Extension block triggered → skip entry")
                 return False
     except Exception as exc:
@@ -536,9 +520,8 @@ def process_entry(
     # --- false break filter -----------------------------------------
     try:
         lookback = int(env_loader.get_env("FALSE_BREAK_LOOKBACK", "5"))
-        ratio = float(env_loader.get_env("FALSE_BREAK_RATIO", "0.5"))
         m5 = candles_dict.get("M5", candles)
-        if false_break_skip(m5, lookback, ratio):
+        if false_break_skip(m5, lookback):
             logging.info("False break detected → skip entry")
             return False
     except Exception as exc:

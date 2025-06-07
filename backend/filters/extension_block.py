@@ -33,19 +33,15 @@ def _val(candle: Dict, key: str) -> float:
     return float(base.get(key))
 
 
-def extension_block(candles: Sequence[Dict], ratio: float) -> bool:
-    """Return ``True`` if the latest close deviates from EMA20 by ``ratio``×ATR."""
-    if ratio <= 0 or len(candles) < 20:
+def is_extension(candles: Sequence[Dict], atr: float) -> bool:
+    """最新足の実体が ATR×3 を超えていれば True."""
+    if atr <= 0 or not candles:
         return False
 
-    closes = [_val(c, "c") for c in candles[-20:]]
-    highs = [_val(c, "h") for c in candles[-14:]]
-    lows = [_val(c, "l") for c in candles[-14:]]
+    last = candles[-1]
+    open_v = _val(last, "o")
+    close_v = _val(last, "c")
+    body = abs(close_v - open_v)
+    return body > atr * 3
 
-    ema20 = _ema(closes[-20:], 20)
-    atr_val = _atr(highs, lows, closes, 14)
-    latest = closes[-1]
-
-    return abs(latest - ema20) >= ratio * atr_val
-
-__all__ = ["extension_block"]
+__all__ = ["is_extension"]
