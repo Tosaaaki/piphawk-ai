@@ -7,7 +7,7 @@ OANDA_API_URL = env_loader.get_env('OANDA_API_URL', 'https://api-fxtrade.oanda.c
 OANDA_API_KEY = env_loader.get_env('OANDA_API_KEY')
 OANDA_ACCOUNT_ID = env_loader.get_env('OANDA_ACCOUNT_ID')
 
-def fetch_tick_data(instrument: str | None = None):
+def fetch_tick_data(instrument: str | None = None, *, include_liquidity: bool = False):
     """Fetch the latest tick (pricing) data from the OANDA API.
 
     Parameters
@@ -15,6 +15,9 @@ def fetch_tick_data(instrument: str | None = None):
     instrument : str | None
         The instrument to fetch (e.g. ``"USD_JPY"``). If ``None`` the value of
         ``DEFAULT_PAIR`` from the environment is used.
+
+    include_liquidity : bool
+        If ``True`` the request includes order book liquidity information.
 
     Returns
     -------
@@ -32,7 +35,7 @@ def fetch_tick_data(instrument: str | None = None):
     params = {
         "instruments": instrument,
         "since": None,
-        "includeUnitsAvailable": "false"
+        "includeUnitsAvailable": str(include_liquidity).lower(),
     }
     try:
         response = requests.get(url, headers=headers, params=params, timeout=10)

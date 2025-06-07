@@ -5,6 +5,7 @@ import logging
 import json
 import os
 import sys
+from prometheus_client import start_http_server
 # プロジェクトルートをパスに追加してモジュールを確実に読み込む
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if PROJECT_ROOT not in sys.path:
@@ -145,9 +146,13 @@ def build_exit_context(position, tick_data, indicators, indicators_m1=None) -> d
     return context
 
 
-log_level = env_loader.get_env("LOG_LEVEL", "INFO").upper()
-logging.basicConfig(level=getattr(logging, log_level, logging.INFO), format="%(levelname)s:%(name)s:%(message)s")
+# ログフォーマットとレベルを統一
+logging.basicConfig(
+    format="%(asctime)s %(levelname)s %(message)s",
+    level=os.getenv("LOG_LEVEL", "INFO"),
+)
 logger = logging.getLogger(__name__)
+from backend.logs.info_logger import info
 
 order_mgr = OrderManager()
 
@@ -214,6 +219,13 @@ class JobRunner:
         self.interval_seconds = interval_seconds
         self.last_run = None
         self._stop = False
+        # Start Prometheus metrics server
+        metrics_port = int(env_loader.get_env("METRICS_PORT", "8001"))
+        try:
+            start_http_server(metrics_port)
+            logger.info("Prometheus metrics server running on port %s", metrics_port)
+        except Exception as exc:  # pragma: no cover - metrics optional
+            logger.warning(f"Metrics server start failed: {exc}")
         loss_lim = float(env_loader.get_env("LOSS_LIMIT", "0"))
         err_lim = int(env_loader.get_env("ERROR_LIMIT", "0"))
         self.safety = SafetyTrigger(loss_limit=loss_lim, error_limit=err_lim)
@@ -322,11 +334,18 @@ class JobRunner:
         scalp_active = env_loader.get_env("SCALP_MODE", "false").lower() == "true"
 
         logger.info("Initial SCALP_MODE is %s", "ON" if scalp_active else "OFF")
+
         self.strategy_selector = StrategySelector({"scalp": ScalpStrategy(), "trend": TrendStrategy()})
         self.last_entry_context = None
         self.last_entry_strategy = None
         self.current_context = None
         self.current_strategy_name = None
+        info(
+            "startup",
+            mode=self.trade_mode or "none",
+            scalp_mode=scalp_active,
+            ai_version=os.getenv("AI_VERSION", "unknown"),
+        )
 
     def _get_cond_indicators(self) -> dict:
         """Return indicators for market condition check."""
@@ -803,12 +822,19 @@ class JobRunner:
                     logger.info(f"Running job at {now.isoformat()}")
 
                     # ティックデータ取得（発注用）
-                    tick_data = fetch_tick_data(DEFAULT_PAIR)
+                    tick_data = fetch_tick_data(DEFAULT_PAIR, include_liquidity=True)
                     # ティックデータ詳細はDEBUGレベルで出力
                     logger.debug(f"Tick data fetched: {tick_data}")
                     try:
                         price = float(tick_data["prices"][0]["bids"][0]["price"])
-                        tick = {"high": price, "low": price, "close": price}
+                        bid_liq = float(tick_data["prices"][0]["bids"][0].get("liquidity", 0))
+                        ask_liq = float(tick_data["prices"][0]["asks"][0].get("liquidity", 0))
+                        tick = {
+                            "high": price,
+                            "low": price,
+                            "close": price,
+                            "volume": bid_liq + ask_liq,
+                        }
                         rd_res = self.regime_detector.update(tick)
                         if rd_res.get("transition"):
                             self.last_ai_call = datetime.min
@@ -913,6 +939,15 @@ class JobRunner:
                     if selected_mode != self.trade_mode:
                         self.reload_params_for_mode(selected_mode)
                         self.trade_mode = selected_mode
+                    if new_mode != self.trade_mode:
+                        info(
+                            "regime_change",
+                            new=new_mode,
+                            old=self.trade_mode,
+                            score=_score,
+                        )
+                        self.reload_params_for_mode(new_mode)
+                        self.trade_mode = new_mode
                     self.mode_reason = "\n".join(f"- {r}" for r in reasons)
                     logger.info("Current trade mode: %s", self.trade_mode)
 
@@ -1235,6 +1270,7 @@ class JobRunner:
                                         )
                                         self._record_strategy_result(current_profit_pips)
                                         self.scale_count = 0
+                                        info("exit", pair=DEFAULT_PAIR, reason="AI", price=current_price, pnl=current_profit_pips)
                                     else:
                                         logger.info("AI decision was HOLD → No exit executed.")
                                 else:
@@ -1413,6 +1449,7 @@ class JobRunner:
                                 )
                                 self._record_strategy_result(profit_pips)
                                 self.scale_count = 0
+                                info("exit", pair=DEFAULT_PAIR, reason="AI", price=cur_price, pnl=profit_pips * pip_size)
                             else:
                                 logger.info("AI decision was HOLD → No exit executed.")
                         else:
@@ -1679,6 +1716,7 @@ class JobRunner:
                             # Send LINE notification on entry
                             price = float(tick_data["prices"][0]["bids"][0]["price"])
                             send_line_message(f"【ENTRY】{DEFAULT_PAIR} {price} でエントリーしました。")
+                            info("entry", pair=DEFAULT_PAIR, side=side, price=price, lot=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")), regime=self.trade_mode)
                             self.scale_count = 0
                             self.last_entry_context = self.current_context
                             self.last_entry_strategy = self.current_strategy_name

@@ -7,6 +7,7 @@ except ModuleNotFoundError as exc:
 from backend.utils import env_loader
 import json
 import logging
+import asyncio
 
 # env_loader automatically loads default .env files at import time
 
@@ -70,3 +71,28 @@ def ask_openai(
         raise RuntimeError("Invalid JSON response") from exc
     except APIError as e:
         raise RuntimeError(f"OpenAI API request failed: {e}") from e
+
+
+async def ask_openai_async(
+    prompt: str,
+    system_prompt: str = "You are a helpful assistant.",
+    model: str | None = None,
+    *,
+    max_tokens: int = 512,
+    temperature: float = 0.7,
+    response_format: dict | None = None,
+) -> dict:
+    """Non-blocking wrapper around ``ask_openai``."""
+
+    return await asyncio.to_thread(
+        ask_openai,
+        prompt,
+        system_prompt=system_prompt,
+        model=model,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        response_format=response_format,
+    )
+
+
+__all__ = ["ask_openai", "ask_openai_async", "AI_MODEL"]

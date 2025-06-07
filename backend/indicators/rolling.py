@@ -162,9 +162,25 @@ class RollingKeltner:
         return outside
 
 
+class RollingVolumeRatio:
+    """出来高比率を返す簡易クラス."""
+
+    def __init__(self, window: int = 20) -> None:
+        self.window = window
+        self.volumes: Deque[float] = deque(maxlen=window)
+
+    def update(self, tick: Dict[str, Any]) -> float:
+        """``volume`` 値から現在値/平均値を計算する."""
+        vol = float(tick.get("volume", 0.0))
+        self.volumes.append(vol)
+        avg = sum(self.volumes) / len(self.volumes) if self.volumes else 0.0
+        return (vol / avg) if avg else 1.0
+
+
 __all__ = [
     "RollingATR",
     "RollingADX",
     "RollingBBWidth",
     "RollingKeltner",
+    "RollingVolumeRatio",
 ]
