@@ -89,6 +89,10 @@ from signals.composite_mode import decide_trade_mode, decide_trade_mode_detail
 
 from backend.utils.notification import send_line_message
 from backend.logs.trade_logger import log_trade, ExitReason
+from strategies import ScalpStrategy, TrendStrategy, StrategySelector
+from strategies.context_builder import build_context, recent_strategy_performance
+from backend.logs.log_manager import log_policy_transition
+import json
 try:
     from backend.logs.log_manager import log_entry_skip
 except Exception:  # pragma: no cover - test stubs may omit log_entry_skip
@@ -328,7 +332,14 @@ class JobRunner:
         )
         # 初期の SCALP_MODE 設定をログへ記録
         scalp_active = env_loader.get_env("SCALP_MODE", "false").lower() == "true"
+
         logger.info("Initial SCALP_MODE is %s", "ON" if scalp_active else "OFF")
+
+        self.strategy_selector = StrategySelector({"scalp": ScalpStrategy(), "trend": TrendStrategy()})
+        self.last_entry_context = None
+        self.last_entry_strategy = None
+        self.current_context = None
+        self.current_strategy_name = None
         info(
             "startup",
             mode=self.trade_mode or "none",
@@ -369,6 +380,16 @@ class JobRunner:
             python = sys.executable
             # preserve module-based execution to keep import paths intact
             os.execv(python, [python, "-m", "backend.scheduler.job_runner", *sys.argv[1:]])
+
+    def _record_strategy_result(self, reward: float) -> None:
+        if self.last_entry_context and self.last_entry_strategy:
+            try:
+                log_policy_transition(json.dumps(self.last_entry_context), self.last_entry_strategy, float(reward))
+                self.strategy_selector.update(self.last_entry_strategy, self.last_entry_context, float(reward))
+            except Exception as exc:
+                logger.warning(f"Strategy update failed: {exc}")
+            self.last_entry_context = None
+            self.last_entry_strategy = None
 
     # ────────────────────────────────────────────────────────────
     #  Poll & renew pending LIMIT orders
@@ -910,6 +931,14 @@ class JobRunner:
                     new_mode, _score, reasons = decide_trade_mode_detail(
                         indicators, candles_m5
                     )
+                    perf = recent_strategy_performance()
+                    self.current_context = build_context(self.regime_detector.state, indicators, perf)
+                    selected = self.strategy_selector.select(self.current_context)
+                    self.current_strategy_name = selected.name
+                    selected_mode = "trend_follow" if selected.name == "trend" else selected.name
+                    if selected_mode != self.trade_mode:
+                        self.reload_params_for_mode(selected_mode)
+                        self.trade_mode = selected_mode
                     if new_mode != self.trade_mode:
                         info(
                             "regime_change",
@@ -1113,6 +1142,7 @@ class JobRunner:
                                 send_line_message(
                                     f"【PEAK EXIT】{DEFAULT_PAIR} {current_price} で決済しました。PL={current_profit_pips:.1f}pips"
                                 )
+                                self._record_strategy_result(current_profit_pips)
                             except Exception as exc:
                                 logger.warning(f"Peak exit failed: {exc}")
                             self.max_profit_pips = 0.0
@@ -1238,6 +1268,7 @@ class JobRunner:
                                         send_line_message(
                                             f"【EXIT】{DEFAULT_PAIR} {current_price} で決済しました。PL={current_profit_pips:.1f}pips"
                                         )
+                                        self._record_strategy_result(current_profit_pips)
                                         self.scale_count = 0
                                         info("exit", pair=DEFAULT_PAIR, reason="AI", price=current_price, pnl=current_profit_pips)
                                     else:
@@ -1416,6 +1447,7 @@ class JobRunner:
                                 send_line_message(
                                     f"【EXIT】{DEFAULT_PAIR} {cur_price} で決済しました。PL={profit_pips * pip_size:.2f}"
                                 )
+                                self._record_strategy_result(profit_pips)
                                 self.scale_count = 0
                                 info("exit", pair=DEFAULT_PAIR, reason="AI", price=cur_price, pnl=profit_pips * pip_size)
                             else:
@@ -1686,6 +1718,8 @@ class JobRunner:
                             send_line_message(f"【ENTRY】{DEFAULT_PAIR} {price} でエントリーしました。")
                             info("entry", pair=DEFAULT_PAIR, side=side, price=price, lot=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")), regime=self.trade_mode)
                             self.scale_count = 0
+                            self.last_entry_context = self.current_context
+                            self.last_entry_strategy = self.current_strategy_name
                         else:
                             logger.info("Filter NG → AI entry decision skipped.")
                             self.last_position_review_ts = None
