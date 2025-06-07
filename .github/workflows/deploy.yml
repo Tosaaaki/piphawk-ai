@@ -1,0 +1,12 @@
+name: Deploy (Self-host)
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, piphawk]
+    steps:
+      - name: Pull & Build & Restart
+        run: sudo /opt/piphawk/deploy.sh
