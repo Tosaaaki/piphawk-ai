@@ -27,11 +27,15 @@ loaded from environment variables and optional YAML files under `config/`.
   from range to trend.
 - Optional chart pattern detection via OpenAI or a local scanner.
 - Offline reinforcement policy integration for strategy selection (preview).
+- CVaR-based portfolio risk management that adjusts lot sizes when risk exceeds
+  a configured threshold.
 - Parameters managed through environment variables and YAML files with
   hot reload support.
 - Trade and parameter history stored in SQLite.
 - LINE notifications including hourly summaries via the API.
 - React dashboard and API endpoints for runtime control.
+- Prometheus metrics exposed by both the API and job runner for external
+  monitoring tools.
 - Dockerfiles provided for containerized deployment.
 
 ## Setup
