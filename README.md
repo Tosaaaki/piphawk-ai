@@ -17,27 +17,47 @@ The backend resides in the `backend/` directory and is designed to run either
 directly with Python or inside Docker containers. Configuration values are
 loaded from environment variables and optional YAML files under `config/`.
 
+## QuickStart
+1. Clone the repository
+   ```bash
+   git clone https://github.com/yourname/piphawk-ai.git
+   cd piphawk-ai
+   ```
+2. Create .env from example
+   ```bash
+   cp backend/config/secret.env.example .env
+   ```
+   Edit `.env` and set OPENAI_API_KEY, OANDA_API_KEY and OANDA_ACCOUNT_ID.
+3. Build and run the backend container
+   ```bash
+   docker build -t piphawk-ai .
+   docker run --env-file .env -p 8080:8080 piphawk-ai
+   ```
+4. Start the React UI
+   ```bash
+   cd piphawk-ui
+   npm install
+   npm start
+   ```
+See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 ## Features
 
-- Automated entry and exit decisions using OpenAI models with technical
-  indicator context.
-- Composite trade mode logic that switches between **scalp** and
-  **trend_follow** based on ATR, ADX, EMA slope and volume conditions.
-- Multi-timeframe indicators and a regime detector to track transitions
-  from range to trend.
-- Optional chart pattern detection via OpenAI or a local scanner.
-- Offline reinforcement policy integration for strategy selection (preview).
-- CVaR-based portfolio risk management that adjusts lot sizes when risk exceeds
-  a configured threshold.
-- Parameters managed through environment variables and YAML files with
-  hot reload support.
-- Trade and parameter history stored in SQLite.
-- LINE notifications including hourly summaries via the API.
-- React dashboard and API endpoints for runtime control.
-- Prometheus metrics exposed by both the API and job runner for external
-  monitoring tools.
-- Dockerfiles provided for containerized deployment.
 
+### Implemented
+- Automated entry and exit decisions using OpenAI models with technical indicator context.
+- Composite trade mode logic switching between **scalp** and **trend_follow**.
+- Multi-timeframe indicators and regime detection.
+- Optional chart pattern detection via OpenAI or a local scanner.
+- CVaR-based portfolio risk management.
+- Parameters managed via environment variables and YAML with hot reload.
+- Trade and parameter history stored in SQLite.
+- LINE notifications via the API.
+- React dashboard and API endpoints for runtime control.
+- Prometheus metrics from both API and job runner.
+- Dockerfiles for containerized deployment.
+
+### Planned
+- Offline reinforcement policy integration for strategy selection.
 ## Setup
 
 1. **Clone the repository**
@@ -461,6 +481,9 @@ If `REACT_APP_API_URL` is omitted, the application defaults to
 ## License
 
 This project is provided as-is under the MIT license.
+## Disclaimer
+Past performance does not guarantee future results. Use this project at your own risk.
+
 
 ## Market Data Utilities
 
