@@ -165,9 +165,9 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - VOL_SPIKE_ADX_MULT / VOL_SPIKE_ATR_MULT: BB幅がしきい値を下回っていても、ADXまたはATRがこの倍率で急拡大した場合は成行エントリーに切り替える
 - STRICT_TF_ALIGN: マルチTF整合が取れない場合のキャンセル可否
 - ALIGN_STRICT: 上記と同義のエイリアス
-- TF_EMA_WEIGHTS: 上位足EMA整合の重み付け (例 `M5:0.4,H1:0.3,H4:0.3`)
+- TF_EMA_WEIGHTS: 上位足EMA整合の重み付け (例 `M5:0.4,M15:0.2,H1:0.3,H4:0.1`)
 - AI_ALIGN_WEIGHT: AIの方向性をEMA整合に加味する重み
-- ALIGN_BYPASS_ADX: M5 ADXがこの値以上でAI方向が設定されている場合、整合チェックをスキップ
+- ALIGN_BYPASS_ADX: M5 ADXがこの値以上でAI方向が設定されている場合、整合チェックをスキップ (デフォルト30)
 - LT_TF_PRIORITY_ADX: 下位足ADXがこの値以上でEMAクロスが発生したら他タイムフレームの重みを減少
 - LT_TF_WEIGHT_FACTOR: 上記条件を満たした際に適用する重み係数 (0.5なら半減)
 - ALIGN_ADX_WEIGHT: ADXのDI方向を整合評価へ加える重み

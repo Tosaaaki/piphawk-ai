@@ -70,7 +70,9 @@ def is_multi_tf_aligned(
         except Exception:
             pass
 
-    weights_env = env_loader.get_env("TF_EMA_WEIGHTS", "M5:0.4,H1:0.3,H4:0.3")
+    weights_env = env_loader.get_env(
+        "TF_EMA_WEIGHTS", "M5:0.4,M15:0.2,H1:0.3,H4:0.1"
+    )
     weights: Dict[str, float] = {}
     for part in weights_env.split(","):
         if ":" in part:
