@@ -73,6 +73,7 @@ loaded from environment variables and optional YAML files under `config/`.
 - `MIN_RRR` … 最低リスクリワード比。`ENFORCE_RRR` と併用すると常にこの比率を保ちます
 - `TREND_ADX_THRESH` … トレンド判定に使う ADX のしきい値 (デフォルト 20)
 - `SCALE_LOT_SIZE` … 追加エントリー時のロット数
+- `MIN_TRADE_LOT` / `MAX_TRADE_LOT` … 1 ロット = 1000 通貨。ここで許可するロット範囲を設定します
 - `SCALP_SUPPRESS_ADX_MAX` … この値を超えるADXではスキャルプを無効化
 - `SCALP_TP_PIPS` / `SCALP_SL_PIPS` … ボリンジャーバンドが取得できない場合に使う固定TP/SL幅
 - `SCALP_COND_TF` … スキャルプ時に市場判断へ使用する時間足 (デフォルト `M1`). この値でトレンド/レンジ判定に用いる足を変更できます
