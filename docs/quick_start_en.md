@@ -5,7 +5,6 @@
    ```bash
    git clone https://github.com/yourname/piphawk-ai.git
    cd piphawk-ai
-
    ```
 
 2. Create .env from example
@@ -20,18 +19,14 @@
    ```bash
    docker build -t piphawk-ai .
    docker run --env-file .env -p 8080:8080 piphawk-ai
-
    ```
 
-
 4. Start the React UI
+
    ```bash
    cd piphawk-ui
-
-
    npm install
    npm start
    ```
-
 
 Past performance does not guarantee future results. Use at your own risk.
