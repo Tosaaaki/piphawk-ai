@@ -71,6 +71,8 @@ except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
         return False
 from analysis.signal_filter import is_multi_tf_aligned
 from backend.logs.perf_stats_logger import PerfTimer
+from monitoring import metrics_publisher
+from monitoring.safety_trigger import SafetyTrigger
 from backend.strategy.signal_filter import pass_exit_filter
 from backend.strategy.openai_analysis import (
     get_market_condition,
@@ -207,6 +209,11 @@ class JobRunner:
     def __init__(self, interval_seconds=1):
         self.interval_seconds = interval_seconds
         self.last_run = None
+        self._stop = False
+        loss_lim = float(env_loader.get_env("LOSS_LIMIT", "0"))
+        err_lim = int(env_loader.get_env("ERROR_LIMIT", "0"))
+        self.safety = SafetyTrigger(loss_limit=loss_lim, error_limit=err_lim)
+        self.safety.attach(self.stop)
         # --- AI cooldown values ---------------------------------------
         #   * AI_COOLDOWN_SEC_OPEN : エントリー用クールダウン時間
         #   * AI_COOLDOWN_SEC_FLAT : エグジット用クールダウン時間
@@ -754,7 +761,7 @@ class JobRunner:
 
     def run(self):
         logger.info("Job Runner started.")
-        while True:
+        while not self._stop:
             try:
                 timer = PerfTimer("job_loop")
                 now = datetime.now(timezone.utc)
@@ -1063,6 +1070,13 @@ class JobRunner:
                                     ai_reason="peak exit",
                                     exit_reason=ExitReason.RISK,
                                     is_manual=False,
+                                )
+                                pl = float(has_position.get("pl_corrected", has_position.get("pl", 0)))
+                                self.safety.record_loss(pl)
+                                metrics_publisher.publish(
+                                    "trade_pl",
+                                    pl,
+                                    {"reason": "peak"},
                                 )
                                 self.last_close_ts = datetime.now(timezone.utc)
                                 send_line_message(
@@ -1646,12 +1660,23 @@ class JobRunner:
                 self.last_run = now
 
                 update_oanda_trades()
+                metrics_publisher.publish(
+                    "job_loop_success",
+                    1,
+                    {"mode": self.trade_mode or "unknown"},
+                )
                 time.sleep(self.interval_seconds)
                 timer.stop()
 
             except Exception as e:
                 logger.error(f"Error occurred during job execution: {e}", exc_info=True)
+                self.safety.record_error()
+                metrics_publisher.publish("job_error", 1)
                 time.sleep(self.interval_seconds)
+
+    def stop(self) -> None:
+        """Signal the runner loop to exit."""
+        self._stop = True
 
 
 if __name__ == "__main__":
