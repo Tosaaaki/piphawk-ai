@@ -1,5 +1,5 @@
 import pytest
-from analysis import calculate_trade_score
+from piphawk_ai.analysis import calculate_trade_score
 
 
 @pytest.mark.parametrize(
