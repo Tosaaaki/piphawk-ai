@@ -5,6 +5,7 @@ import logging
 import json
 import os
 import sys
+from prometheus_client import start_http_server
 # プロジェクトルートをパスに追加してモジュールを確実に読み込む
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if PROJECT_ROOT not in sys.path:
@@ -214,6 +215,13 @@ class JobRunner:
         self.interval_seconds = interval_seconds
         self.last_run = None
         self._stop = False
+        # Start Prometheus metrics server
+        metrics_port = int(env_loader.get_env("METRICS_PORT", "8001"))
+        try:
+            start_http_server(metrics_port)
+            logger.info("Prometheus metrics server running on port %s", metrics_port)
+        except Exception as exc:  # pragma: no cover - metrics optional
+            logger.warning(f"Metrics server start failed: {exc}")
         loss_lim = float(env_loader.get_env("LOSS_LIMIT", "0"))
         err_lim = int(env_loader.get_env("ERROR_LIMIT", "0"))
         self.safety = SafetyTrigger(loss_limit=loss_lim, error_limit=err_lim)
