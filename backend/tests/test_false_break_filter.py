@@ -36,9 +36,9 @@ class TestFalseBreakFilter(unittest.TestCase):
             self._c(1.03, 1.05, 1.02, 1.04),
             self._c(1.04, 1.06, 1.03, 1.05),
             self._c(1.05, 1.06, 1.04, 1.05),
-            self._c(1.055, 1.07, 1.04, 1.045),
+            self._c(1.06, 1.07, 1.03, 1.02),
         ]
-        self.assertTrue(should_skip(candles, lookback=5, threshold_ratio=0.4))
+        self.assertTrue(should_skip(candles, lookback=5))
 
     def test_should_skip_false_when_no_reversal(self):
         candles = [
@@ -47,9 +47,9 @@ class TestFalseBreakFilter(unittest.TestCase):
             self._c(1.03, 1.05, 1.02, 1.04),
             self._c(1.04, 1.06, 1.03, 1.05),
             self._c(1.05, 1.06, 1.04, 1.05),
-            self._c(1.055, 1.07, 1.05, 1.065),
+            self._c(1.06, 1.07, 1.05, 1.06),
         ]
-        self.assertFalse(should_skip(candles, lookback=5, threshold_ratio=0.4))
+        self.assertFalse(should_skip(candles, lookback=5))
 
 
 class FakeSeries:
@@ -114,7 +114,6 @@ class TestEntryLogicFalseBreak(unittest.TestCase):
 
         os.environ['PIP_SIZE'] = '0.01'
         os.environ['FALSE_BREAK_LOOKBACK'] = '5'
-        os.environ['FALSE_BREAK_RATIO'] = '0.4'
 
         import backend.strategy.entry_logic as el
         importlib.reload(el)
@@ -125,7 +124,6 @@ class TestEntryLogicFalseBreak(unittest.TestCase):
             sys.modules.pop(m, None)
         os.environ.pop('PIP_SIZE', None)
         os.environ.pop('FALSE_BREAK_LOOKBACK', None)
-        os.environ.pop('FALSE_BREAK_RATIO', None)
 
     def _c(self, o, h, l, c):
         return {'mid': {'o': str(o), 'h': str(h), 'l': str(l), 'c': str(c)}}
@@ -138,7 +136,7 @@ class TestEntryLogicFalseBreak(unittest.TestCase):
             self._c(1.03, 1.05, 1.02, 1.04),
             self._c(1.04, 1.06, 1.03, 1.05),
             self._c(1.05, 1.06, 1.04, 1.05),
-            self._c(1.055, 1.07, 1.04, 1.045),
+            self._c(1.06, 1.07, 1.03, 1.02),
         ]
         market_data = {'prices': [{'instrument': 'USD_JPY', 'bids': [{'price': '1.0'}], 'asks': [{'price': '1.01'}]}]}
         res = self.el.process_entry(

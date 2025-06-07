@@ -103,6 +103,24 @@ class TestTrendPullback(unittest.TestCase):
         ]
         self.assertFalse(self.tp.should_enter_short(candles, indicators))
 
+    def test_should_skip_true(self):
+        candles = [
+            _c(1.0, 1.01, 0.99, 1.0),
+            _c(1.0, 1.01, 0.99, 1.0),
+            _c(1.0, 1.01, 0.99, 1.0),
+            _c(1.02, 1.03, 0.98, 0.99),
+        ]
+        self.assertTrue(self.tp.should_skip(candles, ema_period=3))
+
+    def test_should_skip_false(self):
+        candles = [
+            _c(1.0, 1.01, 0.99, 1.0),
+            _c(1.0, 1.01, 0.99, 1.0),
+            _c(1.0, 1.01, 0.99, 1.0),
+            _c(1.005, 1.02, 0.99, 0.99),
+        ]
+        self.assertFalse(self.tp.should_skip(candles, ema_period=3))
+
 
 if __name__ == "__main__":
     unittest.main()
