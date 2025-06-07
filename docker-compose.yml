@@ -1,0 +1,15 @@
+version: '3.9'
+services:
+  piphawk:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: piphawk-app
+    volumes:
+      - ./models:/app/models
+      - ./trades.db:/app/trades.db
+    env_file:
+      - .env
+    restart: always
+    ports:
+      - "8080:8080"

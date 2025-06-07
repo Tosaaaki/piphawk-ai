@@ -1,0 +1,57 @@
+name: Walk-Forward-Opt
+
+on:
+  schedule:
+    - cron: '30 17 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  backtest:
+    runs-on: ubuntu-22.04
+    env:
+      OANDA_TOKEN: ${{ secrets.OANDA_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backtest image
+        run: |
+          docker build --platform linux/amd64 -t wf-backtest \
+            -f pipelines/walk_forward/Dockerfile .
+
+      - name: Run walk-forward test
+        id: wf
+        run: |
+          docker run --rm -e OANDA_TOKEN -e OPENAI_API_KEY \
+            -v ${{ github.workspace }}:/app wf-backtest \
+            python pipelines/walk_forward/run_walk_forward.py \
+              --outdir /app/models/candidate
+
+      - name: Archive candidate model
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-model
+          path: models/candidate/
+
+      - name: Evaluate KPI & set output
+        id: eval
+        run: |
+          python pipelines/walk_forward/eval_kpi.py \
+            --in models/candidate/metrics.json
+          echo "retrain=$(cat retrain_flag.txt)" >> $GITHUB_OUTPUT
+
+  deploy:
+    needs: backtest
+    if: needs.backtest.outputs.retrain == 'true'
+    runs-on: [self-hosted, linux, piphawk]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download model
+        uses: actions/download-artifact@v4
+        with:
+          name: candidate-model
+          path: models/latest
+
+      - name: Pull & Build & Restart
+        run: sudo /opt/piphawk/deploy.sh
