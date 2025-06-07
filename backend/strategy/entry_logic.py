@@ -470,7 +470,7 @@ def process_entry(
 
     if tf_align:
         try:
-            from analysis.signal_filter import is_multi_tf_aligned
+            from piphawk_ai.analysis.signal_filter import is_multi_tf_aligned
 
             align = is_multi_tf_aligned(indicators_multi, ai_side=side)
             if align and side != align:

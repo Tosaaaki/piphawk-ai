@@ -21,7 +21,7 @@ prom_mod = ModuleType('prometheus_client')
 prom_mod.Gauge = Dummy
 sys.modules.setdefault('prometheus_client', prom_mod)
 from backend.scheduler.job_runner import JobRunner
-from risk.portfolio_risk_manager import PortfolioRiskManager
+from piphawk_ai.risk.manager import PortfolioRiskManager
 
 
 def test_close_all_positions(monkeypatch):

@@ -1,5 +1,5 @@
 import unittest
-from analysis.regime_detector import RegimeDetector
+from piphawk_ai.analysis.regime_detector import RegimeDetector
 
 
 class DummyADX:
