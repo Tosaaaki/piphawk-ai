@@ -1,3 +1,4 @@
 risk:
   atr_sl_multiplier: 1.2
   fixed_rrr: 1.5
+paper_mode: true

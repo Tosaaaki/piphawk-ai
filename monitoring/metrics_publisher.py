@@ -52,3 +52,9 @@ def publish(metric: str, value: float, labels: dict | None = None) -> None:
         _gauges[gauge_key].labels(**labels).set(value)
     except Exception as exc:  # pragma: no cover - avoid crash
         logger.debug(f"Gauge update failed: {exc}")
+
+
+def record_latency(metric: str, start: float, end: float) -> None:
+    """Processing timeをmsで計測して出力する."""
+    latency = (end - start) * 1000
+    publish(metric, latency)

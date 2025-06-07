@@ -26,6 +26,16 @@ HEADERS = {
     "Content-Type": "application/json",
 }
 
+_SESSION = requests.Session()
+
+_ORDER_TEMPLATE = {
+    "order": {
+        "timeInForce": "FOK",
+        "type": "MARKET",
+        "positionFill": "DEFAULT",
+    }
+}
+
 
 def _extract_error_details(response) -> tuple[str | None, str | None]:
     """Extract errorCode and errorMessage from a requests.Response."""
@@ -121,7 +131,7 @@ class OrderManager:
             }
 
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
-        r = requests.post(url, json=payload, headers=HEADERS)
+        r = _SESSION.post(url, json=payload, headers=HEADERS)
         if not r.ok:
             code, msg = _extract_error_details(r)
             log_error(
@@ -135,7 +145,7 @@ class OrderManager:
 
     def cancel_order(self, order_id: str) -> dict:
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{order_id}/cancel"
-        r = requests.put(url, headers=HEADERS)
+        r = _SESSION.put(url, headers=HEADERS)
         if not r.ok:
             code, msg = _extract_error_details(r)
             log_error(
@@ -159,7 +169,7 @@ class OrderManager:
             }
         }
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{order_id}"
-        r = requests.put(url, json=payload, headers=HEADERS)
+        r = _SESSION.put(url, json=payload, headers=HEADERS)
         if not r.ok:
             code, msg = _extract_error_details(r)
             log_error(
@@ -198,18 +208,16 @@ class OrderManager:
     def place_market_order(self, instrument, units, comment_json: str | None = None):
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
         tag = str(int(time.time()))
-        order = {
+        order = dict(_ORDER_TEMPLATE["order"])
+        order.update({
             "units": str(units),
             "instrument": instrument,
-            "timeInForce": "FOK",
-            "type": "MARKET",
-            "positionFill": "DEFAULT",
             "clientExtensions": {"tag": tag},
-        }
+        })
         if comment_json:
             order["clientExtensions"]["comment"] = comment_json
         data = {"order": order}
-        response = requests.post(url, json=data, headers=HEADERS)
+        response = _SESSION.post(url, json=data, headers=HEADERS)
         logger.debug(f"Market order response: {response.status_code} {response.text}")
         if response.status_code != 201:
             code, msg = _extract_error_details(response)
