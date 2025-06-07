@@ -1,6 +1,7 @@
 import os
 import requests
 from backend.logs.log_manager import log_trade, log_error
+from backend.logs.info_logger import info
 from backend.logs.trade_logger import ExitReason
 from backend.utils.price import format_price
 from backend.risk_manager import (
@@ -532,6 +533,15 @@ class OrderManager:
             rrr=rrr,
             is_manual=False,
         )
+        info(
+            "entry",
+            pair=instrument,
+            side=side,
+            id=result.get("orderFillTransaction", {}).get("id"),
+            price=entry_price,
+            lot=lot_size,
+            regime=(strategy_params.get("market_cond") or {}).get("market_condition"),
+        )
         return result
 
     def exit_trade(self, position):
@@ -587,6 +597,13 @@ class OrderManager:
             exit_time=datetime.now(timezone.utc).isoformat(),
             exit_reason=ExitReason.MANUAL,
             is_manual=True,
+        )
+        info(
+            "exit",
+            pair=instrument,
+            reason="MANUAL",
+            price=entry_price,
+            pnl=position.get("pl"),
         )
         return result
 
