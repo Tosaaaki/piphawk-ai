@@ -7,11 +7,14 @@ const Container = styled.div`
   color: ${colors.text};
   background: ${colors.background};
   min-height: 100vh;
+  display: grid;
+  gap: 1rem;
 `;
 
 const Header = styled.h2`
   margin-bottom: 1rem;
-  color: ${colors.accentCyan};
+  color: ${colors.accentGreen};
+  text-shadow: 0 0 6px ${colors.accentGreen};
 `;
 
 const Section = styled.div`
@@ -21,6 +24,7 @@ const Section = styled.div`
 const Card = styled.div`
   background: ${colors.cardBackground};
   box-shadow: ${shadows.card};
+  border: 1px solid ${colors.accentCyan};
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -52,12 +56,15 @@ const Select = styled.select`
 const Button = styled.button`
   padding: 0.75rem 1.5rem;
   background: ${colors.accentCyan};
-  border: none;
+  border: 1px solid ${colors.accentCyan};
   color: ${colors.background};
   border-radius: 8px;
+  box-shadow: 0 0 8px ${colors.accentCyan};
   cursor: pointer;
+  transition: box-shadow 0.2s, background 0.2s;
   &:hover {
     background: ${colors.accentGreen};
+    box-shadow: 0 0 12px ${colors.accentGreen};
   }
 `;
 
