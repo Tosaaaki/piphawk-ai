@@ -2,6 +2,21 @@
 
 Piphawk AI is an automated trading system that uses the OANDA REST API for order management and integrates OpenAI models for market analysis. The project provides a REST API for monitoring and runtime configuration as well as a job runner that executes the trading logic at a fixed interval.
 
+## System Overview
+
+Piphawk AI consists of the following components:
+
+- **Job Runner** – periodically fetches market data, calculates indicators and
+  places orders based on AI analysis.
+- **REST API** – exposes status endpoints and allows runtime configuration via
+  FastAPI.
+- **React Frontend** – optional dashboard located under `piphawk-ui/`.
+- **SQLite Database** – stores trade history and parameter changes.
+
+The backend resides in the `backend/` directory and is designed to run either
+directly with Python or inside Docker containers. Configuration values are
+loaded from environment variables and optional YAML files under `config/`.
+
 ## Setup
 
 1. **Clone the repository**
@@ -62,6 +77,21 @@ Piphawk AI is an automated trading system that uses the OANDA REST API for order
 - `LINE_CHANNEL_TOKEN` / `LINE_USER_ID` … LINE 通知に使用する認証情報
 
 その他の変数は `backend/config/ENV_README.txt` を参照してください。
+
+### Directory Structure
+
+```
+piphawk-ai/
+├── backend/       # FastAPI server, job runner and trading logic
+├── piphawk-ui/    # React frontend (optional)
+├── config/        # YAML configuration files and loaders
+├── analysis/      # Analysis scripts and utilities
+├── indicators/    # Technical indicator modules
+└── tests/         # Unit tests
+```
+
+The root also includes `Dockerfile` definitions for containerized deployment and
+`trades.db` as the default SQLite database path.
 ### Using strategy.yml
 `config/strategy.yml` を作成すると、キーと値を YAML 形式で指定して環境変数を上書きできます。
 ```yaml
@@ -499,4 +529,16 @@ old trailing stop automatically once the new one is applied. See
 エントリーロジックではトレンド、モメンタム、ボラティリティ、パターンの4要素を組み合わせたスコアリング方式を採用しています。重みは `SCORE_WEIGHTS` で調整でき、総合スコアが `ENTRY_SCORE_MIN` を上回った場合のみポジションを開きます。
 
 TP/SL の組み合わせは複数候補から期待値を計算し、最も利益が見込めるものを自動選択します。`MIN_RRR` と `ENFORCE_RRR` を有効にするとリスクリワード比を維持したまま最適化されます。詳細は `docs/four_layer_scoring.md` を参照してください。
+
+## Running Tests
+
+The repository includes a set of unit tests under `tests/`. Activate your
+virtual environment and execute:
+
+```bash
+pytest
+```
+
+This will run all tests defined in the project to verify core modules and
+configuration loaders.
 
