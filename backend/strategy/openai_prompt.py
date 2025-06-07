@@ -37,9 +37,11 @@ def _series_tail_list(series, n: int = 20) -> list:
 def build_trade_plan_prompt(
     ind_m5: dict,
     ind_m1: dict,
+    ind_m15: dict,
     ind_d1: dict,
     candles_m5: list,
     candles_m1: list,
+    candles_m15: list,
     candles_d1: list,
     hist_stats: dict | None,
     pattern_line: str | None,
@@ -222,6 +224,15 @@ BB_lo: {_series_tail_list(ind_m5.get('bb_lower'), 20)}
 EMA_f: {_series_tail_list(ind_m5.get('ema_fast'), 20)}
 EMA_s: {_series_tail_list(ind_m5.get('ema_slow'), 20)}
 
+## M15
+RSI  : {_series_tail_list(ind_m15.get('rsi'), 20)}
+ATR  : {_series_tail_list(ind_m15.get('atr'), 20)}
+ADX  : {_series_tail_list(ind_m15.get('adx'), 20)}
+BB_hi: {_series_tail_list(ind_m15.get('bb_upper'), 20)}
+BB_lo: {_series_tail_list(ind_m15.get('bb_lower'), 20)}
+EMA_f: {_series_tail_list(ind_m15.get('ema_fast'), 20)}
+EMA_s: {_series_tail_list(ind_m15.get('ema_slow'), 20)}
+
 ## M1
 RSI  : {_series_tail_list(ind_m1.get('rsi'), 20)}
 ATR  : {_series_tail_list(ind_m1.get('atr'), 20)}
@@ -242,6 +253,9 @@ EMA_s: {_series_tail_list(ind_d1.get('ema_slow'), 20)}
 
 ### M5 Candles
 {candles_m5[-50:]}
+
+### M15 Candles
+{candles_m15[-30:]}
 
 ### M1 Candles
 {candles_m1[-20:]}

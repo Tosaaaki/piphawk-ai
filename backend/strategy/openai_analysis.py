@@ -980,9 +980,11 @@ def get_trade_plan(
 
     ind_m5 = indicators.get("M5", {})
     ind_m1 = indicators.get("M1", {})
+    ind_m15 = indicators.get("M15", {})
     ind_d1 = indicators.get("D1", indicators.get("D", {}))
     candles_m5 = candles_dict.get("M5", [])
     candles_m1 = candles_dict.get("M1", [])
+    candles_m15 = candles_dict.get("M15", [])
     candles_d1 = candles_dict.get("D1", candles_dict.get("D", []))
 
     pattern_name = None
@@ -1012,9 +1014,11 @@ def get_trade_plan(
     prompt, comp_val = build_trade_plan_prompt(
         ind_m5,
         ind_m1,
+        ind_m15,
         ind_d1,
         candles_m5,
         candles_m1,
+        candles_m15,
         candles_d1,
         hist_stats,
         pattern_line,
