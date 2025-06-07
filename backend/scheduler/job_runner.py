@@ -141,9 +141,13 @@ def build_exit_context(position, tick_data, indicators, indicators_m1=None) -> d
     return context
 
 
-log_level = env_loader.get_env("LOG_LEVEL", "INFO").upper()
-logging.basicConfig(level=getattr(logging, log_level, logging.INFO), format="%(levelname)s:%(name)s:%(message)s")
+# ログフォーマットとレベルを統一
+logging.basicConfig(
+    format="%(asctime)s %(levelname)s %(message)s",
+    level=os.getenv("LOG_LEVEL", "INFO"),
+)
 logger = logging.getLogger(__name__)
+from backend.logs.info_logger import info
 
 order_mgr = OrderManager()
 
@@ -317,6 +321,12 @@ class JobRunner:
         # 初期の SCALP_MODE 設定をログへ記録
         scalp_active = env_loader.get_env("SCALP_MODE", "false").lower() == "true"
         logger.info("Initial SCALP_MODE is %s", "ON" if scalp_active else "OFF")
+        info(
+            "startup",
+            mode=self.trade_mode or "none",
+            scalp_mode=scalp_active,
+            ai_version=os.getenv("AI_VERSION", "unknown"),
+        )
 
     def _get_cond_indicators(self) -> dict:
         """Return indicators for market condition check."""
@@ -886,6 +896,12 @@ class JobRunner:
                         indicators, candles_m5
                     )
                     if new_mode != self.trade_mode:
+                        info(
+                            "regime_change",
+                            new=new_mode,
+                            old=self.trade_mode,
+                            score=_score,
+                        )
                         self.reload_params_for_mode(new_mode)
                         self.trade_mode = new_mode
                     self.mode_reason = "\n".join(f"- {r}" for r in reasons)
@@ -1208,6 +1224,7 @@ class JobRunner:
                                             f"【EXIT】{DEFAULT_PAIR} {current_price} で決済しました。PL={current_profit_pips:.1f}pips"
                                         )
                                         self.scale_count = 0
+                                        info("exit", pair=DEFAULT_PAIR, reason="AI", price=current_price, pnl=current_profit_pips)
                                     else:
                                         logger.info("AI decision was HOLD → No exit executed.")
                                 else:
@@ -1385,6 +1402,7 @@ class JobRunner:
                                     f"【EXIT】{DEFAULT_PAIR} {cur_price} で決済しました。PL={profit_pips * pip_size:.2f}"
                                 )
                                 self.scale_count = 0
+                                info("exit", pair=DEFAULT_PAIR, reason="AI", price=cur_price, pnl=profit_pips * pip_size)
                             else:
                                 logger.info("AI decision was HOLD → No exit executed.")
                         else:
@@ -1651,6 +1669,7 @@ class JobRunner:
                             # Send LINE notification on entry
                             price = float(tick_data["prices"][0]["bids"][0]["price"])
                             send_line_message(f"【ENTRY】{DEFAULT_PAIR} {price} でエントリーしました。")
+                            info("entry", pair=DEFAULT_PAIR, side=side, price=price, lot=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")), regime=self.trade_mode)
                             self.scale_count = 0
                         else:
                             logger.info("Filter NG → AI entry decision skipped.")
