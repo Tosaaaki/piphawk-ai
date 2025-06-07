@@ -4,12 +4,7 @@ import uuid
 import logging
 import json
 import os
-import sys
 from prometheus_client import start_http_server
-# プロジェクトルートをパスに追加してモジュールを確実に読み込む
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
 
 from backend.utils import env_loader, trade_age_seconds
 
@@ -70,7 +65,7 @@ except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
         return None
     def counter_trend_block(*_a, **_k):
         return False
-from analysis.signal_filter import is_multi_tf_aligned
+from piphawk_ai.analysis.signal_filter import is_multi_tf_aligned
 from backend.logs.perf_stats_logger import PerfTimer
 from monitoring import metrics_publisher
 from monitoring.safety_trigger import SafetyTrigger
@@ -83,7 +78,7 @@ from backend.strategy.openai_analysis import (
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from backend.strategy import pattern_scanner
 from backend.strategy.momentum_follow import follow_breakout
-from analysis.regime_detector import RegimeDetector
+from piphawk_ai.analysis.regime_detector import RegimeDetector
 import requests
 from signals.composite_mode import decide_trade_mode, decide_trade_mode_detail
 from risk.portfolio_risk_manager import PortfolioRiskManager
@@ -261,10 +256,10 @@ class JobRunner:
         # Epoch timestamp of last AI call (seconds)
         self.last_ai_call = datetime.min
         self.regime_detector = RegimeDetector()
-        model_file = os.path.join(PROJECT_ROOT, "models", "regime_gmm.pkl")
+        model_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "models", "regime_gmm.pkl")
         if os.path.exists(model_file):
             try:
-                from analysis.cluster_regime import ClusterRegime
+                from piphawk_ai.analysis.cluster_regime import ClusterRegime
                 self.cluster_regime = ClusterRegime(model_file)
             except Exception as exc:  # pragma: no cover - optional model
                 logger.warning(f"ClusterRegime load failed: {exc}")
@@ -385,7 +380,11 @@ class JobRunner:
                 except Exception as exc:  # pragma: no cover
                     logger.error(f"Force close failed: {exc}")
                     
-        self.strategy_selector = StrategySelector({"scalp": ScalpStrategy(), "trend": TrendStrategy()})
+        use_policy = env_loader.get_env("USE_OFFLINE_POLICY", "false").lower() == "true"
+        self.strategy_selector = StrategySelector(
+            {"scalp": ScalpStrategy(), "trend": TrendStrategy()},
+            use_offline_policy=use_policy,
+        )
         self.last_entry_context = None
         self.last_entry_strategy = None
         self.current_context = None

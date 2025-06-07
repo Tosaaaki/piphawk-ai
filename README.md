@@ -26,6 +26,7 @@ loaded from environment variables and optional YAML files under `config/`.
 - Multi-timeframe indicators and a regime detector to track transitions
   from range to trend.
 - Optional chart pattern detection via OpenAI or a local scanner.
+- Offline reinforcement policy integration for strategy selection (preview).
 - Parameters managed through environment variables and YAML files with
   hot reload support.
 - Trade and parameter history stored in SQLite.
@@ -341,7 +342,9 @@ python3 -m backend.scheduler.job_runner
 If the optional performance logger was added earlier, each job loop's timing
 will be appended to `backend/logs/perf_stats.jsonl`.
 
-Both services can also be launched via Docker using `Dockerfile.api` and `Dockerfile.job` respectively.
+Both the API and the job runner can run in a single container using `Dockerfile`.
+If you prefer two containers, build the same image twice and start each with the
+appropriate command.
 
 ## Metrics Monitoring
 
@@ -362,9 +365,8 @@ The Dockerfile copies the `config` directory so YAML files like `strategy.yml`
 are bundled into the image. When you start the job runner container, these
 parameters are loaded automatically.
 
-Use the same flag when building `backend/Dockerfile.api` or
-`backend/Dockerfile.job`. Note that running these x86 containers under
-emulation can be slower and some dependencies may not behave exactly the same
+Use the same flag if building separate images for the API and job runner.
+Running x86 containers under emulation can be slower and some dependencies may not behave exactly the same
 as on native x86 hardware.
 
 ## Database

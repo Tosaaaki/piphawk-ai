@@ -1,7 +1,7 @@
 import logging
 import json
-from ai.local_model import ask_model
-from ai.macro_analyzer import MacroAnalyzer
+from piphawk_ai.ai.local_model import ask_model
+from piphawk_ai.ai.macro_analyzer import MacroAnalyzer
 from backend.logs.log_manager import log_ai_decision
 from backend.utils import env_loader, parse_json_answer
 from backend.strategy.pattern_ai_detection import detect_chart_pattern

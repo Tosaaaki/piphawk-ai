@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Sequence
 
 from .cvar import calc_cvar
-from backend.strategy import risk_manager as strat_rm
+
 
 
 class PortfolioRiskManager:
@@ -40,7 +40,10 @@ class PortfolioRiskManager:
         pip_value: float,
     ) -> float:
         """現在のリスク水準に基づきロット数を返す."""
-        base = strat_rm.calc_lot_size(balance, risk_pct, sl_pips, pip_value)
+        if sl_pips <= 0 or pip_value <= 0:
+            raise ValueError("sl_pips and pip_value must be positive")
+        risk_amount = balance * risk_pct
+        base = risk_amount / (sl_pips * pip_value)
         if self.check_stop_conditions():
             return 0.0
         factor = max(0.0, 1.0 - abs(self.current_cvar) / self.max_cvar)

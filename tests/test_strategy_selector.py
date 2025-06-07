@@ -30,6 +30,20 @@ try:
         selector.update("trend", context, 0.0)
         second = selector.select(context)
         assert second.name == "scalp"
+
+    def test_selector_offline_policy(monkeypatch):
+        strategies = {
+            "scalp": ScalpStrategy(),
+            "trend": TrendStrategy(),
+        }
+        selector = StrategySelector(strategies, use_offline_policy=True)
+        class Stub:
+            def select(self, _ctx):
+                return "trend"
+
+        selector.offline_policy = Stub()
+        choice = selector.select({"x": 1})
+        assert choice.name == "trend"
 finally:
     if orig_pandas is not None:
         sys.modules["pandas"] = orig_pandas

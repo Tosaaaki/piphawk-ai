@@ -230,3 +230,8 @@ SCALE_TRIGGER_ATR=0.5
 - FRED_API_KEY: 米国経済指標取得に使用するFRED APIキー
 - KAFKA_SERVERS: Kafkaブローカーの接続先リスト (例: localhost:9092)
 - METRICS_TOPIC: メトリクス送信用のKafkaトピック名
+- MAX_CVAR: ポートフォリオ許容CVaR上限 (例: 5.0)
+- LOSS_LIMIT: SafetyTriggerによる累積損失上限
+- ERROR_LIMIT: 許容エラー回数の上限
+- USE_OFFLINE_POLICY: オフライン学習ポリシーを利用するか (true/false)
+- PATTERN_TFS: パターン検出を行う時間足一覧 (例: M5,M15)

@@ -18,7 +18,14 @@ COPY signals /app/signals
 COPY indicators /app/indicators
 COPY monitoring /app/monitoring
 COPY risk /app/risk
+COPY strategies /app/strategies
+COPY regime /app/regime
 COPY config /app/config
+COPY pyproject.toml /app/pyproject.toml
+COPY piphawk_ai /app/piphawk_ai
+
+# install project as package
+RUN pip install --no-cache-dir .
 
 # create an empty SQLite database if not provided
 RUN touch /app/trades.db

@@ -29,14 +29,14 @@ typing_extensions==4.13.2
 tzdata==2025.2
 urllib3==2.4.0
 uvicorn==0.34.2
-docker==7.0.0
-line-bot-sdk
+docker==7.0.0  # optional
+line-bot-sdk==3.17.1
 apscheduler==3.10.4
 PyYAML==6.0.1
 scikit-learn==1.4.2
-mabwiser==2.7.4
-kafka-python==2.0.2
+mabwiser==2.7.4  # optional
+kafka-python==2.0.2  # optional
 prometheus-client==0.20.0
-hdbscan==0.8.33
+hdbscan==0.8.33  # optional
 d3rlpy==2.1.0
 transformers==4.41.2
