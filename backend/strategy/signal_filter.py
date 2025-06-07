@@ -606,8 +606,8 @@ def pass_entry_filter(
         return False  # insufficient data
 
     # --- Composite conditions ------------------------------------------
-    lower = float(os.getenv("RSI_ENTRY_LOWER", "20"))
-    upper = float(os.getenv("RSI_ENTRY_UPPER", "80"))
+    lower = float(os.getenv("RSI_ENTRY_LOWER", "30"))
+    upper = float(os.getenv("RSI_ENTRY_UPPER", "70"))
 
     pip_size = float(os.getenv("PIP_SIZE", "0.01"))
     atr_th = float(os.getenv("ATR_ENTRY_THRESHOLD", "0.09"))
@@ -621,7 +621,7 @@ def pass_entry_filter(
         atr_condition = True
         required = 1
     elif mode == "trend_follow":
-        required = 2
+        required = 1
     else:
         required = 1
 
