@@ -6,7 +6,9 @@
 ## 1. レジーム認識層
 
 - 価格・テクニカル指標・オーダーフローから特徴量を生成し、GMM あるいは HDBSCAN に
-  よるクラスタリングで市場レジームを分類します。
+  よるクラスタリングで市場レジームを分類します。単純な実装例として
+  `regime/gmm_detector.py` の `GMMRegimeDetector` クラスを追加しました
+  【F:regime/gmm_detector.py†L1-L30】。
 - 主要な特徴量として ATR・ADX などのテクニカル値を `indicators/rolling.py` で計算しま
   す【F:backend/indicators/rolling.py†L24-L48】。
 - 学習済みモデルは `models/` 以下に保存し、ジョブランナー起動時に読み込みます。
@@ -24,7 +26,8 @@
 - ロット数計算や TP/SL 管理は `strategy/risk_manager.py` の `calc_lot_size` に代表される
   関数群で処理します【F:backend/strategy/risk_manager.py†L1-L12】。
 - ポジション全体のリスクを CVaR 等で監視し、必要に応じてポジション縮小や強制決済を
-  行います。
+  行います。`risk/cvar.py` に `calc_cvar` 関数を実装し、損益系列から簡単に計算でき
+  るようにしました【F:risk/cvar.py†L1-L19】。
 - ストップロス・トレーリングは `strategy/exit_logic.py` にまとめられています
   【F:backend/strategy/exit_logic.py†L15-L24】。
 
