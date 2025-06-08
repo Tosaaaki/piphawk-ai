@@ -17,7 +17,9 @@ COPY ./backend ./analysis ./indicators ./config \
      ./risk ./monitoring ./strategies ./regime ./piphawk-ui ./tests \
      /app/
 
-# install project as package via pyproject.toml
+# PyTorch を CPU 版でインストール
+RUN pip install --no-cache-dir torch==2.3.0+cpu -f https://download.pytorch.org/whl/cpu
+# pyproject.toml を利用してパッケージをインストール
 RUN pip install --no-cache-dir .
 
 # create an empty SQLite database if not provided
