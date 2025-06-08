@@ -14,7 +14,7 @@ WORKDIR /app
 COPY pyproject.toml /app/pyproject.toml
 COPY backend /app/backend
 COPY piphawk_ai /app/piphawk_ai
-COPY analysis indicators config \
+COPY analysis indicators config signals \
      risk monitoring strategies regime piphawk-ui tests \
      /app/
 
