@@ -29,5 +29,6 @@ RUN touch /app/trades.db
 
 ENV PYTHONUNBUFFERED=1
 ENV TZ=Asia/Tokyo
+ENV PYTHONPATH=/app
 
 CMD ["python", "-m", "piphawk_ai.main", "job"]
