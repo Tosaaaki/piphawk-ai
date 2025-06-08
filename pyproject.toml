@@ -53,4 +53,4 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["piphawk_ai"]
+packages = ["piphawk_ai", "backend"]
