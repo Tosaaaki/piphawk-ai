@@ -23,10 +23,7 @@ except Exception:
 from backend.market_data.tick_fetcher import fetch_tick_data
 
 from backend.market_data.candle_fetcher import fetch_multiple_timeframes
-from backend.indicators.calculate_indicators import (
-    calculate_indicators,
-    calculate_indicators_multi,
-)
+from backend.indicators.calculate_indicators import calculate_indicators_multi
 
 
 from backend.strategy.entry_logic import process_entry, _pending_limits
@@ -61,10 +58,13 @@ except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
 
     def filter_pre_ai(*_args, **_kwargs):
         return False
+
     def detect_climax_reversal(*_a, **_k):
         return None
+
     def counter_trend_block(*_a, **_k):
         return False
+
 from piphawk_ai.analysis.signal_filter import is_multi_tf_aligned
 from backend.logs.perf_stats_logger import PerfTimer
 from monitoring import metrics_publisher
@@ -80,18 +80,24 @@ from backend.strategy import pattern_scanner
 from backend.strategy.momentum_follow import follow_breakout
 from piphawk_ai.analysis.regime_detector import RegimeDetector
 import requests
-from signals.composite_mode import decide_trade_mode, decide_trade_mode_detail
+from signals.composite_mode import decide_trade_mode_detail
 from risk.portfolio_risk_manager import PortfolioRiskManager
 from backend.strategy.risk_manager import calc_lot_size
-from backend.orders.position_manager import get_account_balance, get_open_positions
+from backend.orders.position_manager import (
+    get_account_balance,
+    get_open_positions,
+)
 
 from backend.utils.notification import send_line_message
 from backend.logs.trade_logger import log_trade, ExitReason
 from strategies import ScalpStrategy, TrendStrategy, StrategySelector
 from backend.scheduler.policy_updater import PolicyUpdater
-from strategies.context_builder import build_context, recent_strategy_performance
+from strategies.context_builder import (
+    build_context,
+    recent_strategy_performance,
+)
 from backend.logs.log_manager import log_policy_transition
-import json
+from backend.logs.info_logger import info
 try:
     from backend.logs.log_manager import log_entry_skip
 except Exception:  # pragma: no cover - test stubs may omit log_entry_skip
@@ -151,7 +157,6 @@ logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
 )
 logger = logging.getLogger(__name__)
-from backend.logs.info_logger import info
 
 order_mgr = OrderManager()
 
@@ -160,7 +165,12 @@ DEFAULT_PAIR = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
 
 # Comma-separated chart pattern names used for AI analysis
 PATTERN_NAMES = [
-    p.strip() for p in env_loader.get_env("PATTERN_NAMES", "double_bottom,double_top").split(",") if p.strip()
+    p.strip()
+    for p in env_loader.get_env(
+        "PATTERN_NAMES",
+        "double_bottom,double_top",
+    ).split(",")
+    if p.strip()
 ]
 
 OANDA_API_KEY = env_loader.get_env("OANDA_API_KEY")
@@ -171,7 +181,10 @@ SCALE_LOT_SIZE = float(env_loader.get_env("SCALE_LOT_SIZE", "0.5"))
 SCALE_MAX_POS = int(env_loader.get_env("SCALE_MAX_POS", "0"))
 SCALE_TRIGGER_ATR = float(env_loader.get_env("SCALE_TRIGGER_ATR", "0"))
 # ----- limit‑order housekeeping ------------------------------------
-MAX_LIMIT_AGE_SEC = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))  # seconds before a pending LIMIT is cancelled
+MAX_LIMIT_AGE_SEC = int(
+    env_loader.get_env("MAX_LIMIT_AGE_SEC", "180")
+)
+# seconds before a pending LIMIT is cancelled
 PENDING_GRACE_MIN = int(env_loader.get_env("PENDING_GRACE_MIN", "3"))
 SL_COOLDOWN_SEC = int(env_loader.get_env("SL_COOLDOWN_SEC", "300"))
 
