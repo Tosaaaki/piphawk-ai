@@ -325,7 +325,8 @@ class JobRunner:
         self.trade_mode: str | None
         self.current_params_file: str
         mode_env = env_loader.get_env("SCALP_MODE")
-        if mode_env is None:
+        # 空文字や未設定の場合は None と同等に扱う
+        if not mode_env:
             self.trade_mode = None
             self.current_params_file = "config/strategy.yml"
         elif mode_env.lower() == "true":
