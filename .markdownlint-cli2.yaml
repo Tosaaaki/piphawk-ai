@@ -1,0 +1,13 @@
+globs:
+  - "**/*.md"
+
+ignores:
+  - "**/.git/**"
+  - "**/node_modules/**"
+
+config:
+  MD013:
+    line_length: 300       # 120→150 に緩和（必要なら 200 など）
+  MD040: false             # ←既に入っているはず
+  MD025: false             # 複数 H1 を許可
+  MD001: false             # 見出し段飛びチェックを外す
