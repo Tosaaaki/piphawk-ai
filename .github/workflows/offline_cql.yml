@@ -1,0 +1,69 @@
+# .github/workflows/offline_cql.yml
+name: Offline CQL Training
+
+on:
+  # 毎週月曜 03:00 (UTC) → 日本時間 12:00
+  schedule:
+    - cron:  '0 3 * * 1'
+  # 手動トリガーも残しておくと便利
+  workflow_dispatch:
+
+jobs:
+  train:
+    # GPU が不要なら ubuntu-latest で十分
+    runs-on: ubuntu-latest
+    # 重い学習をセルフホスト Runner に逃がしたい場合:
+    # runs-on: [ self-hosted, trainer ]
+
+    steps:
+      # 1) リポジトリをチェックアウト
+      - uses: actions/checkout@v4
+
+      # 2) Python & Poetry を準備
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: |
+          pip install --upgrade pip
+          pip install poetry==1.8.3
+          poetry config virtualenvs.in-project true
+
+      # キャッシュで高速化（Lock file が鍵）
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .venv
+            ~/.cache/pypi
+          key: poetry-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+          restore-keys: poetry-${{ runner.os }}-
+
+      # 3) 依存インストール
+      - name: Install deps
+        run: poetry install --no-interaction --no-root
+
+      # 4) オフライン CQL 学習
+      - name: Run CQL training
+        env:
+          OANDA_TOKEN: ${{ secrets.OANDA_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          OUT_DIR=models/offline/$(date +%F)
+          poetry run python ai/policy_trainer.py \
+            --epochs 20 \
+            --out $OUT_DIR
+
+      # 5) 成果物をアーティファクトとして残す
+      - name: Upload model artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-model-${{ github.run_id }}
+          path: models/offline/$(date +%F)
+
+      # （任意）S3/GCS へ直接アップロードする場合
+      # - name: Upload to S3
+      #   run: aws s3 sync $OUT_DIR s3://your-bucket/piphawk/offline/$(date +%F)/
+      #   env:
+      #     AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
