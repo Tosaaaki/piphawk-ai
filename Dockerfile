@@ -18,7 +18,9 @@ COPY ./backend ./analysis ./indicators ./config \
      /app/
 
 # PyTorch を CPU 版でインストール
-RUN pip install --no-cache-dir torch==2.3.0+cpu -f https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.3.0
+#   └─ +cpu は不要。インデックスを CPU 専用に切り替えれば CPU ホイールが解決される。
+#   もし失敗する場合は単に  `pip install torch==2.3.0` でも CPU 版が入ります。
 # pyproject.toml を利用してパッケージをインストール
 RUN pip install --no-cache-dir .
 
