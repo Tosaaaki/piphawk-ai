@@ -11,6 +11,7 @@
 それぞれスキャルプ向け、トレンド向けの値を記述します。
 
 `config/scalp.yml` の例:
+
 ```yaml
 SCALP_MODE: true
 ENABLE_RANGE_ENTRY: true
@@ -22,6 +23,7 @@ MIN_HOLD_SECONDS: 300
 ```
 
 `config/trend.yml` の例:
+
 ```yaml
 SCALP_MODE: false
 ADX_TREND_MIN: 35

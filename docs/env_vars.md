@@ -1,38 +1,49 @@
 # Environment Variables
 
 ### DEFAULT_PAIR
+
 取引対象とする通貨ペア（例: USD_JPY）
 
 ### INITIAL_TP_PIPS / INITIAL_SL_PIPS
+
 初期の利確（TP）・損切り（SL）幅（単位: pips）
 ※AIがこれを上書きする可能性あり
 
 ### AI_MODEL
+
 利用するOpenAIモデル名（gpt-4-turbo / gpt-4oなど）
 
 ### RSI_PERIOD
+
 RSI指標の計算期間。一般的には14が標準。
 
 ### EMA_PERIOD
+
 EMA（指数平滑移動平均）の計算期間。
 
 ### ATR_PERIOD
+
 ATR（ボラティリティ指標）の計算期間。
 
 ### BOLLINGER_WINDOW / BOLLINGER_STD
+
 ボリンジャーバンドの移動平均期間と標準偏差設定。
 
 ### MIN_TRADE_LOT / MAX_TRADE_LOT
+
 1トレードで許可される最小ロット数と最大ロット数
 単位はLot（1 Lot = 1000通貨）
 
 ### SCALE_LOT_SIZE
+
 AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 
 ### AI_COOLDOWN_SEC
+
  AI呼び出しの基本クールダウン時間。デフォルトは 30 秒。
 
 ### AI_COOLDOWN_SEC_OPEN / AI_COOLDOWN_SEC_FLAT / AI_REGIME_COOLDOWN_SEC
+
  AI呼び出しの最小間隔（秒）を個別に設定する。OPENはポジション保有時、FLATはノーポジ時、REGIMEはトレンド判定用。デフォルトは OPEN=60、FLAT=30、REGIME=20。
 
 ### フィルター設定（AI呼び出し制御用）
@@ -91,23 +102,26 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
   true にするとレンジ相場でもエントリーを許可し、ADXノートレード判定をスキップする。
 
 ### MIN_RRR
+
   期待値計算において許容する最小リスクリワード比。TP候補の中から、
   確率×pips が最大となり MIN_RRR 以上のものを採用する。
 
 ### ENFORCE_RRR
+
   true にするとエントリー時のTP/SLが MIN_RRR を下回らないよう強制調整
   される。調整後の値は INFO レベルでログ出力される。
   MIN_RRR=1.2、ENFORCE_RRR=true が推奨設定。
 
 ### MIN_RRR_AFTER_COST
+
   スプレッドやスリッページなどコスト控除後のRRRが
   この値以上でなければエントリーを行わない。
   デフォルトは 0 (チェック無効)。
 
 ### ENTRY_SLIPPAGE_PIPS
+
   エントリー時に想定するスリッページ幅(pips)。
   MIN_RRR_AFTER_COST の計算に利用される。
-
 
 # 以下は README に記載されていた追加の環境変数
 
@@ -177,8 +191,8 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 # 分割エントリー関連設定
 
 - SCALE_LOT_SIZE: 追加エントリー時のロット数
- - SCALE_MAX_POS: 1ポジションにつき許可する追加回数
- - SCALE_TRIGGER_ATR: エントリー価格からの乖離が `ATR × この値` を超えたときのみ追加
+- SCALE_MAX_POS: 1ポジションにつき許可する追加回数
+- SCALE_TRIGGER_ATR: エントリー価格からの乖離が `ATR × この値` を超えたときのみ追加
 
 ## 設定例
 
@@ -201,27 +215,29 @@ SCALE_TRIGGER_ATR=0.5
 - ALLOW_DELAYED_ENTRY: トレンドが過熱している場合に "wait" を返させ、押し目到来で再問い合わせする
 - TREND_ADX_THRESH: トレンド判定に用いるADXの基準値。プロンプトの条件とローカル判定で参照される
 - MIN_EARLY_EXIT_PROFIT_PIPS: 早期撤退を検討する際に必要な最低利益幅
- - SCALP_MODE: スキャルプモードを強制したい場合に true/false を指定
+- SCALP_MODE: スキャルプモードを強制したい場合に true/false を指定
 - ADX_SCALP_MIN: SCALP_MODE時に必要な最小ADX
 - SCALP_SUPPRESS_ADX_MAX: この値を超えるADXではSCALP_MODEをオフにする
- - SCALP_TP_PIPS / SCALP_SL_PIPS: ボリンジャーバンドが使えない場合の固定TP/SL幅
+- SCALP_TP_PIPS / SCALP_SL_PIPS: ボリンジャーバンドが使えない場合の固定TP/SL幅
 - SCALP_COND_TF: スキャルプ時に市場判定へ使う時間足 (デフォルト M1)。
   S10 を指定すると 10 秒足データも取得する
 - TREND_COND_TF: トレンドフォロー時に市場判定へ使う時間足 (デフォルト M5)
 - SCALP_OVERRIDE_RANGE: true でレンジ判定を無視してスキャルを実行
 - H1_BOUNCE_RANGE_PIPS: H1安値/高値からこのpips以内ならエントリーを見送る
- - SCALP_MODE: スキャルプモードを強制したい場合に true/false を指定
+- SCALP_MODE: スキャルプモードを強制したい場合に true/false を指定
 - ADX_SCALP_MIN: スキャルプ実行に必要なADX下限
 - SCALP_SUPPRESS_ADX_MAX: この値を超えるADXではSCALP_MODEをオフにする
- - SCALP_TP_PIPS / SCALP_SL_PIPS: ボリバン幅を参照できないときのTP/SL
+- SCALP_TP_PIPS / SCALP_SL_PIPS: ボリバン幅を参照できないときのTP/SL
 - SCALP_COND_TF: スキャルプ時に市場判定へ使う時間足 (デフォルト M1)
 - TREND_COND_TF: トレンドフォロー時に市場判定へ使う時間足 (デフォルト M5)
 - SCALP_OVERRIDE_RANGE: true でレンジ判定を無視してスキャルを実行
+
 ### OANDA_MATCH_SEC
+
   ローカルトレードと OANDA 取引を照合するときの許容秒数。デフォルトは60秒。
 
-
 ## 追加環境変数
+
 - USE_LOCAL_MODEL: OpenAI APIの代わりにローカルモデルを使用するか (true/false)
 - LOCAL_MODEL_NAME: 使用するローカルモデル名 (例: distilgpt2)
 - USE_LOCAL_PATTERN: チャートパターン検出をローカルで行うか (true/false)

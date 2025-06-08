@@ -18,32 +18,42 @@ directly with Python or inside Docker containers. Configuration values are
 loaded from environment variables and optional YAML files under `config/`.
 
 ## QuickStart
+
 1. Clone the repository
+
    ```bash
    git clone https://github.com/yourname/piphawk-ai.git
    cd piphawk-ai
    ```
+
 2. Create .env from example
+
    ```bash
    cp backend/config/secret.env.example .env
    ```
+
    Edit `.env` and set OPENAI_API_KEY, OANDA_API_KEY and OANDA_ACCOUNT_ID.
 3. Build and run the backend container
+
    ```bash
    docker build -t piphawk-ai .
    docker run --env-file .env -p 8080:8080 piphawk-ai
    ```
+
 4. Start the React UI
+
    ```bash
    cd piphawk-ui
    npm install
    npm start
    ```
+
 See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
+
 ## Features
 
-
 ### Implemented
+
 - Automated entry and exit decisions using OpenAI models with technical indicator context.
 - Composite trade mode logic switching between **scalp** and **trend_follow**.
 - Multi-timeframe indicators and regime detection.
@@ -57,35 +67,45 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 - Dockerfiles for containerized deployment.
 
 ### Planned
+
 - Offline reinforcement policy integration for strategy selection.
+
 ## Setup
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourname/piphawk-ai.git
    cd piphawk-ai
    ```
+
 2. **Install dependencies**
    It is recommended to use a virtual environment.
+
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
    pip install -r backend/requirements.txt
    ```
+
    The indicator modules require **pandas**. If it is not installed, add it with:
+
    ```bash
    pip install pandas
    # optional linting
    pip install flake8
    ```
+
 3. **Environment variables**
    まず `backend/config/secret.env.example` をコピーして `.env` を作成するか、
    自分で `.env` を新規作成してください。
+
    ```bash
    cp backend/config/secret.env.example .env
    cp backend/config/settings.env .
    # Edit .env and set OPENAI_API_KEY, OANDA_API_KEY and OANDA_ACCOUNT_ID
    ```
+
    アプリケーションは `.env`, `backend/config/settings.env`, `backend/config/secret.env` の順で環境変数を読み込みます。
    必要に応じて `settings.env` の値も調整してください。
 詳しい環境変数一覧と設定例は `backend/config/ENV_README.txt` を参照してください。
@@ -94,6 +114,7 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 `VOL_SPIKE_PERIOD` は出来高急増を検出する際の平均期間を指定します。
 
 #### settings.env の主な変数
+
 `backend/config/settings.env` には取引ロジックに関わる初期値がまとめられています。 `.env` の次に読み込まれるため、ここを編集すると大半の設定を簡単に変更できます。
 
 - `DEFAULT_PAIR` … 取引する通貨ペア
@@ -140,16 +161,21 @@ piphawk-ai/
 
 The root also includes `Dockerfile` definitions for containerized deployment and
 `trades.db` as the default SQLite database path.
+
 ### Using strategy.yml
+
 `config/strategy.yml` を作成すると、キーと値を YAML 形式で指定して環境変数を上書きできます。
+
 ```yaml
 MIN_RRR: 1.5
 ATR_RATIO: 1.8
 ```
+
 `config.params_loader.load_params("config/strategy.yml")` を呼び出すと `.env` より後から読み込まれ、簡単にパラメータを切り替えられます。
 設定変更後はジョブランナーを再起動するか、この関数を再度実行して環境変数を更新してください。
 
 スキャルピング用の設定例は以下の通りです。
+
 ```yaml
 ADX_SCALP_MIN: 35
 SCALP_SUPPRESS_ADX_MAX: 60
@@ -173,8 +199,8 @@ YAML ファイルの変更は `settings.env` と同様、ジョブランナー�
 `AUTO_RESTART=true` を設定しておくと、読み込み後にプロセスを `os.execv()` で
 再起動して設定を完全に反映させることも可能です。
 
-
 ### Switching OANDA accounts
+
 別アカウントを利用する場合は、そのアカウント用のAPIトークンを発行し、`.env` の
 `OANDA_API_KEY` と `OANDA_ACCOUNT_ID` を更新してください。また口座ごとにデータベ
 ースを分けると管理が容易なため、`TRADES_DB_PATH` で別ファイルを指定することを推
@@ -185,6 +211,7 @@ OANDA_API_KEY=<token for account 002>
 OANDA_ACCOUNT_ID=001-009-13679149-002
 TRADES_DB_PATH=trades-002.db
 ```
+
 アカウントを切り替えたら一度 `init_db()` を実行し、その後
 `backend.logs.update_oanda_trades` を走らせると最新履歴が保存されます。
 ローカルの `trades` テーブルと OANDA の取引履歴を突き合わせて
@@ -331,6 +358,7 @@ EOF
 ## Running the API
 
 The API exposes endpoints for status checks, a simple dashboard and runtime settings. Start it from the packaged module:
+
 ```bash
 python -m piphawk_ai.main api
 ```
@@ -362,9 +390,11 @@ curl -X POST http://localhost:8080/notifications/send
 ## Running the Job Scheduler
 
 The job runner performs market data collection, indicator calculation and trading decisions. Start it via the packaged module:
+
 ```bash
 python -m piphawk_ai.main job
 ```
+
 If the optional performance logger was added earlier, each job loop's timing
 will be appended to `backend/logs/perf_stats.jsonl`.
 
@@ -394,10 +424,12 @@ parameters are loaded automatically.
 Use the same flag if building separate images for the API and job runner.
 The default tag launches the job scheduler. Create an API image with a custom
 tag and command override:
+
 ```bash
 docker build --platform linux/amd64 -t piphawk-ai:api .
 docker run --rm piphawk-ai:api python -m piphawk_ai.main api
 ```
+
 Running x86 containers under emulation can be slower and some dependencies may not behave exactly the same
 as on native x86 hardware.
 
@@ -408,10 +440,10 @@ You can override the path with the environment variable `TRADES_DB_PATH`.
 When running inside Docker this defaults to `/app/trades.db`.
 
 SQLite uses WAL (Write-Ahead Logging) mode. For existing databases run:
+
 ```bash
 sqlite3 trades.db "PRAGMA journal_mode=WAL;"
 ```
-
 
 The table now includes an `ai_response` column which stores the full text returned
 by the AI when opening or closing a trade.
@@ -430,6 +462,7 @@ from backend.logs.log_manager import init_db
 init_db()
 EOF
 ```
+
 This helper also upgrades older databases to include new columns and tables (e.g. `errors`) and ensures WAL mode is enabled. See `docs/db_migration.md` for details.
 If you upgrade from a version before the `account_id` column was added to `oanda_trades`, running `init_db()` once will create it automatically.
 
@@ -481,9 +514,10 @@ If `REACT_APP_API_URL` is omitted, the application defaults to
 ## License
 
 This project is provided as-is under the MIT license.
-## Disclaimer
-Past performance does not guarantee future results. Use this project at your own risk.
 
+## Disclaimer
+
+Past performance does not guarantee future results. Use this project at your own risk.
 
 ## Market Data Utilities
 
@@ -525,8 +559,6 @@ Example React components are provided under `docs/examples/` and are styled with
 
 These components are examples only and are not yet integrated into a build setup.
 
-
-
 ## AIによるチャートパターン判定
 
 `backend/strategy/pattern_ai_detection.py` に `detect_chart_pattern` 関数が追加されました。ローソク足データと判定したいパターン名のリストを渡すと、OpenAI が該当パターンの有無を返します。
@@ -548,6 +580,7 @@ print(result)
 ローカル判定を直接呼び出すには `pattern_scanner.scan()` を利用します。
 
 対応パターン例:
+
 - `double_bottom`
 - `double_top`
 - `head_and_shoulders`
@@ -615,9 +648,9 @@ virtual environment and execute:
 ```bash
 pytest
 ```
+
 Ensure all dependencies from `backend/requirements.txt` are installed before
 running tests.
 
 This will run all tests defined in the project to verify core modules and
 configuration loaders.
-
