@@ -12,9 +12,10 @@ WORKDIR /app
 # docker build --platform linux/amd64 -t piphawk-ai:dev .
 
 COPY pyproject.toml /app/pyproject.toml
+COPY backend /app/backend
 COPY piphawk_ai /app/piphawk_ai
-COPY ./backend ./analysis ./indicators ./config \
-     ./risk ./monitoring ./strategies ./regime ./piphawk-ui ./tests \
+COPY analysis indicators config \
+     risk monitoring strategies regime piphawk-ui tests \
      /app/
 
 # PyTorch を CPU 版でインストール
