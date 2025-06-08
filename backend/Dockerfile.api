@@ -21,5 +21,6 @@ RUN touch /app/trades.db
 
 ENV PYTHONUNBUFFERED=1
 ENV TZ=Asia/Tokyo
+ENV PYTHONPATH=/app
 
 CMD ["uvicorn", "backend.api.main:app", "--host", "0.0.0.0", "--port", "8080"]
