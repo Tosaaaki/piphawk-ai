@@ -1,0 +1,4 @@
+unit_size: 1000
+tp_pips: 1.5
+sl_pips: 1.0
+max_hold_sec: 20
