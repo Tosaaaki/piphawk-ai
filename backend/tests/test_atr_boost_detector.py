@@ -1,6 +1,6 @@
 import unittest
 
-from analysis.regime_detector import ATRBoostDetector
+from piphawk_ai.analysis.regime_detector import ATRBoostDetector
 
 
 class DummyTick(dict):

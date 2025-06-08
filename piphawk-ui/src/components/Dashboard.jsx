@@ -1,6 +1,8 @@
 import React from 'react';
 import styled from 'styled-components';
 import { colors, shadows } from '../theme';
+import TradesTable from './TradesTable';
+import PanicButton from './PanicButton';
 
 const Container = styled.div`
   padding: 2rem;
@@ -30,19 +32,6 @@ const Card = styled.div`
   padding: 1rem;
 `;
 
-const Table = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  th, td {
-    padding: 0.5rem;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-  }
-  th {
-    text-align: left;
-    color: ${colors.accentCyan};
-  }
-`;
-
 const ChartPlaceholder = styled.div`
   height: 300px;
   background: ${colors.background};
@@ -53,37 +42,15 @@ const ChartPlaceholder = styled.div`
   color: ${colors.accentCyan};
 `;
 
-const Dashboard = ({ trades = [], wins = 0, losses = 0 }) => {
-  const winRate = wins + losses ? ((wins / (wins + losses)) * 100).toFixed(2) : '0';
+const Dashboard = () => {
   return (
     <Container>
-      <Header>PipHawk Dashboard</Header>
+      <Header>
+        PipHawk Dashboard
+        <div style={{ float: 'right' }}><PanicButton /></div>
+      </Header>
       <Card>
-        <Table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Close Time</th>
-              <th>Instrument</th>
-              <th>Price</th>
-              <th>P/L</th>
-            </tr>
-          </thead>
-          <tbody>
-            {trades.map(t => (
-              <tr key={t.id}>
-                <td>{t.id}</td>
-                <td>{t.closeTime}</td>
-                <td>{t.instrument}</td>
-                <td>{t.price}</td>
-                <td>{t.profit}</td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      </Card>
-      <Card>
-        Wins: {wins}, Losses: {losses}, Win Rate: {winRate}%
+        <TradesTable />
       </Card>
       <Card>
         <ChartPlaceholder>Line Chart Placeholder</ChartPlaceholder>

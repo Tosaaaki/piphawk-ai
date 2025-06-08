@@ -17,27 +17,47 @@ The backend resides in the `backend/` directory and is designed to run either
 directly with Python or inside Docker containers. Configuration values are
 loaded from environment variables and optional YAML files under `config/`.
 
+## QuickStart
+1. Clone the repository
+   ```bash
+   git clone https://github.com/yourname/piphawk-ai.git
+   cd piphawk-ai
+   ```
+2. Create .env from example
+   ```bash
+   cp backend/config/secret.env.example .env
+   ```
+   Edit `.env` and set OPENAI_API_KEY, OANDA_API_KEY and OANDA_ACCOUNT_ID.
+3. Build and run the backend container
+   ```bash
+   docker build -t piphawk-ai .
+   docker run --env-file .env -p 8080:8080 piphawk-ai
+   ```
+4. Start the React UI
+   ```bash
+   cd piphawk-ui
+   npm install
+   npm start
+   ```
+See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 ## Features
 
-- Automated entry and exit decisions using OpenAI models with technical
-  indicator context.
-- Composite trade mode logic that switches between **scalp** and
-  **trend_follow** based on ATR, ADX, EMA slope and volume conditions.
-- Multi-timeframe indicators and a regime detector to track transitions
-  from range to trend.
-- Optional chart pattern detection via OpenAI or a local scanner.
-- Offline reinforcement policy integration for strategy selection (preview).
-- CVaR-based portfolio risk management that adjusts lot sizes when risk exceeds
-  a configured threshold.
-- Parameters managed through environment variables and YAML files with
-  hot reload support.
-- Trade and parameter history stored in SQLite.
-- LINE notifications including hourly summaries via the API.
-- React dashboard and API endpoints for runtime control.
-- Prometheus metrics exposed by both the API and job runner for external
-  monitoring tools.
-- Dockerfiles provided for containerized deployment.
 
+### Implemented
+- Automated entry and exit decisions using OpenAI models with technical indicator context.
+- Composite trade mode logic switching between **scalp** and **trend_follow**.
+- Multi-timeframe indicators and regime detection.
+- Optional chart pattern detection via OpenAI or a local scanner.
+- CVaR-based portfolio risk management.
+- Parameters managed via environment variables and YAML with hot reload.
+- Trade and parameter history stored in SQLite.
+- LINE notifications via the API.
+- React dashboard and API endpoints for runtime control.
+- Prometheus metrics from both API and job runner.
+- Dockerfiles for containerized deployment.
+
+### Planned
+- Offline reinforcement policy integration for strategy selection.
 ## Setup
 
 1. **Clone the repository**
@@ -310,9 +330,9 @@ EOF
 
 ## Running the API
 
-The API exposes endpoints for status checks, a simple dashboard and runtime settings. Start it with Uvicorn:
+The API exposes endpoints for status checks, a simple dashboard and runtime settings. Start it from the packaged module:
 ```bash
-uvicorn backend.api.main:app --host 0.0.0.0 --port 8080
+python -m piphawk_ai.main api
 ```
 
 ## LINE 通知設定
@@ -327,7 +347,7 @@ LINE_USER_ID=<your_line_user_id>
 次のコマンドで API を起動してください。
 
 ```bash
-uvicorn backend.api.main:app --host 0.0.0.0 --port 8080
+python -m piphawk_ai.main api
 ```
 
 テスト用エンドポイント `/notifications/send` を利用すると送信確認ができます。
@@ -341,16 +361,16 @@ curl -X POST http://localhost:8080/notifications/send
 
 ## Running the Job Scheduler
 
-The job runner performs market data collection, indicator calculation and trading decisions. Run it directly with Python:
+The job runner performs market data collection, indicator calculation and trading decisions. Start it via the packaged module:
 ```bash
-python3 -m backend.scheduler.job_runner
+python -m piphawk_ai.main job
 ```
 If the optional performance logger was added earlier, each job loop's timing
 will be appended to `backend/logs/perf_stats.jsonl`.
 
-Both the API and the job runner can run in a single container using `Dockerfile`.
-If you prefer two containers, build the same image twice and start each with the
-appropriate command.
+Both the API and the job runner can run from the same Docker image.
+For an API-only container, tag the build separately and override the command with
+`python -m piphawk_ai.main api`.
 
 ## Metrics Monitoring
 
@@ -372,6 +392,12 @@ are bundled into the image. When you start the job runner container, these
 parameters are loaded automatically.
 
 Use the same flag if building separate images for the API and job runner.
+The default tag launches the job scheduler. Create an API image with a custom
+tag and command override:
+```bash
+docker build --platform linux/amd64 -t piphawk-ai:api .
+docker run --rm piphawk-ai:api python -m piphawk_ai.main api
+```
 Running x86 containers under emulation can be slower and some dependencies may not behave exactly the same
 as on native x86 hardware.
 
@@ -430,6 +456,12 @@ npm install
 npm start
 ```
 
+Create `.env.development` with the backend URL before running `npm start`:
+
+```bash
+echo "REACT_APP_API_URL=http://localhost:8080" > .env.development
+```
+
 Node.js **14 or later** is required (Node 18 LTS recommended). The React UI is
 built with **React 18** and should be run with that major version.
 
@@ -449,6 +481,9 @@ If `REACT_APP_API_URL` is omitted, the application defaults to
 ## License
 
 This project is provided as-is under the MIT license.
+## Disclaimer
+Past performance does not guarantee future results. Use this project at your own risk.
+
 
 ## Market Data Utilities
 

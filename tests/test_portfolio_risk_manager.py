@@ -1,4 +1,4 @@
-from risk.portfolio_risk_manager import PortfolioRiskManager
+from piphawk_ai.risk.manager import PortfolioRiskManager
 from backend.strategy.risk_manager import calc_lot_size
 
 

@@ -12,6 +12,7 @@ from backend.utils.notification import send_line_message
 
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from backend.orders.order_manager import OrderManager
 
 
 app = FastAPI()
@@ -56,6 +57,7 @@ LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
 # Initialize and start the background scheduler
 scheduler = BackgroundScheduler()
 scheduler.start()
+order_mgr = OrderManager()
 
 
 @app.get("/logs/errors")
@@ -214,6 +216,46 @@ def get_trade_summary():
             "total_pl": total_pl or 0,
         },
     }
+
+
+@app.get("/trades/recent")
+def get_recent_trades(limit: int = 100):
+    """Return the most recent OANDA trades as a JSON list."""
+    conn = sqlite3.connect(DATABASE_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT trade_id, instrument, open_time, close_time, open_price,
+               close_price, units, realized_pl, state, tp_price, sl_price
+          FROM oanda_trades
+         WHERE account_id = ?
+         ORDER BY close_time DESC
+         LIMIT ?
+        """,
+        (ACCOUNT_ID, limit),
+    )
+    rows = cur.fetchall()
+    columns = [col[0] for col in cur.description]
+    conn.close()
+    trades = [dict(zip(columns, row)) for row in rows]
+    return {"trades": trades}
+
+
+@app.post("/control/panic_stop")
+def panic_stop():
+    """Immediately close all positions and stop the bot."""
+    closed = []
+    try:
+        closed = order_mgr.close_all_positions()
+    except Exception as exc:  # pragma: no cover - network failure
+        logger.error("close_all_positions failed: %s", exc)
+    if scheduler.state == STATE_RUNNING:
+        scheduler.shutdown(wait=False)
+    try:
+        send_line_message("Emergency Stop")
+    except Exception as exc:  # pragma: no cover - notification failure
+        logger.error("LINE notification failed: %s", exc)
+    return {"status": "stopped", "closed": closed}
 
 
 @app.post("/control/{action}")
