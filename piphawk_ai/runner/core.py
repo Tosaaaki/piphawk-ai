@@ -118,6 +118,7 @@ except ModuleNotFoundError:
 
 
 from backend.logs.update_oanda_trades import update_oanda_trades, fetch_trade_details
+from execution import scalp_manager
 
 
 def build_exit_context(position, tick_data, indicators, indicators_m1=None) -> dict:
@@ -736,6 +737,7 @@ class JobRunner:
                     timer.stop()
                     continue
                 self._update_portfolio_risk()
+                scalp_manager.monitor_scalp_positions()
                 # Refresh POSITION_REVIEW_SEC dynamically each loop
                 self.review_sec = int(env_loader.get_env("POSITION_REVIEW_SEC", str(self.review_sec)))
                 logger.debug(f"review_sec={self.review_sec}")
@@ -1457,6 +1459,19 @@ class JobRunner:
                             self.indicators_H1,
                             mode=self.trade_mode,
                         ):
+                            if self.trade_mode == "scalp_momentum" and not has_position:
+                                ema = indicators.get("ema_slope")
+                                if ema is not None:
+                                    val = ema.iloc[-1] if hasattr(ema, "iloc") else ema[-1]
+                                    side = "long" if float(val) >= 0 else "short"
+                                else:
+                                    side = "long"
+                                scalp_manager.enter_scalp_trade(DEFAULT_PAIR, side)
+                                self.last_run = now
+                                update_oanda_trades()
+                                time.sleep(self.interval_seconds)
+                                timer.stop()
+                                continue
                             logger.info("Filter OK → Processing entry decision with AI.")
                             self.last_ai_call = datetime.now()  # record AI call time *before* the call
                             cond_ind = self._get_cond_indicators()
