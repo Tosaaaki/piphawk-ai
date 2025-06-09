@@ -1671,8 +1671,8 @@ class JobRunner:
                                             logger.warning(
                                                 f"Failed to cancel pending LIMIT {pend['order_id']}: {exc}"
                                             )
-                                        for key, info in list(_pending_limits.items()):
-                                            if info.get("order_id") == pend["order_id"]:
+                                        for key, pend_info in list(_pending_limits.items()):
+                                            if pend_info.get("order_id") == pend["order_id"]:
                                                 _pending_limits.pop(key, None)
                                                 break
                                     else:
