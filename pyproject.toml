@@ -52,6 +52,6 @@ dependencies = [
     "torch==2.3.0",
 ]
 
-[tool.setuptools]
-# signals パッケージを追加
-packages = ["piphawk_ai", "backend", "signals"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["piphawk_ai", "backend", "signals"]
