@@ -12,10 +12,8 @@ WORKDIR /app
 # docker build --platform linux/amd64 -t piphawk-ai:dev .
 
 COPY pyproject.toml /app/pyproject.toml
-COPY backend piphawk_ai signals \
-     analysis indicators config \
-     risk monitoring strategies regime piphawk-ui tests \
-     /app/
+# プロジェクト全体をコピーして必要なパッケージを確実に含める
+COPY . /app
 
 # PyTorch を CPU 版でインストール
 RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.3.0
