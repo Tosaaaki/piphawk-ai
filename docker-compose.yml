@@ -10,6 +10,40 @@ services:
       - ./trades.db:/app/trades.db
     env_file:
       - .env
+    environment:
+      - KAFKA_BROKER_URL=kafka:9092
+    depends_on:
+      - kafka
+    networks:
+      - piphawknet
     restart: always
     ports:
       - "8080:8080"
+
+kafka:
+  image: bitnami/kafka:3.7
+  container_name: kafka
+  restart: unless-stopped
+  environment:
+    - KAFKA_ENABLE_KRAFT=yes
+    - KAFKA_CFG_NODE_ID=1
+    - KAFKA_CFG_PROCESS_ROLES=broker,controller
+    - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+    - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+    - KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+    - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+    - KAFKA_KRAFT_CLUSTER_ID=local-cluster-$${RANDOM}
+    - ALLOW_PLAINTEXT_LISTENER=yes
+  ports:
+    - "9092:9092"
+  volumes:
+    - kafka-data:/bitnami/kafka
+  networks:
+    - piphawknet
+volumes:
+  kafka-data:
+    driver: local
+
+networks:
+  piphawknet:
+    driver: bridge
