@@ -8,7 +8,13 @@ from prometheus_client import Gauge
 
 logger = logging.getLogger(__name__)
 
-KAFKA_SERVERS = os.getenv("KAFKA_SERVERS", "localhost:9092")
+# 環境変数名の揺れを吸収するため複数キーをチェック
+KAFKA_SERVERS = (
+    os.getenv("KAFKA_SERVERS")
+    or os.getenv("KAFKA_BROKER_URL")
+    or os.getenv("KAFKA_BOOTSTRAP_SERVERS")
+    or "localhost:9092"
+)
 METRICS_TOPIC = os.getenv("METRICS_TOPIC", "metrics")
 
 # Kafka producer is initialized lazily so unit tests can run without Kafka.

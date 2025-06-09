@@ -243,6 +243,7 @@ SCALE_TRIGGER_ATR=0.5
 - USE_LOCAL_PATTERN: チャートパターン検出をローカルで行うか (true/false)
 - FRED_API_KEY: 米国経済指標取得に使用するFRED APIキー
 - KAFKA_SERVERS: Kafkaブローカーの接続先リスト (例: localhost:9092)
+  - KAFKA_BROKER_URL や KAFKA_BOOTSTRAP_SERVERS でも同じ値を指定可能
 - METRICS_TOPIC: メトリクス送信用のKafkaトピック名
 - MAX_CVAR: ポートフォリオ許容CVaR上限 (例: 5.0)
 - LOSS_LIMIT: SafetyTriggerによる累積損失上限
