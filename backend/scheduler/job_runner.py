@@ -480,15 +480,15 @@ class JobRunner:
         pend = get_pending_entry_order(instrument)
         if not pend:
             # purge any local record if OANDA reports none
-            for key, info in list(_pending_limits.items()):
-                if info.get("instrument") == instrument:
+            for key, limit_info in list(_pending_limits.items()):
+                if limit_info.get("instrument") == instrument:
                     _pending_limits.pop(key, None)
             return
 
         local_info = None
-        for key, info in _pending_limits.items():
-            if info.get("order_id") == pend.get("order_id"):
-                local_info = info | {"key": key}
+        for key, limit_info in _pending_limits.items():
+            if limit_info.get("order_id") == pend.get("order_id"):
+                local_info = limit_info | {"key": key}
                 break
 
         if local_info:
@@ -642,9 +642,9 @@ class JobRunner:
             return
 
         retry_count = 0
-        for key, info in list(_pending_limits.items()):
-            if info.get("order_id") == pend["order_id"]:
-                retry_count = info.get("retry_count", 0)
+        for key, limit_info in list(_pending_limits.items()):
+            if limit_info.get("order_id") == pend["order_id"]:
+                retry_count = limit_info.get("retry_count", 0)
                 _pending_limits.pop(key, None)
 
         if retry_count >= MAX_LIMIT_RETRY:
@@ -1828,8 +1828,8 @@ class JobRunner:
                                             logger.warning(
                                                 f"Failed to cancel pending LIMIT {pend['order_id']}: {exc}"
                                             )
-                                        for key, info in list(_pending_limits.items()):
-                                            if info.get("order_id") == pend["order_id"]:
+                                        for key, limit_info in list(_pending_limits.items()):
+                                            if limit_info.get("order_id") == pend["order_id"]:
                                                 _pending_limits.pop(key, None)
                                                 break
                                     else:
