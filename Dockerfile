@@ -12,9 +12,8 @@ WORKDIR /app
 # docker build --platform linux/amd64 -t piphawk-ai:dev .
 
 COPY pyproject.toml /app/pyproject.toml
-COPY backend /app/backend
-COPY piphawk_ai /app/piphawk_ai
-COPY analysis indicators config signals \
+COPY backend piphawk_ai signals \
+     analysis indicators config \
      risk monitoring strategies regime piphawk-ui tests \
      /app/
 
