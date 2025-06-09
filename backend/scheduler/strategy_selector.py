@@ -26,11 +26,15 @@ class StrategySelector:
     ) -> None:
         self.strategies = strategies
         arms = list(strategies.keys())
-        try:
-            self.bandit = MAB(arms=arms, learning_policy=LearningPolicy.LinUCB(alpha=alpha))
-            self.bandit.fit([], [], np.empty((0, 1)))
-        except Exception as exc:  # pragma: no cover - fallback on import issues
-            logger.warning("LinUCB init failed: %s", exc)
+        bandit_enabled = env_loader.get_env("BANDIT_ENABLED", "true").lower() == "true"
+        if bandit_enabled:
+            try:
+                self.bandit = MAB(arms=arms, learning_policy=LearningPolicy.LinUCB(alpha=alpha))
+                self.bandit.fit([], [], np.empty((0, 1)))
+            except Exception as exc:  # pragma: no cover - fallback on import issues
+                logger.warning("LinUCB init failed: %s", exc)
+                self.bandit = None
+        else:
             self.bandit = None
         if use_offline_policy is None:
             use_offline_policy = env_loader.get_env("USE_OFFLINE_POLICY", "false").lower() == "true"

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import time
 import uuid
+from logging import getLogger
 import logging
 import json
 import os
@@ -160,7 +161,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s",
     level=os.getenv("LOG_LEVEL", "INFO"),
 )
-logger = logging.getLogger(__name__)
+log = getLogger(__name__)
 
 order_mgr = OrderManager()
 
@@ -226,7 +227,7 @@ def instrument_is_tradeable(instrument: str) -> bool:
         if instruments:
             return str(instruments[0].get("tradeable", "true")).lower() == "true"
     except requests.RequestException as exc:
-        logger.warning(f"instrument_is_tradeable: {exc}")
+        log.warning(f"instrument_is_tradeable: {exc}")
     return False
 
 
@@ -239,9 +240,9 @@ class JobRunner:
         metrics_port = int(env_loader.get_env("METRICS_PORT", "8001"))
         try:
             start_http_server(metrics_port)
-            logger.info("Prometheus metrics server running on port %s", metrics_port)
+            log.info("Prometheus metrics server running on port %s", metrics_port)
         except Exception as exc:  # pragma: no cover - metrics optional
-            logger.warning(f"Metrics server start failed: {exc}")
+            log.warning(f"Metrics server start failed: {exc}")
         loss_lim = float(env_loader.get_env("LOSS_LIMIT", "0"))
         err_lim = int(env_loader.get_env("ERROR_LIMIT", "0"))
         self.safety = SafetyTrigger(loss_limit=loss_lim, error_limit=err_lim)
@@ -274,7 +275,7 @@ class JobRunner:
                 self.policy_updater = PolicyUpdater(self)
                 self.policy_updater.start()
             except Exception as exc:  # pragma: no cover - optional
-                logger.warning(f"PolicyUpdater start failed: {exc}")
+                log.warning(f"PolicyUpdater start failed: {exc}")
         # ----- Additional runtime state --------------------------------
         # Toggle for higher‑timeframe reference levels (daily / H4)
         self.higher_tf_enabled = env_loader.get_env("HIGHER_TF_ENABLED", "true").lower() == "true"
@@ -288,7 +289,7 @@ class JobRunner:
                 from piphawk_ai.analysis.cluster_regime import ClusterRegime
                 self.cluster_regime = ClusterRegime(model_file)
             except Exception as exc:  # pragma: no cover - optional model
-                logger.warning(f"ClusterRegime load failed: {exc}")
+                log.warning(f"ClusterRegime load failed: {exc}")
                 self.cluster_regime = None
         else:
             self.cluster_regime = None
@@ -354,11 +355,11 @@ class JobRunner:
                         self.tp_extended = True
                         self.tp_reduced = True
         except Exception as exc:  # pragma: no cover - ignore init failures
-            logger.debug(f"TP flag restore failed: {exc}")
+            log.debug(f"TP flag restore failed: {exc}")
 
         token = os.getenv("LINE_CHANNEL_TOKEN", "")
         user_id = os.getenv("LINE_USER_ID", "")
-        logger.info(
+        log.info(
             "JobRunner startup - LINE token set: %s, user ID set: %s",
             bool(token),
             bool(user_id),
@@ -366,7 +367,7 @@ class JobRunner:
         # 初期の SCALP_MODE 設定をログへ記録
         scalp_active = env_loader.get_env("SCALP_MODE", "false").lower() == "true"
 
-        logger.info("Initial SCALP_MODE is %s", "ON" if scalp_active else "OFF")
+        log.info("Initial SCALP_MODE is %s", "ON" if scalp_active else "OFF")
 
         # 初期化時に戦略セレクターを設定
         use_policy = env_loader.get_env("USE_OFFLINE_POLICY", "false").lower() == "true"
@@ -401,7 +402,7 @@ class JobRunner:
                 rows = cur.fetchall()
             return [float(r[0]) for r in rows if r[0] is not None]
         except Exception as exc:  # pragma: no cover
-            logger.warning(f"fetch PL failed: {exc}")
+            log.warning(f"fetch PL failed: {exc}")
             return []
 
     def _update_portfolio_risk(self) -> None:
@@ -417,15 +418,15 @@ class JobRunner:
                 except Exception:
                     pass
         except Exception as exc:  # pragma: no cover
-            logger.debug(f"open position fetch failed: {exc}")
+            log.debug(f"open position fetch failed: {exc}")
         self.risk_mgr.update_risk_metrics(trade_pl, open_pl)
         if self.risk_mgr.check_stop_conditions():
-            logger.warning("Portfolio CVaR limit exceeded")
+            log.warning("Portfolio CVaR limit exceeded")
             if env_loader.get_env("FORCE_CLOSE_ON_RISK", "false").lower() == "true":
                 try:
                     order_mgr.close_all_positions()
                 except Exception as exc:  # pragma: no cover
-                    logger.error(f"Force close failed: {exc}")
+                    log.error(f"Force close failed: {exc}")
 
     def _get_cond_indicators(self) -> dict:
         """Return indicators for market condition check."""
@@ -449,14 +450,14 @@ class JobRunner:
         if self.current_params_file == path:
             return
         try:
-            logger.info("Reloading params from %s", path)
+            log.info("Reloading params from %s", path)
             params_loader.load_params(path=path)
             self.current_params_file = path
         except Exception as exc:
-            logger.error("Param reload failed: %s", exc)
+            log.error("Param reload failed: %s", exc)
             return
         if os.getenv("AUTO_RESTART", "false").lower() == "true":
-            logger.info("AUTO_RESTART enabled – restarting process")
+            log.info("AUTO_RESTART enabled – restarting process")
             python = sys.executable
             # preserve module-based execution to keep import paths intact
             os.execv(python, [python, "-m", "backend.scheduler.job_runner", *sys.argv[1:]])
@@ -467,7 +468,7 @@ class JobRunner:
                 log_policy_transition(json.dumps(self.last_entry_context), self.last_entry_strategy, float(reward))
                 self.strategy_selector.update(self.last_entry_strategy, self.last_entry_context, float(reward))
             except Exception as exc:
-                logger.warning(f"Strategy update failed: {exc}")
+                log.warning(f"Strategy update failed: {exc}")
             self.last_entry_context = None
             self.last_entry_strategy = None
 
@@ -480,15 +481,15 @@ class JobRunner:
         pend = get_pending_entry_order(instrument)
         if not pend:
             # purge any local record if OANDA reports none
-            for key, info in list(_pending_limits.items()):
-                if info.get("instrument") == instrument:
+            for key, rec in list(_pending_limits.items()):
+                if rec.get("instrument") == instrument:
                     _pending_limits.pop(key, None)
             return
 
         local_info = None
-        for key, info in _pending_limits.items():
-            if info.get("order_id") == pend.get("order_id"):
-                local_info = info | {"key": key}
+        for key, rec in _pending_limits.items():
+            if rec.get("order_id") == pend.get("order_id"):
+                local_info = rec | {"key": key}
                 break
 
         if local_info:
@@ -547,12 +548,12 @@ class JobRunner:
                 try:
                     allow = should_convert_limit_to_market(ctx)
                 except Exception as exc:
-                    logger.warning(f"AI check failed: {exc}")
+                    log.warning(f"AI check failed: {exc}")
                     allow = False
 
                 if allow:
                     try:
-                        logger.info(f"Switching LIMIT {pend['order_id']} to market (diff {diff_pips:.1f} pips)")
+                        log.info(f"Switching LIMIT {pend['order_id']} to market (diff {diff_pips:.1f} pips)")
                         order_mgr.cancel_order(pend["order_id"])
                         try:
                             candles_dict = {"M5": candles}
@@ -569,7 +570,7 @@ class JobRunner:
                             risk = plan.get("risk", {})
                             ai_raw = json.dumps(plan, ensure_ascii=False)
                         except Exception as exc:
-                            logger.warning(f"get_trade_plan failed: {exc}")
+                            log.warning(f"get_trade_plan failed: {exc}")
                             risk = {}
                             ai_raw = None
 
@@ -594,7 +595,7 @@ class JobRunner:
                             }
                             market_cond = get_market_condition(ctx, {})
                         except Exception as exc:
-                            logger.warning(f"get_market_condition failed: {exc}")
+                            log.warning(f"get_market_condition failed: {exc}")
                             market_cond = None
 
                         params = {
@@ -624,7 +625,7 @@ class JobRunner:
                             strategy_params=params,
                         )
                     except Exception as exc:
-                        logger.warning(f"Failed to convert to market order: {exc}")
+                        log.warning(f"Failed to convert to market order: {exc}")
                     else:
                         if result:
                             _pending_limits.pop(local_info["key"], None)
@@ -635,20 +636,20 @@ class JobRunner:
             return
 
         try:
-            logger.info(f"Stale LIMIT order {pend['order_id']} ({age:.0f}s) → cancelling")
+            log.info(f"Stale LIMIT order {pend['order_id']} ({age:.0f}s) → cancelling")
             order_mgr.cancel_order(pend["order_id"])
         except Exception as exc:
-            logger.warning(f"Failed to cancel LIMIT order: {exc}")
+            log.warning(f"Failed to cancel LIMIT order: {exc}")
             return
 
         retry_count = 0
-        for key, info in list(_pending_limits.items()):
-            if info.get("order_id") == pend["order_id"]:
-                retry_count = info.get("retry_count", 0)
+        for key, rec in list(_pending_limits.items()):
+            if rec.get("order_id") == pend["order_id"]:
+                retry_count = rec.get("retry_count", 0)
                 _pending_limits.pop(key, None)
 
         if retry_count >= MAX_LIMIT_RETRY:
-            logger.info("LIMIT retry count exceeded – not placing new order.")
+            log.info("LIMIT retry count exceeded – not placing new order.")
             return
 
         # consult AI for potential renewal
@@ -665,19 +666,19 @@ class JobRunner:
                 mode_reason=self.mode_reason,
             )
         except Exception as exc:
-            logger.warning(f"get_trade_plan failed: {exc}")
+            log.warning(f"get_trade_plan failed: {exc}")
             return
 
         entry = plan.get("entry", {})
         risk = plan.get("risk", {})
         side = entry.get("side", "no").lower()
         if side not in ("long", "short") or entry.get("mode") != "limit":
-            logger.info("AI does not propose renewing the LIMIT order.")
+            log.info("AI does not propose renewing the LIMIT order.")
             return
 
         limit_price = entry.get("limit_price")
         if limit_price is None:
-            logger.info("AI proposed LIMIT without price – skipping renewal.")
+            log.info("AI proposed LIMIT without price – skipping renewal.")
             return
 
         entry_uuid = str(uuid.uuid4())[:8]
@@ -717,7 +718,7 @@ class JobRunner:
                 "side": side,
                 "retry_count": retry_count + 1,
             }
-            logger.info(f"Renewed LIMIT order {result.get('order_id')}")
+            log.info(f"Renewed LIMIT order {result.get('order_id')}")
 
     def _maybe_extend_tp(self, position: dict, indicators: dict, side: str, pip_size: float):
         if self.tp_extended or not TP_EXTENSION_ENABLED:
@@ -757,12 +758,12 @@ class JobRunner:
                 entry_uuid=entry_uuid,
             )
             if res is not None:
-                logger.info(
+                log.info(
                     f"TP extended from {current_tp} to {new_tp} ({ext_pips:.1f}pips) due to strong trend"
                 )
                 self.tp_extended = True
         except Exception as exc:
-            logger.warning(f"TP extension failed: {exc}")
+            log.warning(f"TP extension failed: {exc}")
 
     def _maybe_reduce_tp(self, position: dict, indicators: dict, side: str, pip_size: float):
         if self.tp_reduced or not TP_REDUCTION_ENABLED:
@@ -811,12 +812,12 @@ class JobRunner:
                 entry_uuid=entry_uuid,
             )
             if res is not None:
-                logger.info(
+                log.info(
                     f"TP reduced from {current_tp} to {new_tp} ({red_pips:.1f}pips) due to weak trend"
                 )
                 self.tp_reduced = True
         except Exception as exc:
-            logger.warning(f"TP reduction failed: {exc}")
+            log.warning(f"TP reduction failed: {exc}")
 
     # ────────────────────────────────────────────────────────────
     #  Trailing-stop settings update based on calendar/quiet hours
@@ -899,14 +900,14 @@ class JobRunner:
         return (side == "long" and cross_down) or (side == "short" and cross_up)
 
     def run(self):
-        logger.info("Job Runner started.")
+        log.info("Job Runner started.")
         while not self._stop:
             try:
                 timer = PerfTimer("job_loop")
                 now = datetime.now(timezone.utc)
                 # ---- Market‑hours guard ---------------------------------
                 if not instrument_is_tradeable(DEFAULT_PAIR):
-                    logger.info(f"{DEFAULT_PAIR} market closed – sleeping 60 s")
+                    log.info(f"{DEFAULT_PAIR} market closed – sleeping 60 s")
                     time.sleep(60)
                     self.last_run = datetime.now(timezone.utc)
                     timer.stop()
@@ -914,18 +915,18 @@ class JobRunner:
                 self._update_portfolio_risk()
                 # Refresh POSITION_REVIEW_SEC dynamically each loop
                 self.review_sec = int(env_loader.get_env("POSITION_REVIEW_SEC", str(self.review_sec)))
-                logger.debug(f"review_sec={self.review_sec}")
+                log.debug(f"review_sec={self.review_sec}")
                 # Refresh HIGHER_TF_ENABLED dynamically
                 self.higher_tf_enabled = env_loader.get_env("HIGHER_TF_ENABLED", "true").lower() == "true"
                 # Update trailing-stop enable flag each loop
                 self._refresh_trailing_status()
                 if self.last_run is None or (now - self.last_run) >= timedelta(seconds=self.interval_seconds):
-                    logger.info(f"Running job at {now.isoformat()}")
+                    log.info(f"Running job at {now.isoformat()}")
 
                     # ティックデータ取得（発注用）
                     tick_data = fetch_tick_data(DEFAULT_PAIR, include_liquidity=True)
                     # ティックデータ詳細はDEBUGレベルで出力
-                    logger.debug(f"Tick data fetched: {tick_data}")
+                    log.debug(f"Tick data fetched: {tick_data}")
                     try:
                         price = float(tick_data["prices"][0]["bids"][0]["price"])
                         bid_liq = float(tick_data["prices"][0]["bids"][0].get("liquidity", 0))
@@ -944,14 +945,14 @@ class JobRunner:
                             if cr_res.get("transition"):
                                 self.last_ai_call = datetime.min
                     except Exception as exc:
-                        logger.debug(f"RegimeDetector update failed: {exc}")
+                        log.debug(f"RegimeDetector update failed: {exc}")
 
                     # ---- Market closed guard (price feed says non‑tradeable) ----
                     try:
                         if (not tick_data["prices"][0].get("tradeable", True)) or tick_data["prices"][0].get(
                             "status"
                         ) == "non-tradeable":
-                            logger.info(f"{DEFAULT_PAIR} price feed marked non‑tradeable – sleeping 120 s")
+                            log.info(f"{DEFAULT_PAIR} price feed marked non‑tradeable – sleeping 120 s")
                             time.sleep(120)
                             self.last_run = datetime.now(timezone.utc)
                             timer.stop()
@@ -974,13 +975,13 @@ class JobRunner:
                     candles_d1 = candles_dict.get("D", [])
                     self.last_candles_m5 = candles_m5
                     candles = candles_m5  # backward compatibility
-                    logger.info(f"Candle M5 last: {candles_m5[-1] if candles_m5 else 'No candles'}")
+                    log.info(f"Candle M5 last: {candles_m5[-1] if candles_m5 else 'No candles'}")
 
                     # -------- Higher‑timeframe reference levels --------
                     higher_tf = {}
                     if self.higher_tf_enabled:
                         higher_tf = analyze_higher_tf(DEFAULT_PAIR)
-                        logger.debug(f"Higher‑TF levels: {higher_tf}")
+                        log.debug(f"Higher‑TF levels: {higher_tf}")
 
                     # 指標計算
                     indicators_multi = calculate_indicators_multi(
@@ -1017,16 +1018,16 @@ class JobRunner:
                     if align is None and env_loader.get_env(
                         "ALIGN_STRICT", env_loader.get_env("STRICT_TF_ALIGN", "false")
                     ).lower() == "true":
-                        logger.info("Multi‑TF alignment missing → skip entry")
+                        log.info("Multi‑TF alignment missing → skip entry")
                         log_entry_skip(DEFAULT_PAIR, None, "tf_align")
                         self.last_run = now
                         update_oanda_trades()
                         time.sleep(self.interval_seconds)
                         timer.stop()
                         continue
-                    logger.info(f"Multi‑TF alignment: {align}")
+                    log.info(f"Multi‑TF alignment: {align}")
 
-                    logger.info("Indicators calculation successful.")
+                    log.info("Indicators calculation successful.")
 
                     # 指標からトレードモードを判定
                     new_mode, _score, reasons = decide_trade_mode_detail(
@@ -1050,7 +1051,7 @@ class JobRunner:
                         self.reload_params_for_mode(new_mode)
                         self.trade_mode = new_mode
                     self.mode_reason = "\n".join(f"- {r}" for r in reasons)
-                    logger.info("Current trade mode: %s", self.trade_mode)
+                    log.info("Current trade mode: %s", self.trade_mode)
 
                     # チェック：保留LIMIT注文の更新
                     self._manage_pending_limits(DEFAULT_PAIR, indicators, candles_m5, tick_data)
@@ -1059,7 +1060,7 @@ class JobRunner:
                     if pend_info:
                         age = time.time() - pend_info.get("ts", 0)
                         if age < self.pending_grace_sec:
-                            logger.info(
+                            log.info(
                                 f"Pending LIMIT active ({age:.0f}s) – skip entry check"
                             )
                             log_entry_skip(DEFAULT_PAIR, None, "pending_limit", f"{age:.0f}s < {self.pending_grace_sec}s")
@@ -1071,8 +1072,8 @@ class JobRunner:
 
                     # ポジション確認
                     has_position = check_current_position(DEFAULT_PAIR)
-                    logger.info(f"Current position status: {has_position}")
-                    logger.info(f"Has open position for {DEFAULT_PAIR}: {has_position}")
+                    log.info(f"Current position status: {has_position}")
+                    log.info(f"Has open position for {DEFAULT_PAIR}: {has_position}")
 
                     MIN_HOLD_SECONDS = int(env_loader.get_env("MIN_HOLD_SECONDS", "0"))
 
@@ -1142,7 +1143,7 @@ class JobRunner:
                         TP_PIPS = float(env_loader.get_env("INIT_TP_PIPS", "30"))
                         AI_PROFIT_TRIGGER_RATIO = float(env_loader.get_env("AI_PROFIT_TRIGGER_RATIO", "0.3"))
 
-                        logger.info(
+                        log.info(
                             f"profit_pips={current_profit_pips:.1f}, "
                             f"BE_trigger={be_trigger}, "
                             f"AI_trigger={TP_PIPS * AI_PROFIT_TRIGGER_RATIO}"
@@ -1167,12 +1168,12 @@ class JobRunner:
                             trade_id = has_position[position_side]["tradeIDs"][0]
                             result = order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
                             if result is None:
-                                logger.warning("SL update failed on first attempt; retrying")
+                                log.warning("SL update failed on first attempt; retrying")
                                 result = order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
                                 if result is None:
-                                    logger.error("SL update failed after retry")
+                                    log.error("SL update failed after retry")
                             if result is not None:
-                                logger.info(f"SL updated to entry price to secure minimum profit: {new_sl_price}")
+                                log.info(f"SL updated to entry price to secure minimum profit: {new_sl_price}")
                                 self.breakeven_reached = True
                                 self.sl_reset_done = False
                                 # SLが実行された向きと時間を記録
@@ -1188,7 +1189,7 @@ class JobRunner:
                                 sl_price = float(trade.get("stopLossOrder", {}).get("price", 0))
                                 sl_missing = sl_price == 0
                             except Exception as exc:
-                                logger.warning(f"Failed to fetch trade details: {exc}")
+                                log.warning(f"Failed to fetch trade details: {exc}")
                             if sl_missing:
                                 atr_val = (
                                     indicators["atr"].iloc[-1]
@@ -1201,10 +1202,10 @@ class JobRunner:
                                     new_sl_price = entry_price + atr_val * 2
                                 result = order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
                                 if result is None:
-                                    logger.warning("SL reapply failed on first attempt; retrying")
+                                    log.warning("SL reapply failed on first attempt; retrying")
                                     result = order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
                                 if result is not None:
-                                    logger.info(f"SL reapplied at {new_sl_price}")
+                                    log.info(f"SL reapplied at {new_sl_price}")
                                     self.sl_reset_done = True
                                     # SLが実行された向きと時間を記録
                                     self.last_sl_side = position_side
@@ -1214,7 +1215,7 @@ class JobRunner:
                         self._maybe_reduce_tp(has_position, indicators, position_side, pip_size)
 
                         if self._should_peak_exit(position_side, indicators, current_profit_pips):
-                            logger.info("Peak exit triggered → closing position.")
+                            log.info("Peak exit triggered → closing position.")
                             try:
                                 order_mgr.close_position(DEFAULT_PAIR, side=position_side)
                                 exit_time = datetime.now(timezone.utc).isoformat()
@@ -1245,7 +1246,7 @@ class JobRunner:
                                 )
                                 self._record_strategy_result(current_profit_pips)
                             except Exception as exc:
-                                logger.warning(f"Peak exit failed: {exc}")
+                                log.warning(f"Peak exit failed: {exc}")
                             self.max_profit_pips = 0.0
                             self.breakeven_reached = False
                             self.sl_reset_done = False
@@ -1256,13 +1257,13 @@ class JobRunner:
 
                         if current_profit_pips >= TP_PIPS * AI_PROFIT_TRIGGER_RATIO:
                             if secs_since_entry is not None and secs_since_entry < MIN_HOLD_SECONDS:
-                                logger.info(
+                                log.info(
                                     f"Hold time {secs_since_entry:.1f}s < {MIN_HOLD_SECONDS}s → skip exit call"
                                 )
                             else:
                                 # EXITフィルターを評価し、フィルターNGの場合はAIの決済判断をスキップ
                                 if pass_exit_filter(indicators, position_side):
-                                    logger.info("Filter OK → Processing exit decision with AI.")
+                                    log.info("Filter OK → Processing exit decision with AI.")
                                     self.last_ai_call = datetime.now()
                                     cond_ind = self._get_cond_indicators()
                                     market_cond = get_market_condition(
@@ -1288,7 +1289,7 @@ class JobRunner:
                                     },
                                         higher_tf,
                                     )
-                                    logger.debug(f"Market condition (exit): {market_cond}")
+                                    log.debug(f"Market condition (exit): {market_cond}")
                                     exit_ctx = build_exit_context(
                                         has_position,
                                         tick_data,
@@ -1298,7 +1299,7 @@ class JobRunner:
                                     try:
                                         ai_dec = evaluate_exit_ai(exit_ctx)
                                     except Exception as exc:
-                                        logger.warning(f"exit AI evaluation failed: {exc}")
+                                        log.warning(f"exit AI evaluation failed: {exc}")
                                         ai_dec = None
                                     if ai_dec and ai_dec.action == "SCALE":
                                         pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
@@ -1320,10 +1321,10 @@ class JobRunner:
                                         )
                                         allow_scale = True
                                         if SCALE_MAX_POS > 0 and self.scale_count >= SCALE_MAX_POS:
-                                            logger.info("Scale limit reached → ignoring SCALE signal")
+                                            log.info("Scale limit reached → ignoring SCALE signal")
                                             allow_scale = False
                                         if allow_scale and SCALE_TRIGGER_ATR > 0 and diff_pips < (atr_val / pip_size) * SCALE_TRIGGER_ATR:
-                                            logger.info(
+                                            log.info(
                                                 f"Scale trigger {diff_pips:.1f} < {(atr_val / pip_size) * SCALE_TRIGGER_ATR:.1f} pips"
                                             )
                                             allow_scale = False
@@ -1345,13 +1346,13 @@ class JobRunner:
                                                     market_data=tick_data,
                                                     strategy_params={"instrument": DEFAULT_PAIR, "mode": "market"},
                                                 )
-                                                logger.info(
+                                                log.info(
                                                     f"Scaled into position ({position_side}) by {SCALE_LOT_SIZE} lots"
                                                 )
                                                 self.scale_count += 1
                                                 has_position = check_current_position(DEFAULT_PAIR)
                                             except Exception as exc:
-                                                logger.warning(f"Failed to scale position: {exc}")
+                                                log.warning(f"Failed to scale position: {exc}")
                                             exit_executed = False
                                         else:
                                             exit_executed = process_exit(
@@ -1375,7 +1376,7 @@ class JobRunner:
                                         )
                                     if exit_executed:
                                         self.last_close_ts = datetime.now(timezone.utc)
-                                        logger.info("Position closed based on AI recommendation.")
+                                        log.info("Position closed based on AI recommendation.")
                                         send_line_message(
                                             f"【EXIT】{DEFAULT_PAIR} {current_price} で決済しました。PL={current_profit_pips:.1f}pips"
                                         )
@@ -1383,9 +1384,9 @@ class JobRunner:
                                         self.scale_count = 0
                                         info("exit", pair=DEFAULT_PAIR, reason="AI", price=current_price, pnl=current_profit_pips)
                                     else:
-                                        logger.info("AI decision was HOLD → No exit executed.")
+                                        log.info("AI decision was HOLD → No exit executed.")
                                 else:
-                                    logger.info("Filter NG → AI exit decision skipped.")
+                                    log.info("Filter NG → AI exit decision skipped.")
 
                     # ---- Position‑review timing -----------------------------
                     due_for_review = False
@@ -1396,7 +1397,7 @@ class JobRunner:
                         else:
                             elapsed_review = (now - self.last_position_review_ts).total_seconds()
                             due_for_review = elapsed_review >= self.review_sec
-                        logger.debug(
+                        log.debug(
                             "review check: ts=%s elapsed=%s review_sec=%s due=%s",
                             self.last_position_review_ts,
                             f"{elapsed_review:.1f}" if elapsed_review is not None else "N/A",
@@ -1407,7 +1408,7 @@ class JobRunner:
                     # --- Cool‑down check ------------------------------------
                     elapsed_seconds = (datetime.now() - self.last_ai_call).total_seconds()
                     if (not due_for_review) and elapsed_seconds < self.ai_cooldown:
-                        logger.info(
+                        log.info(
                             f"AI cooldown active ({elapsed_seconds:.1f}s < {self.ai_cooldown}s). Skipping AI call."
                         )
                         self.last_run = now
@@ -1420,7 +1421,7 @@ class JobRunner:
                     # Periodic exit review
                     if has_position and due_for_review:
                         self.last_position_review_ts = now
-                        logger.debug(
+                        log.debug(
                             "last_position_review_ts updated to %s",
                             self.last_position_review_ts,
                         )
@@ -1443,7 +1444,7 @@ class JobRunner:
                             profit_pips = 0.0
 
                         if secs_since_entry is not None and secs_since_entry < MIN_HOLD_SECONDS:
-                            logger.info(
+                            log.info(
                                 f"Hold time {secs_since_entry:.1f}s < {MIN_HOLD_SECONDS}s → skip exit call"
                             )
                             pass_exit = False
@@ -1451,7 +1452,7 @@ class JobRunner:
                             pass_exit = pass_exit_filter(indicators, position_side)
 
                         if pass_exit:
-                            logger.info("Filter OK → Processing periodic exit decision with AI.")
+                            log.info("Filter OK → Processing periodic exit decision with AI.")
                             self.last_ai_call = datetime.now()
                             cond_ind = self._get_cond_indicators()
                             market_cond = get_market_condition(
@@ -1477,7 +1478,7 @@ class JobRunner:
                                 },
                                 higher_tf,
                             )
-                            logger.debug(f"Market condition (review): {market_cond}")
+                            log.debug(f"Market condition (review): {market_cond}")
                             exit_ctx = build_exit_context(
                                 has_position,
                                 tick_data,
@@ -1487,7 +1488,7 @@ class JobRunner:
                             try:
                                 ai_dec = evaluate_exit_ai(exit_ctx)
                             except Exception as exc:
-                                logger.warning(f"exit AI evaluation failed: {exc}")
+                                log.warning(f"exit AI evaluation failed: {exc}")
                                 ai_dec = None
                             if ai_dec and ai_dec.action == "SCALE":
                                 pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
@@ -1509,10 +1510,10 @@ class JobRunner:
                                 )
                                 allow_scale = True
                                 if SCALE_MAX_POS > 0 and self.scale_count >= SCALE_MAX_POS:
-                                    logger.info("Scale limit reached → ignoring SCALE signal")
+                                    log.info("Scale limit reached → ignoring SCALE signal")
                                     allow_scale = False
                                 if allow_scale and SCALE_TRIGGER_ATR > 0 and diff_pips < (atr_val / pip_size) * SCALE_TRIGGER_ATR:
-                                    logger.info(
+                                    log.info(
                                         f"Scale trigger {diff_pips:.1f} < {(atr_val / pip_size) * SCALE_TRIGGER_ATR:.1f} pips"
                                     )
                                     allow_scale = False
@@ -1534,13 +1535,13 @@ class JobRunner:
                                             market_data=tick_data,
                                             strategy_params={"instrument": DEFAULT_PAIR, "mode": "market"},
                                         )
-                                        logger.info(
+                                        log.info(
                                             f"Scaled into position ({position_side}) by {SCALE_LOT_SIZE} lots"
                                         )
                                         self.scale_count += 1
                                         has_position = check_current_position(DEFAULT_PAIR)
                                     except Exception as exc:
-                                        logger.warning(f"Failed to scale position: {exc}")
+                                        log.warning(f"Failed to scale position: {exc}")
                                     exit_executed = False
                                 else:
                                     exit_executed = process_exit(
@@ -1564,7 +1565,7 @@ class JobRunner:
                                 )
                             if exit_executed:
                                 self.last_close_ts = datetime.now(timezone.utc)
-                                logger.info("Position closed based on AI recommendation.")
+                                log.info("Position closed based on AI recommendation.")
                                 send_line_message(
                                     f"【EXIT】{DEFAULT_PAIR} {cur_price} で決済しました。PL={profit_pips * pip_size:.2f}"
                                 )
@@ -1572,9 +1573,9 @@ class JobRunner:
                                 self.scale_count = 0
                                 info("exit", pair=DEFAULT_PAIR, reason="AI", price=cur_price, pnl=profit_pips * pip_size)
                             else:
-                                logger.info("AI decision was HOLD → No exit executed.")
+                                log.info("AI decision was HOLD → No exit executed.")
                         else:
-                            logger.info("Filter NG → AI exit decision skipped.")
+                            log.info("Filter NG → AI exit decision skipped.")
 
                     # AIによるエントリー/エグジット判断
                     if not has_position:
@@ -1586,7 +1587,7 @@ class JobRunner:
                             self.last_close_ts
                             and (datetime.now(timezone.utc) - self.last_close_ts).total_seconds() < self.entry_cooldown_sec
                         ):
-                            logger.info(
+                            log.info(
                                 f"Entry cooldown active ({(datetime.now(timezone.utc) - self.last_close_ts).total_seconds():.1f}s < {self.entry_cooldown_sec}s). Skipping entry."
                             )
                             self.last_run = now
@@ -1611,7 +1612,7 @@ class JobRunner:
                                 if pivot is None:
                                     continue
                                 if abs((current_price - pivot) / pip_size) <= sup_pips:
-                                    logger.info(
+                                    log.info(
                                         f"Pivot suppression: price {current_price} within {sup_pips} pips of {tf} pivot {pivot}. Skipping entry."
                                     )
                                     suppress = True
@@ -1633,7 +1634,7 @@ class JobRunner:
                             self.indicators_H1,
                             mode=self.trade_mode,
                         ):
-                            logger.info("Filter OK → Processing entry decision with AI.")
+                            log.info("Filter OK → Processing entry decision with AI.")
                             self.last_ai_call = datetime.now()  # record AI call time *before* the call
                             cond_ind = self._get_cond_indicators()
                             market_cond = get_market_condition(
@@ -1659,11 +1660,11 @@ class JobRunner:
                                 },
                                 higher_tf,
                             )
-                            logger.debug(f"Market condition (post‑filter): {market_cond}")
+                            log.debug(f"Market condition (post‑filter): {market_cond}")
 
                             climax_side = detect_climax_reversal(candles_m5, indicators)
                             if climax_side and not has_position:
-                                logger.info(f"Climax reversal detected → {climax_side} entry")
+                                log.info(f"Climax reversal detected → {climax_side} entry")
                                 params = {
                                     "instrument": DEFAULT_PAIR,
                                     "side": climax_side,
@@ -1694,7 +1695,7 @@ class JobRunner:
                                 continue
 
                             if filter_pre_ai(candles_m5, indicators, market_cond):
-                                logger.info("Pre-AI filter triggered → skipping entry.")
+                                log.info("Pre-AI filter triggered → skipping entry.")
                                 self.last_run = now
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)
@@ -1705,16 +1706,16 @@ class JobRunner:
                                 try:
                                     direction = market_cond.get("range_break")
                                     follow = follow_breakout(candles_m5, indicators, direction)
-                                    logger.info(f"follow_breakout result: {follow}")
+                                    log.info(f"follow_breakout result: {follow}")
                                 except Exception as exc:
-                                    logger.warning(f"follow_breakout failed: {exc}")
+                                    log.warning(f"follow_breakout failed: {exc}")
 
                             margin_used = get_margin_used()
-                            logger.info(f"marginUsed={margin_used}")
+                            log.info(f"marginUsed={margin_used}")
                             if margin_used is None:
-                                logger.warning("Failed to obtain marginUsed")
+                                log.warning("Failed to obtain marginUsed")
                             elif MARGIN_WARNING_THRESHOLD > 0 and margin_used > MARGIN_WARNING_THRESHOLD:
-                                logger.warning(
+                                log.warning(
                                     f"marginUsed {margin_used} exceeds threshold {MARGIN_WARNING_THRESHOLD}"
                                 )
 
@@ -1731,7 +1732,7 @@ class JobRunner:
                                 )
                                 side = plan_check.get("entry", {}).get("side", "no").lower()
                             except Exception as exc:
-                                logger.warning(f"get_trade_plan failed for check: {exc}")
+                                log.warning(f"get_trade_plan failed for check: {exc}")
                                 side = "no"
 
                             cooldown = int(env_loader.get_env("SL_COOLDOWN_SEC", str(self.sl_cooldown_sec)))
@@ -1741,7 +1742,7 @@ class JobRunner:
                                 and (now - self.last_sl_time).total_seconds() < cooldown
                                 and side == self.last_sl_side
                             ):
-                                logger.info(
+                                log.info(
                                     f"Entry blocked: recent SL hit on {side}. Cooldown {(now - self.last_sl_time).total_seconds():.0f}s < {cooldown}s"
                                 )
                                 log_entry_skip(
@@ -1757,7 +1758,7 @@ class JobRunner:
                                 continue
 
                             if side == "long" and consecutive_lower_lows(candles_m5):
-                                logger.info("Entry blocked: consecutive lower lows detected")
+                                log.info("Entry blocked: consecutive lower lows detected")
                                 log_entry_skip(DEFAULT_PAIR, side, "lower_lows")
                                 self.last_run = now
                                 update_oanda_trades()
@@ -1766,7 +1767,7 @@ class JobRunner:
                                 continue
 
                             if side == "short" and consecutive_higher_highs(candles_m5):
-                                logger.info("Entry blocked: consecutive higher highs detected")
+                                log.info("Entry blocked: consecutive higher highs detected")
                                 log_entry_skip(DEFAULT_PAIR, side, "higher_highs")
                                 self.last_run = now
                                 update_oanda_trades()
@@ -1783,14 +1784,14 @@ class JobRunner:
                             )
                             if is_counter:
                                 if env_loader.get_env("BLOCK_COUNTER_TREND", "true").lower() == "true":
-                                    logger.info("Entry blocked: counter-trend condition")
+                                    log.info("Entry blocked: counter-trend condition")
                                     log_entry_skip(DEFAULT_PAIR, side, "counter_trend")
                                     self.last_run = now
                                     update_oanda_trades()
                                     time.sleep(self.interval_seconds)
                                     timer.stop()
                                     continue
-                                logger.info("Counter-trend detected → TP reduced")
+                                log.info("Counter-trend detected → TP reduced")
                                 tp_ratio = float(
                                     env_loader.get_env("COUNTER_TREND_TP_RATIO", "0.5")
                                 )
@@ -1821,22 +1822,22 @@ class JobRunner:
                                     if age >= self.pending_grace_sec:
                                         try:
                                             order_mgr.cancel_order(pend["order_id"])
-                                            logger.info(
+                                            log.info(
                                                 f"AI declined entry; canceled pending LIMIT {pend['order_id']}"
                                             )
                                         except Exception as exc:
-                                            logger.warning(
+                                            log.warning(
                                                 f"Failed to cancel pending LIMIT {pend['order_id']}: {exc}"
                                             )
-                                        for key, info in list(_pending_limits.items()):
-                                            if info.get("order_id") == pend["order_id"]:
+                                        for key, rec in list(_pending_limits.items()):
+                                            if rec.get("order_id") == pend["order_id"]:
                                                 _pending_limits.pop(key, None)
                                                 break
                                     else:
-                                        logger.info(
+                                        log.info(
                                             f"Pending LIMIT age {age:.0f}s < grace period; keeping order"
                                         )
-                                logger.info(
+                                log.info(
                                     "process_entry returned False → aborting entry and continuing loop"
                                 )
                                 self.last_run = now
@@ -1852,7 +1853,7 @@ class JobRunner:
                             self.last_entry_context = self.current_context
                             self.last_entry_strategy = self.current_strategy_name
                         else:
-                            logger.info("Filter NG → AI entry decision skipped.")
+                            log.info("Filter NG → AI entry decision skipped.")
                             self.last_position_review_ts = None
                     # (removed: periodic exit check block)
                 # Update OANDA trade history every second
@@ -1868,7 +1869,7 @@ class JobRunner:
                 timer.stop()
 
             except Exception as e:
-                logger.error(f"Error occurred during job execution: {e}", exc_info=True)
+                log.error(f"Error occurred during job execution: {e}", exc_info=True)
                 self.safety.record_error()
                 metrics_publisher.publish("job_error", 1)
                 time.sleep(self.interval_seconds)
