@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 # 環境変数名の揺れを吸収するため複数キーをチェック
 KAFKA_SERVERS = (
     os.getenv("KAFKA_SERVERS")
+    or os.getenv("KAFKA_BROKERS")
     or os.getenv("KAFKA_BROKER_URL")
     or os.getenv("KAFKA_BOOTSTRAP_SERVERS")
     or "localhost:9092"
