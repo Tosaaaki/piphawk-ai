@@ -60,7 +60,9 @@ from backend.risk_manager import (
 )
 from datetime import datetime, timezone
 from backend.utils import env_loader
-from signals.composite_mode import decide_trade_mode
+# signals パッケージはプロジェクト直下にあるため、
+# 絶対インポートで確実に読み込む
+from piphawk_ai.signals.composite_mode import decide_trade_mode
 import os
 import logging
 import json
