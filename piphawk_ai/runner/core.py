@@ -360,6 +360,24 @@ class JobRunner:
 
         logger.info("Initial SCALP_MODE is %s", "ON" if scalp_active else "OFF")
 
+        # 戦略セレクターを初期化
+        use_policy = env_loader.get_env("USE_OFFLINE_POLICY", "false").lower() == "true"
+        self.strategy_selector = StrategySelector(
+            {"scalp": ScalpStrategy(), "trend": TrendStrategy()},
+            use_offline_policy=use_policy,
+        )
+        self.last_entry_context = None
+        self.last_entry_strategy = None
+        self.current_context = None
+        self.current_strategy_name = None
+
+        info(
+            "startup",
+            mode=self.trade_mode or "none",
+            scalp_mode=scalp_active,
+            ai_version=os.getenv("AI_VERSION", "unknown"),
+        )
+
     def _get_recent_trade_pl(self, limit: int = 50) -> list[float]:
         from backend.logs.log_manager import get_db_connection
 
@@ -399,21 +417,7 @@ class JobRunner:
                 except Exception as exc:  # pragma: no cover
                     logger.error(f"Force close failed: {exc}")
                     
-        use_policy = env_loader.get_env("USE_OFFLINE_POLICY", "false").lower() == "true"
-        self.strategy_selector = StrategySelector(
-            {"scalp": ScalpStrategy(), "trend": TrendStrategy()},
-            use_offline_policy=use_policy,
-        )
-        self.last_entry_context = None
-        self.last_entry_strategy = None
-        self.current_context = None
-        self.current_strategy_name = None
-        info(
-            "startup",
-            mode=self.trade_mode or "none",
-            scalp_mode=scalp_active,
-            ai_version=os.getenv("AI_VERSION", "unknown"),
-        )
+
 
     def _get_cond_indicators(self) -> dict:
         """Return indicators for market condition check."""
