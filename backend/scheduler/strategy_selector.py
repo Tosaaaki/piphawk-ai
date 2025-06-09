@@ -3,9 +3,18 @@ from __future__ import annotations
 """Strategy selection using LinUCB with optional offline policy."""
 
 import logging
+import sys
+import types
 from typing import Any, Dict, List
 
 import numpy as np
+try:  # pandas may be stubbed during testing
+    import pandas as _pd  # type: ignore
+    if not hasattr(_pd, "DataFrame"):
+        raise ImportError
+except Exception:  # pragma: no cover - minimal stub for mabwiser
+    _pd = types.SimpleNamespace(DataFrame=list, Series=list)
+    sys.modules["pandas"] = _pd
 from mabwiser.mab import MAB, LearningPolicy
 
 from backend.utils import env_loader
@@ -26,11 +35,11 @@ class StrategySelector:
     ) -> None:
         self.strategies = strategies
         arms = list(strategies.keys())
+        self.alpha = alpha
         bandit_enabled = env_loader.get_env("BANDIT_ENABLED", "true").lower() == "true"
         if bandit_enabled:
             try:
                 self.bandit = MAB(arms=arms, learning_policy=LearningPolicy.LinUCB(alpha=alpha))
-                self.bandit.fit([], [], np.empty((0, 1)))
             except Exception as exc:  # pragma: no cover - fallback on import issues
                 logger.warning("LinUCB init failed: %s", exc)
                 self.bandit = None
@@ -47,6 +56,24 @@ class StrategySelector:
                 self.offline_policy = None
         else:
             self.offline_policy = None
+
+    def _ensure_bandit_ready(self, ctx: List[List[float]]) -> None:
+        """Fit or reinitialize bandit when context dimension changes."""
+        if self.bandit is None:
+            return
+        dim = len(ctx[0])
+        try:
+            if not getattr(self.bandit, "_is_initial_fit", False):
+                self.bandit.fit([], [], np.empty((0, dim)))
+            elif getattr(self.bandit._imp, "num_features", None) != dim:
+                self.bandit = MAB(
+                    arms=list(self.strategies.keys()),
+                    learning_policy=LearningPolicy.LinUCB(alpha=self.alpha),
+                )
+                self.bandit.fit([], [], np.empty((0, dim)))
+        except Exception as exc:  # pragma: no cover - unexpected errors
+            logger.warning("LinUCB init failed: %s", exc)
+            self.bandit = None
 
     def _vec(self, context: Dict[str, Any]) -> List[float]:
         """Convert context dict to numeric vector."""
@@ -65,8 +92,10 @@ class StrategySelector:
         ctx = [self._vec(context)]
         if self.bandit is not None:
             try:
-                arm = self.bandit.predict(ctx)
-                return self.strategies[arm]
+                self._ensure_bandit_ready(ctx)
+                if self.bandit is not None:
+                    arm = self.bandit.predict(ctx)
+                    return self.strategies[arm]
             except Exception as exc:  # pragma: no cover
                 logger.warning("Bandit prediction failed: %s", exc)
         # Fallback to first strategy
@@ -76,7 +105,12 @@ class StrategySelector:
         if self.bandit is None:
             return
         ctx = [self._vec(context)]
-        self.bandit.partial_fit([arm], [reward], ctx)
+        try:
+            self._ensure_bandit_ready(ctx)
+            if self.bandit is not None:
+                self.bandit.partial_fit([arm], [reward], ctx)
+        except Exception as exc:  # pragma: no cover
+            logger.warning("Bandit update failed: %s", exc)
 
     def available_strategies(self) -> List[str]:
         return list(self.strategies.keys())
