@@ -3,8 +3,10 @@ from __future__ import annotations
 """Convenience entry point for running Piphawk components."""
 
 import argparse
+import logging
 
 from backend.utils import env_loader
+from backend.logs.log_manager import init_db
 
 import uvicorn
 
@@ -19,6 +21,12 @@ def main() -> None:
         help="Component to run: 'api' starts the FastAPI server, 'job' runs the job scheduler",
     )
     args = parser.parse_args()
+
+    # DBが初期化されていない場合はここで作成しておく
+    try:
+        init_db()
+    except Exception as exc:  # pragma: no cover - 初期化失敗はログ出力のみに留める
+        logging.getLogger(__name__).warning("init_db failed: %s", exc)
 
     if args.component == "api":
         port = int(env_loader.get_env("API_PORT", "8080"))
