@@ -4,7 +4,11 @@ import uuid
 import logging
 import json
 import os
-from prometheus_client import start_http_server
+try:
+    from prometheus_client import start_http_server
+except Exception:  # pragma: no cover - optional dependency or test stub
+    def start_http_server(*_args, **_kwargs):
+        return None
 
 from backend.utils import env_loader, trade_age_seconds
 

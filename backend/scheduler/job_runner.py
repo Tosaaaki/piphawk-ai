@@ -4,7 +4,11 @@ import uuid
 import logging
 import json
 import os
-from prometheus_client import start_http_server
+try:
+    from prometheus_client import start_http_server
+except Exception:  # pragma: no cover - optional dependency or test stub
+    def start_http_server(*_args, **_kwargs):
+        return None
 
 from backend.utils import env_loader, trade_age_seconds
 
@@ -368,8 +372,10 @@ class JobRunner:
         use_policy = env_loader.get_env("USE_OFFLINE_POLICY", "false").lower() == "true"
         self.strategy_selector = StrategySelector(
             {"scalp": ScalpStrategy(), "trend": TrendStrategy()},
-            use_offline_policy=use_policy,
+            use_offline_policy=False,
         )
+        if use_policy and self.current_policy is not None:
+            self.strategy_selector.offline_policy = self.current_policy
         self.last_entry_context = None
         self.last_entry_strategy = None
         self.current_context = None
