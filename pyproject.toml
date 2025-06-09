@@ -53,4 +53,5 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["piphawk_ai", "backend"]
+# signals パッケージを追加
+packages = ["piphawk_ai", "backend", "signals"]
