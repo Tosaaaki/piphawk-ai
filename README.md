@@ -161,6 +161,7 @@ piphawk-ai/
 
 The root also includes `Dockerfile` definitions for containerized deployment and
 `trades.db` as the default SQLite database path.
+When running inside Docker this file is located at `/app/trades.db` by default.
 
 ### Using strategy.yml
 

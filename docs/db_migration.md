@@ -1,5 +1,7 @@
 # Database Migration
 
+When running in Docker the default SQLite path is `/app/trades.db`.
+
 The `trades` table now stores the full AI response for each entry or exit.
 A new column `ai_response` has been added.  
 Additionally the table tracks take‑profit and stop‑loss distances (`tp_pips`,

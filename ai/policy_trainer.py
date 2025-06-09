@@ -5,11 +5,13 @@ import json
 from pathlib import Path
 from typing import Dict, Any
 
+from backend.utils import env_loader
+
 import numpy as np
 from d3rlpy.algos import DiscreteCQL
 from d3rlpy.dataset import MDPDataset
 
-DB_PATH = Path(__file__).resolve().parents[1] / "trades.db"
+DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", "/app/trades.db"))
 MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "policy_model.d3"
 
 
