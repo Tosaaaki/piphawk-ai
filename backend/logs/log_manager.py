@@ -11,6 +11,10 @@ _BASE_DIR = Path(__file__).resolve().parents[2]
 DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", str(_BASE_DIR / "trades.db")))
 
 def get_db_connection():
+    """Return SQLite connection, initializing DB if it doesn't exist."""
+    # DB ファイルが存在しなければテーブル作成
+    if not DB_PATH.exists():
+        init_db()
     return sqlite3.connect(DB_PATH, timeout=30)
 
 def init_db():
