@@ -4,3 +4,8 @@ trades.db
 .git
 __pycache__/
 *.py[cod]
+.venv/
+node_modules/
+tests/
+docs/
+.github/

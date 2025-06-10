@@ -17,7 +17,7 @@
 3. Build and run the backend container
 
    ```bash
-   docker build -t piphawk-ai .
+   DOCKER_BUILDKIT=1 docker build -t piphawk-ai .
    docker run --env-file .env -p 8080:8080 \
      -v $(pwd)/backend/logs:/app/backend/logs piphawk-ai
    ```
