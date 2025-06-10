@@ -7,6 +7,9 @@ from backend.utils import env_loader
 
 THRESHOLD = int(env_loader.get_env("CLEANUP_THRESHOLD", "80"))  # %
 
+if not 1 <= THRESHOLD <= 100:
+    raise ValueError("CLEANUP_THRESHOLD must be between 1 and 100")
+
 # ルートFS使用率を返す
 
 def root_usage_pct() -> int:
