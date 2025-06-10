@@ -5,6 +5,7 @@ from logging import getLogger
 import logging
 import json
 import os
+import sys
 try:
     from prometheus_client import start_http_server
 except Exception:  # pragma: no cover - optional dependency or test stub
