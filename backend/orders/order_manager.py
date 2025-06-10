@@ -219,6 +219,7 @@ class OrderManager:
         if comment_json:
             order["clientExtensions"]["comment"] = comment_json
         data = {"order": order}
+        logger.debug(f"[DEBUG] place_market_order body: {data}")
         response = _SESSION.post(url, json=data, headers=HEADERS)
         logger.debug(f"Market order response: {response.status_code} {response.text}")
         if response.status_code != 201:
