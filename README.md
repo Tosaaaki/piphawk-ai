@@ -529,6 +529,12 @@ the main loop or run it manually:
 python3 maintenance/disk_guard.py
 ```
 
+`docker_cleanup.sh` も用意しており、ジョブランナーや cron から直接呼び出せます。しきい値は環境変数 `THRESHOLD` で調整可能です。
+
+```bash
+THRESHOLD=80 bash maintenance/docker_cleanup.sh
+```
+
 ### Kafka log retention
 
 `docker-compose.yml` sets Kafka's `log.retention.hours` and
