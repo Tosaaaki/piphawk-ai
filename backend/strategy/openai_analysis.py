@@ -44,7 +44,7 @@ AI_REGIME_COOLDOWN_SEC: int = int(env_loader.get_env("AI_REGIME_COOLDOWN_SEC", A
 # --- Threshold for AI‑proposed TP probability ---
 MIN_TP_PROB: float = float(env_loader.get_env("MIN_TP_PROB", "0.75"))
 TP_PROB_HOURS: int = int(env_loader.get_env("TP_PROB_HOURS", "24"))
-PROB_MARGIN: float = float(env_loader.get_env("PROB_MARGIN", "0.02"))
+PROB_MARGIN: float = float(env_loader.get_env("PROB_MARGIN", "0.1"))
 LIMIT_THRESHOLD_ATR_RATIO: float = float(env_loader.get_env("LIMIT_THRESHOLD_ATR_RATIO", "0.3"))
 MAX_LIMIT_AGE_SEC: int = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
 MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "2"))

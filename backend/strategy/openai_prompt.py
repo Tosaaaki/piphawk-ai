@@ -311,6 +311,7 @@ Respond with **one-line valid JSON** exactly as:
     if bias == "aggressive":
         bias_note = (
             "\nBe proactive: when signals are mixed, favor taking a position rather than returning 'no'."
+            "\nIf conditions are ambiguous, prefer 'long' or 'short' rather than 'no'."
         )
     prompt += bias_note
     return prompt, comp_val
