@@ -9,7 +9,7 @@ from pathlib import Path
 
 import yaml
 
-from backend.orders.order_manager import OrderManager
+from backend.orders.order_manager import OrderManager, get_pip_size
 from backend.orders.position_manager import get_open_positions
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ def enter_scalp_trade(instrument: str, side: str = "long") -> None:
     if not trade_id:
         return
     price = float(res.get("orderFillTransaction", {}).get("price", 0.0))
-    pip = order_mgr.get_pip_size(instrument)
+    pip = get_pip_size(instrument)
     tp = price + SCALP_TP_PIPS * pip if side == "long" else price - SCALP_TP_PIPS * pip
     sl = price - SCALP_SL_PIPS * pip if side == "long" else price + SCALP_SL_PIPS * pip
     order_mgr.adjust_tp_sl(instrument, trade_id, new_tp=tp, new_sl=sl)
