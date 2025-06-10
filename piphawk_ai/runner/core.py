@@ -445,12 +445,16 @@ class JobRunner:
 
     def reload_params_for_mode(self, mode: str) -> None:
         """Load YAML parameters for the given mode and optionally restart."""
-        file_map = {
-            "scalp": "config/scalp_params.yml",
-            "scalp_momentum": "config/scalp_params.yml",
-            "trend_follow": "config/trend.yml",
-        }
-        path = file_map.get(mode, "config/strategy.yml")
+        # モード別に適切な設定ファイルを選択
+        if mode in ("scalp", "scalp_momentum"):
+            path = "config/scalp.yml"
+        elif mode in ("trend", "trend_follow"):
+            path = "config/trend.yml"
+        elif mode in ("flat",):
+            path = "config/strategy.yml"
+        else:
+            # 未知のモードはデフォルトを利用
+            path = "config/strategy.yml"
         try:
             params_loader.save_last_mode(mode)
         except Exception:
