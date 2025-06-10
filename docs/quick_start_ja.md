@@ -18,7 +18,8 @@
 
    ```bash
    docker build -t piphawk-ai .
-   docker run --env-file .env -p 8080:8080 piphawk-ai
+   docker run --env-file .env -p 8080:8080 \
+     -v $(pwd)/backend/logs:/app/backend/logs piphawk-ai
    ```
 
 4. React UI を起動
