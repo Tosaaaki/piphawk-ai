@@ -13,7 +13,16 @@ def log(msg: str) -> None:
 
 
 def run(cmd: str) -> None:
-    """Run shell command ignoring failures."""
+    """Run shell command ignoring failures.
+
+    If ``sudo`` is not available, drop the prefix and execute the command
+    directly. This allows running the script in environments without root
+    privileges.
+    """
+    if shutil.which("sudo") is None:
+        stripped = cmd.lstrip()
+        if stripped.startswith("sudo "):
+            cmd = stripped[5:]
     try:
         subprocess.run(cmd, check=True, shell=True)
     except FileNotFoundError:
