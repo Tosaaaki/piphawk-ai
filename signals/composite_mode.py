@@ -253,8 +253,6 @@ def decide_trade_mode_detail(
     else:
         _RANGE_ADX_COUNTER = 0
 
-    if _LAST_MODE == "trend_follow" and score >= TREND_HOLD_SCORE:
-
     strong_cond = (
         adx_val is not None
         and adx_val >= MODE_ADX_STRONG
