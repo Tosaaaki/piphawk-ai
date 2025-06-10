@@ -1,3 +1,4 @@
+import logging
 import requests
 from backend.utils import env_loader
 
@@ -6,6 +7,8 @@ from backend.utils import env_loader
 OANDA_API_URL = env_loader.get_env('OANDA_API_URL', 'https://api-fxtrade.oanda.com/v3')
 OANDA_API_KEY = env_loader.get_env('OANDA_API_KEY')
 OANDA_ACCOUNT_ID = env_loader.get_env('OANDA_ACCOUNT_ID')
+
+logger = logging.getLogger(__name__)
 
 def fetch_tick_data(instrument: str | None = None, *, include_liquidity: bool = False):
     """Fetch the latest tick (pricing) data from the OANDA API.
@@ -42,11 +45,11 @@ def fetch_tick_data(instrument: str | None = None, *, include_liquidity: bool = 
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
-        print(f"Error fetching tick data: {e}")
+        logger.error("Error fetching tick data: %s", e)
         return None
 
 # Example usage (remove or comment out in production)
 if __name__ == "__main__":
     instrument = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
     data = fetch_tick_data(instrument)
-    print(data)
+    logger.debug("%s", data)
