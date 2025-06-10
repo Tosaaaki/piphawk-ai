@@ -445,6 +445,10 @@ class JobRunner:
 
     def reload_params_for_mode(self, mode: str) -> None:
         """Load YAML parameters for the given mode and optionally restart."""
+        # デバッグ: 呼び出し時のモードを記録
+        logger.debug(
+            "[DEBUG] reload_params_for_mode called with mode=%r", mode
+        )
         # ----------------------
         # モードごとの設定ファイル
         # ----------------------
@@ -457,6 +461,10 @@ class JobRunner:
         else:
             # 想定外のモードは戦略デフォルト
             config_file = "config/strategy.yml"
+        # デバッグ: マッピング結果を記録
+        logger.debug(
+            "[DEBUG] mapped mode %r → config_file=%s", mode, config_file
+        )
         try:
             params_loader.save_last_mode(mode)
         except Exception:
