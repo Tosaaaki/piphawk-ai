@@ -23,8 +23,8 @@ RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu 
 # pyproject.toml を利用してパッケージをインストール
 RUN pip install --no-cache-dir .
 
-# create an empty SQLite database if not provided
-RUN touch /app/trades.db
+# ensure logs directory exists
+RUN mkdir -p /app/backend/logs
 
 ENV PYTHONUNBUFFERED=1
 ENV TZ=Asia/Tokyo
