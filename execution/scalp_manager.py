@@ -72,6 +72,13 @@ def enter_scalp_trade(instrument: str, side: str = "long") -> None:
     if sl_pips is None:
         sl_pips = SCALP_SL_PIPS
 
+    min_sl = float(os.getenv("MIN_SL_PIPS", "0"))
+    dyn_min = 0.0
+    if atr_pips is not None:
+        mult = float(os.getenv("ATR_SL_MULTIPLIER", "2.0"))
+        dyn_min = atr_pips * mult
+    sl_pips = max(sl_pips, min_sl, dyn_min)
+
     units = SCALP_UNIT_SIZE if side == "long" else -SCALP_UNIT_SIZE
     res = order_mgr.place_market_with_tp_sl(
         instrument,
