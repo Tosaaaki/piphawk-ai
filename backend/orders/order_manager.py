@@ -595,6 +595,42 @@ class OrderManager:
             lot=lot_size,
             regime=(strategy_params.get("market_cond") or {}).get("market_condition"),
         )
+
+        # --- もし TP/SL が付いていない場合は再設定する ---------------------
+        if with_oco and tp_pips and sl_pips:
+            trade_id = (
+                result.get("orderFillTransaction", {})
+                .get("tradeOpened", {})
+                .get("tradeID")
+            )
+            if trade_id and hasattr(self, "get_current_tp"):
+                time.sleep(1)
+                try:
+                    current_tp = self.get_current_tp(trade_id)
+                except Exception:
+                    current_tp = None
+                if current_tp is None:
+                    tp_price = (
+                        entry_price + float(tp_pips) * pip
+                        if side == "long"
+                        else entry_price - float(tp_pips) * pip
+                    )
+                    sl_price = (
+                        entry_price - float(sl_pips) * pip
+                        if side == "long"
+                        else entry_price + float(sl_pips) * pip
+                    )
+                    try:
+                        self.adjust_tp_sl(
+                            instrument,
+                            trade_id,
+                            new_tp=tp_price,
+                            new_sl=sl_price,
+                        )
+                        logger.info(f"Reattached TP/SL for trade {trade_id}")
+                    except Exception as exc:
+                        logger.warning(f"TP/SL reattach failed: {exc}")
+
         return result
 
     def exit_trade(self, position):
