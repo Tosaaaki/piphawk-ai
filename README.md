@@ -506,6 +506,16 @@ python3 maintenance/system_cleanup.py
 Copy `maintenance/system_cleanup.service` and `maintenance/system_cleanup.timer`
 to `/etc/systemd/system/` and enable the timer to automate these tasks.
 
+### Disk guard
+
+`maintenance/disk_guard.py` checks the root filesystem usage and triggers
+`system_cleanup.py` automatically when the usage is 80% or higher.  Invoke it in
+the main loop or run it manually:
+
+```bash
+python3 maintenance/disk_guard.py
+```
+
 ## React UI
 
 The active React application lives in `piphawk-ui/` and was bootstrapped with Create React App. Run it locally with:

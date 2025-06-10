@@ -12,6 +12,7 @@ except Exception:  # pragma: no cover - optional dependency or test stub
         return None
 
 from backend.utils import env_loader, trade_age_seconds
+from maintenance.disk_guard import maybe_cleanup
 
 try:
     from config import params_loader
@@ -903,6 +904,7 @@ class JobRunner:
         log.info("Job Runner started.")
         while not self._stop:
             try:
+                maybe_cleanup()
                 timer = PerfTimer("job_loop")
                 now = datetime.now(timezone.utc)
                 # ---- Market‑hours guard ---------------------------------
