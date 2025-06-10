@@ -498,7 +498,9 @@ DAYS=60 python3 -m backend.logs.cleanup
 ### System cleanup
 
 Old cache files and log archives can consume disk space over time. Run the
-helper script below or enable the provided systemd timer for periodic cleanup:
+helper script below or enable the provided systemd timer for periodic cleanup.
+When ``sudo`` is not available, the script automatically runs the commands
+without it:
 
 ```bash
 python3 maintenance/system_cleanup.py
