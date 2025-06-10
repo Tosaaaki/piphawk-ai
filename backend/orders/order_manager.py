@@ -245,7 +245,11 @@ class OrderManager:
         res = self.place_market_order(
             instrument, units, comment_json=comment_json
         )
-        trade_id = res.get("lastTransactionID")
+        trade_id = (
+            res.get("orderFillTransaction", {})
+            .get("tradeOpened", {})
+            .get("tradeID")
+        )
         if not trade_id:
             return res
         price = float(res.get("orderFillTransaction", {}).get("price", 0.0))

@@ -13,7 +13,13 @@ class DummyOM:
             "tp": tp_pips,
             "sl": sl_pips,
         }
-        return {"lastTransactionID": "t1", "orderFillTransaction": {"price": "1"}}
+        return {
+            "lastTransactionID": "t1",
+            "orderFillTransaction": {
+                "price": "1",
+                "tradeOpened": {"tradeID": "t1"},
+            },
+        }
 
     def close_position(self, *a, **k):
         return None
