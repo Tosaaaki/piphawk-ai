@@ -17,8 +17,7 @@ COPY pyproject.toml /app/pyproject.toml
 COPY backend/requirements.txt /app/backend/requirements.txt
 
 # 依存関係を先にインストール
-RUN pip install --no-cache-dir -r backend/requirements.txt \
- && pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu torch==2.3.0
+RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r backend/requirements.txt
 
 # アプリケーションコードを後からコピーしてレイヤーを分離
 COPY . /app

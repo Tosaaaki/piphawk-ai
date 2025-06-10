@@ -11,7 +11,7 @@ WORKDIR /app
 # requirements.txt はbackend配下
 COPY backend/requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
 
 # backendごと/appにコピー
 COPY backend /app/backend

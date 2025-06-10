@@ -86,7 +86,7 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
-   pip install -r backend/requirements.txt
+   pip install --extra-index-url https://download.pytorch.org/whl/cpu -r backend/requirements.txt
    ```
 
    The indicator modules require **pandas**. If it is not installed, add it with:
