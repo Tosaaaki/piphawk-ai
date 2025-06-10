@@ -31,6 +31,7 @@ class TestAdjustTpSl(unittest.TestCase):
             return DummyResponse(status_code=201, json_data={"ok": True})
         req.put = put
         req.post = post
+        req.Session = lambda: types.SimpleNamespace()
         req.get = lambda *a, **k: DummyResponse()
         add("requests", req)
 
@@ -40,6 +41,7 @@ class TestAdjustTpSl(unittest.TestCase):
         def log_error(module, code, message=None):
             self.log_calls.append((code, message))
         log_stub.log_error = log_error
+        log_stub.log_policy_transition = lambda *a, **k: None
         add("backend.logs.log_manager", log_stub)
 
         os.environ.setdefault("OANDA_ACCOUNT_ID", "dummy")
@@ -81,6 +83,13 @@ class TestAdjustTpSl(unittest.TestCase):
         res = self.om.adjust_tp_sl("USD_JPY", "t1", new_tp=150.0)
         self.assertIsNone(res)
         self.assertEqual(self.log_calls, [("TP adjustment failed: ERR bad", "bad")])
+
+    def test_put_payload_for_sl(self):
+        res = self.om.adjust_tp_sl("USD_JPY", "t1", new_sl=149.0)
+        self.assertEqual(res, {"sl": {"ok": True}})
+        body = self.sent[0]
+        self.assertIn("stopLoss", body)
+        self.assertEqual(body["stopLoss"]["price"], "149.000")
 
 if __name__ == '__main__':
     unittest.main()
