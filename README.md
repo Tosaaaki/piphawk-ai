@@ -130,6 +130,7 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 - `SCALP_OVERRIDE_RANGE` … true ならレンジ判定を無視してスキャルを優先
 - `SCALP_PROMPT_BIAS` … `aggressive` にするとスキャルプAIが積極的にエントリー判断
 - スキャルプモードではマルチTF整合チェックを自動的にスキップ
+- `LOG_LEVEL` … 出力するログレベル。`DEBUG` を指定するとAI拒否理由など詳細情報が表示されます
 - `ADX_SCALP_MIN` … ADX がこの値以上でスキャルプモード
 - `ADX_TREND_MIN` … ADX がこの値以上でトレンドフォローモード
 - `TREND_PROMPT_BIAS` … `aggressive` にするとトレンドフォローAIがより積極的
@@ -164,6 +165,12 @@ piphawk-ai/
 The root also includes `Dockerfile` definitions for containerized deployment and
 `trades.db` as the default SQLite database path.
 When running inside Docker this file is located at `/app/backend/logs/trades.db` by default.
+
+### Logging
+
+Set the `LOG_LEVEL` environment variable to control verbosity. When `DEBUG` is
+enabled, additional messages such as AI rejection reasons are written to the
+console.
 
 ### Using strategy.yml
 
