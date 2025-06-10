@@ -16,8 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . /app/backend
 COPY analysis /app/analysis
 
-# Create an empty SQLite DB placeholder so the path exists at runtime
-RUN touch /app/trades.db
+# ensure logs directory exists
+RUN mkdir -p /app/backend/logs
 
 ENV PYTHONUNBUFFERED=1
 ENV TZ=Asia/Tokyo
