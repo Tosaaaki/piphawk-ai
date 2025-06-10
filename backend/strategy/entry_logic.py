@@ -307,6 +307,60 @@ def process_entry(
                 tp_pips = float(env_loader.get_env("SCALP_TP_PIPS", "2"))
             if sl_pips is None:
                 sl_pips = float(env_loader.get_env("SCALP_SL_PIPS", "1"))
+
+            # --- Volatility / spread filters for scalping ------------------
+            try:
+                cool_bw = float(env_loader.get_env("COOL_BBWIDTH_PCT", "0"))
+                cool_atr = float(env_loader.get_env("COOL_ATR_PCT", "0"))
+                bb_upper = indicators.get("bb_upper")
+                bb_lower = indicators.get("bb_lower")
+                atr_series = indicators.get("atr")
+                if (
+                    (cool_bw > 0 or cool_atr > 0)
+                    and bb_upper is not None
+                    and bb_lower is not None
+                    and atr_series is not None
+                    and len(bb_upper)
+                    and len(bb_lower)
+                    and len(atr_series)
+                ):
+                    u = (
+                        float(bb_upper.iloc[-1])
+                        if hasattr(bb_upper, "iloc")
+                        else float(bb_upper[-1])
+                    )
+                    l = (
+                        float(bb_lower.iloc[-1])
+                        if hasattr(bb_lower, "iloc")
+                        else float(bb_lower[-1])
+                    )
+                    atr_val = (
+                        float(atr_series.iloc[-1])
+                        if hasattr(atr_series, "iloc")
+                        else float(atr_series[-1])
+                    )
+                    bw_ratio = (u - l) / atr_val if atr_val else float("inf")
+                    if (cool_bw > 0 and bw_ratio < cool_bw) or (
+                        cool_atr > 0 and atr_val < cool_atr
+                    ):
+                        logging.info(
+                            "Volatility too low (bw_ratio %.2f / atr %.2f) \u2192 skip scalp entry",
+                            bw_ratio,
+                            atr_val,
+                        )
+                        return False
+            except Exception as exc:
+                logging.debug(f"[process_entry] scalp vol filter failed: {exc}")
+
+            if spread_pips is not None:
+                from backend.risk_manager import cost_guard
+
+                if not cost_guard(tp_pips, spread_pips):
+                    min_net = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
+                    net = float(tp_pips) - spread_pips
+                    logging.info(f"Net TP {net:.1f} < {min_net} \u2192 skip entry")
+                    return False
+
             params = {
                 "instrument": (
                     market_data["prices"][0]["instrument"]
