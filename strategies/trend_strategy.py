@@ -32,4 +32,13 @@ class TrendStrategy(Strategy):
         return {"strategy": self.name, "side": side}
 
 
-__all__ = ["TrendStrategy"]
+class StrongTrendStrategy(TrendStrategy):
+    """強トレンド時の即時エントリー戦略."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.name = "strong_trend"
+
+
+
+__all__ = ["TrendStrategy", "StrongTrendStrategy"]

@@ -35,6 +35,8 @@ MODE_DI_DIFF_STRONG = float(env_loader.get_env("MODE_DI_DIFF_STRONG", "25"))
 MODE_EMA_SLOPE_STRONG = float(env_loader.get_env("MODE_EMA_SLOPE_STRONG", "0.3"))
 MODE_VOL_RATIO_MIN = float(env_loader.get_env("MODE_VOL_RATIO_MIN", "1"))
 MODE_VOL_RATIO_STRONG = float(env_loader.get_env("MODE_VOL_RATIO_STRONG", "2"))
+MODE_EMA_DIFF_MIN = float(env_loader.get_env("MODE_EMA_DIFF_MIN", "0.1"))
+MODE_EMA_DIFF_STRONG = float(env_loader.get_env("MODE_EMA_DIFF_STRONG", "0.3"))
 MODE_BONUS_START_JST = float(env_loader.get_env("MODE_BONUS_START_JST", "16"))
 MODE_BONUS_END_JST = float(env_loader.get_env("MODE_BONUS_END_JST", "1"))
 MODE_PENALTY_START_JST = float(env_loader.get_env("MODE_PENALTY_START_JST", "2"))
@@ -60,6 +62,7 @@ TREND_ENTER_SCORE = float(env_loader.get_env("TREND_ENTER_SCORE", "0.66"))
 SCALP_ENTER_SCORE = float(env_loader.get_env("SCALP_ENTER_SCORE", "0.33"))
 TREND_HOLD_SCORE = float(env_loader.get_env("TREND_HOLD_SCORE", "0.50"))
 SCALP_HOLD_SCORE = float(env_loader.get_env("SCALP_HOLD_SCORE", "0.30"))
+MODE_STRONG_TREND_THRESH = float(env_loader.get_env("MODE_STRONG_TREND_THRESH", "0.9"))
 
 
 def _last(value: Iterable | Sequence | None) -> float | None:
@@ -168,6 +171,22 @@ def decide_trade_mode_detail(
 
     ema_val = _last(m5.get("ema_slope"))
 
+    ema14 = m5.get("ema14")
+    ema50 = m5.get("ema50")
+    ema_diff_grad = None
+    try:
+        if ema14 is not None and ema50 is not None:
+            if hasattr(ema14, "tolist"):
+                ema14 = ema14.tolist()
+            if hasattr(ema50, "tolist"):
+                ema50 = ema50.tolist()
+            if len(ema14) >= 2 and len(ema50) >= 2:
+                diff_curr = float(ema14[-1]) - float(ema50[-1])
+                diff_prev = float(ema14[-2]) - float(ema50[-2])
+                ema_diff_grad = diff_curr - diff_prev
+    except Exception:
+        ema_diff_grad = None
+
     points = 0
     max_points = 0
     reasons: list[str] = []
@@ -190,6 +209,7 @@ def decide_trade_mode_detail(
     _score_step(adx_val, MODE_ADX_MIN, MODE_ADX_STRONG, "ADX")
     _score_step(di_diff, MODE_DI_DIFF_MIN, MODE_DI_DIFF_STRONG, "DI diff")
     _score_step(abs(ema_val) if ema_val is not None else None, MODE_EMA_SLOPE_MIN, MODE_EMA_SLOPE_STRONG, "EMA slope")
+    _score_step(abs(ema_diff_grad) if ema_diff_grad is not None else None, MODE_EMA_DIFF_MIN, MODE_EMA_DIFF_STRONG, "EMA diff")
     if vol_ma is not None:
         ratio = vol_ma / MODE_VOL_MA_MIN
     else:
@@ -234,6 +254,21 @@ def decide_trade_mode_detail(
         _RANGE_ADX_COUNTER = 0
 
     if _LAST_MODE == "trend_follow" and score >= TREND_HOLD_SCORE:
+
+    strong_cond = (
+        adx_val is not None
+        and adx_val >= MODE_ADX_STRONG
+        and di_diff is not None
+        and di_diff >= MODE_DI_DIFF_STRONG
+        and ema_val is not None
+        and abs(ema_val) >= MODE_EMA_SLOPE_STRONG
+    )
+
+    if _LAST_MODE == "strong_trend" and strong_cond:
+        mode = "strong_trend"
+    elif strong_cond and score >= MODE_STRONG_TREND_THRESH:
+        mode = "strong_trend"
+    elif _LAST_MODE == "trend_follow" and score >= TREND_HOLD_SCORE:
         mode = "trend_follow"
     elif _LAST_MODE == "scalp_momentum" and score <= SCALP_HOLD_SCORE:
         mode = "scalp_momentum"
@@ -290,6 +325,8 @@ __all__ = [
     "MODE_EMA_SLOPE_STRONG",
     "MODE_VOL_RATIO_MIN",
     "MODE_VOL_RATIO_STRONG",
+    "MODE_EMA_DIFF_MIN",
+    "MODE_EMA_DIFF_STRONG",
     "MODE_BONUS_START_JST",
     "MODE_BONUS_END_JST",
     "MODE_PENALTY_START_JST",
@@ -309,4 +346,5 @@ __all__ = [
     "SCALP_ENTER_SCORE",
     "TREND_HOLD_SCORE",
     "SCALP_HOLD_SCORE",
+    "MODE_STRONG_TREND_THRESH",
 ]

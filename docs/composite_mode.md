@@ -14,5 +14,6 @@
 - `HTF_SLOPE_MIN` … 上位足EMA傾きチェックのしきい値
 - `TREND_ENTER_SCORE` / `SCALP_ENTER_SCORE` … モード切替に使う基準値
 - `TREND_HOLD_SCORE` / `SCALP_HOLD_SCORE` … ヒステリシス用の維持しきい値
+- `MODE_STRONG_TREND_THRESH` … 強トレンド判定に使うスコア閾値
 - `MODE_BONUS_START_JST` / `MODE_BONUS_END_JST` … トレンド寄りに補正する時間帯
 - `MODE_PENALTY_START_JST` / `MODE_PENALTY_END_JST` … スキャルプ寄りに補正する時間帯
