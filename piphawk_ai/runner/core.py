@@ -272,6 +272,8 @@ class JobRunner:
         # 注文マネージャーとパターン名リストを属性化
         self.order_mgr = order_mgr
         self.PATTERN_NAMES = PATTERN_NAMES
+        # DEFAULT_PAIR を属性として保持
+        self.DEFAULT_PAIR = DEFAULT_PAIR
         # ----- Additional runtime state --------------------------------
         # Toggle for higher‑timeframe reference levels (daily / H4)
         self.higher_tf_enabled = env_loader.get_env("HIGHER_TF_ENABLED", "true").lower() == "true"
