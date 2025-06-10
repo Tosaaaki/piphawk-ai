@@ -33,6 +33,8 @@ MODE_DI_DIFF_STRONG = float(env_loader.get_env("MODE_DI_DIFF_STRONG", "25"))
 MODE_EMA_SLOPE_STRONG = float(env_loader.get_env("MODE_EMA_SLOPE_STRONG", "0.3"))
 MODE_VOL_RATIO_MIN = float(env_loader.get_env("MODE_VOL_RATIO_MIN", "1"))
 MODE_VOL_RATIO_STRONG = float(env_loader.get_env("MODE_VOL_RATIO_STRONG", "2"))
+MODE_EMA_DIFF_MIN = float(env_loader.get_env("MODE_EMA_DIFF_MIN", "0.1"))
+MODE_EMA_DIFF_STRONG = float(env_loader.get_env("MODE_EMA_DIFF_STRONG", "0.3"))
 MODE_BONUS_START_JST = float(env_loader.get_env("MODE_BONUS_START_JST", "16"))
 MODE_BONUS_END_JST = float(env_loader.get_env("MODE_BONUS_END_JST", "1"))
 MODE_PENALTY_START_JST = float(env_loader.get_env("MODE_PENALTY_START_JST", "2"))
@@ -165,6 +167,22 @@ def decide_trade_mode_detail(
 
     ema_val = _last(m5.get("ema_slope"))
 
+    ema14 = m5.get("ema14")
+    ema50 = m5.get("ema50")
+    ema_diff_grad = None
+    try:
+        if ema14 is not None and ema50 is not None:
+            if hasattr(ema14, "tolist"):
+                ema14 = ema14.tolist()
+            if hasattr(ema50, "tolist"):
+                ema50 = ema50.tolist()
+            if len(ema14) >= 2 and len(ema50) >= 2:
+                diff_curr = float(ema14[-1]) - float(ema50[-1])
+                diff_prev = float(ema14[-2]) - float(ema50[-2])
+                ema_diff_grad = diff_curr - diff_prev
+    except Exception:
+        ema_diff_grad = None
+
     points = 0
     max_points = 0
     reasons: list[str] = []
@@ -187,6 +205,7 @@ def decide_trade_mode_detail(
     _score_step(adx_val, MODE_ADX_MIN, MODE_ADX_STRONG, "ADX")
     _score_step(di_diff, MODE_DI_DIFF_MIN, MODE_DI_DIFF_STRONG, "DI diff")
     _score_step(abs(ema_val) if ema_val is not None else None, MODE_EMA_SLOPE_MIN, MODE_EMA_SLOPE_STRONG, "EMA slope")
+    _score_step(abs(ema_diff_grad) if ema_diff_grad is not None else None, MODE_EMA_DIFF_MIN, MODE_EMA_DIFF_STRONG, "EMA diff")
     if vol_ma is not None:
         ratio = vol_ma / MODE_VOL_MA_MIN
     else:
@@ -266,6 +285,8 @@ __all__ = [
     "MODE_EMA_SLOPE_STRONG",
     "MODE_VOL_RATIO_MIN",
     "MODE_VOL_RATIO_STRONG",
+    "MODE_EMA_DIFF_MIN",
+    "MODE_EMA_DIFF_STRONG",
     "MODE_BONUS_START_JST",
     "MODE_BONUS_END_JST",
     "MODE_PENALTY_START_JST",
