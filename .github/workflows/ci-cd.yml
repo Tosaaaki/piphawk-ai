@@ -22,7 +22,9 @@ jobs:
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          pip install -r backend/requirements.txt
+          pip install --upgrade pip
+          # PyTorch の CPU ホイールを取得するために専用インデックスを追加
+          pip install --extra-index-url https://download.pytorch.org/whl/cpu -r backend/requirements.txt
           pytest -q
 
   build-and-push:
