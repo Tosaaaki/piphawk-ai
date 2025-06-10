@@ -1,5 +1,6 @@
 import importlib
 import os
+import pytest
 
 
 def _reload_module():
@@ -32,8 +33,8 @@ def test_mode_scores_trend(monkeypatch):
         "volume": [200, 200, 200, 200, 200],
     }
     mode, score, _ = cm.decide_trade_mode_detail(inds)
-    assert mode == "strong_trend"
-    assert score > 0.9
+    assert mode == "trend_follow"
+    assert score == pytest.approx(10 / 12, abs=1e-6)
 
 
 def test_mode_scores_scalp(monkeypatch):
@@ -83,8 +84,10 @@ def test_mode_scores_strong_trend(monkeypatch):
         "plus_di": [55],
         "minus_di": [5],
         "ema_slope": [0.35],
+        "ema14": [1.0, 2.0],
+        "ema50": [0.5, 0.4],
         "volume": [200, 200, 200, 200, 200],
     }
     mode, score, _ = cm.decide_trade_mode_detail(inds)
     assert mode == "strong_trend"
-    assert score >= 0.9
+    assert score == pytest.approx(1.0, abs=1e-6)
