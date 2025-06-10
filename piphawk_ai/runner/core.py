@@ -482,6 +482,14 @@ class JobRunner:
         """Delegate to entry.manage_pending_limits."""
         manage_pending_limits(self, instrument, indicators, candles, tick_data)
 
+        MAX_LIMIT_RETRY = int(env_loader.get_env("MAX_LIMIT_RETRY", "3"))
+        pend = get_pending_entry_order(instrument)
+        if not pend:
+            for key, info in list(_pending_limits.items()):
+                if info.get("instrument") == instrument:
+                    _pending_limits.pop(key, None)
+            return
+
         local_info = None
         for key, info in _pending_limits.items():
             if info.get("order_id") == pend.get("order_id"):
