@@ -36,7 +36,7 @@ loaded from environment variables and optional YAML files under `config/`.
 3. Build and run the backend container
 
    ```bash
-   docker build -t piphawk-ai .
+   DOCKER_BUILDKIT=1 docker build -t piphawk-ai .
    docker run --env-file .env -p 8080:8080 \
      -v $(pwd)/backend/logs:/app/backend/logs piphawk-ai
    ```
@@ -416,7 +416,7 @@ If you are on an M1/M2 Mac or other ARM-based machine, build the images for
 the `linux/amd64` platform so they run correctly:
 
 ```bash
-docker build --platform linux/amd64 -f Dockerfile .
+DOCKER_BUILDKIT=1 docker build --platform linux/amd64 -f Dockerfile .
 ```
 
 The Dockerfile copies the `config` directory so YAML files like `strategy.yml`
@@ -428,7 +428,7 @@ The default tag launches the job scheduler. Create an API image with a custom
 tag and command override:
 
 ```bash
-docker build --platform linux/amd64 -t piphawk-ai:api .
+DOCKER_BUILDKIT=1 docker build --platform linux/amd64 -t piphawk-ai:api .
 docker run --rm piphawk-ai:api python -m piphawk_ai.main api
 ```
 

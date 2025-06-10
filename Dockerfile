@@ -12,15 +12,18 @@ WORKDIR /app
 # Apple Silicon 向けにビルドする場合は下記のように `--platform` を指定してください
 # docker build --platform linux/amd64 -t piphawk-ai:dev .
 
+# 依存関係ファイルを先にコピーしてキャッシュを活用する
 COPY pyproject.toml /app/pyproject.toml
-# プロジェクト全体をコピーして必要なパッケージを確実に含める
+COPY backend/requirements.txt /app/backend/requirements.txt
+
+# 依存関係を先にインストール
+RUN pip install --no-cache-dir -r backend/requirements.txt \
+ && pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.3.0
+
+# アプリケーションコードを後からコピーしてレイヤーを分離
 COPY . /app
 
-# PyTorch を CPU 版でインストール
-RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.3.0
-#   └─ +cpu は不要。インデックスを CPU 専用に切り替えれば CPU ホイールが解決される。
-#   もし失敗する場合は単に  `pip install torch==2.3.0` でも CPU 版が入ります。
-# pyproject.toml を利用してパッケージをインストール
+# プロジェクトをインストール
 RUN pip install --no-cache-dir .
 
 # ensure logs directory exists
