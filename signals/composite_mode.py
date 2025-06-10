@@ -307,10 +307,18 @@ def decide_trade_mode(indicators: dict) -> str:
     return mode
 
 
+def calculate_scores(indicators: dict) -> float:
+    """Calculate composite DP score from indicator dict."""
+    # 入力ディクショナリからスコアを算出する簡易実装
+    dpscore = float(indicators.get("dp_score", 0.0))
+    return dpscore
+
+
 __all__ = [
     "decide_trade_mode",
     "decide_trade_mode_detail",
     "decide_trade_mode_matrix",
+    "calculate_scores",
     "MODE_ATR_PIPS_MIN",
     "MODE_BBWIDTH_PIPS_MIN",
     "MODE_EMA_SLOPE_MIN",
