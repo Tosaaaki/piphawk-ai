@@ -19,6 +19,7 @@
 - `SCALP_TP_PIPS=4`
 - `SCALP_SL_PIPS=4`
 - `SCALP_PROMPT_BIAS=aggressive`
+- `AI_RETRY_ON_NO=true`
 
 ## 反映手順
 
