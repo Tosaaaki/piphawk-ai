@@ -7,10 +7,10 @@
 
 ## プロファイルファイルの作成
 
-例として `config/scalp.yml` と `config/trend.yml` を作成し、
+例として `config/scalp_params.yml` と `config/trend.yml` を作成し、
 それぞれスキャルプ向け、トレンド向けの値を記述します。
 
-`config/scalp.yml` の例:
+`config/scalp_params.yml` の例:
 
 ```yaml
 SCALP_MODE: true
@@ -47,7 +47,7 @@ PARTIAL_CLOSE_RATIO: 0.5
 
 ```python
 from config import params_loader
-params_loader.load_params(path="config/scalp.yml")
+params_loader.load_params(path="config/scalp_params.yml")
 ```
 
 `backend/scheduler/job_runner.py` ではデフォルトで
@@ -66,7 +66,7 @@ YAML はあくまで設定を切り替えるためのオプションで、`param
 ## 自動切り替え
 
 `signals.composite_mode.decide_trade_mode()` が返すモードに応じて
-`backend/scheduler/job_runner.py` は `config/scalp.yml` もしくは
+`backend/scheduler/job_runner.py` は `config/scalp_params.yml` もしくは
 `config/trend.yml` を自動で読み込みます。モードが変化した際は
 `params_loader.load_params()` を実行し、`AUTO_RESTART=true` を設定すると
 読み込み後にプロセスを再起動します。

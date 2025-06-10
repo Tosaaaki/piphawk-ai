@@ -197,7 +197,7 @@ SCALP_OVERRIDE_RANGE: true
 ```
 
 スキャルプとトレンドフォローを完全に分けたい場合は
-`config/scalp.yml` と `config/trend.yml` を用意し、
+`config/scalp_params.yml` と `config/trend.yml` を用意し、
 `params_loader.load_params()` へ読み込ませます。
 詳しくは `docs/scalp_vs_trend.md` を参照してください。
 YAML ファイルの変更は `settings.env` と同様、ジョブランナー起動時に読み込まれ
@@ -697,7 +697,7 @@ profit. The job runner calls `order_manager.place_trailing_stop()` to update the
 stop on the first trade ID, which replaces the previous order. OANDA cancels the
 old trailing stop automatically once the new one is applied. See
 `backend/strategy/exit_logic.py` lines 510-525 for the exact logic.
-Mode-specific parameters can be set in `config/scalp.yml` and `config/trend.yml`.
+Mode-specific parameters can be set in `config/scalp_params.yml` and `config/trend.yml`.
 For example, trend mode may use a wider trailing stop:
 
 ```yaml
