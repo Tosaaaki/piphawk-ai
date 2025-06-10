@@ -253,6 +253,7 @@ def decide_trade_mode_detail(
     else:
         _RANGE_ADX_COUNTER = 0
 
+    # 判定条件を分かりやすく整理
     strong_cond = (
         adx_val is not None
         and adx_val >= MODE_ADX_STRONG
