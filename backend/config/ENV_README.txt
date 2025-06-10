@@ -238,3 +238,4 @@ SCALE_TRIGGER_ATR=0.5
 - ERROR_LIMIT: 許容エラー回数の上限
 - USE_OFFLINE_POLICY: オフライン学習ポリシーを利用するか (true/false)
 - PATTERN_TFS: パターン検出を行う時間足一覧 (例: M5,M15)
+- RESTART_STATE_PATH: 最終再起動時刻を保存するファイルパス (デフォルト /tmp/piphawk_last_restart)
