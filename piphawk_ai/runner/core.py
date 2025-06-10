@@ -230,6 +230,8 @@ class JobRunner:
         self.interval_seconds = interval_seconds
         self.last_run = None
         self._stop = False
+        # DEFAULT_PAIR を属性に保持して外部モジュールから参照できるようにする
+        self.DEFAULT_PAIR = DEFAULT_PAIR
         # Start Prometheus metrics server
         metrics_port = int(env_loader.get_env("METRICS_PORT", "8001"))
         try:
