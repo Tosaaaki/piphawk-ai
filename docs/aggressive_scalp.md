@@ -8,9 +8,9 @@
   ADX が低くてもレンジ内でエントリーを許可します。
 - `BAND_WIDTH_THRESH_PIPS=0`  
   ボリンジャーバンド幅によるレンジ判定を無効化します。
-- `SCALP_ADX_MIN=20`  
-  必要なADXしきい値を引き下げます。
-- `BYPASS_PULLBACK_ADX_MIN=25`  
+- `SCALP_ADX_MIN=15`
+  必要なADXしきい値をより下げます。
+- `BYPASS_PULLBACK_ADX_MIN=20`
   これを超えるとプルバック待機を省略します。
 - `AI_COOLDOWN_SEC_FLAT=15`  
   ノーポジ時のAIクールダウンを短縮します。
