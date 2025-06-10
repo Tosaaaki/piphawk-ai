@@ -189,25 +189,19 @@ def check_current_position(pair: str) -> Optional[Dict[str, Any]]:
     else:
         return None
 
-def move_stop_loss(trade_id: str, new_sl: float) -> bool:
-    """Move the stop loss for an open trade via a STOP_LOSS order."""
-    url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
-    data = {
-        "order": {
-            "type": "STOP_LOSS",
-            "tradeID": trade_id,
-            "price": f"{new_sl:.3f}",
-            "timeInForce": "GTC",
-        }
-    }
+def move_stop_loss(trade_id: str, instrument: str, new_sl: float) -> bool:
+    """Move the stop loss for an open trade via ``update_trade_sl``."""
     try:
-        response = requests.post(url, json=data, headers=HEADERS, timeout=10)
-        response.raise_for_status()
-        logging.info(f"Moved stop‑loss for trade {trade_id} → {new_sl:.3f}")
-        return True
+        from backend.orders.order_manager import OrderManager
+
+        result = OrderManager().update_trade_sl(trade_id, instrument, new_sl)
+        if result is not None:
+            logging.info(f"Moved stop‑loss for trade {trade_id} → {new_sl:.3f}")
+            return True
+        logging.error(f"SL update returned None for trade {trade_id}")
     except Exception as e:
         logging.error(f"Error moving stop‑loss for trade {trade_id}: {e}")
-        return False
+    return False
 
 
 def update_stop_loss_if_needed(position: Dict[str, Any], new_sl_price: float) -> None:
@@ -246,6 +240,6 @@ def update_stop_loss_if_needed(position: Dict[str, Any], new_sl_price: float) ->
             current_sl = float(trade.get("stopLossOrder", {}).get("price", "0"))
 
             if current_sl == 0 or comparison(current_sl, new_sl_price):
-                move_stop_loss(trade_id, new_sl_price)
+                move_stop_loss(trade_id, position.get("instrument", ""), new_sl_price)
         except Exception as e:
             logging.error(f"Could not evaluate SL for trade {trade_id}: {e}")
