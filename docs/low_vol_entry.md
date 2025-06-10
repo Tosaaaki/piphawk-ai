@@ -8,7 +8,8 @@
 
 どちらかを満たすと AI には `side: "no"` を返させ、エントリーしません。
 各値は環境変数 `COOL_BBWIDTH_PCT` と `COOL_ATR_PCT` で調整できます。
-0 を指定すると判定を無効化できます。
+0 を指定すると判定を無効化できます。デフォルトではスキャルプ用に
+`COOL_ATR_PCT=0.06`, `COOL_BBWIDTH_PCT=0.08` が設定されています。
 
 エントリーフィルタでは出来高平均が `MIN_VOL_MA` (`MIN_VOL_M1`) 以下のときも
 取引をブロックします。また `QUIET_START_HOUR_JST`～`QUIET_END_HOUR_JST`

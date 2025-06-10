@@ -14,3 +14,5 @@ MIN_RRR: 1.0
 ENFORCE_RRR: false
 MIN_HOLD_SECONDS: 300
 SCALP_PROMPT_BIAS: aggressive  # AIにより積極的な判断を促す
+COOL_ATR_PCT: 0.06             # ATR閾値を下げて低ボラでもスキャルプ
+COOL_BBWIDTH_PCT: 0.08         # BB幅閾値を下げて低ボラでもスキャルプ

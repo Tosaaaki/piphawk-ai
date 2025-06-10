@@ -274,7 +274,7 @@ def decide_trade_mode_detail(
         mode = "scalp_momentum"
     elif score >= TREND_ENTER_SCORE:
         mode = "trend_follow"
-    elif score <= SCALP_ENTER_SCORE:
+    elif score >= SCALP_ENTER_SCORE:
         if (
             _LAST_MODE is None
             and atr_val is not None
