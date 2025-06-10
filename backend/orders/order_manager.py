@@ -255,6 +255,9 @@ class OrderManager:
         sl_price = (
             price - sl_pips * pip if side == "long" else price + sl_pips * pip
         )
+        logger.debug(
+            f"\u25b6\u25b6\u25b6 PLACE_MARKET_WITH_TPSL trade_id={trade_id} tp={tp_price} sl={sl_price}"
+        )
         self.adjust_tp_sl(instrument, trade_id, new_tp=tp_price, new_sl=sl_price)
         return res
 
@@ -282,6 +285,9 @@ class OrderManager:
             }
             if entry_uuid:
                 tp_payload["order"]["clientExtensions"] = {"comment": entry_uuid}
+            logger.debug(
+                f"\u25b6\u25b6\u25b6 ADJUST_TP_SL TP payload: {tp_payload}"
+            )
 
         if new_tp is not None:
             for attempt in range(3):
@@ -313,6 +319,9 @@ class OrderManager:
                     "timeInForce": "GTC",
                 }
             }
+            logger.debug(
+                f"\u25b6\u25b6\u25b6 ADJUST_TP_SL SL payload: {sl_payload}"
+            )
             for attempt in range(3):
                 resp = requests.post(url, json=sl_payload, headers=HEADERS)
                 if resp.status_code == 201:

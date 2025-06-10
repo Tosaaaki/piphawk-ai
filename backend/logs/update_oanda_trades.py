@@ -97,6 +97,10 @@ def update_oanda_trades():
 
         updated_count = 0
         for transaction in transactions:
+            if transaction.get("type", "").endswith("_REJECT"):
+                logger.warning(
+                    f"\u274c {transaction['type']} reason={transaction.get('rejectReason')}"
+                )
             transaction_type = transaction['type']
             transaction_id = transaction.get('id')
             open_time = transaction.get('time', '')
