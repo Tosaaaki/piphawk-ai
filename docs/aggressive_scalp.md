@@ -16,8 +16,8 @@
   ノーポジ時のAIクールダウンを短縮します。
 - `MIN_RRR=1.0`
 - `ENFORCE_RRR=false`
-- `SCALP_TP_PIPS=4`
-- `SCALP_SL_PIPS=4`
+- `SCALP_TP_PIPS=8`
+- `SCALP_SL_PIPS=8`
 - `SCALP_PROMPT_BIAS=aggressive`
 - `AI_RETRY_ON_NO=true`
 
