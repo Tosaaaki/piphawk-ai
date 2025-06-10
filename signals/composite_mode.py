@@ -60,6 +60,7 @@ TREND_ENTER_SCORE = float(env_loader.get_env("TREND_ENTER_SCORE", "0.66"))
 SCALP_ENTER_SCORE = float(env_loader.get_env("SCALP_ENTER_SCORE", "0.33"))
 TREND_HOLD_SCORE = float(env_loader.get_env("TREND_HOLD_SCORE", "0.50"))
 SCALP_HOLD_SCORE = float(env_loader.get_env("SCALP_HOLD_SCORE", "0.30"))
+MODE_STRONG_TREND_THRESH = float(env_loader.get_env("MODE_STRONG_TREND_THRESH", "0.9"))
 
 
 def _last(value: Iterable | Sequence | None) -> float | None:
@@ -244,7 +245,20 @@ def decide_trade_mode_detail(
     global _LAST_MODE, _LAST_SWITCH
     candle_len = len(candles) if candles else 0
 
-    if _LAST_MODE == "trend_follow" and score >= TREND_HOLD_SCORE:
+    strong_cond = (
+        adx_val is not None
+        and adx_val >= MODE_ADX_STRONG
+        and di_diff is not None
+        and di_diff >= MODE_DI_DIFF_STRONG
+        and ema_val is not None
+        and abs(ema_val) >= MODE_EMA_SLOPE_STRONG
+    )
+
+    if _LAST_MODE == "strong_trend" and strong_cond:
+        mode = "strong_trend"
+    elif strong_cond and score >= MODE_STRONG_TREND_THRESH:
+        mode = "strong_trend"
+    elif _LAST_MODE == "trend_follow" and score >= TREND_HOLD_SCORE:
         mode = "trend_follow"
     elif _LAST_MODE == "scalp_momentum" and score <= SCALP_HOLD_SCORE:
         mode = "scalp_momentum"
@@ -306,4 +320,5 @@ __all__ = [
     "SCALP_ENTER_SCORE",
     "TREND_HOLD_SCORE",
     "SCALP_HOLD_SCORE",
+    "MODE_STRONG_TREND_THRESH",
 ]

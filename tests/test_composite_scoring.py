@@ -34,6 +34,10 @@ def test_mode_scores_trend(monkeypatch):
         "volume": [200, 200, 200, 200, 200],
     }
     mode, score, _ = cm.decide_trade_mode_detail(inds)
+
+    assert mode == "strong_trend"
+    assert score > 0.9
+
     assert mode == "trend_follow"
     assert score >= 0.8
 
@@ -64,7 +68,9 @@ def test_mode_scores_scalp(monkeypatch):
     assert score < 0.5
 
 
+def test_mode_scores_strong_trend(monkeypatch):
 def test_trend_follow_with_large_ema_diff(monkeypatch):
+
     monkeypatch.setenv("MODE_ADX_MIN", "25")
     monkeypatch.setenv("MODE_ADX_STRONG", "40")
     monkeypatch.setenv("MODE_DI_DIFF_MIN", "10")
@@ -74,6 +80,8 @@ def test_trend_follow_with_large_ema_diff(monkeypatch):
     monkeypatch.setenv("MODE_VOL_MA_MIN", "80")
     monkeypatch.setenv("MODE_VOL_RATIO_MIN", "1")
     monkeypatch.setenv("MODE_VOL_RATIO_STRONG", "2")
+    monkeypatch.setenv("MODE_ATR_PIPS_MIN", "5")
+    monkeypatch.setenv("MODE_STRONG_TREND_THRESH", "0.9")
     monkeypatch.setenv("MODE_EMA_DIFF_MIN", "0.2")
     monkeypatch.setenv("MODE_EMA_DIFF_STRONG", "0.5")
     monkeypatch.setenv("MODE_ATR_PIPS_MIN", "5")
@@ -84,6 +92,15 @@ def test_trend_follow_with_large_ema_diff(monkeypatch):
     cm = _reload_module()
     inds = {
         "atr": [10.0],
+        "adx": [50],
+        "plus_di": [55],
+        "minus_di": [5],
+        "ema_slope": [0.35],
+        "volume": [200, 200, 200, 200, 200],
+    }
+    mode, score, _ = cm.decide_trade_mode_detail(inds)
+    assert mode == "strong_trend"
+    assert score >= 0.9
         "adx": [15],
         "plus_di": [55],
         "minus_di": [5],

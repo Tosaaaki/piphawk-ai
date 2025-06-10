@@ -234,6 +234,7 @@ def process_entry(
         )
     trade_mode = decide_trade_mode(indicators)
     logging.info("Trade mode decided: %s", trade_mode)
+    strong_trend_mode = trade_mode == "strong_trend"
     scalp_mode = trade_mode in ("scalp", "scalp_momentum") and adx_val is not None
     adx_max = float(env_loader.get_env("SCALP_SUPPRESS_ADX_MAX", "0"))
     if adx_val is not None and adx_max > 0 and adx_val > adx_max:
@@ -469,6 +470,9 @@ def process_entry(
     side = entry_info.get("side", "no").lower()
     mode = entry_info.get("mode", "market")
     limit_price = entry_info.get("limit_price")
+    if strong_trend_mode:
+        mode = "market"
+        limit_price = None
     valid_sec = int(
         entry_info.get("valid_for_sec", env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
     )
@@ -663,7 +667,9 @@ def process_entry(
         try:
             adx_series = indicators.get("adx")
             thresh = float(env_loader.get_env("BYPASS_PULLBACK_ADX_MIN", "0"))
-            if (
+            if strong_trend_mode:
+                pullback_needed = None
+            elif (
                 thresh > 0
                 and adx_series is not None
                 and len(adx_series)

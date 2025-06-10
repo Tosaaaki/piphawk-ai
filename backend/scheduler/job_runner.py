@@ -97,7 +97,12 @@ from backend.orders.position_manager import (
 
 from backend.utils.notification import send_line_message
 from backend.logs.trade_logger import log_trade, ExitReason
-from strategies import ScalpStrategy, TrendStrategy, StrategySelector
+from strategies import (
+    ScalpStrategy,
+    TrendStrategy,
+    StrongTrendStrategy,
+    StrategySelector,
+)
 from backend.scheduler.policy_updater import PolicyUpdater
 from strategies.context_builder import (
     build_context,
@@ -374,7 +379,11 @@ class JobRunner:
         # 初期化時に戦略セレクターを設定
         use_policy = env_loader.get_env("USE_OFFLINE_POLICY", "false").lower() == "true"
         self.strategy_selector = StrategySelector(
-            {"scalp": ScalpStrategy(), "trend": TrendStrategy()},
+            {
+                "scalp": ScalpStrategy(),
+                "trend": TrendStrategy(),
+                "strong_trend": StrongTrendStrategy(),
+            },
             use_offline_policy=False,
         )
         if use_policy and self.current_policy is not None:
