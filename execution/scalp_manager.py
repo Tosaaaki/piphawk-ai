@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -30,14 +31,54 @@ _open_scalp_trades: dict[str, float] = {}
 
 
 def enter_scalp_trade(instrument: str, side: str = "long") -> None:
-    """Place a market order with attached TP/SL."""
+    """Place a market order with dynamically calculated TP/SL."""
+
+    tp_pips = None
+    sl_pips = None
+    atr_pips = None
+    pip_size = get_pip_size(instrument)
+    try:
+        from backend.market_data.candle_fetcher import fetch_candles
+        from backend.indicators.calculate_indicators import calculate_indicators
+        from backend.strategy import openai_scalp_analysis as scalp_ai
+
+        candles = fetch_candles(
+            instrument, granularity="M5", count=30, allow_incomplete=True
+        )
+        indicators = calculate_indicators(candles, pair=instrument)
+
+        plan = scalp_ai.get_scalp_plan(indicators, candles)
+        tp_pips = plan.get("tp_pips")
+        sl_pips = plan.get("sl_pips")
+
+        atr = indicators.get("atr")
+        if atr is not None:
+            atr_val = (
+                float(atr.iloc[-1]) if hasattr(atr, "iloc") else float(atr[-1])
+            )
+            atr_pips = atr_val / pip_size
+    except Exception as exc:  # pragma: no cover - network/parse failure
+        logger.debug("scalp plan/indicator fetch failed: %s", exc)
+
+    if tp_pips is None and atr_pips is not None:
+        mult = float(os.getenv("ATR_MULT_TP", "0.8"))
+        tp_pips = atr_pips * mult
+    if sl_pips is None and atr_pips is not None:
+        mult = float(os.getenv("ATR_MULT_SL", "1.1"))
+        sl_pips = atr_pips * mult
+
+    if tp_pips is None:
+        tp_pips = SCALP_TP_PIPS
+    if sl_pips is None:
+        sl_pips = SCALP_SL_PIPS
+
     units = SCALP_UNIT_SIZE if side == "long" else -SCALP_UNIT_SIZE
     res = order_mgr.place_market_with_tp_sl(
         instrument,
         units,
         side,
-        tp_pips=SCALP_TP_PIPS,
-        sl_pips=SCALP_SL_PIPS,
+        tp_pips=tp_pips,
+        sl_pips=sl_pips,
         comment_json=json.dumps({"mode": "scalp"}),
     )
     trade_id = res.get("lastTransactionID")
