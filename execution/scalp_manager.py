@@ -81,7 +81,11 @@ def enter_scalp_trade(instrument: str, side: str = "long") -> None:
         sl_pips=sl_pips,
         comment_json=json.dumps({"mode": "scalp"}),
     )
-    trade_id = res.get("lastTransactionID")
+    trade_id = (
+        res.get("orderFillTransaction", {})
+        .get("tradeOpened", {})
+        .get("tradeID")
+    )
     if trade_id:
         _open_scalp_trades[trade_id] = time.time()
         # TP が付いているか確認し、無ければ再設定する
