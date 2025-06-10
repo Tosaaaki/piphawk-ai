@@ -30,18 +30,19 @@ _open_scalp_trades: dict[str, float] = {}
 
 
 def enter_scalp_trade(instrument: str, side: str = "long") -> None:
-    """Place a market order with fixed TP/SL."""
+    """Place a market order with attached TP/SL."""
     units = SCALP_UNIT_SIZE if side == "long" else -SCALP_UNIT_SIZE
-    res = order_mgr.place_market_order(instrument, units, comment_json=json.dumps({"mode": "scalp"}))
+    res = order_mgr.place_market_with_tp_sl(
+        instrument,
+        units,
+        side,
+        tp_pips=SCALP_TP_PIPS,
+        sl_pips=SCALP_SL_PIPS,
+        comment_json=json.dumps({"mode": "scalp"}),
+    )
     trade_id = res.get("lastTransactionID")
-    if not trade_id:
-        return
-    price = float(res.get("orderFillTransaction", {}).get("price", 0.0))
-    pip = get_pip_size(instrument)
-    tp = price + SCALP_TP_PIPS * pip if side == "long" else price - SCALP_TP_PIPS * pip
-    sl = price - SCALP_SL_PIPS * pip if side == "long" else price + SCALP_SL_PIPS * pip
-    order_mgr.adjust_tp_sl(instrument, trade_id, new_tp=tp, new_sl=sl)
-    _open_scalp_trades[trade_id] = time.time()
+    if trade_id:
+        _open_scalp_trades[trade_id] = time.time()
     logger.info(f"Enter SCALP {instrument} at {datetime.now(timezone.utc).isoformat()}")
 
 
