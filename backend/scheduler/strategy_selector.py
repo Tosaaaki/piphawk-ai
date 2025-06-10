@@ -97,7 +97,21 @@ class StrategySelector:
                     arm = self.bandit.predict(ctx)
                     return self.strategies[arm]
             except Exception as exc:  # pragma: no cover
-                logger.warning("Bandit prediction failed: %s", exc)
+                dim = len(ctx[0])
+                num_features = getattr(getattr(self.bandit, "_imp", None), "num_features", None)
+                logger.warning(
+                    "Bandit prediction failed: %s dim=%s num_features=%s",
+                    exc,
+                    dim,
+                    num_features,
+                )
+                try:
+                    self._ensure_bandit_ready(ctx)
+                    if self.bandit is not None:
+                        arm = self.bandit.predict(ctx)
+                        return self.strategies[arm]
+                except Exception as exc2:  # pragma: no cover
+                    logger.warning("Bandit prediction failed after retry: %s", exc2)
         # Fallback to first strategy
         return next(iter(self.strategies.values()))
 
