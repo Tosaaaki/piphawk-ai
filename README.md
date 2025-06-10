@@ -512,7 +512,9 @@ to `/etc/systemd/system/` and enable the timer to automate these tasks.
 ### Disk guard
 
 `maintenance/disk_guard.py` checks the root filesystem usage and triggers
-`system_cleanup.py` automatically when the usage is 80% or higher.  Invoke it in
+`system_cleanup.py` automatically when the usage reaches the threshold.
+Set the `CLEANUP_THRESHOLD` environment variable to adjust it (default 80%).
+Invoke it in
 the main loop or run it manually:
 
 ```bash

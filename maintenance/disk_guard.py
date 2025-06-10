@@ -3,8 +3,9 @@ If '/' usage >= 80 %, execute system_cleanup.run()."""
 import shutil
 import logging
 import maintenance.system_cleanup as sc
+from backend.utils import env_loader
 
-THRESHOLD = 80  # %
+THRESHOLD = int(env_loader.get_env("CLEANUP_THRESHOLD", "80"))  # %
 
 # ルートFS使用率を返す
 
