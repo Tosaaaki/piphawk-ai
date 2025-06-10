@@ -309,9 +309,10 @@ Respond with **one-line valid JSON** exactly as:
     bias = trend_prompt_bias or TREND_PROMPT_BIAS
     bias_note = ""
     if bias == "aggressive":
+        # 条件が曖昧な場合はなるべくエントリー方向を示すように促す
         bias_note = (
-            "\nBe proactive: when signals are mixed, favor taking a position rather than returning 'no'."
-            "\nIf conditions are ambiguous, prefer 'long' or 'short' rather than 'no'."
+            "\nBe proactive: when signals are mixed, favor taking a position rather than returning 'no'. "
+            "If conditions are ambiguous, prefer 'long' or 'short' rather than 'no'."
         )
     prompt += bias_note
     return prompt, comp_val
