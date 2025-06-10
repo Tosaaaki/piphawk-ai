@@ -222,6 +222,9 @@ SCALE_TRIGGER_ATR=0.5
 ■ OANDA_MATCH_SEC
   ローカルトレードと OANDA 取引を照合するときの許容秒数。デフォルトは60秒。
 
+■ RESTART_MIN_INTERVAL
+  AUTO_RESTART が有効な場合に、プロセス再起動を行う最小間隔(秒)。
+
 
 ## 追加環境変数
 - USE_LOCAL_MODEL: OpenAI APIの代わりにローカルモデルを使用するか (true/false)
