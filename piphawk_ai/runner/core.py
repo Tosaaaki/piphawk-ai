@@ -5,6 +5,8 @@ import logging
 import json
 import os
 import sys
+
+_LAST_RESTART: float = 0.0
 try:
     from prometheus_client import start_http_server
 except Exception:  # pragma: no cover - optional dependency or test stub
@@ -488,10 +490,20 @@ class JobRunner:
             logger.error("Param reload failed: %s", exc)
             return
         if os.getenv("AUTO_RESTART", "false").lower() == "true":
-            logger.info("AUTO_RESTART enabled – restarting process")
-            python = sys.executable
-            # preserve module-based execution to keep import paths intact
-            os.execv(python, [python, "-m", "backend.scheduler.job_runner", *sys.argv[1:]])
+            interval = float(os.getenv("RESTART_MIN_INTERVAL", "60"))
+            now = time.time()
+            global _LAST_RESTART
+            if now - _LAST_RESTART >= interval:
+                logger.info("AUTO_RESTART enabled – restarting process")
+                _LAST_RESTART = now
+                python = sys.executable
+                # preserve module-based execution to keep import paths intact
+                os.execv(
+                    python,
+                    [python, "-m", "backend.scheduler.job_runner", *sys.argv[1:]],
+                )
+            else:
+                logger.info("Restart suppressed to avoid rapid restarts")
 
     def _record_strategy_result(self, reward: float) -> None:
         if self.last_entry_context and self.last_entry_strategy:
