@@ -506,8 +506,16 @@ without it:
 python3 maintenance/system_cleanup.py
 ```
 
-Copy `maintenance/system_cleanup.service` and `maintenance/system_cleanup.timer`
-to `/etc/systemd/system/` and enable the timer to automate these tasks.
+To set up the systemd timer automatically, run the helper script below
+(requires `systemctl`):
+
+```bash
+bash maintenance/install_cleanup_service.sh
+```
+
+This copies `maintenance/system_cleanup.service` and
+`maintenance/system_cleanup.timer` to `/etc/systemd/system/` and enables the
+timer so cleanup runs weekly.
 
 ### Disk guard
 
@@ -520,6 +528,13 @@ the main loop or run it manually:
 ```bash
 python3 maintenance/disk_guard.py
 ```
+
+### Kafka log retention
+
+`docker-compose.yml` sets Kafka's `log.retention.hours` and
+`log.retention.bytes` via environment variables so old log segments are removed
+automatically. By default, logs older than seven days or exceeding **10 GiB**
+are pruned without manual intervention.
 
 ## React UI
 
