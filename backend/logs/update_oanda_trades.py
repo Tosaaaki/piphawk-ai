@@ -97,11 +97,16 @@ def update_oanda_trades():
 
         updated_count = 0
         for transaction in transactions:
-            if transaction.get("type", "").endswith("_REJECT"):
+            tx_type = transaction.get("type", "")
+            if tx_type.endswith("_REJECT"):
                 logger.warning(
-                    f"\u274c {transaction['type']} reason={transaction.get('rejectReason')}"
+                    f"\u274c {tx_type} reason={transaction.get('rejectReason')}"
                 )
-            transaction_type = transaction['type']
+            if tx_type in ("TAKE_PROFIT_ORDER_REJECT", "ORDER_CANCEL"):
+                logger.warning(
+                    f"[DEBUG] {tx_type} rejectReason={transaction.get('rejectReason')}"
+                )
+            transaction_type = tx_type
             transaction_id = transaction.get('id')
             open_time = transaction.get('time', '')
 
