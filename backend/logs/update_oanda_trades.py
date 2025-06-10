@@ -79,8 +79,12 @@ def update_oanda_trades():
 
     base_url = f"{OANDA_API_URL}/v3/accounts/{OANDA_ACCOUNT_ID}/transactions/sinceid"
     params = {
-        "type": "ORDER_FILL,STOP_LOSS_ORDER,TAKE_PROFIT_ORDER",
-        "id": str(int(last_transaction_id) + 1)
+        "type": (
+            "ORDER_FILL,STOP_LOSS_ORDER,TAKE_PROFIT_ORDER,"
+            "STOP_LOSS_ORDER_REJECT,TAKE_PROFIT_ORDER_REJECT,"
+            "ORDER_CANCEL"
+        ),
+        "id": str(int(last_transaction_id) + 1),
     }
 
     logger.info(f"Making API request to URL: {base_url} with params: {params}")

@@ -124,10 +124,12 @@ class OrderManager:
         }
         if tp_price and sl_price:
             payload["order"]["takeProfitOnFill"] = {
-                "price": format_price(instrument, tp_price)
+                "price": format_price(instrument, tp_price),
+                "timeInForce": "GTC",
             }
             payload["order"]["stopLossOnFill"] = {
-                "price": format_price(instrument, sl_price)
+                "price": format_price(instrument, sl_price),
+                "timeInForce": "GTC",
             }
 
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
@@ -537,10 +539,12 @@ class OrderManager:
                 sl_price = entry_price + float(sl_pips) * pip
 
             order_body["order"]["takeProfitOnFill"] = {
-                "price": format_price(instrument, tp_price)
+                "price": format_price(instrument, tp_price),
+                "timeInForce": "GTC",
             }
             order_body["order"]["stopLossOnFill"] = {
-                "price": format_price(instrument, sl_price)
+                "price": format_price(instrument, sl_price),
+                "timeInForce": "GTC",
             }
 
         response = requests.post(url, json=order_body, headers=HEADERS)

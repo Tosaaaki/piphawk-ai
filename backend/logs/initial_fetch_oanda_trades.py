@@ -28,7 +28,11 @@ def initial_fetch_oanda_trades():
 
     base_url = f"{OANDA_API_URL}/v3/accounts/{OANDA_ACCOUNT_ID}/transactions"
     params = {
-        "type": "ORDER_FILL,STOP_LOSS_ORDER,TAKE_PROFIT_ORDER,MARKET_ORDER",
+        "type": (
+            "ORDER_FILL,STOP_LOSS_ORDER,TAKE_PROFIT_ORDER,MARKET_ORDER," 
+            "STOP_LOSS_ORDER_REJECT,TAKE_PROFIT_ORDER_REJECT,"
+            "ORDER_CANCEL"
+        ),
         "from": (datetime.now(timezone.utc) - timedelta(days=100)).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "to": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "pageSize": 1000
