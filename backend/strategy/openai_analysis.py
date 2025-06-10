@@ -1278,7 +1278,7 @@ Respond with **one-line valid JSON** exactly as:
         except Exception as exc:  # pragma: no cover - ignore logging failure
             logger.warning("log_ai_decision failed: %s", exc)
         logger.info("Invalid JSON response: %s", raw)
-        return {"entry": {"side": "no"}, "raw": raw}
+        return {"entry": {"side": "no"}, "raw": raw, "reason": "PARSE_FAIL"}
 
     entry_conf = plan.get("entry_confidence")
     try:
@@ -1366,22 +1366,27 @@ Respond with **one-line valid JSON** exactly as:
                 logger.warning("Probabilities invalid — skipping plan")
                 logger.info("Plan with invalid probabilities: %s", json.dumps(plan, ensure_ascii=False))
                 plan["entry"]["side"] = "no"
+                plan["reason"] = "PROB_INVALID"
                 return plan
 
             if (tp - spread) < MIN_NET_TP_PIPS:
                 plan["entry"]["side"] = "no"
+                plan.setdefault("reason", "NET_TP_TOO_SMALL")
         except (TypeError, ValueError):
             plan["entry"]["side"] = "no"
             plan["risk"] = {}
+            plan["reason"] = "RISK_PARSE_FAIL"
             return plan
 
         if p < MIN_TP_PROB or (tp * p - sl * q) <= 0:
             plan["entry"]["side"] = "no"
+            plan.setdefault("reason", "PROB_TOO_LOW")
 
     # Composite score check
     try:
         if comp_val is not None and comp_val < COMPOSITE_MIN:
             plan["entry"]["side"] = "no"
+            plan.setdefault("reason", "COMPOSITE_TOO_LOW")
     except Exception:
         pass
 
@@ -1408,6 +1413,7 @@ Respond with **one-line valid JSON** exactly as:
         bw = float(bb_upper) - float(bb_lower)
         if (bw / atr_val) < COOL_BBWIDTH_PCT or atr_val < COOL_ATR_PCT:
             plan["entry"]["side"] = "no"
+            plan.setdefault("reason", "OVERCOOL")
     except (TypeError, ValueError, IndexError, ZeroDivisionError):
         pass
 
@@ -1424,6 +1430,7 @@ Respond with **one-line valid JSON** exactly as:
             and not pattern_name
         ):
             plan["entry"]["side"] = "no"
+            plan.setdefault("reason", "ADX_NO_TRADE")
     except (TypeError, ValueError, IndexError):
         pass
 

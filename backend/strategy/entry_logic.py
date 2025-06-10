@@ -68,6 +68,8 @@ import logging
 import json
 import uuid
 
+logger = logging.getLogger(__name__)
+
 # optional helper; fallback stub if module is absent
 try:
     from backend.utils.oanda_client import get_pending_entry_order  # type: ignore
@@ -428,6 +430,8 @@ def process_entry(
         limit_price = None
 
     if side not in ("long", "short"):
+        logger.debug("reject: reason=AI_DECISION side=%s", side)
+        logger.debug("reject: reason=%s", plan.get("reason"))
         logging.info("AI says no trade entry → early exit")
         return False
 
