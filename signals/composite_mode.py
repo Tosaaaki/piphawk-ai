@@ -24,6 +24,8 @@ MODE_EMA_SLOPE_MIN = float(env_loader.get_env("MODE_EMA_SLOPE_MIN", "0.1"))
 MODE_ADX_MIN = float(env_loader.get_env("MODE_ADX_MIN", "25"))
 MODE_VOL_MA_MIN = float(env_loader.get_env("MODE_VOL_MA_MIN", env_loader.get_env("MIN_VOL_MA", "80")))
 VOL_MA_PERIOD = int(env_loader.get_env("VOL_MA_PERIOD", "5"))
+RANGE_ADX_MIN = float(env_loader.get_env("RANGE_ADX_MIN", "20"))
+RANGE_ADX_COUNT = int(env_loader.get_env("RANGE_ADX_COUNT", "3"))
 
 # --- Additional scoring parameters -------------------------------------
 MODE_TREND_SCORE_MIN = int(env_loader.get_env("MODE_TREND_SCORE_MIN", "4"))
@@ -88,6 +90,7 @@ def _vol_level(atr_pct: float | None) -> str:
 
 _LAST_MODE: str | None = None
 _LAST_SWITCH: int = 0
+_RANGE_ADX_COUNTER: int = 0
 
 
 def _in_window(now: float, start: float, end: float) -> bool:
@@ -222,8 +225,13 @@ def decide_trade_mode_detail(
     if body_shrink and adx_drop:
         score -= 0.20
 
-    global _LAST_MODE, _LAST_SWITCH
+    global _LAST_MODE, _LAST_SWITCH, _RANGE_ADX_COUNTER
     candle_len = len(candles) if candles else 0
+
+    if adx_val is not None and adx_val < RANGE_ADX_MIN:
+        _RANGE_ADX_COUNTER += 1
+    else:
+        _RANGE_ADX_COUNTER = 0
 
     if _LAST_MODE == "trend_follow" and score >= TREND_HOLD_SCORE:
         mode = "trend_follow"
@@ -232,11 +240,25 @@ def decide_trade_mode_detail(
     elif score >= TREND_ENTER_SCORE:
         mode = "trend_follow"
     elif score <= SCALP_ENTER_SCORE:
-        mode = "scalp_momentum"
+        if (
+            _LAST_MODE is None
+            and atr_val is not None
+            and atr_val < HIGH_ATR_PIPS / 100
+            and adx_val is not None
+            and adx_val < MODE_ADX_MIN
+        ):
+            mode = "flat"
+        else:
+            mode = "scalp_momentum"
     else:
         mode = _LAST_MODE or "flat"
 
+    if _RANGE_ADX_COUNTER >= RANGE_ADX_COUNT:
+        mode = "scalp_momentum"
+
     if mode != _LAST_MODE:
+        if _LAST_MODE is not None:
+            _RANGE_ADX_COUNTER = 0
         _LAST_MODE = mode
         _LAST_SWITCH = candle_len
 
@@ -259,6 +281,8 @@ __all__ = [
     "MODE_EMA_SLOPE_MIN",
     "MODE_ADX_MIN",
     "MODE_VOL_MA_MIN",
+    "RANGE_ADX_MIN",
+    "RANGE_ADX_COUNT",
     "MODE_TREND_SCORE_MIN",
     "MODE_ADX_STRONG",
     "MODE_DI_DIFF_MIN",
