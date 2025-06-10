@@ -8,6 +8,8 @@ from backend.utils import env_loader
 import json
 import logging
 import asyncio
+import time
+from typing import Dict, Tuple
 
 # env_loader automatically loads default .env files at import time
 
@@ -23,6 +25,12 @@ logger = logging.getLogger(__name__)
 
 # Default model can be overridden via settings.env → AI_MODEL
 AI_MODEL = env_loader.get_env("AI_MODEL", "gpt-4.1-nano")
+
+# ──────────────────────────────────
+#   Lightweight in-memory cache
+# ──────────────────────────────────
+_cache: Dict[Tuple[str, str, str], Tuple[float, dict]] = {}
+_CACHE_TTL_SEC = int(env_loader.get_env("OPENAI_CACHE_TTL_SEC", "30"))
 
 def ask_openai(
     prompt: str,
@@ -50,6 +58,13 @@ def ask_openai(
     # Use env‑defined default when caller does not specify
     if model is None:
         model = AI_MODEL
+
+    key = (model, system_prompt, prompt)
+    now = time.time()
+    cached = _cache.get(key)
+    if cached and now - cached[0] < _CACHE_TTL_SEC:
+        logger.debug("OpenAI cache hit for %s", model)
+        return cached[1]
     try:
         if response_format is None:
             response_format = {"type": "json_object"}
@@ -65,7 +80,9 @@ def ask_openai(
             response_format=response_format,
         )
         response_content = response.choices[0].message.content.strip()
-        return json.loads(response_content)
+        parsed = json.loads(response_content)
+        _cache[key] = (now, parsed)
+        return parsed
     except json.JSONDecodeError as exc:
         logger.error("Malformed JSON from OpenAI: %s", response_content)
         raise RuntimeError("Invalid JSON response") from exc
