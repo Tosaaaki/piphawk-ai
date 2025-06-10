@@ -705,6 +705,32 @@ TRAIL_TRIGGER_PIPS: 20
 TRAIL_DISTANCE_PIPS: 10
 ```
 
+## calc_min_sl による動的SL計算
+
+`calc_min_sl()` を使うと ATR と直近スイング幅から最小ストップ値を算出できます。
+ATR 倍率は `MIN_ATR_MULT` 環境変数、もしくは `config/strategy.yml` の
+`risk.min_atr_sl_multiplier` で調整します。
+
+```python
+from backend.risk_manager import calc_min_sl
+
+# 例: ATR=10pips、スイング差=8pips の場合
+sl = calc_min_sl(10, 8, atr_mult=1.2, swing_buffer_pips=5)
+print(sl)  # 13
+```
+
+計算された値を基準に TP/SL 候補を評価し、期待値が最大となる組み合わせを採用します。
+`MIN_RRR` と `ENFORCE_RRR` を設定するとリスクリワード比を強制できます。
+候補は `TP_CANDIDATES` / `SL_CANDIDATES` 環境変数や `strategy.yml` に記述可能です。
+
+```yaml
+risk:
+  min_atr_sl_multiplier: 1.3
+  min_rr_ratio: 1.2
+TP_CANDIDATES: [10, 15, 20]
+SL_CANDIDATES: [8, 10, 12]
+```
+
 ## 4 レイヤー・スコアリングと TP/SL 最適化
 
 エントリーロジックではトレンド、モメンタム、ボラティリティ、パターンの4要素を組み合わせたスコアリング方式を採用しています。重みは `SCORE_WEIGHTS` で調整でき、総合スコアが `ENTRY_SCORE_MIN` を上回った場合のみポジションを開きます。
