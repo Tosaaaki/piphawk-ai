@@ -25,6 +25,7 @@ import time
 from typing import Any, Dict, Optional
 from backend.utils import env_loader
 
+import logging
 import requests
 from requests.exceptions import HTTPError, RequestException
 
@@ -42,6 +43,8 @@ HEADERS = {
     "Authorization": f"Bearer {OANDA_API_KEY}",
     "Content-Type": "application/json",
 }
+
+logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────
 #   Lightweight in‑memory cache
@@ -77,7 +80,7 @@ def get_pending_entry_order(instrument: str) -> Optional[dict]:
     try:
         orders = _fetch_pending_orders(instrument)
     except (HTTPError, RequestException) as exc:
-        print(f"[oanda_client] HTTP error when fetching orders: {exc}")
+        logger.warning("[oanda_client] HTTP error when fetching orders: %s", exc)
         _cache[instrument] = {"fetched_at": now, "result": None}
         return None
 

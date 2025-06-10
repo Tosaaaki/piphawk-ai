@@ -1,10 +1,13 @@
 import os
+import logging
 import requests
 from datetime import datetime, timedelta, timezone
 
 OANDA_API_URL = "https://api-fxtrade.oanda.com/v3/instruments/{instrument}/candles"
 OANDA_API_KEY = os.getenv("OANDA_API_KEY")
 OANDA_ACCOUNT_ID = os.getenv("OANDA_ACCOUNT_ID")
+
+logger = logging.getLogger(__name__)
 
 def fetch_candles(
     instrument=None,
@@ -49,16 +52,20 @@ def fetch_candles(
         if "candles" in data:
             candles = data["candles"]
             if not allow_incomplete:
+                if candles and not candles[-1].get("complete"):
+                    logger.debug(
+                        "M%s incomplete; using last complete bar T-1", granularity
+                    )
                 candles = [c for c in candles if c.get("complete")]
             return candles
         else:
-            print(f"No candles found in response for {instrument}")
+            logger.warning("No candles found in response for %s", instrument)
             return []
     except requests.Timeout:
-        print(f"Request timed out while fetching candles for {instrument}")
+        logger.warning("Request timed out while fetching candles for %s", instrument)
         return []
     except requests.RequestException as e:
-        print(f"Error fetching candles for {instrument}: {e}")
+        logger.error("Error fetching candles for %s: %s", instrument, e)
         return []
 
 
@@ -109,6 +116,10 @@ def fetch_multiple_timeframes(instrument=None, timeframes=None):
             count,
             allow_incomplete=True,
         )
+        incomplete = bool(candles and not candles[-1].get("complete"))
+        logger.debug(
+            "%s bars fetched: %d (incomplete=%s)", granularity, len(candles), incomplete
+        )
         candles_by_timeframe[granularity] = candles
     
     return candles_by_timeframe
@@ -118,5 +129,5 @@ if __name__ == "__main__":
     instrument = os.getenv('DEFAULT_PAIR', 'USD_JPY')
     candles = fetch_multiple_timeframes(instrument)
     for tf, data in candles.items():
-        print(f"{tf} candles ({len(data)}):")
-        print(data[:3])  # Print first 3 candles as a sample
+        logger.info("%s candles (%d):", tf, len(data))
+        logger.info("%s", data[:3])  # Print first 3 candles as a sample
