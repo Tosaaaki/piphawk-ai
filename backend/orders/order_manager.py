@@ -59,8 +59,8 @@ PIP_SIZES: dict[str, float] = {
 
 
 def get_pip_size(instrument: str) -> float:
-    """Return pip size for the instrument; fallback to DEFAULT_PAIR mapping."""
-    return PIP_SIZES.get(instrument, PIP_SIZES.get(DEFAULT_PAIR, 0.01))
+    """Return pip size (JPY pairs use 0.01, others 0.0001)."""
+    return 0.01 if instrument.endswith("_JPY") else 0.0001
 
 
 class OrderManager:
@@ -228,6 +228,33 @@ class OrderManager:
             )
             raise Exception(f"Failed to place order: {response.text}")
         return response.json()
+
+    def place_market_with_tp_sl(
+        self,
+        instrument: str,
+        units: int,
+        side: str,
+        tp_pips: float,
+        sl_pips: float,
+        comment_json: str | None = None,
+    ) -> dict:
+        """Place a market order and immediately attach TP/SL."""
+        res = self.place_market_order(
+            instrument, units, comment_json=comment_json
+        )
+        trade_id = res.get("lastTransactionID")
+        if not trade_id:
+            return res
+        price = float(res.get("orderFillTransaction", {}).get("price", 0.0))
+        pip = get_pip_size(instrument)
+        tp_price = (
+            price + tp_pips * pip if side == "long" else price - tp_pips * pip
+        )
+        sl_price = (
+            price - sl_pips * pip if side == "long" else price + sl_pips * pip
+        )
+        self.adjust_tp_sl(instrument, trade_id, new_tp=tp_price, new_sl=sl_price)
+        return res
 
     def adjust_tp_sl(
         self,

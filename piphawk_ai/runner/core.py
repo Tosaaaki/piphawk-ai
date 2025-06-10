@@ -231,7 +231,7 @@ class JobRunner:
         self.last_run = None
         self._stop = False
         # DEFAULT_PAIR を属性に保持して外部モジュールから参照できるようにする
-        self.DEFAULT_PAIR = DEFAULT_PAIR
+        self.DEFAULT_PAIR = os.getenv("DEFAULT_PAIR", "USD_JPY")
         # Start Prometheus metrics server
         metrics_port = int(env_loader.get_env("METRICS_PORT", "8001"))
         try:
@@ -273,7 +273,7 @@ class JobRunner:
         self.order_mgr = order_mgr
         self.PATTERN_NAMES = PATTERN_NAMES
         # DEFAULT_PAIR を属性として保持
-        self.DEFAULT_PAIR = DEFAULT_PAIR
+        self.DEFAULT_PAIR = os.getenv("DEFAULT_PAIR", "USD_JPY")
         # ----- Additional runtime state --------------------------------
         # Toggle for higher‑timeframe reference levels (daily / H4)
         self.higher_tf_enabled = env_loader.get_env("HIGHER_TF_ENABLED", "true").lower() == "true"
