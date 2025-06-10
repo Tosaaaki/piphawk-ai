@@ -84,6 +84,27 @@ def enter_scalp_trade(instrument: str, side: str = "long") -> None:
     trade_id = res.get("lastTransactionID")
     if trade_id:
         _open_scalp_trades[trade_id] = time.time()
+        # TP が付いているか確認し、無ければ再設定する
+        if hasattr(order_mgr, "get_current_tp"):
+            time.sleep(1)
+            try:
+                current_tp = order_mgr.get_current_tp(trade_id)
+            except Exception:
+                current_tp = None
+            if current_tp is None:
+                price = float(res.get("orderFillTransaction", {}).get("price", 0.0))
+                tp_price = price + tp_pips * pip_size if side == "long" else price - tp_pips * pip_size
+                sl_price = price - sl_pips * pip_size if side == "long" else price + sl_pips * pip_size
+                try:
+                    order_mgr.adjust_tp_sl(
+                        instrument,
+                        trade_id,
+                        new_tp=tp_price,
+                        new_sl=sl_price,
+                    )
+                    logger.info(f"Reattached TP/SL for trade {trade_id}")
+                except Exception as exc:
+                    logger.warning(f"TP/SL reattach failed: {exc}")
     logger.info(f"Enter SCALP {instrument} at {datetime.now(timezone.utc).isoformat()}")
 
 
