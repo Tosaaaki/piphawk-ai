@@ -3,19 +3,33 @@ from __future__ import annotations
 """Utility functions to build context vectors for strategy selection."""
 
 
-from backend.logs.log_manager import get_db_connection
+from backend.logs.log_manager import get_db_connection, init_db
+import sqlite3
 
 
 def recent_strategy_performance(limit: int = 10) -> Dict[str, float]:
     """Return average reward for each strategy over recent transitions."""
     perf: Dict[str, list[float]] = {}
-    with get_db_connection() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT action, reward FROM policy_transitions ORDER BY id DESC LIMIT ?",
-            (limit,),
-        )
-        rows = cur.fetchall()
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT action, reward FROM policy_transitions ORDER BY id DESC LIMIT ?",
+                (limit,),
+            )
+            rows = cur.fetchall()
+    except sqlite3.OperationalError as exc:
+        if "no such table" in str(exc):
+            init_db()
+            with get_db_connection() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT action, reward FROM policy_transitions ORDER BY id DESC LIMIT ?",
+                    (limit,),
+                )
+                rows = cur.fetchall()
+        else:
+            raise
     for action, reward in rows:
         perf.setdefault(action, []).append(float(reward))
     return {k: sum(v) / len(v) for k, v in perf.items() if v}
