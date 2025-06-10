@@ -1,0 +1,9 @@
+[Unit]
+Description=Piphawk AI system cleanup
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/piphawk/maintenance/system_cleanup.py
+
+[Install]
+WantedBy=multi-user.target
