@@ -161,7 +161,7 @@ piphawk-ai/
 
 The root also includes `Dockerfile` definitions for containerized deployment and
 `trades.db` as the default SQLite database path.
-When running inside Docker this file is located at `/app/trades.db` by default.
+When running inside Docker this file is located at `/app/backend/logs/trades.db` by default.
 
 ### Using strategy.yml
 
@@ -438,7 +438,7 @@ as on native x86 hardware.
 
 Trade history is stored in `trades.db` (SQLite) at the repository root by default.
 You can override the path with the environment variable `TRADES_DB_PATH`.
-When running inside Docker this defaults to `/app/trades.db`.
+When running inside Docker this defaults to `/app/backend/logs/trades.db`.
 
 SQLite uses WAL (Write-Ahead Logging) mode. For existing databases run:
 
