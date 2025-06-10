@@ -209,6 +209,8 @@ YAML ファイルの変更は `settings.env` と同様、ジョブランナー�
 切り替わった際に `config/<mode>.yml` を自動で再読み込みします。環境変数
 `AUTO_RESTART=true` を設定すると、読み込み後にプロセスを `os.execv()` で
 再起動します。このとき `RESTART_MIN_INTERVAL` で最小再起動間隔を指定可能です。
+`RESTART_STATE_PATH` でタイムスタンプを書き込むファイルを指定すると、連続再起動を
+防ぎます。
 
 ### Switching OANDA accounts
 

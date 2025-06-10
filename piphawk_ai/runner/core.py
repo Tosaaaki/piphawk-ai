@@ -6,7 +6,6 @@ import json
 import os
 import sys
 
-_LAST_RESTART: float = 0.0
 try:
     from prometheus_client import start_http_server
 except Exception:  # pragma: no cover - optional dependency or test stub
@@ -14,6 +13,7 @@ except Exception:  # pragma: no cover - optional dependency or test stub
         return None
 
 from backend.utils import env_loader, trade_age_seconds
+from backend.utils.restart_guard import can_restart
 
 try:
     from config import params_loader
@@ -491,13 +491,9 @@ class JobRunner:
             return
         if os.getenv("AUTO_RESTART", "false").lower() == "true":
             interval = float(os.getenv("RESTART_MIN_INTERVAL", "60"))
-            now = time.time()
-            global _LAST_RESTART
-            if now - _LAST_RESTART >= interval:
+            if can_restart(interval):
                 logger.info("AUTO_RESTART enabled – restarting process")
-                _LAST_RESTART = now
                 python = sys.executable
-                # preserve module-based execution to keep import paths intact
                 os.execv(
                     python,
                     [python, "-m", "backend.scheduler.job_runner", *sys.argv[1:]],
