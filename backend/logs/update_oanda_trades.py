@@ -97,6 +97,7 @@ def update_oanda_trades():
 
         updated_count = 0
         for transaction in transactions:
+            rowcount = 0
             tx_type = transaction.get("type", "")
             if tx_type.endswith("_REJECT"):
                 logger.warning(
@@ -140,7 +141,8 @@ def update_oanda_trades():
                     conn=conn,
                 )
                 logger.debug("Debug AFTER INSERT rowcount: 1")
-                updated_count += 1
+                rowcount = 1
+                updated_count += rowcount
 
             elif transaction_type in ('STOP_LOSS_ORDER', 'TAKE_PROFIT_ORDER'):
                 trade_id = transaction.get('tradeID') or transaction.get('tradesClosed', [{}])[0].get('tradeID')
@@ -149,6 +151,7 @@ def update_oanda_trades():
                 realized_pl = float(transaction.get('tradesClosed', [{}])[0].get('realizedPL', 0.0))
 
                 if transaction_type == 'TAKE_PROFIT_ORDER':
+                    before = conn.total_changes
                     execute_with_retry(
                         cursor.execute,
                         """
@@ -158,8 +161,10 @@ def update_oanda_trades():
                         """,
                         (close_time, price, price, realized_pl, trade_id),
                     )
+                    rowcount = conn.total_changes - before
 
                 elif transaction_type == 'STOP_LOSS_ORDER':
+                    before = conn.total_changes
                     execute_with_retry(
                         cursor.execute,
                         """
@@ -169,14 +174,15 @@ def update_oanda_trades():
                         """,
                         (close_time, price, price, realized_pl, trade_id),
                     )
+                    rowcount = conn.total_changes - before
 
-                logger.info(f"{transaction_type} updated for trade_id {trade_id}, rowcount={cursor.rowcount}")
+                logger.info(f"{transaction_type} updated for trade_id {trade_id}, rowcount={rowcount}")
 
             logger.info(
-                f"{transaction_type} processed for trade_id {transaction_id}, rowcount={cursor.rowcount}"
+                f"{transaction_type} processed for trade_id {transaction_id}, rowcount={rowcount}"
             )
             if transaction_type != 'ORDER_FILL':
-                updated_count += cursor.rowcount
+                updated_count += rowcount
 
         execute_with_retry(conn.commit)
         logger.info(f"Successfully updated {updated_count} new trades.")
