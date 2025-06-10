@@ -33,7 +33,7 @@ def get_scalp_plan(indicators: dict, candles: list, *, higher_tf_direction: str 
     bias_note = ""
     if SCALP_PROMPT_BIAS == "aggressive":
         bias_note = (
-            "\nWhen conditions are unclear, prefer taking a position rather than returning 'no'."
+            "\nAct decisively: choose 'long' or 'short' whenever possible. Return 'no' only if no valid setup exists."
         )
     prompt = (
         "You are a forex scalping assistant.\n"

@@ -1010,24 +1010,34 @@ class JobRunner:
                     if self.indicators_S10:
                         indicators["S10"] = self.indicators_S10
 
-                    align = is_multi_tf_aligned(
-                        {
-                            "M1": self.indicators_M1 or {},
-                            "M5": self.indicators_M5 or {},
-                            "H1": self.indicators_H1 or {},
-                        }
+                    skip_align = self.trade_mode in (
+                        "scalp",
+                        "scalp_momentum",
+                        "scalp_range",
                     )
-                    if align is None and env_loader.get_env(
-                        "ALIGN_STRICT", env_loader.get_env("STRICT_TF_ALIGN", "false")
-                    ).lower() == "true":
-                        log.info("Multi‑TF alignment missing → skip entry")
-                        log_entry_skip(DEFAULT_PAIR, None, "tf_align")
-                        self.last_run = now
-                        update_oanda_trades()
-                        time.sleep(self.interval_seconds)
-                        timer.stop()
-                        continue
-                    log.info(f"Multi‑TF alignment: {align}")
+                    if skip_align:
+                        align = None
+                        log.debug("Multi‑TF alignment skipped in scalp mode")
+                    else:
+                        align = is_multi_tf_aligned(
+                            {
+                                "M1": self.indicators_M1 or {},
+                                "M5": self.indicators_M5 or {},
+                                "H1": self.indicators_H1 or {},
+                            }
+                        )
+                        if align is None and env_loader.get_env(
+                            "ALIGN_STRICT",
+                            env_loader.get_env("STRICT_TF_ALIGN", "false"),
+                        ).lower() == "true":
+                            log.info("Multi‑TF alignment missing → skip entry")
+                            log_entry_skip(DEFAULT_PAIR, None, "tf_align")
+                            self.last_run = now
+                            update_oanda_trades()
+                            time.sleep(self.interval_seconds)
+                            timer.stop()
+                            continue
+                        log.info(f"Multi‑TF alignment: {align}")
 
                     log.info("Indicators calculation successful.")
 

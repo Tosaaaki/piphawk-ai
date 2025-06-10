@@ -129,6 +129,7 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 - `TREND_COND_TF` … トレンドフォロー時の市場判定に使う時間足 (デフォルト `M5`)
 - `SCALP_OVERRIDE_RANGE` … true ならレンジ判定を無視してスキャルを優先
 - `SCALP_PROMPT_BIAS` … `aggressive` にするとスキャルプAIが積極的にエントリー判断
+- スキャルプモードではマルチTF整合チェックを自動的にスキップ
 - `ADX_SCALP_MIN` … ADX がこの値以上でスキャルプモード
 - `ADX_TREND_MIN` … ADX がこの値以上でトレンドフォローモード
 - `TREND_PROMPT_BIAS` … `aggressive` にするとトレンドフォローAIがより積極的
