@@ -316,30 +316,12 @@ class OrderManager:
                 time.sleep(1)
 
         if new_sl is not None:
-            sl_payload = {
-                "order": {
-                    "type": "STOP_LOSS",
-                    "tradeID": trade_id,
-                    "price": format_price(instrument, new_sl),
-                    "timeInForce": "GTC",
-                }
-            }
             logger.debug(
-                f"\u25b6\u25b6\u25b6 ADJUST_TP_SL SL payload: {sl_payload}"
+                f"\u25b6\u25b6\u25b6 ADJUST_TP_SL calling update_trade_sl: {trade_id} -> {new_sl}"
             )
-            for attempt in range(3):
-                resp = requests.post(url, json=sl_payload, headers=HEADERS)
-                if resp.status_code == 201:
-                    results["sl"] = resp.json()
-                    break
-                if attempt == 2:
-                    code, msg = _extract_error_details(resp)
-                    log_error(
-                        "order_manager",
-                        f"SL adjustment failed: {code} {msg}",
-                        resp.text,
-                    )
-                time.sleep(1)
+            sl_result = self.update_trade_sl(trade_id, instrument, new_sl)
+            if sl_result is not None:
+                results["sl"] = sl_result
 
         return results if results else None
 

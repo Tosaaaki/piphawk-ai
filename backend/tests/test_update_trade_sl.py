@@ -36,6 +36,7 @@ class TestUpdateTradeSL(unittest.TestCase):
             return DummyResponse(status_code=200, json_data={"ok": True})
         req.post = lambda *a, **k: DummyResponse()
         req.put = put
+        req.Session = lambda: types.SimpleNamespace()
         req.get = lambda *a, **k: DummyResponse()
         add("requests", req)
 
@@ -46,6 +47,7 @@ class TestUpdateTradeSL(unittest.TestCase):
         def log_error(module, code, message=None):
             self.log_calls.append((code, message))
         log_stub.log_error = log_error
+        log_stub.log_policy_transition = lambda *a, **k: None
         add("backend.logs.log_manager", log_stub)
 
         os.environ.setdefault("OANDA_ACCOUNT_ID", "dummy")
