@@ -262,6 +262,14 @@ class JobRunner:
         # LIMIT order age threshold
         self.max_limit_age_sec = MAX_LIMIT_AGE_SEC
         self.pending_grace_sec = PENDING_GRACE_MIN * 60
+        # backend.strategy.entry_logic のグローバル変数を参照
+        # manage_pending_limits() からアクセスされるため属性として保持
+        self._pending_limits = _pending_limits
+        # ロガーへの参照を属性に保持（entry ヘルパー用）
+        self.logger = logger
+        # 注文マネージャーとパターン名リストを属性化
+        self.order_mgr = order_mgr
+        self.PATTERN_NAMES = PATTERN_NAMES
         # ----- Additional runtime state --------------------------------
         # Toggle for higher‑timeframe reference levels (daily / H4)
         self.higher_tf_enabled = env_loader.get_env("HIGHER_TF_ENABLED", "true").lower() == "true"
