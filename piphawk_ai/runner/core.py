@@ -16,7 +16,7 @@ try:
     from config import params_loader
     last_mode = getattr(params_loader, "load_last_mode", lambda: None)()
     if last_mode in ("scalp", "scalp_momentum"):
-        params_loader.load_params(path="config/scalp.yml")
+        params_loader.load_params(path="config/scalp_params.yml")
     elif last_mode == "trend_follow":
         params_loader.load_params(path="config/trend.yml")
     else:
@@ -343,7 +343,7 @@ class JobRunner:
             self.current_params_file = "config/strategy.yml"
         elif mode_env.lower() == "true":
             self.trade_mode = "scalp"
-            self.current_params_file = "config/scalp.yml"
+            self.current_params_file = "config/scalp_params.yml"
         else:
             self.trade_mode = "trend_follow"
             self.current_params_file = "config/trend.yml"
@@ -445,8 +445,8 @@ class JobRunner:
     def reload_params_for_mode(self, mode: str) -> None:
         """Load YAML parameters for the given mode and optionally restart."""
         file_map = {
-            "scalp": "config/scalp.yml",
-            "scalp_momentum": "config/scalp.yml",
+            "scalp": "config/scalp_params.yml",
+            "scalp_momentum": "config/scalp_params.yml",
             "trend_follow": "config/trend.yml",
         }
         path = file_map.get(mode, "config/strategy.yml")

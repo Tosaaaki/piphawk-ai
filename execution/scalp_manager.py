@@ -14,7 +14,7 @@ from backend.orders.position_manager import get_open_positions
 
 logger = logging.getLogger(__name__)
 
-_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "scalp.yaml"
+_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "scalp.yml"
 try:
     _CONFIG = yaml.safe_load(_CONFIG_PATH.read_text())
 except Exception:  # pragma: no cover - config optional

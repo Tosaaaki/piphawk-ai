@@ -87,7 +87,7 @@ class TestJobRunnerRestoreMode(unittest.TestCase):
         importlib.reload(self.jr)
         runner = self.jr.JobRunner()
         self.assertEqual(runner.trade_mode, "scalp")
-        self.assertEqual(runner.current_params_file, "config/scalp.yml")
+        self.assertEqual(runner.current_params_file, "config/scalp_params.yml")
 
     def test_restore_trend(self):
         os.environ["SCALP_MODE"] = "false"
