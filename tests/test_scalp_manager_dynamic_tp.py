@@ -1,6 +1,9 @@
 import importlib
 import sys
 import types
+import os
+os.environ.setdefault("OANDA_API_KEY", "x")
+os.environ.setdefault("OANDA_ACCOUNT_ID", "x")
 
 import execution.scalp_manager as sm
 
@@ -49,6 +52,9 @@ def test_dynamic_tp_sl(monkeypatch):
     sys.modules["backend.indicators.calculate_indicators"] = ind_mod
     sys.modules["backend.strategy.openai_scalp_analysis"] = scalp_mod
 
+    monkeypatch.setenv("MIN_SL_PIPS", "5")
+    monkeypatch.setenv("ATR_SL_MULTIPLIER", "0")
+
     sm.enter_scalp_trade("USD_JPY", "long")
     assert sm.order_mgr.params["tp"] == 2.0
-    assert sm.order_mgr.params["sl"] == 1.0
+    assert sm.order_mgr.params["sl"] == 5.0
