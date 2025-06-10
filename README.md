@@ -746,8 +746,13 @@ virtual environment and execute:
 pytest
 ```
 
-Ensure all dependencies from `backend/requirements.txt` are installed before
-running tests.
+Ensure all dependencies from `backend/requirements.txt` are installed before running tests.
+
+You can install them with:
+
+```bash
+pip install --extra-index-url https://download.pytorch.org/whl/cpu -r backend/requirements.txt
+```
 
 This will run all tests defined in the project to verify core modules and
 configuration loaders.
