@@ -480,6 +480,20 @@ python3 backend/logs/show_param_history.py --param RSI_PERIOD --days 7
 python3 -m backend.logs.show_tables
 ```
 
+### Database cleanup
+
+The database and `exit_log.jsonl` can grow large over time. Run the cleanup script to shrink the database and remove old log entries:
+
+```bash
+python3 -m backend.logs.cleanup
+```
+
+Set the `DAYS` environment variable to keep more history:
+
+```bash
+DAYS=60 python3 -m backend.logs.cleanup
+```
+
 ## React UI
 
 The active React application lives in `piphawk-ui/` and was bootstrapped with Create React App. Run it locally with:
