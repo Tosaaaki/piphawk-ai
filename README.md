@@ -494,6 +494,18 @@ Set the `DAYS` environment variable to keep more history:
 DAYS=60 python3 -m backend.logs.cleanup
 ```
 
+### System cleanup
+
+Old cache files and log archives can consume disk space over time. Run the
+helper script below or enable the provided systemd timer for periodic cleanup:
+
+```bash
+python3 maintenance/system_cleanup.py
+```
+
+Copy `maintenance/system_cleanup.service` and `maintenance/system_cleanup.timer`
+to `/etc/systemd/system/` and enable the timer to automate these tasks.
+
 ## React UI
 
 The active React application lives in `piphawk-ui/` and was bootstrapped with Create React App. Run it locally with:
