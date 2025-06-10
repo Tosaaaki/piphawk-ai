@@ -1277,6 +1277,7 @@ Respond with **one-line valid JSON** exactly as:
             log_ai_decision("ERROR", instrument, json.dumps(raw, ensure_ascii=False))
         except Exception as exc:  # pragma: no cover - ignore logging failure
             logger.warning("log_ai_decision failed: %s", exc)
+        logger.info("Invalid JSON response: %s", raw)
         return {"entry": {"side": "no"}, "raw": raw}
 
     entry_conf = plan.get("entry_confidence")
@@ -1363,6 +1364,7 @@ Respond with **one-line valid JSON** exactly as:
             total = p + q
             if total > 1.0 + PROB_MARGIN or total < 1.0 - PROB_MARGIN:
                 logger.warning("Probabilities invalid — skipping plan")
+                logger.info("Plan with invalid probabilities: %s", json.dumps(plan, ensure_ascii=False))
                 plan["entry"]["side"] = "no"
                 return plan
 
