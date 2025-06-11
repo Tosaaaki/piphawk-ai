@@ -529,6 +529,15 @@ Set the `DAYS` environment variable to keep more history:
 DAYS=60 python3 -m backend.logs.cleanup
 ```
 
+### Filter statistics
+
+`analysis/filter_statistics.py` を使うと、エントリーを阻止したフィルター理由の集計
+結果を表示できます。`TRADES_DB_PATH` が未指定の場合は `trades.db` を参照します。
+
+```bash
+python3 -m analysis.filter_statistics
+```
+
 ### System cleanup
 
 Old cache files and log archives can consume disk space over time. Run the
