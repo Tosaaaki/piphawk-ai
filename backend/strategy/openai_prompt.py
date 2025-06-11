@@ -295,7 +295,7 @@ Pivot: {ind_m5.get('pivot')}, R1: {ind_m5.get('pivot_r1')}, S1: {ind_m5.get('piv
 Your task:
 1. Clearly classify the current regime as "trend" or "range". If "trend", specify direction as "long" or "short". Output this at JSON key "regime".
 2. Decide whether to open a trade now, strictly adhering to the above criteria. Return JSON key "entry" with: {{ "side":"long"|"short"|"no", "rationale":"…" }}. Also include numeric key "entry_confidence" between 0 and 1 representing your confidence. Additionally return key "probs" as {{"long":float,"short":float,"no":float}} where all values sum to 1.
-3. If side is not "no", propose TP/SL distances **in pips** along with their {TP_PROB_HOURS}-hour hit probabilities: {{ "tp_pips":int, "sl_pips":int, "tp_prob":float, "sl_prob":float }}. Output this at JSON key "risk". These four keys must always be included. Use decimals for all probability values.
+3. If side is not "no", propose TP/SL distances **in pips** along with their {TP_PROB_HOURS}-hour hit probabilities: {{ "tp_pips":int, "sl_pips":int, "tp_prob":float, "sl_prob":float }}. Output this at JSON key "risk". These four keys must always be included. Use decimals for all probability values. When you output side "long" or "short", the risk object must contain both "tp_pips" and "sl_pips" or the trade will be skipped.
    - Constraints:
     • tp_prob must be ≥ {MIN_TP_PROB:.2f}
     • Expected value (tp_pips*tp_prob - sl_pips*sl_prob) must be positive
