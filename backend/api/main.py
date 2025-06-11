@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, APIRouter, Response
 from backend.utils import env_loader
 import sqlite3
 import os
+import importlib
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.base import STATE_RUNNING
@@ -326,6 +327,14 @@ def update_runtime_settings(settings: RuntimeSettings):
             raise HTTPException(status_code=400, detail=f"{key} must be an int")
         if key in current_settings:
             current_settings[key] = value
+            os.environ[key.upper()] = str(value)
+    try:
+        jr = importlib.import_module("backend.scheduler.job_runner")
+        runner = getattr(jr, "RUNNER_INSTANCE", None)
+        if runner is not None:
+            runner.refresh_ai_cooldowns()
+    except Exception as exc:  # pragma: no cover - runner may be absent
+        logger.debug("JobRunner update failed: %s", exc)
     return {"status": "ok", "settings": current_settings}
 
 
