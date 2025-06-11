@@ -11,6 +11,7 @@ from backend.risk_manager import (
     validate_rrr_after_cost,
     validate_sl,
 )
+from risk.tp_sl_manager import adjust_sl_for_rr
 from datetime import datetime, timedelta, timezone
 import time
 import json
@@ -466,15 +467,9 @@ class OrderManager:
         min_rrr = float(env_loader.get_env("MIN_RRR", "0.8"))
         if tp_pips is not None and sl_pips is not None:
             try:
-                if not validate_rrr(float(tp_pips), float(sl_pips), min_rrr):
-                    adj_tp = float(sl_pips) * min_rrr
-                    logger.warning(
-                        "TP/SL ratio below %.2f – adjusting TP from %s to %.2f",
-                        min_rrr,
-                        tp_pips,
-                        adj_tp,
-                    )
-                    tp_pips = adj_tp
+                tp_pips, sl_pips = adjust_sl_for_rr(
+                    float(tp_pips), float(sl_pips), min_rrr
+                )
             except Exception:
                 pass
 

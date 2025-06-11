@@ -34,7 +34,9 @@ class TestRRREnforcement(unittest.TestCase):
         pandas_stub = types.ModuleType("pandas")
         pandas_stub.Series = FakeSeries
         add("pandas", pandas_stub)
-        add("requests", types.ModuleType("requests"))
+        req_stub = types.ModuleType("requests")
+        req_stub.Session = lambda: types.SimpleNamespace()
+        add("requests", req_stub)
         add("numpy", types.ModuleType("numpy"))
         dotenv_stub = types.ModuleType("dotenv")
         dotenv_stub.load_dotenv = lambda *a, **k: None
@@ -104,7 +106,7 @@ class TestRRREnforcement(unittest.TestCase):
         self.assertTrue(result)
         params = self.el.order_manager.last_params
         self.assertIsNotNone(params)
-        self.assertGreaterEqual(params["tp_pips"], params["sl_pips"] * 2)
+        self.assertLessEqual(params["sl_pips"], params["tp_pips"] / 2)
         spread = (1.01 - 1.0) / float(os.environ["PIP_SIZE"])
         cost = spread + float(os.environ["ENTRY_SLIPPAGE_PIPS"])
         r_after = (params["tp_pips"] - cost) / params["sl_pips"]
