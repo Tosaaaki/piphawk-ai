@@ -41,7 +41,14 @@ def execute_with_retry(func, *args, retries=5, delay=2, **kwargs):
         raise last_exc
 
 def fetch_transactions(url, params=None):
-    response = requests.get(url, headers=headers, params=params)
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+    except requests.Timeout:
+        logger.error("Timeout when fetching transactions from %s", url)
+        raise
+    except requests.RequestException as exc:
+        logger.error("Error fetching transactions: %s", exc)
+        raise
     if response.status_code != 200:
         raise Exception(f"Failed to fetch transactions: {response.text}")
     return response.json()
@@ -61,7 +68,14 @@ def get_last_transaction_id():
 
 def fetch_trade_details(trade_id):
     url = f"{OANDA_API_URL}/v3/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}"
-    response = requests.get(url, headers=headers)
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+    except requests.Timeout:
+        logger.error("Timeout when fetching trade details for %s", trade_id)
+        raise
+    except requests.RequestException as exc:
+        logger.error("Error fetching trade details: %s", exc)
+        raise
     if response.status_code == 200:
         return response.json()
     else:
