@@ -47,6 +47,7 @@ def build_trade_plan_prompt(
     pattern_line: str | None,
     macro_summary: str | None = None,
     macro_sentiment: str | None = None,
+    pullback_done: bool = False,
     *,
     allow_delayed_entry: bool = False,
     higher_tf_direction: str | None = None,
@@ -286,6 +287,9 @@ Pivot: {ind_m5.get('pivot')}, R1: {ind_m5.get('pivot_r1')}, S1: {ind_m5.get('piv
 
 ### N-Wave Target
 {ind_m5.get('n_wave_target')}
+
+### Pullback Completed
+{pullback_done}
 
 ### Macro News Summary
 {macro_summary if macro_summary else 'N/A'}

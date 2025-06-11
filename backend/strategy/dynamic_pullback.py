@@ -24,3 +24,20 @@ def calculate_dynamic_pullback(indicators: dict, recent_high: float, recent_low:
     pullback = max(thr_atr, thr_noise, thr_fibo)
     pullback = min(max(pullback, 3), 15)
     return pullback
+
+
+def pullback_completed(
+    direction: str,
+    price: float,
+    pullback_needed: float,
+    recent_high: float,
+    recent_low: float,
+) -> bool:
+    """Return ``True`` when price has met the dynamic pullback depth."""
+
+    pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+    if direction == "long" and recent_high:
+        return (recent_high - price) / pip_size >= pullback_needed
+    if direction == "short" and recent_low:
+        return (price - recent_low) / pip_size >= pullback_needed
+    return False
