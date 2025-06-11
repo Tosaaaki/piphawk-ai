@@ -1,3 +1,5 @@
+"""損失やエラー発生数を監視して安全停止を行うためのモジュール."""
+
 import logging
 from datetime import datetime, timedelta
 

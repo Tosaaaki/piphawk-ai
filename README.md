@@ -790,4 +790,5 @@ pip install --extra-index-url https://download.pytorch.org/whl/cpu -r backend/re
 ```
 
 This will run all tests defined in the project to verify core modules and
-configuration loaders.
+configuration loaders. Recent additions include tests for the monitoring
+utilities such as ``SafetyTrigger`` and ``metrics_publisher``.
