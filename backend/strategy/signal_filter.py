@@ -336,6 +336,7 @@ def pass_entry_filter(
     indicators_h1: dict | None = None,
     *,
     mode: str | None = None,
+    context: dict | None = None,
 ) -> bool:
     """
     Pure rule‑based entry filter.
@@ -358,7 +359,12 @@ def pass_entry_filter(
     mode : str | None, default None
         Trade mode such as ``"scalp"`` or ``"trend_follow"``. When specified
         the filter adjusts certain thresholds accordingly.
+    context : dict | None, optional
+        Mutable context dictionary to store penalty metrics for downstream AI
+        evaluation.
     """
+    if context is None:
+        context = {}
     if env_loader.get_env("DISABLE_ENTRY_FILTER", "false").lower() == "true":
         return True
 
@@ -410,12 +416,20 @@ def pass_entry_filter(
             pivot = higher.get(f"pivot_{tf.lower()}")
             if pivot is None:
                 continue
-            if abs((current_price - pivot) / pip_size) <= sup_pips:
-                logger.info("Filter NG: pivot")
+            dist_pips = abs((current_price - pivot) / pip_size)
+            if dist_pips <= sup_pips:
+                threshold_pct = float(env_loader.get_env("PIVOT_DISTANCE_THRESHOLD", "0"))
+                penalty = None
+                if threshold_pct > 0 and pivot != 0:
+                    pct = abs(current_price - pivot) / pivot * 100
+                    if pct <= threshold_pct:
+                        penalty = (threshold_pct - pct) / threshold_pct
+                if context is not None and penalty is not None:
+                    context["pivot_penalty"] = max(context.get("pivot_penalty", 0), penalty)
+                logger.info("Filter WARN: pivot proximity")
                 logger.debug(
-                    f"EntryFilter blocked: within {sup_pips} pips of {tf} pivot"
+                    f"Within {sup_pips} pips of {tf} pivot → penalty {penalty}" 
                 )
-                return False
 
     # --- Range / Volatility metrics ------------------------------------
     rsi_series = indicators["rsi"]

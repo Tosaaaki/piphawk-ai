@@ -109,33 +109,33 @@ class TestEntryFilterRSICross(unittest.TestCase):
     def test_pass_entry_filter_blocks_without_cross(self):
         ind = self._base_indicators()
         m1 = {"rsi": FakeSeries([31, 33])}
-        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_h1=None)
+        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_h1=None, context={})
         self.assertFalse(result)
 
     def test_pass_entry_filter_allows_with_cross_up(self):
         ind = self._base_indicators()
         m1 = {"rsi": FakeSeries([29, 35])}
-        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_h1=None)
+        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_h1=None, context={})
         self.assertTrue(result)
 
     def test_pass_entry_filter_skips_cross_when_not_strict(self):
         os.environ["STRICT_ENTRY_FILTER"] = "false"
         ind = self._base_indicators()
         m1 = {"rsi": FakeSeries([31, 33])}
-        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_h1=None)
+        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_h1=None, context={})
         self.assertTrue(result)
 
     def test_pass_entry_filter_allows_with_cross_down(self):
         ind = self._base_indicators()
         m1 = {"rsi": FakeSeries([75, 65])}
-        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_h1=None)
+        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_h1=None, context={})
         self.assertTrue(result)
 
     def test_pass_entry_filter_lookback_env(self):
         os.environ["RSI_CROSS_LOOKBACK"] = "3"
         ind = self._base_indicators()
         m1 = {"rsi": FakeSeries([28, 31, 32, 36])}
-        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_h1=None)
+        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_h1=None, context={})
         self.assertTrue(result)
 
     def test_pass_entry_filter_allows_when_atr_adx_nan(self):
@@ -143,7 +143,7 @@ class TestEntryFilterRSICross(unittest.TestCase):
         ind["atr"] = FakeSeries([0.1, float('nan')])
         ind["adx"] = FakeSeries([30, float('nan')])
         m1 = {"rsi": FakeSeries([29, 35])}
-        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_h1=None)
+        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_h1=None, context={})
         self.assertTrue(result)
 
     def test_bandwidth_block_logs(self):
@@ -153,7 +153,7 @@ class TestEntryFilterRSICross(unittest.TestCase):
         ind["rsi"] = FakeSeries([85, 85])
         m1 = {"rsi": FakeSeries([29, 35])}
         with self.assertLogs(self.sf_logger, level="DEBUG") as cm:
-            result = pass_entry_filter(ind, price=1.02, indicators_m1=m1, indicators_h1=None)
+            result = pass_entry_filter(ind, price=1.02, indicators_m1=m1, indicators_h1=None, context={})
         self.assertFalse(result)
         self.assertTrue(any("Bollinger band width" in m for m in cm.output))
 
@@ -164,7 +164,7 @@ class TestEntryFilterRSICross(unittest.TestCase):
         ind["ema_fast"] = FakeSeries([1, 1])
         ind["ema_slow"] = FakeSeries([1, 1])
         with self.assertLogs(self.sf_logger, level="DEBUG") as cm:
-            result = pass_entry_filter(ind, price=1.2, indicators_m1={"rsi": FakeSeries([29, 35])}, indicators_h1=None)
+            result = pass_entry_filter(ind, price=1.2, indicators_m1={"rsi": FakeSeries([29, 35])}, indicators_h1=None, context={})
         self.assertFalse(result)
         msg = " ".join(cm.output)
         self.assertIn("ATR", msg)
@@ -175,7 +175,7 @@ class TestEntryFilterRSICross(unittest.TestCase):
         ind["ema_fast"] = FakeSeries([1.0, 1.2, 1.1])
         ind["ema_slow"] = FakeSeries([0.9, 1.0, 1.05])
         m1 = {"rsi": FakeSeries([29, 35])}
-        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_h1=None)
+        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_h1=None, context={})
         self.assertFalse(result)
 
 
