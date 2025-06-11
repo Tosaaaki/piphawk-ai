@@ -17,3 +17,16 @@
 - `MODE_STRONG_TREND_THRESH` … 強トレンド判定に使うスコア閾値
 - `MODE_BONUS_START_JST` / `MODE_BONUS_END_JST` … トレンド寄りに補正する時間帯
 - `MODE_PENALTY_START_JST` / `MODE_PENALTY_END_JST` … スキャルプ寄りに補正する時間帯
+
+`SCALP_ENTER_SCORE` と `SCALP_HOLD_SCORE` は、スコアリング結果から
+`scalp_momentum` モードへ切り替える際の閾値と、維持を判断する下限値です。
+デフォルトはそれぞれ `0.33` と `0.30` で、値を下げるほどスキャルプへ
+移行しやすくなります。
+
+`RANGE_ADX_MIN` は ADX がこの値を下回った場合にレンジ判定カウンターを
+増やします。連続 `RANGE_ADX_COUNT` 回に達するとモードを
+`scalp_momentum` へ切り替えます。推奨値は `20` です。
+
+`SCALP_AI_BBWIDTH_MAX` はスキャルプ AI を呼び出す際の
+ボリンジャーバンド幅上限(pips)を指定します。ボラティリティが高すぎる
+環境での無駄な問い合わせを避ける目的で `4` 程度が推奨されます。

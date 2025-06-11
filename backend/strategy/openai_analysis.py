@@ -90,13 +90,23 @@ _consistency_weights = _DEFAULT_CONSISTENCY_WEIGHTS.copy()
 _cw_env = env_loader.get_env("CONSISTENCY_WEIGHTS")
 if _cw_env:
     try:
+        parsed: dict[str, float] = {}
         for part in _cw_env.split(","):
             key, val = part.split(":")
-            _consistency_weights[key.strip()] = float(val)
+            parsed[key.strip()] = float(val)
+        total_w = sum(parsed.values())
+        if total_w != 0:
+            if abs(total_w - 1.0) > 0.1:
+                logging.getLogger(__name__).warning(
+                    "CONSISTENCY_WEIGHTS sum %.2f, normalizing", total_w
+                )
+            parsed = {k: v / total_w for k, v in parsed.items()}
+        _consistency_weights.update(parsed)
     except Exception as exc:  # pragma: no cover - just log
         logging.getLogger(__name__).warning(
-            "Invalid CONSISTENCY_WEIGHTS: %s", exc
+            "Invalid CONSISTENCY_WEIGHTS: %s; using defaults", exc
         )
+        _consistency_weights = _DEFAULT_CONSISTENCY_WEIGHTS.copy()
 
 # --- Dynamic weight multipliers ------------------------------------
 HIGH_VOL_WEIGHT_MULT: float = float(

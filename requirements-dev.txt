@@ -1,7 +1,18 @@
+# Use PyTorch CPU wheels
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.3.0+cpu
+
+# Install project dependencies in editable mode
+-e .
+
 pytest
 mabwiser
 scikit-learn
-
+fastapi
+apscheduler
+line-bot-sdk
+prometheus-client
+openai
 httpx
 numpy
 pandas

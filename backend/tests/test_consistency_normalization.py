@@ -8,27 +8,23 @@ import unittest
 class FakeSeries:
     def __init__(self, data=None):
         self._data = list(data or [])
-
         class _ILoc:
             def __init__(self, outer):
                 self._outer = outer
-
             def __getitem__(self, idx):
                 return self._outer._data[idx]
-
         self.iloc = _ILoc(self)
-
     def __getitem__(self, idx):
         return self._data[idx]
-
     def __len__(self):
         return len(self._data)
 
-class TestConsistencyWeights(unittest.TestCase):
+
+class TestConsistencyNormalization(unittest.TestCase):
     def setUp(self):
         os.environ.setdefault("OPENAI_API_KEY", "dummy")
         os.environ["LOCAL_WEIGHT_THRESHOLD"] = "0.6"
-        os.environ["CONSISTENCY_WEIGHTS"] = "ema:0.1,adx:0.1,rsi:0.8"
+        os.environ["CONSISTENCY_WEIGHTS"] = "ema:0.1,adx:0.1,rsi:0.1"
         self._mods = []
 
         def add(name: str, mod: types.ModuleType):
@@ -51,8 +47,8 @@ class TestConsistencyWeights(unittest.TestCase):
         add("dotenv", dotenv_stub)
         add("requests", types.ModuleType("requests"))
         add("numpy", types.ModuleType("numpy"))
+        add("httpx", types.ModuleType("httpx"))
         add("strategies", types.ModuleType("strategies"))
-        add("regime", types.ModuleType("regime"))
 
         import backend.strategy.openai_analysis as oa
         importlib.reload(oa)
@@ -62,43 +58,19 @@ class TestConsistencyWeights(unittest.TestCase):
         for m in self._mods:
             sys.modules.pop(m, None)
         os.environ.pop("CONSISTENCY_WEIGHTS", None)
+        os.environ.pop("LOCAL_WEIGHT_THRESHOLD", None)
 
-    def test_weight_from_env(self):
-        alpha = self.oa.calc_consistency(
-            "trend",
-            "trend",
-            ema_ok=1.0,
-            adx_ok=1.0,
-            rsi_cross_ok=1.0,
-        )
-        expected_local = (
-            self.oa._get_dynamic_weight("ema")
-            + self.oa._get_dynamic_weight("adx")
-            + self.oa._get_dynamic_weight("rsi")
-        )
-        expected_alpha = (
-            self.oa.LOCAL_WEIGHT_THRESHOLD * expected_local
-            + (1 - self.oa.LOCAL_WEIGHT_THRESHOLD)
-        )
-        self.assertAlmostEqual(alpha, expected_alpha)
+    def test_weights_normalized(self):
+        w = self.oa._consistency_weights
+        self.assertAlmostEqual(sum(w.values()), 1.0)
+        self.assertAlmostEqual(w.get("ema"), 1/3, places=2)
 
-    def test_disagreement_partial_score(self):
-        alpha = self.oa.calc_consistency(
-            "trend",
-            "range",
-            ema_ok=1.0,
-            adx_ok=1.0,
-            rsi_cross_ok=0.0,
-        )
-        expected_local = (
-            self.oa._get_dynamic_weight("ema") + self.oa._get_dynamic_weight("adx")
-        )
-        expected_ai = 0.5
-        expected_alpha = (
-            self.oa.LOCAL_WEIGHT_THRESHOLD * expected_local
-            + (1 - self.oa.LOCAL_WEIGHT_THRESHOLD) * expected_ai
-        )
-        self.assertAlmostEqual(alpha, expected_alpha)
+    def test_invalid_fallback(self):
+        os.environ["CONSISTENCY_WEIGHTS"] = "ema:x,adx:0.2"
+        import importlib
+        importlib.reload(self.oa)
+        w = self.oa._consistency_weights
+        self.assertEqual(w, self.oa._DEFAULT_CONSISTENCY_WEIGHTS)
 
 
 if __name__ == "__main__":

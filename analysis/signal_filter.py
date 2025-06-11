@@ -82,6 +82,13 @@ def is_multi_tf_aligned(
             except ValueError:
                 continue
 
+    total_w = sum(weights.values())
+    if total_w != 0:
+        if abs(total_w - 1.0) > 0.1:
+            logger.warning("TF_EMA_WEIGHTS sum %.2f, normalizing", total_w)
+        for k in list(weights.keys()):
+            weights[k] = weights[k] / total_w
+
     adx_weight = float(env_loader.get_env("ALIGN_ADX_WEIGHT", "0"))
     min_adx = float(env_loader.get_env("MIN_ALIGN_ADX", "20"))
 

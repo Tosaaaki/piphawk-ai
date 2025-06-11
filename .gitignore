@@ -176,8 +176,7 @@ cython_debug/
 .pypirc
 node_modules/
 
+# backendログファイルを無視
 backend/logs/*.db
-backend/logs/*.jsonl
 backend/logs/*.db*
 backend/logs/*.jsonl
-backend/logs/*.db*

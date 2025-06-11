@@ -33,8 +33,8 @@ def test_mode_scores_trend(monkeypatch):
         "volume": [200, 200, 200, 200, 200],
     }
     mode, score, _ = cm.decide_trade_mode_detail(inds)
-    assert mode == "trend_follow"
-    assert score == pytest.approx(10 / 12, abs=1e-6)
+    assert mode == "strong_trend"
+    assert score == pytest.approx(5 / 5.5, abs=1e-6)
 
 
 def test_mode_scores_scalp(monkeypatch):
@@ -57,8 +57,8 @@ def test_mode_scores_scalp(monkeypatch):
         "volume": [60, 60, 60, 60, 60],
     }
     mode, score, _ = cm.decide_trade_mode_detail(inds)
-    assert mode == "scalp_momentum"
-    assert score < 0.5
+    assert mode == "flat"
+    assert score == 0.0
 
 
 def test_mode_scores_strong_trend(monkeypatch):

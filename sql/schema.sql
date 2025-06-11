@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS trades (
     ai_response TEXT,
     entry_regime TEXT,
     exit_reason TEXT,
-    is_manual INTEGER
+    is_manual INTEGER,
+    score_version INTEGER DEFAULT 1
 );
 CREATE TABLE IF NOT EXISTS ai_decisions (
     decision_id INTEGER PRIMARY KEY AUTOINCREMENT,
