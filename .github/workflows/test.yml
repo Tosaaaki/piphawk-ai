@@ -21,5 +21,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install --extra-index-url https://download.pytorch.org/whl/cpu -r backend/requirements.txt
           pip install -r backend/requirements-dev.txt
+          pip install -r requirements-dev.txt
       - name: Run tests
-        run: pytest -q
+        run: pytest -q --maxfail=1 --disable-warnings
