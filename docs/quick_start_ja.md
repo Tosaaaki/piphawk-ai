@@ -41,3 +41,5 @@ INFO:root:Net TP 0.3 < 1.0 → skip entry
 ```
 
 プランには `"reason": "NET_TP_TOO_SMALL"` と記録されます。`MIN_NET_TP_PIPS` を 0.5 程度まで下げる、あるいはスプレッドが狭い時間帯を選ぶとエントリーされやすくなります。
+
+AI が `side: "no"` を返した場合は `why` フィールドに理由が英語で簡潔に記載されます。`side: "yes"` のときは `risk.tp_pips`, `risk.sl_pips` などが必須で、`tp_prob` は 0.70 以上である必要があります。
