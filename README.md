@@ -148,6 +148,13 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 - `HTF_SLOPE_MIN` … 上位足 EMA 傾きチェック用のしきい値
 - `AI_MODEL` … OpenAI モデル名
 - `LINE_CHANNEL_TOKEN` / `LINE_USER_ID` … LINE 通知に使用する認証情報
+- `CORS_ALLOW_ORIGINS` … CORSで許可するオリジンをカンマ区切りで指定。
+
+例:
+
+```bash
+CORS_ALLOW_ORIGINS=http://localhost:3000
+```
 
 その他の変数は `backend/config/ENV_README.txt` を参照してください。
 
