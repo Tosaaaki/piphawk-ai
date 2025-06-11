@@ -1,4 +1,5 @@
 """Scalp trade management."""
+
 from __future__ import annotations
 
 import json
@@ -13,11 +14,19 @@ from piphawk_ai.risk.manager import PortfolioRiskManager
 
 try:
     from backend.orders.order_manager import OrderManager, get_pip_size
-except ImportError as exc:  # pragma: no cover - raise for missing dependency
+except ImportError:  # pragma: no cover - raise for missing dependency
     raise
 
 import inspect
-from backend.orders.position_manager import get_open_positions
+
+try:
+    from backend.orders.position_manager import get_open_positions
+except Exception:  # pragma: no cover - missing in test stubs
+
+    def get_open_positions(*_a, **_k):
+        return []
+
+
 from signals.scalp_momentum import exit_if_momentum_loss
 
 logger = logging.getLogger(__name__)
@@ -37,6 +46,7 @@ _open_scalp_trades: dict[str, float] = {}
 TRAIL_AFTER_TP = env_loader.get_env("TRAIL_AFTER_TP", "false").lower() == "true"
 risk_mgr: PortfolioRiskManager | None = None
 
+
 def get_dynamic_hold_seconds(instrument: str) -> int:
     """Return hold time based on M1 ATR and env constraints."""
     pip_size = get_pip_size(instrument)
@@ -52,7 +62,9 @@ def get_dynamic_hold_seconds(instrument: str) -> int:
         closes = [float(c["mid"]["c"]) for c in candles]
         atr_series = calculate_atr(highs, lows, closes)
         atr_val = (
-            float(atr_series.iloc[-1]) if hasattr(atr_series, "iloc") else float(atr_series[-1])
+            float(atr_series.iloc[-1])
+            if hasattr(atr_series, "iloc")
+            else float(atr_series[-1])
         )
     except Exception as exc:  # pragma: no cover - network/parse failure
         logger.debug("ATR fetch failed: %s", exc)
@@ -79,7 +91,9 @@ def get_dynamic_hold_seconds(instrument: str) -> int:
         closes = [float(c["mid"]["c"]) for c in candles]
         atr_series = calculate_atr(highs, lows, closes)
         atr_val = (
-            float(atr_series.iloc[-1]) if hasattr(atr_series, "iloc") else float(atr_series[-1])
+            float(atr_series.iloc[-1])
+            if hasattr(atr_series, "iloc")
+            else float(atr_series[-1])
         )
     except Exception as exc:  # pragma: no cover - network/parse failure
         logger.debug("ATR fetch failed: %s", exc)
@@ -122,9 +136,7 @@ def enter_scalp_trade(
 
         atr = indicators.get("atr")
         if atr is not None:
-            atr_val = (
-                float(atr.iloc[-1]) if hasattr(atr, "iloc") else float(atr[-1])
-            )
+            atr_val = float(atr.iloc[-1]) if hasattr(atr, "iloc") else float(atr[-1])
             atr_pips = atr_val / pip_size
     except Exception as exc:  # pragma: no cover - network/parse failure
         logger.debug("scalp plan/indicator fetch failed: %s", exc)
@@ -151,10 +163,14 @@ def enter_scalp_trade(
     pip_value = float(env_loader.get_env("PIP_VALUE_JPY", "100"))
     balance = float(env_loader.get_env("ACCOUNT_BALANCE", "10000"))
     if risk_mgr is not None:
+
+        lot = risk_mgr.get_allowed_lot(balance, sl_pips=sl_pips, pip_value=pip_value)
+
         lot = risk_mgr.get_allowed_lot(
             balance, sl_pips=sl_pips, pip_value=pip_value
         )
         units = int(lot * 1000) if side == "long" else -int(lot * 1000)
+
     else:
         # リスク計算を行わない場合は設定されたユニット数を使う
         units = SCALP_UNIT_SIZE if side == "long" else -SCALP_UNIT_SIZE
@@ -172,11 +188,7 @@ def enter_scalp_trade(
         side,
         **params,
     )
-    trade_id = (
-        res.get("orderFillTransaction", {})
-        .get("tradeOpened", {})
-        .get("tradeID")
-    )
+    trade_id = res.get("orderFillTransaction", {}).get("tradeOpened", {}).get("tradeID")
     if trade_id:
         _open_scalp_trades[str(trade_id)] = time.time()
         # TP が付いているか確認し、無ければ再設定する
@@ -188,8 +200,16 @@ def enter_scalp_trade(
                 current_tp = None
             if current_tp is None:
                 price = float(res.get("orderFillTransaction", {}).get("price", 0.0))
-                tp_price = price + tp_pips * pip_size if side == "long" else price - tp_pips * pip_size
-                sl_price = price - sl_pips * pip_size if side == "long" else price + sl_pips * pip_size
+                tp_price = (
+                    price + tp_pips * pip_size
+                    if side == "long"
+                    else price - tp_pips * pip_size
+                )
+                sl_price = (
+                    price - sl_pips * pip_size
+                    if side == "long"
+                    else price + sl_pips * pip_size
+                )
                 try:
                     order_mgr.adjust_tp_sl(
                         instrument,
@@ -209,7 +229,9 @@ def enter_scalp_trade(
                 bid = float(tick["prices"][0]["bids"][0]["price"])
                 ask = float(tick["prices"][0]["asks"][0]["price"])
                 current_price = bid if side == "long" else ask
-                entry_price = float(res.get("orderFillTransaction", {}).get("price", 0.0))
+                entry_price = float(
+                    res.get("orderFillTransaction", {}).get("price", 0.0)
+                )
                 target_price = (
                     entry_price + tp_pips * pip_size
                     if side == "long"
@@ -240,9 +262,7 @@ def monitor_scalp_positions() -> None:
         hold_sec = get_dynamic_hold_seconds(pos["instrument"])
         if now - start >= hold_sec:
             order_mgr.close_position(pos["instrument"])
-            logger.info(
-                f"Exit SCALP {pos['instrument']} – timeout hit ({hold_sec}s)"
-            )
+            logger.info(f"Exit SCALP {pos['instrument']} – timeout hit ({hold_sec}s)")
             _open_scalp_trades.pop(str(trade_id), None)
             continue
 
@@ -262,9 +282,7 @@ def monitor_scalp_positions() -> None:
         try:
             if exit_if_momentum_loss(indicators):
                 order_mgr.close_position(pos["instrument"])
-                logger.info(
-                    f"Exit SCALP {pos['instrument']} – momentum loss"
-                )
+                logger.info(f"Exit SCALP {pos['instrument']} – momentum loss")
                 _open_scalp_trades.pop(str(trade_id), None)
         except Exception as exc:  # pragma: no cover - safety
             logger.debug("momentum check failed: %s", exc)
