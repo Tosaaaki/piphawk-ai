@@ -170,7 +170,6 @@ log_level = env_loader.get_env("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s",
     level=getattr(logging, log_level, logging.INFO),
-    level=env_loader.get_env("LOG_LEVEL", "INFO"),
 
 )
 log = getLogger(__name__)
