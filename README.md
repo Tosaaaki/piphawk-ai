@@ -585,8 +585,14 @@ THRESHOLD=80 bash maintenance/docker_cleanup.sh
 automatically. By default, logs older than seven days or exceeding **10 GiB**
 are pruned without manual intervention.
 
+
 The Kafka container includes a simple health check. `piphawk` waits for this
 check to succeed by using `depends_on` with `condition: service_healthy`.
+### Kafka healthcheck
+
+`docker-compose.yml` includes a healthcheck so the `piphawk` container waits for
+Kafka to become ready before connecting. This avoids `ECONNREFUSED` errors
+during startup races.
 
 ## React UI
 
@@ -777,20 +783,12 @@ TP/SL の組み合わせは複数候補から期待値を計算し、最も利�
 
 ## Running Tests
 
-The repository includes a set of unit tests under `tests/`. Activate your
-virtual environment and execute:
+The repository includes a set of unit tests under `tests/`. You can run them
+quickly using the helper script:
 
 ```bash
-pytest
+./run_tests.sh
 ```
 
-Ensure all dependencies from `backend/requirements.txt` are installed before running tests.
-
-You can install them with:
-
-```bash
-pip install --extra-index-url https://download.pytorch.org/whl/cpu -r backend/requirements.txt
-```
-
-This will run all tests defined in the project to verify core modules and
-configuration loaders.
+The script installs dependencies from `requirements-dev.txt` and then executes
+`pytest`. Pass any additional arguments to forward them to `pytest`.

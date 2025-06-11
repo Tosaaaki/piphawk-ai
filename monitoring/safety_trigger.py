@@ -1,3 +1,5 @@
+"""Utilities for halting processes when loss or error counts exceed limits."""
+
 import logging
 from datetime import datetime, timedelta
 
