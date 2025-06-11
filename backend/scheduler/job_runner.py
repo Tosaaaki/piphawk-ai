@@ -166,9 +166,12 @@ def build_exit_context(position, tick_data, indicators, indicators_m1=None) -> d
 
 
 # ログフォーマットとレベルを統一
+log_level = env_loader.get_env("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s",
+    level=getattr(logging, log_level, logging.INFO),
     level=env_loader.get_env("LOG_LEVEL", "INFO"),
+
 )
 log = getLogger(__name__)
 
@@ -1062,6 +1065,10 @@ class JobRunner:
                     # 指標からトレードモードを判定
                     new_mode, _score, reasons = decide_trade_mode_detail(
                         indicators, candles_m5
+                    )
+                    log.debug(
+                        "Trade mode reasons:\n%s",
+                        "\n".join(reasons),
                     )
                     perf = recent_strategy_performance()
                     self.current_context = build_context(self.regime_detector.state, indicators, perf)
