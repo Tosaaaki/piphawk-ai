@@ -39,11 +39,16 @@ def metrics() -> Response:
 
 
 # --- CORS ---
-# Allow requests from any origin (frontend dev & Cloud Run UI).
-# Adjust `allow_origins` to a specific list when moving to production.
+# CORS許可オリジンを環境変数から読み込む。未設定時は全て許可。
+cors_origins_env = env_loader.get_env("CORS_ALLOW_ORIGINS")
+allow_origins = (
+    [o.strip() for o in cors_origins_env.split(",")]
+    if cors_origins_env
+    else ["*"]
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

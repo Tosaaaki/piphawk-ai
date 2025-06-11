@@ -23,7 +23,7 @@ def maybe_cleanup() -> int:
     logging.info("root-fs usage = %s%% (threshold %s%%)", pct, THRESHOLD)
     if pct >= THRESHOLD:
         logging.warning("Disk almost full \u2013 running cleanup ...")
-        sc.main()
+        sc.main(ask_confirmation=False)
         logging.info("Cleanup finished (%s%% \u2794 %s%%)", pct, root_usage_pct())
     return pct
 

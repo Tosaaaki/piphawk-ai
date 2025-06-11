@@ -168,7 +168,7 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - MIN_VOL_MA / MIN_VOL_M1: ボリュームフィルタの最小値
 - ADX_SLOPE_LOOKBACK: ADX の傾き計算に使う本数
 - ADX_DYNAMIC_COEFF: BB 幅によって ADX しきい値を補正する係数
-- COMPOSITE_MIN: ADXとBB幅から算出するComposite Trend Scoreのしきい値
+- COMPOSITE_MIN: ADXとBB幅から算出するComposite Trend Scoreのしきい値。デフォルトは`0.2`で、値を下げるとエントリー判定が緩くなる。
 - MODE_ATR_PIPS_MIN / MODE_BBWIDTH_PIPS_MIN: トレードモード判定に使うボラティリティ基準
 - MODE_EMA_SLOPE_MIN / MODE_ADX_MIN: モメンタム判定のしきい値
 - MODE_VOL_MA_MIN: 流動性判定に使う出来高平均

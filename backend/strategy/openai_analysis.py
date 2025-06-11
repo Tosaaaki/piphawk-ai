@@ -53,7 +53,7 @@ BE_TRIGGER_R: float = float(env_loader.get_env("BE_TRIGGER_R", "0"))
 AI_LIMIT_CONVERT_MODEL: str = env_loader.get_env("AI_LIMIT_CONVERT_MODEL", "gpt-4.1-nano")
 MIN_RRR: float = float(env_loader.get_env("MIN_RRR", "0.8"))
 # --- Composite score threshold ---
-COMPOSITE_MIN: float = float(env_loader.get_env("COMPOSITE_MIN", "1.0"))
+COMPOSITE_MIN: float = float(env_loader.get_env("COMPOSITE_MIN", "0.2"))
 # --- Exit bias factor ---
 EXIT_BIAS_FACTOR: float = float(env_loader.get_env("EXIT_BIAS_FACTOR", "1.0"))
 
