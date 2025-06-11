@@ -197,7 +197,7 @@ class OrderManager:
             f"?state=PENDING&instrument={instrument}"
         )
         try:
-            r = requests.get(
+            r = _SESSION.get(
                 url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
             )
             r.raise_for_status()
@@ -308,7 +308,7 @@ class OrderManager:
 
         if new_tp is not None:
             for attempt in range(3):
-                response = requests.put(
+                response = _SESSION.put(
                     url, json=tp_payload, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
                 )
                 if response.status_code == 200:
@@ -343,7 +343,7 @@ class OrderManager:
         """現在設定されているTP価格を取得する。"""
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}"
         try:
-            resp = requests.get(
+            resp = _SESSION.get(
                 url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
             )
             resp.raise_for_status()
@@ -353,7 +353,7 @@ class OrderManager:
                 order_url = (
                     f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{tp_id}"
                 )
-                order_resp = requests.get(
+                order_resp = _SESSION.get(
                     order_url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
                 )
                 order_resp.raise_for_status()
@@ -375,7 +375,7 @@ class OrderManager:
         """現在設定されているトレーリングストップ距離(pips)を取得する。"""
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}"
         try:
-            resp = requests.get(
+            resp = _SESSION.get(
                 url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
             )
             resp.raise_for_status()
@@ -385,7 +385,7 @@ class OrderManager:
                 order_url = (
                     f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{ts_id}"
                 )
-                order_resp = requests.get(
+                order_resp = _SESSION.get(
                     order_url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
                 )
                 order_resp.raise_for_status()
@@ -565,7 +565,7 @@ class OrderManager:
                 "timeInForce": "GTC",
             }
 
-        response = requests.post(
+        response = _SESSION.post(
             url, json=order_body, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
         )
         logger.debug(
@@ -646,7 +646,7 @@ class OrderManager:
         logger.debug(f"[exit_trade] raw units={units_val} position={position}")
 
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/positions/{instrument}"
-        response = requests.get(
+        response = _SESSION.get(
             url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
         )
         if response.status_code != 200:
@@ -721,7 +721,7 @@ class OrderManager:
             payload = {"longUnits": "ALL", "shortUnits": "ALL"}
 
         logger.debug(f"[close_position] payload={payload}")
-        response = requests.put(
+        response = _SESSION.put(
             url, json=payload, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
         )
 
@@ -741,7 +741,7 @@ class OrderManager:
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}/close"
         payload = {"units": str(units)}
         logger.debug(f"[close_partial] trade_id={trade_id} units={units}")
-        resp = requests.put(
+        resp = _SESSION.put(
             url, json=payload, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
         )
         if not resp.ok:
@@ -808,7 +808,7 @@ class OrderManager:
         url = (
             f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/" f"{trade_id}/orders"
         )
-        response = requests.put(
+        response = _SESSION.put(
             url, json=body, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
         )
         if response.status_code != 200:
@@ -868,7 +868,7 @@ class OrderManager:
                 )
                 return None
 
-        response = requests.put(
+        response = _SESSION.put(
             url, json=body, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
         )
 
