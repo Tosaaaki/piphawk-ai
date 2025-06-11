@@ -8,7 +8,7 @@ filters:
 reentry:
   enable: true
   trigger_pips_over_break: 1.5
-ADX_SCALP_MIN: 45
+ADX_SCALP_MIN: 15
 SCALP_SUPPRESS_ADX_MAX: 70
 SCALP_TP_PIPS: 8
 SCALP_SL_PIPS: 8
