@@ -87,6 +87,7 @@ def enter_scalp_trade(instrument: str, side: str = "long") -> None:
         tp_pips=tp_pips,
         sl_pips=sl_pips,
         comment_json=json.dumps({"mode": "scalp"}),
+        price_bound=None,
     )
     trade_id = (
         res.get("orderFillTransaction", {})
