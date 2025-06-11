@@ -174,6 +174,9 @@ log = getLogger(__name__)
 
 order_mgr = OrderManager()
 
+# Currently active JobRunner instance (if any)
+RUNNER_INSTANCE = None
+
 
 DEFAULT_PAIR = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
 
@@ -402,6 +405,10 @@ class JobRunner:
             ai_version=os.getenv("AI_VERSION", "unknown"),
         )
 
+        # expose instance for management API to update settings
+        global RUNNER_INSTANCE
+        RUNNER_INSTANCE = self
+
     def _get_recent_trade_pl(self, limit: int = 50) -> list[float]:
         from backend.logs.log_manager import get_db_connection
 
@@ -465,6 +472,8 @@ class JobRunner:
         try:
             log.info("Reloading params from %s", path)
             params_loader.load_params(path=path)
+            # update AI cooldown values after reload
+            self.refresh_ai_cooldowns()
             self.current_params_file = path
         except Exception as exc:
             log.error("Param reload failed: %s", exc)
@@ -878,6 +887,15 @@ class JobRunner:
         else:
             exit_logic.TRAIL_ENABLED = env_loader.get_env("TRAIL_ENABLED", "true").lower() == "true"
 
+    def refresh_ai_cooldowns(self) -> None:
+        """Reload AI cooldown values from environment variables."""
+        self.ai_cooldown_open = int(
+            env_loader.get_env("AI_COOLDOWN_SEC_OPEN", str(self.ai_cooldown_open))
+        )
+        self.ai_cooldown_flat = int(
+            env_loader.get_env("AI_COOLDOWN_SEC_FLAT", str(self.ai_cooldown_flat))
+        )
+
     def _should_peak_exit(self, side: str, indicators: dict, current_profit: float) -> bool:
         if not PEAK_EXIT_ENABLED:
             return False
@@ -938,6 +956,8 @@ class JobRunner:
                 log.debug(f"review_sec={self.review_sec}")
                 # Refresh HIGHER_TF_ENABLED dynamically
                 self.higher_tf_enabled = env_loader.get_env("HIGHER_TF_ENABLED", "true").lower() == "true"
+                # Refresh AI cooldown values
+                self.refresh_ai_cooldowns()
                 # Update trailing-stop enable flag each loop
                 self._refresh_trailing_status()
                 if self.last_run is None or (now - self.last_run) >= timedelta(seconds=self.interval_seconds):
