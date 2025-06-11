@@ -5,10 +5,14 @@ import pandas as pd
 def test_dynamic_overshoot(monkeypatch):
     monkeypatch.setenv("OVERSHOOT_ATR_MULT", "1.0")
     monkeypatch.setenv("OVERSHOOT_DYNAMIC_COEFF", "0.5")
+    monkeypatch.setenv("OVERSHOOT_BASE_MULT", "1.0")
+    monkeypatch.setenv("OVERSHOOT_MAX_MULT", "1.0")
+    monkeypatch.setenv("OVERSHOOT_RECOVERY_RATE", "0.0")
     monkeypatch.setenv("BAND_WIDTH_THRESH_PIPS", "100")
     monkeypatch.setenv("PIP_SIZE", "0.01")
     monkeypatch.setenv("HIGHER_TF_ENABLED", "false")
     import backend.strategy.signal_filter as sf
+
     importlib.reload(sf)
 
     indicators = {

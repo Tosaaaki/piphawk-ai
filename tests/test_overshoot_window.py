@@ -21,11 +21,15 @@ def test_overshoot_window(monkeypatch):
     monkeypatch.setenv("OVERSHOOT_WINDOW_CANDLES", "2")
     monkeypatch.setenv("OVERSHOOT_MAX_PIPS", "5")
     monkeypatch.setenv("OVERSHOOT_ATR_MULT", "2")
+    monkeypatch.setenv("OVERSHOOT_BASE_MULT", "2")
+    monkeypatch.setenv("OVERSHOOT_MAX_MULT", "2")
+    monkeypatch.setenv("OVERSHOOT_RECOVERY_RATE", "0")
     monkeypatch.setenv("PIP_SIZE", "1.0")
     monkeypatch.setenv("BAND_WIDTH_THRESH_PIPS", "0")
     monkeypatch.setenv("HIGHER_TF_ENABLED", "false")
 
     import backend.strategy.signal_filter as sf
+
     importlib.reload(sf)
 
     sf.update_overshoot_window(110, 100)
