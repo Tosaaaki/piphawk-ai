@@ -23,6 +23,13 @@ headers = {
 
 logger = logging.getLogger(__name__)
 
+# これらの拒否理由は想定内のため警告レベルにしない
+IGNORE_REJECT_REASONS = {
+    "TRADE_DOESNT_EXIST",
+    "ORDER_DOESNT_EXIST",
+    "NO_SUCH_TRADE",
+}
+
 
 def execute_with_retry(func, *args, retries=5, delay=2, **kwargs):
     """Retry database operations when the database is locked."""
@@ -125,14 +132,16 @@ def update_oanda_trades():
         for transaction in transactions:
             rowcount = 0
             tx_type = transaction.get("type", "")
+            reject_reason = transaction.get("rejectReason")
             if tx_type.endswith("_REJECT"):
-                logger.warning(
-                    f"\u274c {tx_type} reason={transaction.get('rejectReason')}"
-                )
-            if tx_type in ("TAKE_PROFIT_ORDER_REJECT", "ORDER_CANCEL"):
-                logger.warning(
-                    f"[DEBUG] {tx_type} rejectReason={transaction.get('rejectReason')}"
-                )
+                if reject_reason in IGNORE_REJECT_REASONS:
+                    logger.info(f"{tx_type} reason={reject_reason}")
+                else:
+                    logger.warning(f"\u274c {tx_type} reason={reject_reason}")
+                if tx_type in ("TAKE_PROFIT_ORDER_REJECT", "ORDER_CANCEL"):
+                    logger.warning(
+                        f"[DEBUG] {tx_type} rejectReason={reject_reason}"
+                    )
             transaction_type = tx_type
             transaction_id = transaction.get('id')
             if transaction_id and int(transaction_id) > max_id:
