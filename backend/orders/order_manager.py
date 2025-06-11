@@ -29,6 +29,9 @@ HEADERS = {
 
 _SESSION = requests.Session()
 
+# HTTPタイムアウト秒数を環境変数で設定（デフォルト10秒）
+HTTP_TIMEOUT_SEC = int(os.getenv("HTTP_TIMEOUT_SEC", "10"))
+
 _ORDER_TEMPLATE = {
     "order": {
         "timeInForce": "FOK",
@@ -134,7 +137,9 @@ class OrderManager:
             }
 
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
-        r = _SESSION.post(url, json=payload, headers=HEADERS)
+        r = _SESSION.post(
+            url, json=payload, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+        )
         if not r.ok:
             code, msg = _extract_error_details(r)
             log_error(
@@ -148,7 +153,7 @@ class OrderManager:
 
     def cancel_order(self, order_id: str) -> dict:
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{order_id}/cancel"
-        r = _SESSION.put(url, headers=HEADERS)
+        r = _SESSION.put(url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC)
         if not r.ok:
             code, msg = _extract_error_details(r)
             log_error(
@@ -172,7 +177,9 @@ class OrderManager:
             }
         }
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{order_id}"
-        r = _SESSION.put(url, json=payload, headers=HEADERS)
+        r = _SESSION.put(
+            url, json=payload, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+        )
         if not r.ok:
             code, msg = _extract_error_details(r)
             log_error(
@@ -190,7 +197,9 @@ class OrderManager:
             f"?state=PENDING&instrument={instrument}"
         )
         try:
-            r = requests.get(url, headers=HEADERS, timeout=10)
+            r = requests.get(
+                url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+            )
             r.raise_for_status()
             orders = r.json().get("orders", [])
         except Exception as exc:  # pragma: no cover - 通信失敗時は空リスト
@@ -221,7 +230,9 @@ class OrderManager:
             order["clientExtensions"]["comment"] = comment_json
         data = {"order": order}
         logger.debug(f"[DEBUG] place_market_order body: {data}")
-        response = _SESSION.post(url, json=data, headers=HEADERS)
+        response = _SESSION.post(
+            url, json=data, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+        )
         logger.debug(f"Market order response: {response.status_code} {response.text}")
         if response.status_code != 201:
             code, msg = _extract_error_details(response)
@@ -297,7 +308,9 @@ class OrderManager:
 
         if new_tp is not None:
             for attempt in range(3):
-                response = requests.put(url, json=tp_payload, headers=HEADERS)
+                response = requests.put(
+                    url, json=tp_payload, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+                )
                 if response.status_code == 200:
                     results["tp"] = response.json()
                     break
@@ -330,7 +343,9 @@ class OrderManager:
         """現在設定されているTP価格を取得する。"""
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}"
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=10)
+            resp = requests.get(
+                url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+            )
             resp.raise_for_status()
             data = resp.json()
             tp_id = data.get("trade", {}).get("takeProfitOrderID")
@@ -338,7 +353,9 @@ class OrderManager:
                 order_url = (
                     f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{tp_id}"
                 )
-                order_resp = requests.get(order_url, headers=HEADERS, timeout=10)
+                order_resp = requests.get(
+                    order_url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+                )
                 order_resp.raise_for_status()
                 order_data = order_resp.json()
                 order_info = order_data.get("order") or order_data.get(
@@ -358,7 +375,9 @@ class OrderManager:
         """現在設定されているトレーリングストップ距離(pips)を取得する。"""
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}"
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=10)
+            resp = requests.get(
+                url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+            )
             resp.raise_for_status()
             data = resp.json()
             ts_id = data.get("trade", {}).get("trailingStopLossOrderID")
@@ -366,7 +385,9 @@ class OrderManager:
                 order_url = (
                     f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{ts_id}"
                 )
-                order_resp = requests.get(order_url, headers=HEADERS, timeout=10)
+                order_resp = requests.get(
+                    order_url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+                )
                 order_resp.raise_for_status()
                 order_data = order_resp.json()
                 order_info = order_data.get("order") or order_data.get(
@@ -544,7 +565,9 @@ class OrderManager:
                 "timeInForce": "GTC",
             }
 
-        response = requests.post(url, json=order_body, headers=HEADERS)
+        response = requests.post(
+            url, json=order_body, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+        )
         logger.debug(
             f"Order placement response: {response.status_code} - {response.text}"
         )
@@ -623,7 +646,9 @@ class OrderManager:
         logger.debug(f"[exit_trade] raw units={units_val} position={position}")
 
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/positions/{instrument}"
-        response = requests.get(url, headers=HEADERS)
+        response = requests.get(
+            url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+        )
         if response.status_code != 200:
             code, msg = _extract_error_details(response)
             log_error(
@@ -696,7 +721,9 @@ class OrderManager:
             payload = {"longUnits": "ALL", "shortUnits": "ALL"}
 
         logger.debug(f"[close_position] payload={payload}")
-        response = requests.put(url, json=payload, headers=HEADERS)
+        response = requests.put(
+            url, json=payload, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+        )
 
         if not response.ok:
             code, msg = _extract_error_details(response)
@@ -714,7 +741,9 @@ class OrderManager:
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}/close"
         payload = {"units": str(units)}
         logger.debug(f"[close_partial] trade_id={trade_id} units={units}")
-        resp = requests.put(url, json=payload, headers=HEADERS)
+        resp = requests.put(
+            url, json=payload, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+        )
         if not resp.ok:
             code, msg = _extract_error_details(resp)
             log_error(
@@ -779,7 +808,9 @@ class OrderManager:
         url = (
             f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/" f"{trade_id}/orders"
         )
-        response = requests.put(url, json=body, headers=HEADERS)
+        response = requests.put(
+            url, json=body, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+        )
         if response.status_code != 200:
             code, msg = _extract_error_details(response)
             log_error(
@@ -837,7 +868,9 @@ class OrderManager:
                 )
                 return None
 
-        response = requests.put(url, json=body, headers=HEADERS)
+        response = requests.put(
+            url, json=body, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+        )
 
         if response.status_code != 200:
 
