@@ -563,6 +563,8 @@ def pass_entry_filter(
     bw_pips = None
     width_ratio = 0.0
     bw_thresh = float(env_loader.get_env("BAND_WIDTH_THRESH_PIPS", "4"))
+    # ボリンジャーバンドデータが無い場合はデフォルトで0.0を使用する
+    width_ratio = 0.0
     if bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
         pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
         bw_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
