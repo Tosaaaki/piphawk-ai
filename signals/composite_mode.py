@@ -24,7 +24,7 @@ MODE_EMA_SLOPE_MIN = float(env_loader.get_env("MODE_EMA_SLOPE_MIN", "0.1"))
 MODE_ADX_MIN = float(env_loader.get_env("MODE_ADX_MIN", "25"))
 MODE_VOL_MA_MIN = float(env_loader.get_env("MODE_VOL_MA_MIN", env_loader.get_env("MIN_VOL_MA", "80")))
 VOL_MA_PERIOD = int(env_loader.get_env("VOL_MA_PERIOD", "5"))
-RANGE_ADX_MIN = float(env_loader.get_env("RANGE_ADX_MIN", "20"))
+RANGE_ADX_MIN = float(env_loader.get_env("RANGE_ADX_MIN", "15"))
 RANGE_ADX_COUNT = int(env_loader.get_env("RANGE_ADX_COUNT", "3"))
 
 # --- Additional scoring parameters -------------------------------------

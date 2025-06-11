@@ -22,12 +22,12 @@ scalp:
   s10_adx_min: 20
   s10_atr_pct_min: 0.001
 weights:
-  adx_m5: 2
+  adx_m5: 3
   atr_pct_m5: 1
-  adx_m1: 1
+  adx_m1: 2
   atr_pct_m1: 1
-  ema_slope_base: 1
-  ema_slope_strong: 2
+  ema_slope_base: 2
+  ema_slope_strong: 3
 hysteresis:
   trend: 3
   scalp: 3

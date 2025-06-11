@@ -25,7 +25,7 @@
 
 `RANGE_ADX_MIN` は ADX がこの値を下回った場合にレンジ判定カウンターを
 増やします。連続 `RANGE_ADX_COUNT` 回に達するとモードを
-`scalp_momentum` へ切り替えます。推奨値は `20` です。
+`scalp_momentum` へ切り替えます。推奨値は `15` です。
 
 `SCALP_AI_BBWIDTH_MAX` はスキャルプ AI を呼び出す際の
 ボリンジャーバンド幅上限(pips)を指定します。ボラティリティが高すぎる
