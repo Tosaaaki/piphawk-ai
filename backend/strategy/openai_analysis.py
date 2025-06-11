@@ -45,6 +45,9 @@ AI_REGIME_COOLDOWN_SEC: int = int(env_loader.get_env("AI_REGIME_COOLDOWN_SEC", A
 MIN_TP_PROB: float = float(env_loader.get_env("MIN_TP_PROB", "0.75"))
 TP_PROB_HOURS: int = int(env_loader.get_env("TP_PROB_HOURS", "24"))
 PROB_MARGIN: float = float(env_loader.get_env("PROB_MARGIN", "0.1"))
+MIN_EXPECTED_VALUE: float = float(
+    env_loader.get_env("MIN_EXPECTED_VALUE", "0.0")
+)
 LIMIT_THRESHOLD_ATR_RATIO: float = float(env_loader.get_env("LIMIT_THRESHOLD_ATR_RATIO", "0.3"))
 MAX_LIMIT_AGE_SEC: int = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
 MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
@@ -981,7 +984,7 @@ def get_trade_plan(
 
     The function also performs local guards:
         • tp_prob ≥ MIN_TP_PROB
-        • expected value (tp*tp_prob – sl*sl_prob) > 0
+        • expected value (tp*tp_prob – sl*sl_prob) ≥ MIN_EXPECTED_VALUE
       If either guard fails, it forces ``side:"no"``.
     """
     if allow_delayed_entry is None:
@@ -1429,7 +1432,7 @@ Respond with **one-line valid JSON** exactly as:
             plan["reason"] = "RISK_PARSE_FAIL"
             return plan
 
-        if p < MIN_TP_PROB or (tp * p - sl * q) <= 0:
+        if p < MIN_TP_PROB or (tp * p - sl * q) < MIN_EXPECTED_VALUE:
             plan["entry"]["side"] = "no"
             plan.setdefault("reason", "PROB_TOO_LOW")
 

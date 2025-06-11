@@ -121,6 +121,7 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 
 - `DEFAULT_PAIR` … 取引する通貨ペア
 - `MIN_RRR` … 最低リスクリワード比。`ENFORCE_RRR` と併用すると常にこの比率を保ちます
+- `MIN_EXPECTED_VALUE` … TPとSLの期待値がこの値未満ならエントリーを行いません
 - `TREND_ADX_THRESH` … トレンド判定に使う ADX のしきい値 (デフォルト 20)
 - `SCALE_LOT_SIZE` … 追加エントリー時のロット数
 - `MIN_TRADE_LOT` / `MAX_TRADE_LOT` … 1 ロット = 1000 通貨。ここで許可するロット範囲を設定します
