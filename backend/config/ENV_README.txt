@@ -204,7 +204,7 @@ SCALE_TRIGGER_ATR=0.5
 - CLIMAX_ENABLED: クライマックス検出による自動エントリーを有効化
 - CLIMAX_ZSCORE: ATR Z スコアの閾値
 - CLIMAX_TP_PIPS / CLIMAX_SL_PIPS: クライマックス時に使用する TP/SL
-- ALLOW_DELAYED_ENTRY: トレンドが過熱している場合に "wait" を返させ、押し目到来で再問い合わせする
+- ALLOW_DELAYED_ENTRY: トレンドが過熱している場合に "wait" を返させ、押し目到来で再問い合わせする (デフォルト `true`)
 - TREND_ADX_THRESH: トレンド判定に用いるADXの基準値。プロンプトの条件とローカル判定で参照される
 - MIN_EARLY_EXIT_PROFIT_PIPS: 早期撤退を検討する際に必要な最低利益幅
  - SCALP_MODE: スキャルプモードを強制したい場合に true/false を指定

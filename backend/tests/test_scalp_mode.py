@@ -37,7 +37,18 @@ class TestScalpMode(unittest.TestCase):
         pandas_stub = types.ModuleType("pandas")
         pandas_stub.Series = FakeSeries
         add("pandas", pandas_stub)
-        add("requests", types.ModuleType("requests"))
+        requests_stub = types.ModuleType("requests")
+        requests_stub.Session = lambda *a, **k: None
+        class _Resp:
+            status_code = 200
+        requests_stub.Response = _Resp
+        class _ReqEx(Exception):
+            pass
+        requests_stub.RequestException = _ReqEx
+        add("requests", requests_stub)
+        http_stub = types.ModuleType("backend.utils.http_client")
+        http_stub.request_with_retries = lambda *a, **k: None
+        add("backend.utils.http_client", http_stub)
         dotenv_stub = types.ModuleType("dotenv")
         dotenv_stub.load_dotenv = lambda *a, **k: None
         add("dotenv", dotenv_stub)
@@ -56,6 +67,7 @@ class TestScalpMode(unittest.TestCase):
             "side": "long",
             "tp_pips": 2,
             "sl_pips": 1,
+            "wait_pips": 0,
         }
         add("backend.strategy.openai_scalp_analysis", scalp_ai)
 
@@ -92,7 +104,7 @@ class TestScalpMode(unittest.TestCase):
         os.environ["SCALP_TP_PIPS"] = "2"
         os.environ["SCALP_SL_PIPS"] = "1"
         os.environ["SCALP_AI_ADX_MIN"] = "25"
-        os.environ["SCALP_AI_BBWIDTH_MAX"] = "4"
+        os.environ["SCALP_AI_BBWIDTH_MAX"] = "0"
 
         import backend.strategy.entry_logic as el
 
