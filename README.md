@@ -801,6 +801,11 @@ development dependencies before executing the tests:
 ./scripts/run_tests.sh
 ```
 
+
+This will run all tests defined in the project to verify core modules and
+configuration loaders. Recent additions include tests for the monitoring
+utilities such as ``SafetyTrigger`` and ``metrics_publisher``.
+
 This script runs `pip install -r requirements-dev.txt` and then launches
 `pytest` automatically.
 

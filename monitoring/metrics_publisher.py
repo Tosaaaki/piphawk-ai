@@ -1,3 +1,5 @@
+
+"""Kafka と Prometheus へメトリクスを送信するユーティリティ."""
 """Publish metrics to Kafka and expose Prometheus gauges."""
 
 import json
