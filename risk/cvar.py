@@ -3,6 +3,7 @@ from __future__ import annotations
 """CVaR (Expected Shortfall) 計算ユーティリティ."""
 
 from typing import Sequence
+import math
 
 
 def calc_cvar(returns: Sequence[float], alpha: float = 0.05) -> float:
@@ -12,7 +13,7 @@ def calc_cvar(returns: Sequence[float], alpha: float = 0.05) -> float:
     if not 0 < alpha <= 1:
         raise ValueError("alpha must be in (0,1]")
     sorted_returns = sorted(returns)
-    idx = max(1, int(len(sorted_returns) * alpha))
+    idx = max(1, math.ceil(len(sorted_returns) * alpha))
     tail = sorted_returns[:idx]
     return sum(tail) / len(tail)
 

@@ -1,5 +1,6 @@
 import requests
 from backend.utils import env_loader
+from backend.utils.http_client import request_with_retries
 from backend.logs.log_manager import log_trade, log_error
 from backend.logs.info_logger import info
 from backend.logs.trade_logger import ExitReason
@@ -74,35 +75,14 @@ def get_pip_size(instrument: str) -> float:
 class OrderManager:
 
     def _request_with_retries(self, method: str, url: str, **kwargs) -> requests.Response:
-        """HTTPリクエストをリトライ付きで実行するヘルパー"""
-        wait = 1
-        for attempt in range(HTTP_MAX_RETRIES):
-            try:
-                resp = _SESSION.request(
-                    method,
-                    url,
-                    headers=kwargs.pop("headers", HEADERS),
-                    timeout=kwargs.pop("timeout", HTTP_TIMEOUT_SEC),
-                    **kwargs,
-                )
-            except requests.RequestException as exc:
-                if attempt == HTTP_MAX_RETRIES - 1:
-                    raise
-                logger.warning(f"Request error: {exc} – retrying in {wait}s")
-            else:
-                if resp.status_code not in (429,) and not 500 <= resp.status_code < 600:
-                    return resp
-                if attempt == HTTP_MAX_RETRIES - 1:
-                    return resp
-                logger.warning(
-                    "HTTP %s returned %s – retrying in %ss",
-                    method.upper(),
-                    resp.status_code,
-                    wait,
-                )
-            time.sleep(min(wait, HTTP_BACKOFF_CAP_SEC))
-            wait = min(wait * 2, HTTP_BACKOFF_CAP_SEC)
-        return resp
+        """``backend.utils.http_client`` のラッパー"""
+        return request_with_retries(
+            method,
+            url,
+            headers=kwargs.pop("headers", HEADERS),
+            timeout=kwargs.pop("timeout", HTTP_TIMEOUT_SEC),
+            **kwargs,
+        )
 
     # ------------------------------------------------------------------
     # LIMIT order helpers
@@ -233,10 +213,6 @@ class OrderManager:
             f"?state=PENDING&instrument={instrument}"
         )
         try:
-          
-            r = _SESSION.get(
-                url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
-            )
             r = self._request_with_retries("get", url)
             r.raise_for_status()
             orders = r.json().get("orders", [])
