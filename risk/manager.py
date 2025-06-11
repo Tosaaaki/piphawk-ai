@@ -1,5 +1,6 @@
 """CVaR-based portfolio risk management."""
 from typing import Sequence
+from backend.utils import env_loader
 
 from piphawk_ai.risk.cvar import calc_cvar
 
@@ -30,11 +31,13 @@ class PortfolioRiskManager:
     def get_allowed_lot(
         self,
         balance: float,
-        risk_pct: float,
-        sl_pips: float,
-        pip_value: float,
+        risk_pct: float | None = None,
+        sl_pips: float = 0.0,
+        pip_value: float = 0.0,
     ) -> float:
         """Return lot size allowed under current risk level."""
+        if risk_pct is None:
+            risk_pct = float(env_loader.get_env("RISK_PER_TRADE", "0.005"))
         if sl_pips <= 0 or pip_value <= 0:
             raise ValueError("sl_pips and pip_value must be positive")
         risk_amount = balance * risk_pct

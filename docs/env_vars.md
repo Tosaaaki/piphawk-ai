@@ -115,6 +115,9 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
   ATR値を基準にした倍率。ATRが利用可能なときは
   発動条件 = ATR × TRAIL_TRIGGER_MULTIPLIER、
   距離 = ATR × TRAIL_DISTANCE_MULTIPLIER で計算される。
+- TRAIL_AFTER_TP:
+  true にするとTP到達後、建値にATR×0.3の距離で
+  トレーリングストップを設定する。デフォルトはfalse。
 
 ### チャートパターン検出設定
 
@@ -321,6 +324,7 @@ SCALE_TRIGGER_ATR=0.5
 ## リスク管理
 
 - **ACCOUNT_BALANCE**: 口座残高想定値 (デフォルト: 10000)
+- **RISK_PER_TRADE**: PortfolioRiskManager が参照する1トレードあたりのリスク割合 (デフォルト: 0.005)
 - **ENTRY_RISK_PCT**: 1トレードあたりのリスク許容比率 (デフォルト: 0.01)
 - **PIP_VALUE_JPY**: 1pipあたりの円換算値 (デフォルト: 100)
 - **MARGIN_WARNING_THRESHOLD**: 証拠金アラートを出す残高比率 (デフォルト: 0)

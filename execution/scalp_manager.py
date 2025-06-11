@@ -9,6 +9,8 @@ from pathlib import Path
 
 import yaml
 from backend.utils import env_loader
+from piphawk_ai.risk.manager import PortfolioRiskManager
+from backend.strategy.risk_manager import calc_lot_size
 
 try:
     from backend.orders.order_manager import OrderManager, get_pip_size
@@ -21,6 +23,7 @@ except Exception:  # テストでモックが残っている場合のフォー�
 
 import inspect
 from backend.orders.position_manager import get_open_positions
+from signals.scalp_momentum import exit_if_momentum_loss
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +39,7 @@ SCALP_SL_PIPS = float(_CONFIG.get("sl_pips", 1.0))
 
 order_mgr = OrderManager()
 _open_scalp_trades: dict[str, float] = {}
-
+TRAIL_AFTER_TP = env_loader.get_env("TRAIL_AFTER_TP", "false").lower() == "true"
 
 def get_dynamic_hold_seconds(instrument: str) -> int:
     """Return hold time based on M1 ATR and env constraints."""
@@ -66,6 +69,7 @@ def get_dynamic_hold_seconds(instrument: str) -> int:
 
 
 def enter_scalp_trade(instrument: str, side: str = "long") -> None:
+
     """Place a market order with dynamically calculated TP/SL."""
 
     tp_pips = None
@@ -114,7 +118,16 @@ def enter_scalp_trade(instrument: str, side: str = "long") -> None:
         dyn_min = atr_pips * mult
     sl_pips = max(sl_pips, min_sl, dyn_min)
 
-    units = SCALP_UNIT_SIZE if side == "long" else -SCALP_UNIT_SIZE
+    pip_value = float(env_loader.get_env("PIP_VALUE_JPY", "100"))
+    balance = float(env_loader.get_env("ACCOUNT_BALANCE", "10000"))
+    if risk_mgr is not None:
+        lot = risk_mgr.get_allowed_lot(
+            balance, sl_pips=sl_pips, pip_value=pip_value
+        )
+    else:
+        risk_pct = float(env_loader.get_env("RISK_PER_TRADE", "0.005"))
+        lot = calc_lot_size(balance, risk_pct, sl_pips, pip_value)
+    units = int(lot * 1000) if side == "long" else -int(lot * 1000)
     params = {
         "tp_pips": tp_pips,
         "sl_pips": sl_pips,
@@ -157,6 +170,29 @@ def enter_scalp_trade(instrument: str, side: str = "long") -> None:
                     logger.info(f"Reattached TP/SL for trade {trade_id}")
                 except Exception as exc:
                     logger.warning(f"TP/SL reattach failed: {exc}")
+        # --- check TP hit and attach trailing if enabled ---
+        if TRAIL_AFTER_TP and atr_pips is not None and tp_pips is not None:
+            try:
+                from backend.market_data.tick_fetcher import fetch_tick_data
+
+                tick = fetch_tick_data(instrument)
+                bid = float(tick["prices"][0]["bids"][0]["price"])
+                ask = float(tick["prices"][0]["asks"][0]["price"])
+                current_price = bid if side == "long" else ask
+                entry_price = float(res.get("orderFillTransaction", {}).get("price", 0.0))
+                target_price = (
+                    entry_price + tp_pips * pip_size
+                    if side == "long"
+                    else entry_price - tp_pips * pip_size
+                )
+                if (side == "long" and current_price >= target_price) or (
+                    side == "short" and current_price <= target_price
+                ):
+                    order_mgr.attach_trailing_after_tp(
+                        trade_id, instrument, entry_price, atr_pips
+                    )
+            except Exception as exc:  # pragma: no cover - network failure ignored
+                logger.debug(f"trail after TP check failed: {exc}")
     logger.info(f"Enter SCALP {instrument} at {datetime.now(timezone.utc).isoformat()}")
 
 
@@ -178,3 +214,27 @@ def monitor_scalp_positions() -> None:
                 f"Exit SCALP {pos['instrument']} – timeout hit ({hold_sec}s)"
             )
             _open_scalp_trades.pop(str(trade_id), None)
+            continue
+
+        # ----- momentum loss check ----------------------------------
+        try:
+            from backend.market_data.candle_fetcher import fetch_candles
+            from backend.indicators.calculate_indicators import calculate_indicators
+
+            candles = fetch_candles(
+                pos["instrument"], granularity="M5", count=30, allow_incomplete=True
+            )
+            indicators = calculate_indicators(candles, pair=pos["instrument"])
+        except Exception as exc:  # pragma: no cover - network failure
+            logger.debug("indicator fetch failed: %s", exc)
+            continue
+
+        try:
+            if exit_if_momentum_loss(indicators):
+                order_mgr.close_position(pos["instrument"])
+                logger.info(
+                    f"Exit SCALP {pos['instrument']} – momentum loss"
+                )
+                _open_scalp_trades.pop(str(trade_id), None)
+        except Exception as exc:  # pragma: no cover - safety
+            logger.debug("momentum check failed: %s", exc)
