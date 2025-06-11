@@ -2,6 +2,7 @@ from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 from backend.orders.order_manager import OrderManager
 from backend.logs.log_manager import log_trade
 from backend.strategy.risk_manager import calc_lot_size
+from risk.tp_sl_manager import adjust_sl_for_rr
 import importlib
 
 from backend.filters.false_break_filter import should_skip as false_break_skip
@@ -999,8 +1000,7 @@ def process_entry(
     try:
         if env_loader.get_env("ENFORCE_RRR", "false").lower() == "true":
             min_rrr = float(env_loader.get_env("MIN_RRR", "0.8"))
-            if not validate_rrr(tp_pips, sl_pips, min_rrr):
-                tp_pips = sl_pips * min_rrr
+            tp_pips, sl_pips = adjust_sl_for_rr(tp_pips, sl_pips, min_rrr)
     except Exception:
         pass
 

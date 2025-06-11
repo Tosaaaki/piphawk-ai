@@ -15,7 +15,7 @@ SCALP_SL_PIPS: 8
 SCALP_PROMPT_BIAS: aggressive
 
 fallback:
-  force_on_no_side: true
+  force_on_no_side: false
   default_sl_pips: 12
   default_tp_pips: 18
   dynamic_risk: false
