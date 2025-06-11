@@ -985,7 +985,7 @@ def get_trade_plan(
     """
     if allow_delayed_entry is None:
         allow_delayed_entry = (
-            env_loader.get_env("ALLOW_DELAYED_ENTRY", "false").lower() == "true"
+            env_loader.get_env("ALLOW_DELAYED_ENTRY", "true").lower() == "true"
         )
 
     if instrument is None:

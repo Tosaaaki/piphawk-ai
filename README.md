@@ -149,7 +149,6 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 - `SCALP_ENTER_SCORE` / `SCALP_HOLD_SCORE` … スキャルプ判定と維持に使うスコア
   閾値。推奨 0.20 / 0.15
 - `RANGE_ADX_MIN` … ADX がこの値を下回るとレンジ判定カウンターを加算。標準 15
-- `SCALP_AI_BBWIDTH_MAX` … スキャルプAI呼び出しを行う BB 幅上限 (pips)。通常 4
 - `AI_MODEL` … OpenAI モデル名
 - `LINE_CHANNEL_TOKEN` / `LINE_USER_ID` … LINE 通知に使用する認証情報
 - `CORS_ALLOW_ORIGINS` … CORSで許可するオリジンをカンマ区切りで指定。
@@ -161,7 +160,6 @@ CORS_ALLOW_ORIGINS=http://localhost:3000
 SCALP_ENTER_SCORE=0.20
 SCALP_HOLD_SCORE=0.15
 RANGE_ADX_MIN=15
-SCALP_AI_BBWIDTH_MAX=4
 ```
 
 その他の変数は `backend/config/ENV_README.txt` を参照してください。
@@ -327,7 +325,7 @@ The indicators module also calculates `adx_bb_score`, a composite value derived 
 `LT_TF_PRIORITY_ADX` defines the ADX level on the lower timeframe that triggers temporary down‑weighting of higher timeframes when an EMA cross occurs.
 `LT_TF_WEIGHT_FACTOR` is the factor applied to higher timeframe weights during that period.
 
-`ALLOW_DELAYED_ENTRY` set to `true` lets the AI return `"mode":"wait"` when a trend is overextended. The job runner will keep polling and enter once the pullback depth is satisfied.
+`ALLOW_DELAYED_ENTRY` (default `true`) lets the AI return `"mode":"wait"` when a trend is overextended. The job runner will keep polling and enter once the pullback depth is satisfied.
 
 `OANDA_MATCH_SEC` はローカルトレードと OANDA 取引を照合するときの許容秒数です。デフォルトは `60` です。
 

@@ -216,7 +216,7 @@ def process_entry(
 
     if allow_delayed_entry is None:
         allow_delayed_entry = (
-            env_loader.get_env("ALLOW_DELAYED_ENTRY", "false").lower() == "true"
+            env_loader.get_env("ALLOW_DELAYED_ENTRY", "true").lower() == "true"
         )
 
     pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
@@ -255,72 +255,38 @@ def process_entry(
             logging.info("SCALP_OVERRIDE_RANGE active – regime forced to trend")
 
     if scalp_mode:
+        mode = "market"
+        limit_price = None
         try:
-            adx_series = indicators.get("adx")
-            adx_val = None
-            if adx_series is not None and len(adx_series):
-                adx_val = (
-                    float(adx_series.iloc[-1])
-                    if hasattr(adx_series, "iloc")
-                    else float(adx_series[-1])
-                )
-            bb_upper = indicators.get("bb_upper")
-            bb_lower = indicators.get("bb_lower")
-            use_ai = False
-            adx_min_ai = float(env_loader.get_env("SCALP_AI_ADX_MIN", "0"))
-            if adx_val is not None and adx_val >= adx_min_ai:
-                use_ai = True
-                bw_max = float(env_loader.get_env("SCALP_AI_BBWIDTH_MAX", "0"))
-                if bw_max > 0 and bb_upper is not None and bb_lower is not None:
-                    try:
-                        pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-                        u = (
-                            bb_upper.iloc[-1]
-                            if hasattr(bb_upper, "iloc")
-                            else bb_upper[-1]
-                        )
-                        l = (
-                            bb_lower.iloc[-1]
-                            if hasattr(bb_lower, "iloc")
-                            else bb_lower[-1]
-                        )
-                        bw = (float(u) - float(l)) / pip_size
-                        if bw > bw_max:
-                            use_ai = False
-                    except Exception:
-                        pass
-            if use_ai:
-                import importlib
+            import importlib
 
-                scalp_ai = importlib.import_module(
-                    "backend.strategy.openai_scalp_analysis"
+            scalp_ai = importlib.import_module(
+                "backend.strategy.openai_scalp_analysis"
+            )
+            plan = scalp_ai.get_scalp_plan(
+                indicators,
+                candles,
+                higher_tf_direction=(market_cond or {}).get("trend_direction"),
+            )
+            ai_side = plan.get("side")
+            if ai_side in ("long", "short"):
+                tp_pips = float(
+                    plan.get("tp_pips", env_loader.get_env("SCALP_TP_PIPS", "2"))
                 )
-                plan = scalp_ai.get_scalp_plan(
-                    indicators,
-                    candles,
-                    higher_tf_direction=(market_cond or {}).get("trend_direction"),
+                sl_pips = float(
+                    plan.get("sl_pips", env_loader.get_env("SCALP_SL_PIPS", "1"))
                 )
-                ai_side = plan.get("side")
-                if ai_side in ("long", "short"):
-                    tp_pips = float(
-                        plan.get("tp_pips", env_loader.get_env("SCALP_TP_PIPS", "2"))
-                    )
-                    sl_pips = float(
-                        plan.get("sl_pips", env_loader.get_env("SCALP_SL_PIPS", "1"))
-                    )
-                    side = ai_side
-                else:
-                    logging.info("Scalp AI returned no tradable side → skip entry")
-                    return False
+                wait_pips = float(plan.get("wait_pips", 0))
+                side = ai_side
+                mode = "market"
+                limit_price = None
+                price_ref = bid if side == "long" else ask
+                if wait_pips > 0 and price_ref is not None:
+                    limit_price = pullback_limit(side, price_ref, wait_pips)
+                    mode = "limit"
             else:
-                adx_min = float(env_loader.get_env("ADX_SCALP_MIN", "0"))
-                if adx_val is not None and adx_val >= adx_min:
-                    side = (market_cond or {}).get("trend_direction", "long")
-                else:
-                    logging.info(f"ADX {adx_val} < {adx_min} → skip scalp entry")
-                    return False
-                tp_pips = None
-                sl_pips = None
+                logging.info("Scalp AI returned no tradable side → skip entry")
+                return False
             price = bid if side == "long" else ask
             tf = env_loader.get_env("SCALP_COND_TF", "M1").upper()
             extra_tp, extra_sl = _calc_scalp_tp_sl(
@@ -401,8 +367,8 @@ def process_entry(
                 ),
                 "tp_pips": tp_pips,
                 "sl_pips": sl_pips,
-                "mode": "market",
-                "limit_price": None,
+                "mode": mode,
+                "limit_price": limit_price,
                 "ai_response": "scalp",
                 "market_cond": market_cond,
             }

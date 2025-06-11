@@ -41,7 +41,7 @@ def get_scalp_plan(indicators: dict, candles: list, *, higher_tf_direction: str 
         f"ADX:{adx_vals}\nRSI:{rsi_vals}\nBB_upper:{bb_upper}\nBB_lower:{bb_lower}\n"
         f"Candles:{candles[-20:]}\nHigher direction:{higher_tf_direction}\n"
         f"{bias_note}\n"
-        "Respond with JSON as {\"side\":\"long|short|no\",\"tp_pips\":float,\"sl_pips\":float}"
+        "Respond with JSON as {\"side\":\"long|short|no\",\"tp_pips\":float,\"sl_pips\":float,\"wait_pips\":float}"
     )
     try:
         raw = ask_openai(prompt, model=AI_SCALP_MODEL)
