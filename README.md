@@ -313,6 +313,7 @@ The indicators module also calculates `adx_bb_score`, a composite value derived 
 `VOL_MA_PERIOD` sets the averaging window for volume checks. If the average falls below `MIN_VOL_MA` (or `MIN_VOL_M1`) the entry is blocked.
 `ADX_SLOPE_LOOKBACK` defines how many candles to look back when computing ADX slope, and `ADX_DYNAMIC_COEFF` scales the ADX threshold based on Bollinger width.
 `EMA_FLAT_PIPS` determines the range treated as a flat EMA slope; convergence with a reversal within this range triggers the *急反転* filter.
+`OVERSHOOT_ATR_MULT` blocks entries when price overshoots below the lower Bollinger Band by this multiple of ATR. `OVERSHOOT_DYNAMIC_COEFF` adjusts this multiplier based on Bollinger width.
 `OVERSHOOT_ATR_MULT` blocks entries when price overshoots below the lower Bollinger Band by this multiple of ATR.
 `OVERSHOOT_MAX_PIPS` sets the maximum overshoot allowed in pips.
 `OVERSHOOT_DYNAMIC` enables ATR-based scaling of this limit (`OVERSHOOT_FACTOR` with floor/ceil).

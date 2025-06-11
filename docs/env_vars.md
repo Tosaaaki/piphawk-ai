@@ -72,6 +72,8 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 
 - OVERSHOOT_ATR_MULT:
   BB下限をATR×この倍率だけ下回った場合はエントリーをブロック
+- OVERSHOOT_DYNAMIC_COEFF:
+  BB幅に応じて上記倍率を補正する係数。0なら補正なし
 - OVERSHOOT_MAX_PIPS:
   Overshoot判定に使う最大許容幅（pips）。0なら無効。
 - OVERSHOOT_DYNAMIC:
@@ -196,6 +198,7 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - HTF_SLOPE_MIN: 上位足EMA傾きチェックのしきい値
 - EMA_FLAT_PIPS: EMA の傾きをフラットとみなす幅
 - OVERSHOOT_ATR_MULT: BB下限をATR×この倍率だけ割り込むとエントリーをブロック
+- OVERSHOOT_DYNAMIC_COEFF: BB幅に応じて上記倍率を補正する係数。0なら補正なし
 - REV_BLOCK_BARS / TAIL_RATIO_BLOCK / VOL_SPIKE_PERIOD:
   Recent Candle Bias フィルターで参照する設定。直近のローソク足本数、ヒゲ比率、出来高急増判定期間を指定する。
   デフォルトは 3 / 2.0 / 5。
