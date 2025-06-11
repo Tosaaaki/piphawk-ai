@@ -59,9 +59,9 @@ LOW_ADX_THRESH = float(env_loader.get_env("LOW_ADX_THRESH", "20"))
 
 # --- Hysteresis & mode score thresholds ------------------------------
 TREND_ENTER_SCORE = float(env_loader.get_env("TREND_ENTER_SCORE", "0.66"))
-SCALP_ENTER_SCORE = float(env_loader.get_env("SCALP_ENTER_SCORE", "0.33"))
+SCALP_ENTER_SCORE = float(env_loader.get_env("SCALP_ENTER_SCORE", "0.20"))
 TREND_HOLD_SCORE = float(env_loader.get_env("TREND_HOLD_SCORE", "0.50"))
-SCALP_HOLD_SCORE = float(env_loader.get_env("SCALP_HOLD_SCORE", "0.30"))
+SCALP_HOLD_SCORE = float(env_loader.get_env("SCALP_HOLD_SCORE", "0.15"))
 MODE_STRONG_TREND_THRESH = float(env_loader.get_env("MODE_STRONG_TREND_THRESH", "0.9"))
 
 
