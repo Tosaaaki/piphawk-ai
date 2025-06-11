@@ -487,6 +487,27 @@ def process_entry(
         limit_price = None
 
     if side not in ("long", "short"):
+        fallback_force = (
+            env_loader.get_env("FALLBACK_FORCE_ON_NO_SIDE", "false").lower()
+            == "true"
+        )
+        if fallback_force:
+            fallback_side = (market_cond or {}).get("trend_direction")
+            if fallback_side in ("long", "short"):
+                logging.info("Fallback forces side %s", fallback_side)
+                side = fallback_side
+                entry_info["side"] = side
+                risk_info = plan.setdefault("risk", {})
+                risk_info.setdefault(
+                    "sl_pips",
+                    float(env_loader.get_env("FALLBACK_DEFAULT_SL_PIPS", "8")),
+                )
+                risk_info.setdefault(
+                    "tp_pips",
+                    float(env_loader.get_env("FALLBACK_DEFAULT_TP_PIPS", "12")),
+                )
+
+    if side not in ("long", "short"):
         logger.debug("reject: reason=AI_DECISION side=%s", side)
         logger.debug("reject: reason=%s", plan.get("reason"))
         logging.info("AI says no trade entry → early exit")

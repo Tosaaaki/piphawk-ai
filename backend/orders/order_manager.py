@@ -231,7 +231,13 @@ class OrderManager:
                 continue
         return result
 
-    def place_market_order(self, instrument, units, comment_json: str | None = None):
+    def place_market_order(
+        self,
+        instrument,
+        units,
+        comment_json: str | None = None,
+        price_bound: float | None = None,
+    ):
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
         tag = str(int(time.time()))
         order = dict(_ORDER_TEMPLATE["order"])
@@ -242,6 +248,8 @@ class OrderManager:
         })
         if comment_json:
             order["clientExtensions"]["comment"] = comment_json
+        if price_bound is not None:
+            order["priceBound"] = format_price(instrument, price_bound)
         data = {"order": order}
         logger.debug(f"[DEBUG] place_market_order body: {data}")
         response = self._request_with_retries("post", url, json=data)
@@ -264,10 +272,14 @@ class OrderManager:
         tp_pips: float,
         sl_pips: float,
         comment_json: str | None = None,
+        price_bound: float | None = None,
     ) -> dict:
         """Place a market order and immediately attach TP/SL."""
         res = self.place_market_order(
-            instrument, units, comment_json=comment_json
+            instrument,
+            units,
+            comment_json=comment_json,
+            price_bound=price_bound,
         )
         trade_id = (
             res.get("orderFillTransaction", {})
@@ -554,6 +566,17 @@ class OrderManager:
                 "clientExtensions": client_ext,
             }
         }
+
+        price_bound_pips = float(env_loader.get_env("PRICE_BOUND_PIPS", "0"))
+        if price_bound_pips > 0:
+            try:
+                if side == "long":
+                    bound = ask + price_bound_pips * pip
+                else:
+                    bound = bid - price_bound_pips * pip
+                order_body["order"]["priceBound"] = format_price(instrument, bound)
+            except Exception:
+                pass
 
         if with_oco and tp_pips and sl_pips:
             if side == "long":
