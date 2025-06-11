@@ -267,3 +267,30 @@ SCALE_TRIGGER_ATR=0.5
 - ERROR_LIMIT: 許容エラー回数の上限
 - USE_OFFLINE_POLICY: オフライン学習ポリシーを利用するか (true/false)
 - PATTERN_TFS: パターン検出を行う時間足一覧 (例: M5,M15)
+## 認証情報
+
+- **OPENAI_API_KEY**: OpenAI API のキー (デフォルト: なし)
+- **OANDA_API_KEY**: OANDA のアクセスキー (デフォルト: なし)
+- **OANDA_ACCOUNT_ID**: OANDA のアカウントID (デフォルト: なし)
+
+## ネットワーク設定
+
+- **OANDA_API_URL**: OANDA REST API のベースURL (デフォルト: https://api-fxtrade.oanda.com/v3)
+- **OANDA_STREAM_URL**: OANDA ストリームAPIのURL (デフォルト: https://stream-fxtrade.oanda.com/v3)
+- **HTTP_MAX_RETRIES**: HTTPリトライ回数 (デフォルト: 3)
+- **HTTP_BACKOFF_CAP_SEC**: リトライ待ち時間上限秒 (デフォルト: 8)
+- **HTTP_TIMEOUT_SEC**: HTTPリクエストのタイムアウト秒 (デフォルト: 10)
+
+## サーバー設定
+
+- **API_PORT**: FastAPI サーバーのポート (デフォルト: 8080)
+- **METRICS_PORT**: Prometheus メトリクス用ポート (デフォルト: 8001)
+- **LOG_LEVEL**: ログ出力レベル (デフォルト: INFO)
+- **PAPER_MODE**: true で実取引せずシミュレーションを行う (デフォルト: false)
+
+## リスク管理
+
+- **ACCOUNT_BALANCE**: 口座残高想定値 (デフォルト: 10000)
+- **ENTRY_RISK_PCT**: 1トレードあたりのリスク許容比率 (デフォルト: 0.01)
+- **PIP_VALUE_JPY**: 1pipあたりの円換算値 (デフォルト: 100)
+- **MARGIN_WARNING_THRESHOLD**: 証拠金アラートを出す残高比率 (デフォルト: 0)
