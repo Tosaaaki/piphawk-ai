@@ -9,6 +9,8 @@ from pathlib import Path
 
 import yaml
 from backend.utils import env_loader
+from piphawk_ai.risk.manager import PortfolioRiskManager
+from backend.strategy.risk_manager import calc_lot_size
 
 try:
     from backend.orders.order_manager import OrderManager, get_pip_size
@@ -41,7 +43,11 @@ _open_scalp_trades: dict[str, float] = {}
 TRAIL_AFTER_TP = env_loader.get_env("TRAIL_AFTER_TP", "false").lower() == "true"
 
 
-def enter_scalp_trade(instrument: str, side: str = "long") -> None:
+def enter_scalp_trade(
+    instrument: str,
+    side: str = "long",
+    risk_mgr: PortfolioRiskManager | None = None,
+) -> None:
     """Place a market order with dynamically calculated TP/SL."""
 
     tp_pips = None
@@ -90,7 +96,16 @@ def enter_scalp_trade(instrument: str, side: str = "long") -> None:
         dyn_min = atr_pips * mult
     sl_pips = max(sl_pips, min_sl, dyn_min)
 
-    units = SCALP_UNIT_SIZE if side == "long" else -SCALP_UNIT_SIZE
+    pip_value = float(env_loader.get_env("PIP_VALUE_JPY", "100"))
+    balance = float(env_loader.get_env("ACCOUNT_BALANCE", "10000"))
+    if risk_mgr is not None:
+        lot = risk_mgr.get_allowed_lot(
+            balance, sl_pips=sl_pips, pip_value=pip_value
+        )
+    else:
+        risk_pct = float(env_loader.get_env("RISK_PER_TRADE", "0.005"))
+        lot = calc_lot_size(balance, risk_pct, sl_pips, pip_value)
+    units = int(lot * 1000) if side == "long" else -int(lot * 1000)
     params = {
         "tp_pips": tp_pips,
         "sl_pips": sl_pips,
