@@ -1978,7 +1978,11 @@ class JobRunner:
                                     side = "long" if float(val) >= 0 else "short"
                                 else:
                                     side = "long"
-                                scalp_manager.enter_scalp_trade(DEFAULT_PAIR, side)
+                                scalp_manager.enter_scalp_trade(
+                                    DEFAULT_PAIR,
+                                    side,
+                                    risk_mgr=self.risk_mgr,
+                                )
                                 self.last_run = now
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)

@@ -1060,27 +1060,7 @@ def get_trade_plan(
     elif pattern_name:
         pattern_line = pattern_name
 
-    prompt, comp_val = build_trade_plan_prompt(
-        ind_m5,
-        ind_m1,
-        ind_m15,
-        ind_d1,
-        candles_m5,
-        candles_m1,
-        candles_m15,
-        candles_d1,
-        hist_stats,
-        pattern_line,
-        macro_summary,
-        macro_sentiment,
-        pullback_done=pullback_done,
-        allow_delayed_entry=allow_delayed_entry,
-        higher_tf_direction=higher_tf_direction,
-        trend_prompt_bias=trend_prompt_bias,
-    )
-    # --------------------------------------------------------------
-    # Estimate market "noise" from ATR and Bollinger band width
-    # --------------------------------------------------------------
+    # --- calculate noise and pullback state ------------------------------
     noise_pips = None
     try:
         pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
@@ -1126,7 +1106,7 @@ def get_trade_plan(
     except Exception:
         tv_score = "N/A"
         comp_val = None
-    # --- calculate dynamic pullback threshold ----------------------------
+
     recent_high = None
     recent_low = None
     try:
@@ -1146,6 +1126,7 @@ def get_trade_plan(
             recent_low = min(lows)
     except Exception:
         pass
+
     class _OneVal:
         def __init__(self, val):
             class _IL:
@@ -1183,6 +1164,25 @@ def get_trade_plan(
             )
     except Exception:
         pullback_done = False
+
+    prompt, comp_val = build_trade_plan_prompt(
+        ind_m5,
+        ind_m1,
+        ind_m15,
+        ind_d1,
+        candles_m5,
+        candles_m1,
+        candles_m15,
+        candles_d1,
+        hist_stats,
+        pattern_line,
+        macro_summary,
+        macro_sentiment,
+        pullback_done=pullback_done,
+        allow_delayed_entry=allow_delayed_entry,
+        higher_tf_direction=higher_tf_direction,
+        trend_prompt_bias=trend_prompt_bias,
+    )
     pattern_text = f"\n### Detected Chart Pattern\n{pattern_line}\n" if pattern_line else "\n### Detected Chart Pattern\nNone\n"
     # ADX が高い場合はプルバック不要メッセージを追加する
     no_pullback_msg = ""
