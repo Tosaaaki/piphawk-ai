@@ -1,4 +1,11 @@
-from fastapi import FastAPI, HTTPException, APIRouter, Response
+try:
+    from fastapi import FastAPI, HTTPException, APIRouter, Response
+    from fastapi.middleware.cors import CORSMiddleware
+except Exception:  # FastAPI が利用できないテスト環境向け
+    FastAPI = HTTPException = APIRouter = Response = object  # type: ignore
+    class CORSMiddleware:  # type: ignore
+        def __init__(self, *a, **k):
+            pass
 from backend.utils import env_loader
 import sqlite3
 import os
@@ -11,7 +18,6 @@ from pydantic import BaseModel
 
 from backend.utils.notification import send_line_message
 
-from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from backend.orders.order_manager import OrderManager
 

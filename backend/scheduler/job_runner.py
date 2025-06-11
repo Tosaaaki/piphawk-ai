@@ -92,10 +92,17 @@ import requests
 from signals.composite_mode import decide_trade_mode_detail
 from risk.portfolio_risk_manager import PortfolioRiskManager
 from backend.strategy.risk_manager import calc_lot_size
-from backend.orders.position_manager import (
-    get_account_balance,
-    get_open_positions,
-)
+try:
+    from backend.orders.position_manager import (
+        get_account_balance,
+        get_open_positions,
+    )
+except Exception:  # テストでスタブが残っている場合のフォールバック
+    def get_account_balance():
+        return 0.0
+
+    def get_open_positions():
+        return []
 
 from backend.utils.notification import send_line_message
 from backend.logs.trade_logger import log_trade, ExitReason

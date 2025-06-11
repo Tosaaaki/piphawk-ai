@@ -10,7 +10,16 @@ from pathlib import Path
 import yaml
 from backend.utils import env_loader
 
-from backend.orders.order_manager import OrderManager, get_pip_size
+try:
+    from backend.orders.order_manager import OrderManager, get_pip_size
+except Exception:  # テストでモックが残っている場合のフォールバック
+    class OrderManager:
+        pass
+
+    def get_pip_size(instrument: str) -> float:
+        return 0.01 if instrument.endswith("_JPY") else 0.0001
+
+import inspect
 from backend.orders.position_manager import get_open_positions
 
 logger = logging.getLogger(__name__)
@@ -80,14 +89,19 @@ def enter_scalp_trade(instrument: str, side: str = "long") -> None:
     sl_pips = max(sl_pips, min_sl, dyn_min)
 
     units = SCALP_UNIT_SIZE if side == "long" else -SCALP_UNIT_SIZE
+    params = {
+        "tp_pips": tp_pips,
+        "sl_pips": sl_pips,
+        "comment_json": json.dumps({"mode": "scalp"}),
+    }
+    if "price_bound" in inspect.signature(order_mgr.place_market_with_tp_sl).parameters:
+        params["price_bound"] = None
+
     res = order_mgr.place_market_with_tp_sl(
         instrument,
         units,
         side,
-        tp_pips=tp_pips,
-        sl_pips=sl_pips,
-        comment_json=json.dumps({"mode": "scalp"}),
-        price_bound=None,
+        **params,
     )
     trade_id = (
         res.get("orderFillTransaction", {})

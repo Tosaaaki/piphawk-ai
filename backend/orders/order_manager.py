@@ -74,7 +74,7 @@ def get_pip_size(instrument: str) -> float:
 
 class OrderManager:
 
-    def _request_with_retries(self, method: str, url: str, **kwargs) -> requests.Response:
+    def _request_with_retries(self, method: str, url: str, **kwargs) -> object:
         """``backend.utils.http_client`` のラッパー"""
         return request_with_retries(
             method,

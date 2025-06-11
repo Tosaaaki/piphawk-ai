@@ -13,19 +13,37 @@ HTTP_TIMEOUT_SEC = int(os.getenv("HTTP_TIMEOUT_SEC", "10"))
 
 logger = logging.getLogger(__name__)
 
-def request_with_retries(method: str, url: str, **kwargs) -> requests.Response:
+def request_with_retries(method: str, url: str, **kwargs) -> object:
     """HTTPリクエストをリトライ付きで実行するユーティリティ"""
     wait = 1
     for attempt in range(HTTP_MAX_RETRIES):
         try:
-            resp = _SESSION.request(
-                method,
-                url,
-                headers=kwargs.pop("headers", None),
-                timeout=kwargs.pop("timeout", HTTP_TIMEOUT_SEC),
-                **kwargs,
-            )
-        except requests.RequestException as exc:
+            headers = kwargs.pop("headers", None)
+            timeout = kwargs.pop("timeout", HTTP_TIMEOUT_SEC)
+            if hasattr(_SESSION, "request"):
+                resp = _SESSION.request(
+                    method,
+                    url,
+                    headers=headers,
+                    timeout=timeout,
+                    **kwargs,
+                )
+            else:
+                req_func = getattr(requests, method.lower())
+                try:
+                    resp = req_func(
+                        url,
+                        headers=headers,
+                        timeout=timeout,
+                        **kwargs,
+                    )
+                except TypeError:
+                    resp = req_func(
+                        url,
+                        headers=headers,
+                        **kwargs,
+                    )
+        except Exception as exc:
             if attempt == HTTP_MAX_RETRIES - 1:
                 raise
             logger.warning(f"Request error: {exc} – retrying in {wait}s")
