@@ -1503,6 +1503,11 @@ Respond with **one-line valid JSON** exactly as:
         if comp_val is not None and comp_val < COMPOSITE_MIN:
             plan["entry"]["side"] = "no"
             plan.setdefault("reason", "COMPOSITE_TOO_LOW")
+            logger.info(
+                "Composite score %.2f < %.2f → entry blocked",
+                comp_val,
+                COMPOSITE_MIN,
+            )
     except Exception:
         pass
 
