@@ -10,6 +10,11 @@ from backend.utils import env_loader
 _BASE_DIR = Path(__file__).resolve().parents[2]
 DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", str(_BASE_DIR / "trades.db")))
 
+
+def _ensure_db_dir() -> None:
+    """Ensure that the directory for the DB file exists."""
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
 def get_db_connection():
     """Return SQLite connection, initializing DB if it doesn't exist."""
     # DB ファイルが存在しなければテーブル作成
@@ -18,6 +23,8 @@ def get_db_connection():
     return sqlite3.connect(DB_PATH, timeout=30)
 
 def init_db():
+    _ensure_db_dir()
+    logger.info("Initializing database at %s", DB_PATH)
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("PRAGMA journal_mode=WAL")
         cursor = conn.cursor()
