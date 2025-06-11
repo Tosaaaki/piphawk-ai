@@ -585,6 +585,9 @@ THRESHOLD=80 bash maintenance/docker_cleanup.sh
 automatically. By default, logs older than seven days or exceeding **10 GiB**
 are pruned without manual intervention.
 
+The Kafka container includes a simple health check. `piphawk` waits for this
+check to succeed by using `depends_on` with `condition: service_healthy`.
+
 ## React UI
 
 The active React application lives in `piphawk-ui/` and was bootstrapped with Create React App. Run it locally with:

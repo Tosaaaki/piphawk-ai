@@ -16,7 +16,8 @@ services:
       - KAFKA_SERVERS=kafka:9092
       - KAFKA_BROKERS=kafka:9092
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     networks:
       - piphawknet
     restart: always
@@ -48,6 +49,11 @@ services:
       - kafka-data:/bitnami/kafka
     networks:
       - piphawknet
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
 volumes:
   kafka-data:
     driver: local
