@@ -8,24 +8,31 @@ logger = logging.getLogger(__name__)
 from backend.utils import env_loader
 
 _BASE_DIR = Path(__file__).resolve().parents[2]
-DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", str(_BASE_DIR / "trades.db")))
+
+def get_db_path() -> Path:
+    """Return the current database path."""
+    return Path(env_loader.get_env("TRADES_DB_PATH", str(_BASE_DIR / "trades.db")))
+
+# Keep for backward compatibility
+DB_PATH = get_db_path()
 
 
-def _ensure_db_dir() -> None:
+def _ensure_db_dir(path: Path) -> None:
     """Ensure that the directory for the DB file exists."""
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
 
 def get_db_connection():
     """Return SQLite connection, initializing DB if it doesn't exist."""
-    # DB ファイルが存在しなければテーブル作成
-    if not DB_PATH.exists():
+    path = get_db_path()
+    if not path.exists():
         init_db()
-    return sqlite3.connect(DB_PATH, timeout=30)
+    return sqlite3.connect(path, timeout=30)
 
 def init_db():
-    _ensure_db_dir()
-    logger.info("Initializing database at %s", DB_PATH)
-    with sqlite3.connect(DB_PATH) as conn:
+    path = get_db_path()
+    _ensure_db_dir(path)
+    logger.info("Initializing database at %s", path)
+    with sqlite3.connect(path) as conn:
         conn.execute("PRAGMA journal_mode=WAL")
         cursor = conn.cursor()
 
