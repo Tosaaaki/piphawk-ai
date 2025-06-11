@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Sequence, Optional
 
 from indicators.bollinger import multi_bollinger
+from indicators.patterns import DoubleBottomSignal, DoubleTopSignal
 from backend.utils import env_loader
 
 
@@ -33,6 +34,7 @@ def should_enter_trade_s10(
     direction: str,
     closes: Sequence[float],
     bands_s10: dict,
+    candles: Sequence[dict] | None = None,
 ) -> Optional[str]:
     """Return order side ``"long"`` or ``"short"`` if conditions met."""
     if not closes:
@@ -50,8 +52,16 @@ def should_enter_trade_s10(
             return None
         prev = closes[-2]
         if prev < lower and price > lower:
+            if candles:
+                pattern = DoubleBottomSignal().evaluate(candles[-3:])
+                if pattern is None:
+                    return None
             return "long"
         if prev > upper and price < upper:
+            if candles:
+                pattern = DoubleTopSignal().evaluate(candles[-3:])
+                if pattern is None:
+                    return None
             return "short"
     return None
 
