@@ -516,6 +516,8 @@ without it:
 ```bash
 python3 maintenance/system_cleanup.py
 ```
+実行時には確認プロンプトが表示されます。`--yes` を付けると確認なしで実行でき、
+`--dry-run` を指定するとコマンドを表示するだけで実行しません。
 
 To set up the systemd timer automatically, run the helper script below
 (requires `systemctl`):
