@@ -84,7 +84,8 @@ def init_db():
                 ai_response TEXT,
                 entry_regime TEXT,
                 exit_reason TEXT,
-                is_manual INTEGER
+                is_manual INTEGER,
+                score_version INTEGER DEFAULT 1
             )
         ''')
 
@@ -109,6 +110,11 @@ def init_db():
             cursor.execute('ALTER TABLE trades ADD COLUMN exit_reason TEXT')
         if 'is_manual' not in columns:
             cursor.execute('ALTER TABLE trades ADD COLUMN is_manual INTEGER')
+        if 'score_version' not in columns:
+            cursor.execute(
+                'ALTER TABLE trades ADD COLUMN score_version INTEGER DEFAULT 1'
+            )
+            cursor.execute('UPDATE trades SET score_version = 1')
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS ai_decisions (
@@ -203,6 +209,7 @@ def log_trade(
     final_side=None,
     exit_reason=None,
     is_manual: bool | None = None,
+    score_version: int | None = None,
 ):
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -213,8 +220,8 @@ def log_trade(
                 exit_time, exit_price, profit_loss,
                 tp_pips, sl_pips, rrr,
                 ai_dir, local_dir, final_side,
-                exit_reason, is_manual
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                exit_reason, is_manual, score_version
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             instrument,
             entry_time,
@@ -234,6 +241,7 @@ def log_trade(
             final_side,
             exit_reason,
             is_manual,
+            int(score_version if score_version is not None else env_loader.get_env("SCORE_VERSION", "1")),
         ))
 
 def log_policy_transition(state: str, action: str, reward: float) -> None:

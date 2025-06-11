@@ -66,3 +66,17 @@ ALTER TABLE oanda_trades ADD COLUMN open_price REAL;
 古いデータベースで `price` 列が残っている場合、`init_db()` を実行すると
 `open_price` 列にその値がコピーされます。`price` 列は削除されませんが、
 更新処理で値がセットされるためエラーは発生しなくなります。
+
+## `score_version` 列の追加
+
+`trades` テーブルはスコア計算のバージョン管理用に `score_version` 列を
+持ちます。バージョン 1 以降で初めて導入されたため、既存のデータベース
+ではこの列が存在しません。
+
+以下の SQL か `init_db()` を一度実行して列を追加してください。既存行
+には `1` が自動的に設定されます。
+
+```sql
+ALTER TABLE trades ADD COLUMN score_version INTEGER DEFAULT 1;
+UPDATE trades SET score_version = 1;
+```
