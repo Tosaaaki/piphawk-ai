@@ -39,17 +39,13 @@ def detect_chart_pattern(candles: list, patterns: list[str]) -> dict:
     )
 
     try:
-        response = openai_client.client.chat.completions.create(
+        data = openai_client.ask_openai(
+            user_prompt,
+            system_prompt=system_prompt,
             model=AI_PATTERN_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
             max_tokens=AI_PATTERN_MAX_TOKENS,
             temperature=0.0,
         )
-        content = response.choices[0].message.content.strip()
-        data = json.loads(content)
         if isinstance(data, dict) and "pattern" in data:
             return {"pattern": data.get("pattern")}
     except Exception:
