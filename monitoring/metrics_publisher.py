@@ -1,3 +1,5 @@
+"""Publish metrics to Kafka and expose Prometheus gauges."""
+
 import json
 import logging
 from datetime import datetime
