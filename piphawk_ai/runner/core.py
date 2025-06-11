@@ -1534,7 +1534,7 @@ class JobRunner:
                                 time.sleep(self.interval_seconds)
                                 timer.stop()
                                 continue
-                            if self.trade_mode == "scalp_momentum" and not has_position:
+                            if not has_position:
                                 ema = indicators.get("ema_slope")
                                 if ema is not None:
                                     val = ema.iloc[-1] if hasattr(ema, "iloc") else ema[-1]
