@@ -38,6 +38,26 @@ AI_MODEL = env_loader.get_env("AI_MODEL", "gpt-4.1-nano")
 _cache: Dict[Tuple[str, str, str], Tuple[float, dict]] = {}
 _CACHE_TTL_SEC = int(env_loader.get_env("OPENAI_CACHE_TTL_SEC", "30"))
 
+# --- AI 呼び出し制御 ----------------------------
+_CALL_LIMIT_PER_LOOP = int(env_loader.get_env("MAX_AI_CALLS_PER_LOOP", "1"))
+_calls_this_loop = 0
+
+
+def reset_ai_call_counter() -> None:
+    """Reset the AI call counter (JobRunner が各ループ開始時に呼び出す)."""
+    global _calls_this_loop
+    _calls_this_loop = 0
+
+
+def _register_ai_call() -> bool:
+    """Return True if a new AI call is allowed in this loop."""
+    global _calls_this_loop
+    if _calls_this_loop >= _CALL_LIMIT_PER_LOOP:
+        logger.info("AI call skipped due to per-loop limit")
+        return False
+    _calls_this_loop += 1
+    return True
+
 def ask_openai(
     prompt: str,
     system_prompt: str = "You are a helpful assistant.",
@@ -61,6 +81,10 @@ def ask_openai(
     Raises:
         Exception: If the API request fails.
     """
+    # ループ開始時に呼び出し許可を確認
+    if not _register_ai_call():
+        return {}
+
     # Use env‑defined default when caller does not specify
     if model is None:
         model = AI_MODEL
@@ -119,4 +143,9 @@ async def ask_openai_async(
     )
 
 
-__all__ = ["ask_openai", "ask_openai_async", "AI_MODEL"]
+__all__ = [
+    "ask_openai",
+    "ask_openai_async",
+    "AI_MODEL",
+    "reset_ai_call_counter",
+]
