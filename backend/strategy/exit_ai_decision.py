@@ -13,12 +13,11 @@ Usage (pseudo):
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass
 from typing import Any, Dict
 
 from backend.utils.openai_client import ask_openai  # existing helper that wraps OpenAI ChatCompletion
-from backend.utils import parse_json_answer
+from backend.utils import parse_json_answer, env_loader
 
 __all__ = ["AIDecision", "evaluate"]
 
@@ -75,7 +74,7 @@ _ALLOWED_ACTIONS = {"EXIT", "HOLD", "SCALE"}
 
 def get_setting(key: str, default: str | None = None) -> str | None:
     """Lightweight fallback to read env vars without env_loader."""
-    return os.getenv(key, default)
+    return env_loader.get_env(key, default)
 
 
 def to_serializable(obj: Any):

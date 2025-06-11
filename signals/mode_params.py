@@ -1,8 +1,7 @@
 from __future__ import annotations
-
-import os
 from pathlib import Path
 import yaml
+from backend.utils import env_loader
 
 _DEFAULT_PATH = Path(__file__).resolve().parent.parent / "config/mode_thresholds.yml"
 
@@ -23,7 +22,7 @@ def _normalize_weights(params: dict) -> None:
 def get_params() -> dict:
     global _params
     if _params is None:
-        path = Path(os.getenv("MODE_CONFIG", _DEFAULT_PATH))
+        path = Path(env_loader.get_env("MODE_CONFIG", _DEFAULT_PATH))
         try:
             with path.open("r", encoding="utf-8") as f:
                 _params = yaml.safe_load(f) or {}
@@ -36,7 +35,7 @@ def get_params() -> dict:
 def reload_params(path: str | Path | None = None) -> None:
     global _params
     if path is None:
-        path = os.getenv("MODE_CONFIG", _DEFAULT_PATH)
+        path = env_loader.get_env("MODE_CONFIG", _DEFAULT_PATH)
     path = Path(path)
     try:
         with path.open("r", encoding="utf-8") as f:

@@ -1,4 +1,3 @@
-import os
 try:
     import pandas as pd
 except ImportError as e:
@@ -7,10 +6,11 @@ except ImportError as e:
         " Install it with 'pip install pandas'."
     ) from e
 import numpy as np
+from backend.utils import env_loader
 
 def calculate_rsi(prices, period: int = None):
     if period is None:
-        period = int(os.getenv('RSI_PERIOD', 14))
+        period = int(env_loader.get_env('RSI_PERIOD', 14))
 
     prices = pd.Series(prices)
     delta = prices.diff(1)

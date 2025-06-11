@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import os
 from typing import Sequence, Dict, List
+from backend.utils import env_loader
 
 
 def calculate_keltner_bands(
@@ -25,9 +25,9 @@ def calculate_keltner_bands(
         ATR 乗数。環境変数 ``KELTNER_ATR_MULT`` をデフォルト値とする。
     """
     if window is None:
-        window = int(os.getenv("KELTNER_WINDOW", 20))
+        window = int(env_loader.get_env("KELTNER_WINDOW", 20))
     if atr_mult is None:
-        atr_mult = float(os.getenv("KELTNER_ATR_MULT", 1.5))
+        atr_mult = float(env_loader.get_env("KELTNER_ATR_MULT", 1.5))
     highs = list(map(float, high))
     lows = list(map(float, low))
     closes = list(map(float, close))

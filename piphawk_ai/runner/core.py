@@ -168,7 +168,7 @@ def build_exit_context(position, tick_data, indicators, indicators_m1=None) -> d
 # ログフォーマットとレベルを統一
 logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s",
-    level=os.getenv("LOG_LEVEL", "INFO"),
+    level=env_loader.get_env("LOG_LEVEL", "INFO"),
 )
 logger = logging.getLogger(__name__)
 from backend.logs.info_logger import info
@@ -239,7 +239,7 @@ class JobRunner:
         self.last_run = None
         self._stop = False
         # DEFAULT_PAIR を属性に保持して外部モジュールから参照できるようにする
-        self.DEFAULT_PAIR = os.getenv("DEFAULT_PAIR", "USD_JPY")
+        self.DEFAULT_PAIR = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
         # Start Prometheus metrics server
         metrics_port = int(env_loader.get_env("METRICS_PORT", "8001"))
         try:
@@ -281,7 +281,7 @@ class JobRunner:
         self.order_mgr = order_mgr
         self.PATTERN_NAMES = PATTERN_NAMES
         # DEFAULT_PAIR を属性として保持
-        self.DEFAULT_PAIR = os.getenv("DEFAULT_PAIR", "USD_JPY")
+        self.DEFAULT_PAIR = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
         # ----- Additional runtime state --------------------------------
         # Toggle for higher‑timeframe reference levels (daily / H4)
         self.higher_tf_enabled = env_loader.get_env("HIGHER_TF_ENABLED", "true").lower() == "true"
@@ -372,8 +372,8 @@ class JobRunner:
         except Exception as exc:  # pragma: no cover - ignore init failures
             logger.debug(f"TP flag restore failed: {exc}")
 
-        token = os.getenv("LINE_CHANNEL_TOKEN", "")
-        user_id = os.getenv("LINE_USER_ID", "")
+        token = env_loader.get_env("LINE_CHANNEL_TOKEN", "")
+        user_id = env_loader.get_env("LINE_USER_ID", "")
         logger.info(
             "JobRunner startup - LINE token set: %s, user ID set: %s",
             bool(token),
@@ -403,7 +403,7 @@ class JobRunner:
             "startup",
             mode=self.trade_mode or "none",
             scalp_mode=scalp_active,
-            ai_version=os.getenv("AI_VERSION", "unknown"),
+            ai_version=env_loader.get_env("AI_VERSION", "unknown"),
         )
 
     def _get_recent_trade_pl(self, limit: int = 50) -> list[float]:
@@ -489,8 +489,8 @@ class JobRunner:
         except Exception as exc:
             logger.error("Param reload failed: %s", exc)
             return
-        if os.getenv("AUTO_RESTART", "false").lower() == "true":
-            interval = float(os.getenv("RESTART_MIN_INTERVAL", "60"))
+        if env_loader.get_env("AUTO_RESTART", "false").lower() == "true":
+            interval = float(env_loader.get_env("RESTART_MIN_INTERVAL", "60"))
             if can_restart(interval):
                 logger.info("AUTO_RESTART enabled – restarting process")
                 python = sys.executable

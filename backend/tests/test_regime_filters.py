@@ -6,6 +6,7 @@ import unittest
 import csv
 import datetime
 from datetime import timezone
+from backend.utils import env_loader
 
 class FakeSeries:
     def __init__(self, data):
@@ -147,13 +148,13 @@ class TestRegimeFilters(unittest.TestCase):
             return dt.hour + dt.minute / 60.0
 
         def pass_entry_filter(indicators, price=None, indicators_m1=None, indicators_m15=None, indicators_h1=None):
-            ma = int(os.getenv("VOL_MA_PERIOD", "3"))
+            ma = int(env_loader.get_env("VOL_MA_PERIOD", "3"))
             vols = indicators["volume"]
             avg = sum(vols[-ma:]) / min(ma, len(vols))
-            if avg < float(os.getenv("MIN_VOL_MA", "100")):
+            if avg < float(env_loader.get_env("MIN_VOL_MA", "100")):
                 return False
-            start = float(os.getenv("QUIET_START_HOUR_JST", "0"))
-            end = float(os.getenv("QUIET_END_HOUR_JST", "0"))
+            start = float(env_loader.get_env("QUIET_START_HOUR_JST", "0"))
+            end = float(env_loader.get_env("QUIET_END_HOUR_JST", "0"))
             now = current_time_jst()
             in_quiet = (start < end and start <= now < end) or (start > end and (now >= start or now < end)) or (start == end)
             return not in_quiet

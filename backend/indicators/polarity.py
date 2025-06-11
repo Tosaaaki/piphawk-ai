@@ -1,5 +1,5 @@
-import os
 from typing import Sequence
+from backend.utils import env_loader
 
 try:
     import pandas as pd
@@ -13,7 +13,7 @@ except ImportError as e:
 def calculate_polarity(prices: Sequence[float], *, period: int = None) -> pd.Series:
     """Return rolling polarity score between -1 and 1."""
     if period is None:
-        period = int(os.getenv("POLARITY_PERIOD", "10"))
+        period = int(env_loader.get_env("POLARITY_PERIOD", "10"))
     series = pd.Series(prices)
     diff = series.diff()
 

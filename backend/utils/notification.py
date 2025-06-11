@@ -9,8 +9,8 @@ Put *all* LINE‑messaging logic here so that other modules
     from backend.utils.notification import send_line_message
 """
 
-import os
 import logging
+from backend.utils import env_loader
 from fastapi import HTTPException
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
@@ -29,8 +29,8 @@ def send_line_message(text: str, token: str | None = None, user_id: str | None =
         * 500 if the token / user‑ID is not configured
         * 500 if the underlying LINE SDK raises an error
     """
-    token = token or os.getenv("LINE_CHANNEL_TOKEN", "")
-    user_id = user_id or os.getenv("LINE_USER_ID", "")
+    token = token or env_loader.get_env("LINE_CHANNEL_TOKEN", "")
+    user_id = user_id or env_loader.get_env("LINE_USER_ID", "")
 
     if not token or not user_id:
         raise HTTPException(

@@ -8,7 +8,6 @@ JobRunner や Strategy 層が AI を呼び出す前に
 strategy_analyzer から自動チューニングが可能。
 """
 
-import os
 import math
 import pandas as pd
 import logging
@@ -17,12 +16,13 @@ from datetime import timezone
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from backend.market_data.tick_fetcher import fetch_tick_data
 from backend.indicators.adx import calculate_adx_slope
+from backend.utils import env_loader
 
 logger = logging.getLogger(__name__)
 
-REVERSAL_RSI_DIFF = float(os.getenv("REVERSAL_RSI_DIFF", "15"))
+REVERSAL_RSI_DIFF = float(env_loader.get_env("REVERSAL_RSI_DIFF", "15"))
 # スキャル専用の厳格判定フラグ
-SCALP_STRICT_FILTER = os.getenv("SCALP_STRICT_FILTER", "false").lower() == "true"
+SCALP_STRICT_FILTER = env_loader.get_env("SCALP_STRICT_FILTER", "false").lower() == "true"
 
 
 def _ema_direction(fast, slow) -> str | None:
@@ -51,7 +51,7 @@ def counter_trend_block(
     dir_m15 = _ema_direction(ind_m15.get("ema_fast"), ind_m15.get("ema_slow")) if ind_m15 else None
     dir_h1 = _ema_direction(ind_h1.get("ema_fast"), ind_h1.get("ema_slow")) if ind_h1 else None
     if dir_m15 and dir_h1 and dir_m15 == dir_h1 and side != dir_m15:
-        adx_override = float(os.getenv("COUNTER_BYPASS_ADX", "0"))
+        adx_override = float(env_loader.get_env("COUNTER_BYPASS_ADX", "0"))
         adx_series = ind_m5.get("adx")
         dir_m5 = _ema_direction(ind_m5.get("ema_fast"), ind_m5.get("ema_slow"))
         try:
@@ -66,7 +66,7 @@ def counter_trend_block(
         except Exception:
             pass
         return True
-    adx_thresh = float(os.getenv("BLOCK_ADX_MIN", "25"))
+    adx_thresh = float(env_loader.get_env("BLOCK_ADX_MIN", "25"))
     adx_series = ind_m5.get("adx")
     try:
         if adx_series is not None and len(adx_series) >= 2:
@@ -101,10 +101,10 @@ def counter_trend_block(
 
 def detect_climax_reversal(candles: list[dict], indicators: dict, *, lookback: int = 50, z_thresh: float | None = None) -> str | None:
     """Return reversal side when BB±2σ breach and ATR z-score exceeds threshold."""
-    if os.getenv("CLIMAX_ENABLED", "true").lower() != "true":
+    if env_loader.get_env("CLIMAX_ENABLED", "true").lower() != "true":
         return None
     if z_thresh is None:
-        z_thresh = float(os.getenv("CLIMAX_ZSCORE", "1.5"))
+        z_thresh = float(env_loader.get_env("CLIMAX_ZSCORE", "1.5"))
     if not candles:
         return None
     try:
@@ -359,16 +359,16 @@ def pass_entry_filter(
         Trade mode such as ``"scalp"`` or ``"trend_follow"``. When specified
         the filter adjusts certain thresholds accordingly.
     """
-    if os.getenv("DISABLE_ENTRY_FILTER", "false").lower() == "true":
+    if env_loader.get_env("DISABLE_ENTRY_FILTER", "false").lower() == "true":
         return True
 
     # --- Time‑of‑day block (JST decimal hours) --------------------------
-    quiet_start = float(os.getenv("QUIET_START_HOUR_JST", "3"))   # default 03:00
-    quiet_end   = float(os.getenv("QUIET_END_HOUR_JST", "7"))     # default 07:00
-    quiet2_enabled = os.getenv("QUIET2_ENABLED", "false").lower() == "true"
+    quiet_start = float(env_loader.get_env("QUIET_START_HOUR_JST", "3"))   # default 03:00
+    quiet_end   = float(env_loader.get_env("QUIET_END_HOUR_JST", "7"))     # default 07:00
+    quiet2_enabled = env_loader.get_env("QUIET2_ENABLED", "false").lower() == "true"
     if quiet2_enabled:
-        quiet2_start = float(os.getenv("QUIET2_START_HOUR_JST", "23"))  # default 23:00
-        quiet2_end   = float(os.getenv("QUIET2_END_HOUR_JST", "1"))    # default 01:00
+        quiet2_start = float(env_loader.get_env("QUIET2_START_HOUR_JST", "23"))  # default 23:00
+        quiet2_end   = float(env_loader.get_env("QUIET2_END_HOUR_JST", "1"))    # default 01:00
     else:
         quiet2_start = quiet2_end = None
 
@@ -393,18 +393,18 @@ def pass_entry_filter(
         return False
 
     # --- Pivot suppression for specified timeframes --------------------
-    if os.getenv("HIGHER_TF_ENABLED", "true").lower() == "true":
-        pair = os.getenv("DEFAULT_PAIR", "USD_JPY")
+    if env_loader.get_env("HIGHER_TF_ENABLED", "true").lower() == "true":
+        pair = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
         tfs = [
             tf.strip().upper()
-            for tf in os.getenv("PIVOT_SUPPRESSION_TFS", "D").split(",")
+            for tf in env_loader.get_env("PIVOT_SUPPRESSION_TFS", "D").split(",")
             if tf.strip()
         ]
         higher = analyze_higher_tf(pair)
         tick = fetch_tick_data(pair)
         current_price = float(tick["prices"][0]["bids"][0]["price"])
-        pip_size = float(os.getenv("PIP_SIZE", "0.01"))
-        sup_pips = float(os.getenv("PIVOT_SUPPRESSION_PIPS", "15"))
+        pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+        sup_pips = float(env_loader.get_env("PIVOT_SUPPRESSION_PIPS", "15"))
         for tf in tfs:
             pivot = higher.get(f"pivot_{tf.lower()}")
             if pivot is None:
@@ -421,9 +421,9 @@ def pass_entry_filter(
     adx_series = indicators.get("adx")
     latest_adx = adx_series.iloc[-1] if adx_series is not None and len(adx_series) else None
 
-    adx_thresh = float(os.getenv("ADX_RANGE_THRESHOLD", "25"))
+    adx_thresh = float(env_loader.get_env("ADX_RANGE_THRESHOLD", "25"))
     range_mode = latest_adx is not None and latest_adx < adx_thresh
-    lookback = int(os.getenv("ADX_SLOPE_LOOKBACK", "3"))
+    lookback = int(env_loader.get_env("ADX_SLOPE_LOOKBACK", "3"))
     adx_slope = calculate_adx_slope(adx_series, lookback) if adx_series is not None else 0.0
     if adx_slope < 0:
         range_mode = True
@@ -431,17 +431,17 @@ def pass_entry_filter(
     # --- Volume check ---------------------------------------------------
     vol_series = indicators.get("volume")
     vol_ok = True
-    ma_period = int(os.getenv("VOL_MA_PERIOD", "5"))
+    ma_period = int(env_loader.get_env("VOL_MA_PERIOD", "5"))
     if vol_series is not None and len(vol_series) >= ma_period:
         sma_vol = vol_series.rolling(window=ma_period).mean().iloc[-1]
-        min_vol = float(os.getenv("MIN_VOL_MA", os.getenv("MIN_VOL_M1", "60")))
+        min_vol = float(env_loader.get_env("MIN_VOL_MA", env_loader.get_env("MIN_VOL_M1", "60")))
         vol_ok = sma_vol >= min_vol
         if not vol_ok:
             logger.debug("EntryFilter blocked: volume below threshold")
             return False
 
     # --- M1 RSI cross-up/down check ----------------------------------
-    strict = os.getenv("STRICT_ENTRY_FILTER", "true").lower() == "true"
+    strict = env_loader.get_env("STRICT_ENTRY_FILTER", "true").lower() == "true"
     if mode == "scalp":
         strict = SCALP_STRICT_FILTER
     if strict:
@@ -450,7 +450,7 @@ def pass_entry_filter(
                 from backend.market_data.candle_fetcher import fetch_candles
                 from backend.indicators.calculate_indicators import calculate_indicators
 
-                pair = os.getenv("DEFAULT_PAIR", "USD_JPY")
+                pair = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
                 candles_m1 = fetch_candles(
                     pair,
                     granularity="M1",
@@ -463,7 +463,7 @@ def pass_entry_filter(
                 indicators_m1 = None
 
         if indicators_m1 and indicators_m1.get("rsi") is not None:
-            lookback = int(os.getenv("RSI_CROSS_LOOKBACK", "1"))
+            lookback = int(env_loader.get_env("RSI_CROSS_LOOKBACK", "1"))
             if not _rsi_cross_up_or_down(indicators_m1["rsi"], lookback=lookback):
                 logger.debug(
                     "EntryFilter blocked: M1 RSI did not show cross up/down signal"
@@ -476,7 +476,7 @@ def pass_entry_filter(
             from backend.market_data.candle_fetcher import fetch_candles
             from backend.indicators.calculate_indicators import calculate_indicators
 
-            pair = os.getenv("DEFAULT_PAIR", "USD_JPY")
+            pair = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
             candles_m15 = fetch_candles(
                 pair,
                 granularity="M15",
@@ -506,7 +506,7 @@ def pass_entry_filter(
     latest_ema_slow = ema_slow.iloc[-1] if len(ema_slow) else None
     prev_ema_fast = ema_fast.iloc[-2] if len(ema_fast) > 1 else None
     prev_ema_slow = ema_slow.iloc[-2] if len(ema_slow) > 1 else None
-    ema_flat_thresh = float(os.getenv("EMA_FLAT_PIPS", "0.05")) * float(os.getenv("PIP_SIZE", "0.01"))
+    ema_flat_thresh = float(env_loader.get_env("EMA_FLAT_PIPS", "0.05")) * float(env_loader.get_env("PIP_SIZE", "0.01"))
 
     if len(ema_fast) >= 3 and len(ema_slow) >= 2:
         prev_slope = prev_ema_fast - ema_fast.iloc[-3]
@@ -525,9 +525,9 @@ def pass_entry_filter(
     bb_middle = indicators.get("bb_middle")
     band_width_ok = False
     bw_pips = None
-    bw_thresh = float(os.getenv("BAND_WIDTH_THRESH_PIPS", "4"))
+    bw_thresh = float(env_loader.get_env("BAND_WIDTH_THRESH_PIPS", "4"))
     if bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
-        pip_size = float(os.getenv("PIP_SIZE", "0.01"))
+        pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
         bw_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
         band_width_ok = bw_pips >= bw_thresh
         if bw_pips <= bw_thresh:
@@ -535,15 +535,15 @@ def pass_entry_filter(
             range_mode = True
 
         # Overshoot check --------------------------------------------------
-        overshoot_mult = float(os.getenv("OVERSHOOT_ATR_MULT", "1.0"))
+        overshoot_mult = float(env_loader.get_env("OVERSHOOT_ATR_MULT", "1.0"))
         threshold = bb_lower.iloc[-1] - atr_series.iloc[-1] * overshoot_mult
         if price is not None and price <= threshold:
             logger.debug("EntryFilter blocked: price overshoot below lower BB")
             return False
 
     # --- Dynamic ADX threshold based on BB width -----------------------
-    adx_base = float(os.getenv("ADX_RANGE_THRESHOLD", "25"))
-    coeff = float(os.getenv("ADX_DYNAMIC_COEFF", "0"))
+    adx_base = float(env_loader.get_env("ADX_RANGE_THRESHOLD", "25"))
+    coeff = float(env_loader.get_env("ADX_DYNAMIC_COEFF", "0"))
     width_ratio = (
         (bw_pips - bw_thresh) / bw_thresh
         if bw_pips is not None and bw_thresh != 0
@@ -569,7 +569,7 @@ def pass_entry_filter(
         range_mode = True
 
     # --- Range center block --------------------------------------------
-    block_pct = float(os.getenv("RANGE_CENTER_BLOCK_PCT", "0.3"))
+    block_pct = float(env_loader.get_env("RANGE_CENTER_BLOCK_PCT", "0.3"))
     if (
         range_mode
         and price is not None
@@ -606,11 +606,11 @@ def pass_entry_filter(
         return False  # insufficient data
 
     # --- Composite conditions ------------------------------------------
-    lower = float(os.getenv("RSI_ENTRY_LOWER", "30"))
-    upper = float(os.getenv("RSI_ENTRY_UPPER", "70"))
+    lower = float(env_loader.get_env("RSI_ENTRY_LOWER", "30"))
+    upper = float(env_loader.get_env("RSI_ENTRY_UPPER", "70"))
 
-    pip_size = float(os.getenv("PIP_SIZE", "0.01"))
-    atr_th = float(os.getenv("ATR_ENTRY_THRESHOLD", "0.09"))
+    pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+    atr_th = float(env_loader.get_env("ATR_ENTRY_THRESHOLD", "0.09"))
 
     if range_mode:
         atr_condition = True  # ignore ATR in range market
@@ -660,7 +660,7 @@ def pass_entry_filter(
 # ────────────────────────────────────────────────
 def pass_exit_filter(indicators: dict, position_side: str) -> bool:
     # --- Test override: set DISABLE_EXIT_FILTER=true in .env to bypass all exit filters
-    if os.getenv("DISABLE_EXIT_FILTER", "false").lower() == "true":
+    if env_loader.get_env("DISABLE_EXIT_FILTER", "false").lower() == "true":
         return True
     """
     Exit‑side filter
@@ -685,9 +685,9 @@ def pass_exit_filter(indicators: dict, position_side: str) -> bool:
         # データが揃っていないときは AI に任せる
         return True
 
-    lower = float(os.getenv("RSI_EXIT_LOWER", "35"))
-    upper = float(os.getenv("RSI_EXIT_UPPER", "65"))
-    atr_th = float(os.getenv("ATR_EXIT_THRESHOLD", "0.04"))
+    lower = float(env_loader.get_env("RSI_EXIT_LOWER", "35"))
+    upper = float(env_loader.get_env("RSI_EXIT_UPPER", "65"))
+    atr_th = float(env_loader.get_env("ATR_EXIT_THRESHOLD", "0.04"))
 
     in_neutral_band = lower <= latest_rsi <= upper
     atr_is_calm = latest_atr <= atr_th
@@ -714,7 +714,7 @@ def pass_exit_filter(indicators: dict, position_side: str) -> bool:
         cross_signal = False
 
     # fast / slow EMA がほぼ重なった、または 2 本連続で逆方向なら勢い喪失と判断
-    pip_size = float(os.getenv("PIP_SIZE", "0.01"))
+    pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
     flat_or_cross = _ema_flat_or_cross(ema_fast, ema_slow, position_side, pip_size)
 
     return (in_neutral_band and atr_is_calm) or cross_signal or flat_or_cross
