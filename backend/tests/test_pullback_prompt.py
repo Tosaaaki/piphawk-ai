@@ -2,7 +2,6 @@ import os
 import importlib
 import unittest
 
-
 class FakeSeries:
     def __init__(self, data=None):
         self._data = list(data or [])
@@ -17,7 +16,7 @@ class FakeSeries:
     def __len__(self):
         return len(self._data)
 
-class TestPromptM15(unittest.TestCase):
+class TestPullbackPrompt(unittest.TestCase):
     def setUp(self):
         os.environ.setdefault("OPENAI_API_KEY", "dummy")
         pandas_stub = importlib.import_module("types").ModuleType("pandas")
@@ -28,7 +27,7 @@ class TestPromptM15(unittest.TestCase):
         importlib.reload(op)
         self.op = op
 
-    def test_prompt_includes_m15(self):
+    def test_prompt_contains_pullback_status(self):
         ind_dummy = {
             "rsi": FakeSeries([50]*20),
             "atr": FakeSeries([0]*20),
@@ -50,10 +49,10 @@ class TestPromptM15(unittest.TestCase):
             candles_dummy,
             {},
             None,
-            False,
+            True,
         )
-        self.assertIn("## M15", prompt)
-        self.assertIn("### M15 Candles", prompt)
+        self.assertIn("Pullback Completed", prompt)
+        self.assertIn("True", prompt)
 
 if __name__ == "__main__":
     unittest.main()

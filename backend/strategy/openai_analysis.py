@@ -1073,6 +1073,7 @@ def get_trade_plan(
         pattern_line,
         macro_summary,
         macro_sentiment,
+        pullback_done=pullback_done,
         allow_delayed_entry=allow_delayed_entry,
         higher_tf_direction=higher_tf_direction,
         trend_prompt_bias=trend_prompt_bias,
@@ -1153,7 +1154,35 @@ def get_trade_plan(
             self.iloc = _IL()
 
     noise_series = _OneVal(noise_pips) if noise_pips is not None else None
-    pullback_needed = calculate_dynamic_pullback({**ind_m5, 'noise': noise_series}, recent_high or 0.0, recent_low or 0.0)
+    pullback_needed = calculate_dynamic_pullback(
+        {**ind_m5, 'noise': noise_series}, recent_high or 0.0, recent_low or 0.0
+    )
+    pullback_done = False
+    try:
+        price = None
+        if isinstance(market_data, dict):
+            bid = market_data.get('bid')
+            ask = market_data.get('ask')
+            if bid is None and 'prices' in market_data:
+                bid = market_data['prices'][0]['bids'][0]['price']
+            if ask is None and 'prices' in market_data:
+                ask = market_data['prices'][0]['asks'][0]['price']
+            if higher_tf_direction == 'long' and bid is not None:
+                price = float(bid)
+            elif higher_tf_direction == 'short' and ask is not None:
+                price = float(ask)
+        if price is not None:
+            from backend.strategy.dynamic_pullback import pullback_completed
+
+            pullback_done = pullback_completed(
+                higher_tf_direction or '',
+                price,
+                pullback_needed,
+                recent_high or 0.0,
+                recent_low or 0.0,
+            )
+    except Exception:
+        pullback_done = False
     pattern_text = f"\n### Detected Chart Pattern\n{pattern_line}\n" if pattern_line else "\n### Detected Chart Pattern\nNone\n"
     # ADX が高い場合はプルバック不要メッセージを追加する
     no_pullback_msg = ""
