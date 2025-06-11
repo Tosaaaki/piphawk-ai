@@ -47,7 +47,7 @@ TP_PROB_HOURS: int = int(env_loader.get_env("TP_PROB_HOURS", "24"))
 PROB_MARGIN: float = float(env_loader.get_env("PROB_MARGIN", "0.1"))
 LIMIT_THRESHOLD_ATR_RATIO: float = float(env_loader.get_env("LIMIT_THRESHOLD_ATR_RATIO", "0.3"))
 MAX_LIMIT_AGE_SEC: int = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
-MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "2"))
+MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
 BE_TRIGGER_PIPS: int = int(env_loader.get_env("BE_TRIGGER_PIPS", 10))
 BE_TRIGGER_R: float = float(env_loader.get_env("BE_TRIGGER_R", "0"))
 AI_LIMIT_CONVERT_MODEL: str = env_loader.get_env("AI_LIMIT_CONVERT_MODEL", "gpt-4.1-nano")
@@ -1252,7 +1252,7 @@ Your task:
     • tp_prob must be ≥ {MIN_TP_PROB:.2f}
     • Expected value (tp_pips*tp_prob - sl_pips*sl_prob) must be positive
     • Choose the take-profit level that maximises expected value = probability × pips, subject to RRR ≥ {MIN_RRR}
-    • (tp_pips - spread_pips) must be ≥ {env_loader.get_env("MIN_NET_TP_PIPS","2")} pips
+    • (tp_pips - spread_pips) must be ≥ {env_loader.get_env("MIN_NET_TP_PIPS","1")} pips
     • If constraints are not met, set side to "no".
 
 Respond with **one-line valid JSON** exactly as:
