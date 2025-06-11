@@ -861,6 +861,13 @@ class JobRunner:
                     self.last_candles_m5 = candles_m5
                     candles = candles_m5  # backward compatibility
                     logger.info(f"Candle M5 last: {candles_m5[-1] if candles_m5 else 'No candles'}")
+                    if candles_m5:
+                        last = candles_m5[-1]
+                        try:
+                            from backend.strategy.signal_filter import update_overshoot_window
+                            update_overshoot_window(float(last["mid"]["h"]), float(last["mid"]["l"]))
+                        except Exception:
+                            pass
 
                     # -------- Higher‑timeframe reference levels --------
                     higher_tf = {}
