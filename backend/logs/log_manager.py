@@ -193,6 +193,14 @@ def init_db():
                 reward REAL NOT NULL
             )
         ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS trade_labels (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                trade_id INTEGER NOT NULL,
+                label TEXT NOT NULL,
+                timestamp TEXT NOT NULL
+            )
+        ''')
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS sync_state (
@@ -254,6 +262,17 @@ def log_trade(
             is_manual,
             int(score_version if score_version is not None else env_loader.get_env("SCORE_VERSION", "1")),
         ))
+        trade_id = cursor.lastrowid
+        conn.commit()
+        return trade_id
+
+def add_trade_label(trade_id: int, label: str) -> None:
+    """Add descriptive label for a trade."""
+    with get_db_connection() as conn:
+        conn.execute(
+            'INSERT INTO trade_labels (trade_id, label, timestamp) VALUES (?, ?, ?)',
+            (trade_id, label, datetime.now(timezone.utc).isoformat()),
+        )
 
 def log_policy_transition(state: str, action: str, reward: float) -> None:
     """Store a (state, action, reward) tuple for offline RL."""
