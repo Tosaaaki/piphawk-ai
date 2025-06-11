@@ -121,6 +121,7 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 
 - `DEFAULT_PAIR` … 取引する通貨ペア
 - `MIN_RRR` … 最低リスクリワード比。`ENFORCE_RRR` と併用すると常にこの比率を保ちます
+- `MIN_EXPECTED_VALUE` … TPとSLの期待値がこの値未満ならエントリーを行いません
 - `TREND_ADX_THRESH` … トレンド判定に使う ADX のしきい値 (デフォルト 20)
 - `SCALE_LOT_SIZE` … 追加エントリー時のロット数
 - `MIN_TRADE_LOT` / `MAX_TRADE_LOT` … 1 ロット = 1000 通貨。ここで許可するロット範囲を設定します
@@ -477,6 +478,10 @@ by the AI when opening or closing a trade. In addition `score_version` records
 the scoring algorithm version used for that trade. Run `init_db()` once to add
 the column to older databases.
 
+`prompt_logs` テーブルも追加され、送信したプロンプトとモデルからの応答が保存されます。
+この履歴は将来の強化学習や戦略分析に利用できます。`init_db()` を実行すると自動
+作成されます。
+
 If you need a clean database locally, copy the example file if available:
 
 ```bash
@@ -520,6 +525,15 @@ Set the `DAYS` environment variable to keep more history:
 
 ```bash
 DAYS=60 python3 -m backend.logs.cleanup
+```
+
+### Filter statistics
+
+`analysis/filter_statistics.py` を使うと、エントリーを阻止したフィルター理由の集計
+結果を表示できます。`TRADES_DB_PATH` が未指定の場合は `trades.db` を参照します。
+
+```bash
+python3 -m analysis.filter_statistics
 ```
 
 ### System cleanup

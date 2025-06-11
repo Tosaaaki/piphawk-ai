@@ -23,7 +23,13 @@ class TestRiskExpectedValue(unittest.TestCase):
         dotenv_stub = types.ModuleType("dotenv")
         dotenv_stub.load_dotenv = lambda *a, **k: None
         add("dotenv", dotenv_stub)
-        add("requests", types.ModuleType("requests"))
+        req_stub = types.ModuleType("requests")
+        req_stub.Session = lambda: types.SimpleNamespace(request=lambda *a, **k: types.SimpleNamespace(status_code=200))
+        req_stub.RequestException = Exception
+        req_stub.Response = types.SimpleNamespace
+        add("requests", req_stub)
+        add("httpx", types.ModuleType("httpx"))
+        add("strategies", types.ModuleType("strategies"))
         add("numpy", types.ModuleType("numpy"))
         import backend.strategy.openai_analysis as oa
         importlib.reload(oa)
@@ -35,7 +41,7 @@ class TestRiskExpectedValue(unittest.TestCase):
 
     def test_negative_expected_value(self):
         resp = {"entry": {"side": "long"}, "risk": {"tp_pips": 10, "sl_pips": 40.5, "tp_prob": 0.8, "sl_prob": 0.5}}
-        self.oa.ask_openai = lambda *a, **k: resp
+        self.oa.ask_model = lambda *a, **k: resp
         plan = self.oa.get_trade_plan({}, {"M5": {}}, {"M5": []})
         self.assertEqual(plan.get("entry", {}).get("side"), "no")
         self.assertEqual(plan.get("risk"), {})

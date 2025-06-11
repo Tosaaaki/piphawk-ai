@@ -147,7 +147,7 @@ class TestRegimeFilters(unittest.TestCase):
             dt = datetime.datetime.fromisoformat(row["time"].replace("Z", "+00:00")) + datetime.timedelta(hours=9)
             return dt.hour + dt.minute / 60.0
 
-        def pass_entry_filter(indicators, price=None, indicators_m1=None, indicators_m15=None, indicators_h1=None):
+        def pass_entry_filter(indicators, price=None, indicators_m1=None, indicators_m15=None, indicators_h1=None, context=None):
             ma = int(env_loader.get_env("VOL_MA_PERIOD", "3"))
             vols = indicators["volume"]
             avg = sum(vols[-ma:]) / min(ma, len(vols))

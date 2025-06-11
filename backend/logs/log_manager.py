@@ -127,6 +127,17 @@ def init_db():
         ''')
 
         cursor.execute('''
+            CREATE TABLE IF NOT EXISTS prompt_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                decision_type TEXT NOT NULL,
+                instrument TEXT,
+                prompt TEXT NOT NULL,
+                response TEXT NOT NULL
+            )
+        ''')
+
+        cursor.execute('''
             CREATE TABLE IF NOT EXISTS errors (
                 error_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp TEXT NOT NULL,
@@ -180,6 +191,14 @@ def init_db():
                 state TEXT NOT NULL,
                 action TEXT NOT NULL,
                 reward REAL NOT NULL
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS trade_labels (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                trade_id INTEGER NOT NULL,
+                label TEXT NOT NULL,
+                timestamp TEXT NOT NULL
             )
         ''')
 
@@ -243,6 +262,17 @@ def log_trade(
             is_manual,
             int(score_version if score_version is not None else env_loader.get_env("SCORE_VERSION", "1")),
         ))
+        trade_id = cursor.lastrowid
+        conn.commit()
+        return trade_id
+
+def add_trade_label(trade_id: int, label: str) -> None:
+    """Add descriptive label for a trade."""
+    with get_db_connection() as conn:
+        conn.execute(
+            'INSERT INTO trade_labels (trade_id, label, timestamp) VALUES (?, ?, ?)',
+            (trade_id, label, datetime.now(timezone.utc).isoformat()),
+        )
 
 def log_policy_transition(state: str, action: str, reward: float) -> None:
     """Store a (state, action, reward) tuple for offline RL."""
@@ -263,6 +293,18 @@ def log_ai_decision(decision_type, instrument, ai_response):
             INSERT INTO ai_decisions (timestamp, decision_type, instrument, ai_response)
             VALUES (?, ?, ?, ?)
         ''', (datetime.now(timezone.utc).isoformat(), decision_type, instrument, ai_response))
+
+def log_prompt_response(decision_type: str, instrument: str, prompt: str, response: str) -> None:
+    """LLM への問い合わせ内容と返答を記録する"""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO prompt_logs (timestamp, decision_type, instrument, prompt, response)
+            VALUES (?, ?, ?, ?, ?)
+        ''',
+            (datetime.now(timezone.utc).isoformat(), decision_type, instrument, prompt, response),
+        )
 
 def log_error(module, error_message, additional_info=None):
     """Record an error event.

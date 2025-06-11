@@ -2,7 +2,7 @@ import logging
 import json
 from piphawk_ai.ai.local_model import ask_model
 from piphawk_ai.ai.macro_analyzer import MacroAnalyzer
-from backend.logs.log_manager import log_ai_decision
+from backend.logs.log_manager import log_ai_decision, log_prompt_response
 from backend.utils import env_loader, parse_json_answer
 from backend.strategy.pattern_ai_detection import detect_chart_pattern
 from backend.strategy.pattern_scanner import PATTERN_DIRECTION
@@ -45,6 +45,9 @@ AI_REGIME_COOLDOWN_SEC: int = int(env_loader.get_env("AI_REGIME_COOLDOWN_SEC", A
 MIN_TP_PROB: float = float(env_loader.get_env("MIN_TP_PROB", "0.75"))
 TP_PROB_HOURS: int = int(env_loader.get_env("TP_PROB_HOURS", "24"))
 PROB_MARGIN: float = float(env_loader.get_env("PROB_MARGIN", "0.1"))
+MIN_EXPECTED_VALUE: float = float(
+    env_loader.get_env("MIN_EXPECTED_VALUE", "0.0")
+)
 LIMIT_THRESHOLD_ATR_RATIO: float = float(env_loader.get_env("LIMIT_THRESHOLD_ATR_RATIO", "0.3"))
 MAX_LIMIT_AGE_SEC: int = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
 MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
@@ -60,8 +63,9 @@ EXIT_BIAS_FACTOR: float = float(env_loader.get_env("EXIT_BIAS_FACTOR", "1.0"))
 # --- Volatility and ADX filters ---
 COOL_BBWIDTH_PCT: float = float(env_loader.get_env("COOL_BBWIDTH_PCT", "0"))
 COOL_ATR_PCT: float = float(env_loader.get_env("COOL_ATR_PCT", "0"))
-ADX_NO_TRADE_MIN: float = float(env_loader.get_env("ADX_NO_TRADE_MIN", "20"))
-ADX_NO_TRADE_MAX: float = float(env_loader.get_env("ADX_NO_TRADE_MAX", "30"))
+# ADXノートレード域のデフォルト値を15-18に緩和
+ADX_NO_TRADE_MIN: float = float(env_loader.get_env("ADX_NO_TRADE_MIN", "15"))
+ADX_NO_TRADE_MAX: float = float(env_loader.get_env("ADX_NO_TRADE_MAX", "18"))
 ADX_SLOPE_LOOKBACK: int = int(env_loader.get_env("ADX_SLOPE_LOOKBACK", "3"))
 ALLOW_NO_PULLBACK_WHEN_ADX: float = float(
     env_loader.get_env("ALLOW_NO_PULLBACK_WHEN_ADX", "0")
@@ -573,10 +577,18 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
             prompt,
             response_format={"type": "json_object"},
         )
-        if isinstance(llm_raw, dict):        # already parsed
+        if isinstance(llm_raw, dict):  # already parsed
             llm_regime = llm_raw.get("market_condition", "range")
+            raw_text = json.dumps(llm_raw, ensure_ascii=False)
         else:
             llm_regime = json.loads(llm_raw).get("market_condition", "range")
+            raw_text = str(llm_raw)
+        log_prompt_response(
+            "REGIME",
+            env_loader.get_env("DEFAULT_PAIR", "USD_JPY"),
+            prompt,
+            raw_text,
+        )
     except Exception as exc:
         logger.error("get_market_condition ‑ LLM failure: %s", exc)
         llm_regime = "range"
@@ -860,6 +872,12 @@ def get_exit_decision(
     )
     try:
         response_json = ask_model(prompt)
+        log_prompt_response(
+            "EXIT",
+            instrument,
+            prompt,
+            json.dumps(response_json, ensure_ascii=False),
+        )
     except Exception as exc:
         try:
             log_ai_decision("ERROR", instrument, str(exc))
@@ -963,6 +981,7 @@ def get_trade_plan(
     trade_mode: str | None = None,
     mode_reason: str | None = None,
     trend_prompt_bias: str | None = None,
+    filter_ctx: dict | None = None,
 ) -> dict:
     """
     Single‑shot call to the LLM that returns a dict:
@@ -980,7 +999,7 @@ def get_trade_plan(
 
     The function also performs local guards:
         • tp_prob ≥ MIN_TP_PROB
-        • expected value (tp*tp_prob – sl*sl_prob) > 0
+        • expected value (tp*tp_prob – sl*sl_prob) ≥ MIN_EXPECTED_VALUE
       If either guard fails, it forces ``side:"no"``.
     """
     if allow_delayed_entry is None:
@@ -1270,6 +1289,12 @@ Respond with **one-line valid JSON** exactly as:
 """
     try:
         raw = ask_model(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano"))
+        log_prompt_response(
+            "ENTRY",
+            instrument,
+            prompt,
+            json.dumps(raw, ensure_ascii=False) if isinstance(raw, dict) else str(raw),
+        )
     except Exception as exc:
         try:
             log_ai_decision("ERROR", instrument, str(exc))
@@ -1280,6 +1305,11 @@ Respond with **one-line valid JSON** exactly as:
         log_ai_decision("ENTRY", instrument, json.dumps(raw, ensure_ascii=False))
     except Exception as exc:  # pragma: no cover - logging failure shouldn't stop flow
         logger.warning("log_ai_decision failed: %s", exc)
+    try:
+        from diagnostics import diagnostics as diag
+        diag.log("entry", json.dumps(raw, ensure_ascii=False))
+    except Exception:
+        pass
 
     plan, err = parse_json_answer(raw)
     if plan is None:
@@ -1289,6 +1319,11 @@ Respond with **one-line valid JSON** exactly as:
             logger.warning("log_ai_decision failed: %s", exc)
         logger.info("Invalid JSON response: %s", raw)
         return {"entry": {"side": "no"}, "raw": raw, "reason": "PARSE_FAIL"}
+
+    if plan.get("entry", {}).get("side") == "no":
+        why = plan.get("why") or plan.get("entry", {}).get("why")
+        if isinstance(why, str) and why:
+            plan["reason"] = why
 
     entry_conf = plan.get("entry_confidence")
     try:
@@ -1316,6 +1351,12 @@ Respond with **one-line valid JSON** exactly as:
     if entry_conf is not None and higher_tf_direction in ("long", "short") and side_planned in ("long", "short"):
         if (higher_tf_direction == "long" and side_planned == "short") or (higher_tf_direction == "short" and side_planned == "long"):
             entry_conf = max(0.0, entry_conf - 0.3)
+
+    pivot_penalty = None
+    if filter_ctx:
+        pivot_penalty = filter_ctx.get("pivot_penalty")
+    if entry_conf is not None and pivot_penalty is not None:
+        entry_conf = max(0.0, entry_conf - float(pivot_penalty))
     if entry_conf is None:
         entry_conf = 0.5
     plan["entry_confidence"] = entry_conf
@@ -1417,7 +1458,7 @@ Respond with **one-line valid JSON** exactly as:
             plan["reason"] = "RISK_PARSE_FAIL"
             return plan
 
-        if p < MIN_TP_PROB or (tp * p - sl * q) <= 0:
+        if p < MIN_TP_PROB or (tp * p - sl * q) < MIN_EXPECTED_VALUE:
             plan["entry"]["side"] = "no"
             plan.setdefault("reason", "PROB_TOO_LOW")
 
@@ -1569,6 +1610,12 @@ def should_convert_limit_to_market(context: dict) -> bool:
     )
     try:
         result = ask_model(prompt, model=AI_LIMIT_CONVERT_MODEL)
+        log_prompt_response(
+            "LIMIT_CONVERT",
+            env_loader.get_env("DEFAULT_PAIR", "USD_JPY"),
+            prompt,
+            json.dumps(result, ensure_ascii=False) if isinstance(result, dict) else str(result),
+        )
     except Exception as exc:
         logger.warning(f"should_convert_limit_to_market failed: {exc}")
         return False

@@ -88,8 +88,16 @@ class TestPivotSuppression(unittest.TestCase):
 
     def test_blocked_by_pivot(self):
         m1 = {"rsi": FakeSeries([29, 35])}
-        res = self.pass_entry_filter(sys.modules["backend.indicators.calculate_indicators"].calculate_indicators(), price=1.0, indicators_m1=m1, indicators_h1=None)
-        self.assertFalse(res)
+        ctx = {}
+        res = self.pass_entry_filter(
+            sys.modules["backend.indicators.calculate_indicators"].calculate_indicators(),
+            price=1.0,
+            indicators_m1=m1,
+            indicators_h1=None,
+            context=ctx,
+        )
+        self.assertTrue(res)
+        self.assertIn("pivot_penalty", ctx)
 
 if __name__ == "__main__":
     unittest.main()

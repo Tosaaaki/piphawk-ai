@@ -303,6 +303,9 @@ Your task:
     • (tp_pips - spread_pips) must be ≥ {env_loader.get_env("MIN_NET_TP_PIPS","1") } pips
     • If constraints are not met, set side to "no".
 
+4. When "entry.side" is "no", also return key "why" summarizing the reason.
+5. When "entry.side" is "yes", the "risk" object must include "tp_pips", "sl_pips", "tp_prob" and "sl_prob", and tp_prob must be ≥ 0.70.
+
 Respond with **one-line valid JSON** exactly as:
 {{"regime":{{...}},"entry":{{...}},"risk":{{...}},"entry_confidence":0.0,"probs":{{"long":0.5,"short":0.5,"no":0.0}}}}
 """
