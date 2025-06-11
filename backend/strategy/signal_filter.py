@@ -386,6 +386,7 @@ def pass_entry_filter(
 
     in_quiet_hours = _in_range(quiet_start, quiet_end) or _in_range(quiet2_start, quiet2_end)
     if in_quiet_hours:
+        logger.info("Filter NG: session")
         q2_msg = f" or {quiet2_start}-{quiet2_end}" if quiet2_enabled else ""
         logger.debug(
             f"EntryFilter blocked by quiet hours ({quiet_start}-{quiet_end}{q2_msg})"
@@ -410,6 +411,7 @@ def pass_entry_filter(
             if pivot is None:
                 continue
             if abs((current_price - pivot) / pip_size) <= sup_pips:
+                logger.info("Filter NG: pivot")
                 logger.debug(
                     f"EntryFilter blocked: within {sup_pips} pips of {tf} pivot"
                 )
@@ -437,6 +439,7 @@ def pass_entry_filter(
         min_vol = float(env_loader.get_env("MIN_VOL_MA", env_loader.get_env("MIN_VOL_M1", "60")))
         vol_ok = sma_vol >= min_vol
         if not vol_ok:
+            logger.info("Filter NG: volume")
             logger.debug("EntryFilter blocked: volume below threshold")
             return False
 
@@ -465,6 +468,7 @@ def pass_entry_filter(
         if indicators_m1 and indicators_m1.get("rsi") is not None:
             lookback = int(env_loader.get_env("RSI_CROSS_LOOKBACK", "1"))
             if not _rsi_cross_up_or_down(indicators_m1["rsi"], lookback=lookback):
+                logger.info("Filter NG: m1_rsi")
                 logger.debug(
                     "EntryFilter blocked: M1 RSI did not show cross up/down signal"
                 )
@@ -494,6 +498,7 @@ def pass_entry_filter(
         and indicators.get("macd_hist") is not None
         and rapid_reversal_block(indicators["rsi"], indicators_m15["rsi"], indicators["macd_hist"])
     ):
+        logger.info("Filter NG: rapid_reversal")
         logger.debug("EntryFilter blocked: rapid reversal detected")
         return False
 
@@ -516,6 +521,7 @@ def pass_entry_filter(
         narrowing = abs(diff_curr) < abs(diff_prev)
         rev_or_flat = (curr_slope * prev_slope < 0) or abs(curr_slope) <= ema_flat_thresh
         if narrowing and rev_or_flat:
+            logger.info("Filter NG: ema_convergence")
             logger.debug("EntryFilter blocked: EMA convergence with slope reversal/flat")
             return False
 
@@ -538,6 +544,7 @@ def pass_entry_filter(
         overshoot_mult = float(env_loader.get_env("OVERSHOOT_ATR_MULT", "1.0"))
         threshold = bb_lower.iloc[-1] - atr_series.iloc[-1] * overshoot_mult
         if price is not None and price <= threshold:
+            logger.info("Filter NG: overshoot")
             logger.debug("EntryFilter blocked: price overshoot below lower BB")
             return False
 
@@ -584,6 +591,7 @@ def pass_entry_filter(
         if band_span != 0:
             deviation = abs(price - bb_middle.iloc[-1]) / band_span
             if deviation < block_pct:
+                logger.info("Filter NG: range_center")
                 logger.debug(
                     "EntryFilter blocked: price near BB center in range mode"
                 )
@@ -602,6 +610,7 @@ def pass_entry_filter(
         return True
 
     if None in [latest_rsi, latest_ema_fast, latest_ema_slow, prev_ema_fast, prev_ema_slow]:
+        logger.info("Filter NG: data_insufficient")
         logger.debug("EntryFilter blocked: insufficient indicator history")
         return False  # insufficient data
 
@@ -634,12 +643,14 @@ def pass_entry_filter(
     score = sum([rsi_condition, atr_condition, ema_condition])
 
     if not band_width_ok:
+        logger.info("Filter NG: volatility")
         logger.debug(
             f"EntryFilter blocked: Bollinger band width {bw_pips:.2f} pips < {bw_thresh}"
         )
         return False
 
     if score < required:
+        logger.info("Filter NG: composite")
         if not atr_condition:
             logger.debug(
                 f"EntryFilter blocked: ATR {latest_atr:.4f} below {atr_th}"
