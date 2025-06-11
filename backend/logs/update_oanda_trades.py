@@ -52,12 +52,23 @@ def get_last_transaction_id():
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT MAX(CAST(trade_id AS INTEGER)) FROM oanda_trades WHERE account_id = ?",
-        (OANDA_ACCOUNT_ID,),
+        "SELECT value FROM sync_state WHERE key = 'last_transaction_id'"
     )
-    last_id = cursor.fetchone()[0]
+    row = cursor.fetchone()
     conn.close()
-    return last_id if last_id else '0'
+    return row[0] if row else '0'
+
+
+def set_last_transaction_id(transaction_id: str) -> None:
+    init_db()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT OR REPLACE INTO sync_state (key, value) VALUES (?, ?)",
+        ("last_transaction_id", str(transaction_id)),
+    )
+    conn.commit()
+    conn.close()
 
 def fetch_trade_details(trade_id):
     url = f"{OANDA_API_URL}/v3/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}"
@@ -96,6 +107,7 @@ def update_oanda_trades():
         logger.debug("Fetched transactions: %s", json.dumps(transactions, indent=2))
 
         updated_count = 0
+        max_id = int(last_transaction_id)
         for transaction in transactions:
             rowcount = 0
             tx_type = transaction.get("type", "")
@@ -109,6 +121,8 @@ def update_oanda_trades():
                 )
             transaction_type = tx_type
             transaction_id = transaction.get('id')
+            if transaction_id and int(transaction_id) > max_id:
+                max_id = int(transaction_id)
             open_time = transaction.get('time', '')
 
             if transaction_type == 'ORDER_FILL':
@@ -185,6 +199,7 @@ def update_oanda_trades():
                 updated_count += rowcount
 
         execute_with_retry(conn.commit)
+        set_last_transaction_id(str(max_id))
         logger.info(f"Successfully updated {updated_count} new trades.")
     except Exception as e:
         logger.error(f"Error updating trades: {e}")

@@ -177,6 +177,13 @@ def init_db():
             )
         ''')
 
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS sync_state (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        ''')
+
 def log_trade(
     instrument,
     entry_time,
