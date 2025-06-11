@@ -2,7 +2,7 @@ import logging
 import json
 from piphawk_ai.ai.local_model import ask_model
 from piphawk_ai.ai.macro_analyzer import MacroAnalyzer
-from backend.logs.log_manager import log_ai_decision
+from backend.logs.log_manager import log_ai_decision, log_prompt_response
 from backend.utils import env_loader, parse_json_answer
 from backend.strategy.pattern_ai_detection import detect_chart_pattern
 from backend.strategy.pattern_scanner import PATTERN_DIRECTION
@@ -573,10 +573,18 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
             prompt,
             response_format={"type": "json_object"},
         )
-        if isinstance(llm_raw, dict):        # already parsed
+        if isinstance(llm_raw, dict):  # already parsed
             llm_regime = llm_raw.get("market_condition", "range")
+            raw_text = json.dumps(llm_raw, ensure_ascii=False)
         else:
             llm_regime = json.loads(llm_raw).get("market_condition", "range")
+            raw_text = str(llm_raw)
+        log_prompt_response(
+            "REGIME",
+            env_loader.get_env("DEFAULT_PAIR", "USD_JPY"),
+            prompt,
+            raw_text,
+        )
     except Exception as exc:
         logger.error("get_market_condition ‑ LLM failure: %s", exc)
         llm_regime = "range"
@@ -860,6 +868,12 @@ def get_exit_decision(
     )
     try:
         response_json = ask_model(prompt)
+        log_prompt_response(
+            "EXIT",
+            instrument,
+            prompt,
+            json.dumps(response_json, ensure_ascii=False),
+        )
     except Exception as exc:
         try:
             log_ai_decision("ERROR", instrument, str(exc))
@@ -1270,6 +1284,12 @@ Respond with **one-line valid JSON** exactly as:
 """
     try:
         raw = ask_model(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano"))
+        log_prompt_response(
+            "ENTRY",
+            instrument,
+            prompt,
+            json.dumps(raw, ensure_ascii=False) if isinstance(raw, dict) else str(raw),
+        )
     except Exception as exc:
         try:
             log_ai_decision("ERROR", instrument, str(exc))
@@ -1569,6 +1589,12 @@ def should_convert_limit_to_market(context: dict) -> bool:
     )
     try:
         result = ask_model(prompt, model=AI_LIMIT_CONVERT_MODEL)
+        log_prompt_response(
+            "LIMIT_CONVERT",
+            env_loader.get_env("DEFAULT_PAIR", "USD_JPY"),
+            prompt,
+            json.dumps(result, ensure_ascii=False) if isinstance(result, dict) else str(result),
+        )
     except Exception as exc:
         logger.warning(f"should_convert_limit_to_market failed: {exc}")
         return False

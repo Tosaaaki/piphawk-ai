@@ -127,6 +127,17 @@ def init_db():
         ''')
 
         cursor.execute('''
+            CREATE TABLE IF NOT EXISTS prompt_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                decision_type TEXT NOT NULL,
+                instrument TEXT,
+                prompt TEXT NOT NULL,
+                response TEXT NOT NULL
+            )
+        ''')
+
+        cursor.execute('''
             CREATE TABLE IF NOT EXISTS errors (
                 error_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp TEXT NOT NULL,
@@ -263,6 +274,18 @@ def log_ai_decision(decision_type, instrument, ai_response):
             INSERT INTO ai_decisions (timestamp, decision_type, instrument, ai_response)
             VALUES (?, ?, ?, ?)
         ''', (datetime.now(timezone.utc).isoformat(), decision_type, instrument, ai_response))
+
+def log_prompt_response(decision_type: str, instrument: str, prompt: str, response: str) -> None:
+    """LLM への問い合わせ内容と返答を記録する"""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO prompt_logs (timestamp, decision_type, instrument, prompt, response)
+            VALUES (?, ?, ?, ?, ?)
+        ''',
+            (datetime.now(timezone.utc).isoformat(), decision_type, instrument, prompt, response),
+        )
 
 def log_error(module, error_message, additional_info=None):
     """Record an error event.

@@ -479,6 +479,10 @@ by the AI when opening or closing a trade. In addition `score_version` records
 the scoring algorithm version used for that trade. Run `init_db()` once to add
 the column to older databases.
 
+`prompt_logs` テーブルも追加され、送信したプロンプトとモデルからの応答が保存されます。
+この履歴は将来の強化学習や戦略分析に利用できます。`init_db()` を実行すると自動
+作成されます。
+
 If you need a clean database locally, copy the example file if available:
 
 ```bash
