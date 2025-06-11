@@ -91,9 +91,16 @@ def get_dynamic_hold_seconds(instrument: str) -> int:
     return max(min(hold, max_sec), min_sec)
 
 
-def enter_scalp_trade(instrument: str, side: str = "long") -> None:
+def enter_scalp_trade(
+    instrument: str,
+    side: str = "long",
+    risk_mgr: PortfolioRiskManager | None = None,
+) -> None:
 
     """Place a market order with dynamically calculated TP/SL."""
+
+    if risk_mgr is None:
+        risk_mgr = globals().get("risk_mgr")
 
     tp_pips = None
     sl_pips = None
