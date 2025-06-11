@@ -25,5 +25,6 @@ for _name in _submodules:
     try:
         module = importlib.import_module(_name)
         sys.modules[f"piphawk_ai.{_name}"] = module
-    except ModuleNotFoundError:
+    except Exception:
+        # 依存パッケージが欠けている環境でも読み込みを継続する
         pass

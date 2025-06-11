@@ -29,7 +29,11 @@ HEADERS = {
     "Content-Type": "application/json",
 }
 
-_SESSION = requests.Session()
+try:
+    _SESSION = requests.Session()
+except Exception:
+    # モック環境向けに Session が存在しない場合はダミーを使用
+    _SESSION = object()
 
 # リトライ設定（最大試行回数と待機時間上限）を環境変数で調整可能にする
 HTTP_MAX_RETRIES = int(env_loader.get_env("HTTP_MAX_RETRIES", "3"))

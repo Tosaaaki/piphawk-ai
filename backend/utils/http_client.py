@@ -4,7 +4,11 @@ import logging
 import requests
 
 # Global HTTP session to leverage connection pooling
-_SESSION = requests.Session()
+try:
+    _SESSION = requests.Session()
+except Exception:
+    # モック環境などで requests.Session が存在しない場合に備える
+    _SESSION = object()
 
 # Retry/backoff settings from environment
 HTTP_MAX_RETRIES = int(os.getenv("HTTP_MAX_RETRIES", "3"))
