@@ -5,11 +5,7 @@ from backend.strategy.risk_manager import calc_lot_size
 import importlib
 
 from backend.filters.false_break_filter import should_skip as false_break_skip
-from backend.filters.trend_pullback import (
-    should_enter_long as should_enter_long_trend,
-    should_enter_short as should_enter_short_trend,
-    should_skip as trend_pullback_skip,
-)
+# trend_pullback filter removed – AI handles pullback assessment
 
 try:
     scalp_mod = importlib.import_module("backend.filters.scalp_entry")
@@ -636,28 +632,10 @@ def process_entry(
         logging.debug(f"[process_entry] breakout check failed: {exc}")
 
     try:
-        filter_long = should_enter_long_scalp if scalp_mode else should_enter_long_trend
-        if (
-            not is_break
-            and side == "long"
-            and not breakout_entry
-            and not filter_long(candles_dict.get("M5", candles), indicators)
-        ):
-            logging.info("Trend pullback conditions not met → skip entry")
-            return False
-        filter_short = (
-            should_enter_short_scalp if scalp_mode else should_enter_short_trend
-        )
-        if (
-            not is_break
-            and side == "short"
-            and not breakout_entry
-            and not filter_short(candles_dict.get("M5", candles), indicators)
-        ):
-            logging.info("Trend pullback conditions not met → skip entry")
-            return False
+        # --- static pullback filter disabled; rely on AI judgment ---
+        pass
     except Exception as exc:
-        logging.debug(f"[process_entry] trend-pullback check failed: {exc}")
+        logging.debug(f"[process_entry] trend-pullback check skipped: {exc}")
 
     # --- dynamic pullback threshold ---------------------------------
     pullback_needed = None
