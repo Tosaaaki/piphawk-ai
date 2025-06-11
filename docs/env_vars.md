@@ -115,6 +115,9 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
   ATR値を基準にした倍率。ATRが利用可能なときは
   発動条件 = ATR × TRAIL_TRIGGER_MULTIPLIER、
   距離 = ATR × TRAIL_DISTANCE_MULTIPLIER で計算される。
+- TRAIL_AFTER_TP:
+  true にするとTP到達後、建値にATR×0.3の距離で
+  トレーリングストップを設定する。デフォルトはfalse。
 
 ### チャートパターン検出設定
 
