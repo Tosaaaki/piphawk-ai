@@ -68,6 +68,33 @@ def get_dynamic_hold_seconds(instrument: str) -> int:
     return max(min(hold, max_sec), min_sec)
 
 
+def get_dynamic_hold_seconds(instrument: str) -> int:
+    """Return hold time based on M1 ATR and env constraints."""
+    pip_size = get_pip_size(instrument)
+    try:
+        from backend.market_data.candle_fetcher import fetch_candles
+        from backend.indicators.atr import calculate_atr
+
+        candles = fetch_candles(
+            instrument, granularity="M1", count=30, allow_incomplete=True
+        )
+        highs = [float(c["mid"]["h"]) for c in candles]
+        lows = [float(c["mid"]["l"]) for c in candles]
+        closes = [float(c["mid"]["c"]) for c in candles]
+        atr_series = calculate_atr(highs, lows, closes)
+        atr_val = (
+            float(atr_series.iloc[-1]) if hasattr(atr_series, "iloc") else float(atr_series[-1])
+        )
+    except Exception as exc:  # pragma: no cover - network/parse failure
+        logger.debug("ATR fetch failed: %s", exc)
+        atr_val = pip_size  # fallback to 1 pip
+
+    hold = int(atr_val / pip_size / 0.006)
+    min_sec = int(env_loader.get_env("HOLD_TIME_MIN", "10"))
+    max_sec = int(env_loader.get_env("HOLD_TIME_MAX", "300"))
+    return max(min(hold, max_sec), min_sec)
+
+
 def enter_scalp_trade(instrument: str, side: str = "long") -> None:
 
     """Place a market order with dynamically calculated TP/SL."""
