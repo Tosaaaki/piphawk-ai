@@ -267,6 +267,7 @@ SCALE_TRIGGER_ATR=0.5
   S10 を指定すると 10 秒足データも取得する
 - TREND_COND_TF: トレンドフォロー時に市場判定へ使う時間足 (デフォルト M5)
 - SCALP_OVERRIDE_RANGE: true でレンジ判定を無視してスキャルを実行
+- HOLD_TIME_MIN / HOLD_TIME_MAX: ATR から計算した保持時間の下限・上限
 - H1_BOUNCE_RANGE_PIPS: H1安値/高値からこのpips以内ならエントリーを見送る
 - SCALP_MODE: スキャルプモードを強制したい場合に true/false を指定
 - ADX_SCALP_MIN: スキャルプ実行に必要なADX下限

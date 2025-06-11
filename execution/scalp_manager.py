@@ -36,18 +36,40 @@ except Exception:  # pragma: no cover - config optional
 SCALP_UNIT_SIZE = int(_CONFIG.get("unit_size", 1000))
 SCALP_TP_PIPS = float(_CONFIG.get("tp_pips", 1.5))
 SCALP_SL_PIPS = float(_CONFIG.get("sl_pips", 1.0))
-MAX_SCALP_HOLD_SECONDS = int(_CONFIG.get("max_hold_sec", 20))
 
 order_mgr = OrderManager()
 _open_scalp_trades: dict[str, float] = {}
 TRAIL_AFTER_TP = env_loader.get_env("TRAIL_AFTER_TP", "false").lower() == "true"
 
+def get_dynamic_hold_seconds(instrument: str) -> int:
+    """Return hold time based on M1 ATR and env constraints."""
+    pip_size = get_pip_size(instrument)
+    try:
+        from backend.market_data.candle_fetcher import fetch_candles
+        from backend.indicators.atr import calculate_atr
 
-def enter_scalp_trade(
-    instrument: str,
-    side: str = "long",
-    risk_mgr: PortfolioRiskManager | None = None,
-) -> None:
+        candles = fetch_candles(
+            instrument, granularity="M1", count=30, allow_incomplete=True
+        )
+        highs = [float(c["mid"]["h"]) for c in candles]
+        lows = [float(c["mid"]["l"]) for c in candles]
+        closes = [float(c["mid"]["c"]) for c in candles]
+        atr_series = calculate_atr(highs, lows, closes)
+        atr_val = (
+            float(atr_series.iloc[-1]) if hasattr(atr_series, "iloc") else float(atr_series[-1])
+        )
+    except Exception as exc:  # pragma: no cover - network/parse failure
+        logger.debug("ATR fetch failed: %s", exc)
+        atr_val = pip_size  # fallback to 1 pip
+
+    hold = int(atr_val / pip_size / 0.006)
+    min_sec = int(env_loader.get_env("HOLD_TIME_MIN", "10"))
+    max_sec = int(env_loader.get_env("HOLD_TIME_MAX", "300"))
+    return max(min(hold, max_sec), min_sec)
+
+
+def enter_scalp_trade(instrument: str, side: str = "long") -> None:
+
     """Place a market order with dynamically calculated TP/SL."""
 
     tp_pips = None
@@ -185,10 +207,11 @@ def monitor_scalp_positions() -> None:
         start = _open_scalp_trades.get(str(trade_id))
         if start is None:
             continue
-        if now - start >= MAX_SCALP_HOLD_SECONDS:
+        hold_sec = get_dynamic_hold_seconds(pos["instrument"])
+        if now - start >= hold_sec:
             order_mgr.close_position(pos["instrument"])
             logger.info(
-                f"Exit SCALP {pos['instrument']} – timeout hit ({MAX_SCALP_HOLD_SECONDS}s)"
+                f"Exit SCALP {pos['instrument']} – timeout hit ({hold_sec}s)"
             )
             _open_scalp_trades.pop(str(trade_id), None)
             continue
