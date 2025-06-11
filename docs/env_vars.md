@@ -74,6 +74,16 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
   BB下限をATR×この倍率だけ下回った場合はエントリーをブロック
 - OVERSHOOT_DYNAMIC_COEFF:
   BB幅に応じて上記倍率を補正する係数。0なら補正なし
+- OVERSHOOT_MAX_PIPS:
+  Overshoot判定に使う最大許容幅（pips）。0なら無効。
+- OVERSHOOT_DYNAMIC:
+  trueならATR連動で許容幅を自動計算。
+- OVERSHOOT_FACTOR:
+  ATR連動時の倍率。許容幅 = ATR × この値。
+- OVERSHOOT_FLOOR / OVERSHOOT_CEIL:
+  自動計算した許容幅の下限・上限。
+- OVERSHOOT_MODE:
+  warnを指定するとOvershoot検出時に警告のみで通過する。
 - REVERSAL_EXIT_ATR_MULT / REVERSAL_EXIT_ADX_MIN:
   価格がボリンジャーバンドの反対側を終値で越えた際、
   差分がATR×REVERSAL_EXIT_ATR_MULT以上でADXがREVERSAL_EXIT_ADX_MIN

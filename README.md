@@ -314,6 +314,10 @@ The indicators module also calculates `adx_bb_score`, a composite value derived 
 `ADX_SLOPE_LOOKBACK` defines how many candles to look back when computing ADX slope, and `ADX_DYNAMIC_COEFF` scales the ADX threshold based on Bollinger width.
 `EMA_FLAT_PIPS` determines the range treated as a flat EMA slope; convergence with a reversal within this range triggers the *急反転* filter.
 `OVERSHOOT_ATR_MULT` blocks entries when price overshoots below the lower Bollinger Band by this multiple of ATR. `OVERSHOOT_DYNAMIC_COEFF` adjusts this multiplier based on Bollinger width.
+`OVERSHOOT_ATR_MULT` blocks entries when price overshoots below the lower Bollinger Band by this multiple of ATR.
+`OVERSHOOT_MAX_PIPS` sets the maximum overshoot allowed in pips.
+`OVERSHOOT_DYNAMIC` enables ATR-based scaling of this limit (`OVERSHOOT_FACTOR` with floor/ceil).
+`OVERSHOOT_MODE` set to `warn` logs a warning instead of blocking.
 `REV_BLOCK_BARS`, `TAIL_RATIO_BLOCK` and `VOL_SPIKE_PERIOD` configure the Recent Candle Bias filter, blocking entries when recent candles show sharp tails or volume spikes in the opposite direction.
 `STRICT_TF_ALIGN` enforces multi-timeframe EMA alignment before entering.
 `COUNTER_TREND_TP_RATIO` scales down the take-profit when entering against the higher timeframe trend.
@@ -585,6 +589,15 @@ THRESHOLD=80 bash maintenance/docker_cleanup.sh
 automatically. By default, logs older than seven days or exceeding **10 GiB**
 are pruned without manual intervention.
 
+
+The Kafka container includes a simple health check. `piphawk` waits for this
+check to succeed by using `depends_on` with `condition: service_healthy`.
+### Kafka healthcheck
+
+`docker-compose.yml` includes a healthcheck so the `piphawk` container waits for
+Kafka to become ready before connecting. This avoids `ECONNREFUSED` errors
+during startup races.
+
 ## React UI
 
 The active React application lives in `piphawk-ui/` and was bootstrapped with Create React App. Run it locally with:
@@ -774,20 +787,31 @@ TP/SL の組み合わせは複数候補から期待値を計算し、最も利�
 
 ## Running Tests
 
-The repository includes a set of unit tests under `tests/`. Activate your
-virtual environment and execute:
+The repository includes a set of unit tests under `tests/`. You can run them
+quickly using the helper script:
 
 ```bash
-pytest
+./run_tests.sh
 ```
 
-Ensure all dependencies from `backend/requirements.txt` are installed before running tests.
-
-You can install them with:
-
-```bash
-pip install --extra-index-url https://download.pytorch.org/whl/cpu -r backend/requirements.txt
-```
 
 This will run all tests defined in the project to verify core modules and
 configuration loaders.
+
+Alternatively, you can use the provided helper script which installs
+development dependencies before executing the tests:
+
+```bash
+./scripts/run_tests.sh
+```
+
+
+This will run all tests defined in the project to verify core modules and
+configuration loaders. Recent additions include tests for the monitoring
+utilities such as ``SafetyTrigger`` and ``metrics_publisher``.
+
+This script runs `pip install -r requirements-dev.txt` and then launches
+`pytest` automatically.
+
+The script installs dependencies from `requirements-dev.txt` and then executes
+`pytest`. Pass any additional arguments to forward them to `pytest`.

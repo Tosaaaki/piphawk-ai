@@ -1,3 +1,6 @@
+"""損失やエラー発生数を監視して安全停止を行うためのモジュール."""
+"""Utilities for halting processes when loss or error counts exceed limits."""
+
 import logging
 from datetime import datetime, timedelta
 

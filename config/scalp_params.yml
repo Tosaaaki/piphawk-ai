@@ -16,3 +16,11 @@ MIN_HOLD_SECONDS: 300
 SCALP_PROMPT_BIAS: aggressive  # AIにより積極的な判断を促す
 COOL_ATR_PCT: 0.06             # ATR閾値を下げて低ボラでもスキャルプ
 COOL_BBWIDTH_PCT: 0.08         # BB幅閾値を下げて低ボラでもスキャルプ
+
+overshoot:
+  max_pips: 12.0
+  dynamic: true
+  factor: 0.5
+  floor: 1.0
+  ceil: 20.0
+  mode: warn
