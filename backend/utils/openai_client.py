@@ -9,17 +9,23 @@ import json
 import logging
 import asyncio
 import time
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 
-# env_loader automatically loads default .env files at import time
+# env_loader はインポート時に既定の .env を読み込む
 
-# Get OpenAI API key from environment
-OPENAI_API_KEY = env_loader.get_env("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise RuntimeError("OPENAI_API_KEY not set in environment variables.")
+# OpenAI クライアントは初回呼び出し時に生成する
+client: Optional[OpenAI] = None
 
-# Initialize the OpenAI client
-client = OpenAI(api_key=OPENAI_API_KEY)
+
+def _get_client() -> OpenAI:
+    """Return an initialized OpenAI client."""
+    global client
+    if client is None:
+        api_key = env_loader.get_env("OPENAI_API_KEY")
+        if not api_key:
+            raise RuntimeError("OPENAI_API_KEY not set in environment variables.")
+        client = OpenAI(api_key=api_key)
+    return client
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +54,8 @@ def ask_openai(
         system_prompt (str): The system message (instructions for the assistant).
         model (str): The OpenAI model to use.
         response_format (dict | None): Optional response_format passed directly
-            to ``client.chat.completions.create``. Defaults to requesting a
-            JSON object when not provided.
+            to the OpenAI client's ``chat.completions.create`` method.
+            Defaults to requesting a JSON object when not provided.
     Returns:
         dict: Parsed JSON object returned by the assistant.
     Raises:
@@ -69,7 +75,8 @@ def ask_openai(
         if response_format is None:
             response_format = {"type": "json_object"}
 
-        response = client.chat.completions.create(
+        openai_client = _get_client()
+        response = openai_client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
