@@ -5,8 +5,8 @@ except ImportError as e:
         "Pandas is required for indicator calculations.",
         " Install it with 'pip install pandas'."
     ) from e
-import os
 from typing import Iterable, Tuple
+from backend.utils import env_loader
 
 
 def calculate_macd(
@@ -18,11 +18,11 @@ def calculate_macd(
 ) -> Tuple[pd.Series, pd.Series]:
     """Return MACD line and signal line."""
     if fast_period is None:
-        fast_period = int(os.getenv("MACD_FAST_PERIOD", 12))
+        fast_period = int(env_loader.get_env("MACD_FAST_PERIOD", 12))
     if slow_period is None:
-        slow_period = int(os.getenv("MACD_SLOW_PERIOD", 26))
+        slow_period = int(env_loader.get_env("MACD_SLOW_PERIOD", 26))
     if signal_period is None:
-        signal_period = int(os.getenv("MACD_SIGNAL_PERIOD", 9))
+        signal_period = int(env_loader.get_env("MACD_SIGNAL_PERIOD", 9))
 
     series = pd.Series(prices, dtype="float64")
     ema_fast = series.ewm(span=fast_period, adjust=False).mean()

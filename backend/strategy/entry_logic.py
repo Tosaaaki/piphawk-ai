@@ -243,7 +243,7 @@ def process_entry(
 
     # スキャル専用の条件
     logging.info("SCALP_MODE is %s", "ON" if scalp_mode else "OFF")
-    if scalp_mode and os.getenv("SCALP_OVERRIDE_RANGE", "false").lower() == "true":
+    if scalp_mode and env_loader.get_env("SCALP_OVERRIDE_RANGE", "false").lower() == "true":
         if market_cond is not None:
             market_cond["market_condition"] = "trend"
             logging.info("SCALP_OVERRIDE_RANGE active – regime forced to trend")

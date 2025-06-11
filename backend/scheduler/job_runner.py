@@ -170,6 +170,8 @@ log_level = env_loader.get_env("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s",
     level=getattr(logging, log_level, logging.INFO),
+    level=env_loader.get_env("LOG_LEVEL", "INFO"),
+
 )
 log = getLogger(__name__)
 
@@ -367,8 +369,8 @@ class JobRunner:
         except Exception as exc:  # pragma: no cover - ignore init failures
             log.debug(f"TP flag restore failed: {exc}")
 
-        token = os.getenv("LINE_CHANNEL_TOKEN", "")
-        user_id = os.getenv("LINE_USER_ID", "")
+        token = env_loader.get_env("LINE_CHANNEL_TOKEN", "")
+        user_id = env_loader.get_env("LINE_USER_ID", "")
         log.info(
             "JobRunner startup - LINE token set: %s, user ID set: %s",
             bool(token),
@@ -400,7 +402,7 @@ class JobRunner:
             "startup",
             mode=self.trade_mode or "none",
             scalp_mode=scalp_active,
-            ai_version=os.getenv("AI_VERSION", "unknown"),
+            ai_version=env_loader.get_env("AI_VERSION", "unknown"),
         )
 
     def _get_recent_trade_pl(self, limit: int = 50) -> list[float]:
@@ -470,8 +472,8 @@ class JobRunner:
         except Exception as exc:
             log.error("Param reload failed: %s", exc)
             return
-        if os.getenv("AUTO_RESTART", "false").lower() == "true":
-            interval = float(os.getenv("RESTART_MIN_INTERVAL", "60"))
+        if env_loader.get_env("AUTO_RESTART", "false").lower() == "true":
+            interval = float(env_loader.get_env("RESTART_MIN_INTERVAL", "60"))
             if can_restart(interval):
                 log.info("AUTO_RESTART enabled – restarting process")
                 python = sys.executable
