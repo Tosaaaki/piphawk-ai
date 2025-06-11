@@ -129,6 +129,10 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
   エントリー時に想定するスリッページ幅(pips)。
   MIN_RRR_AFTER_COST の計算に利用される。
 
+### MIN_NET_TP_PIPS
+
+  スプレッド控除後に許容される最小TP幅(pips)。デフォルトは1。
+
 # 以下は README に記載されていた追加の環境変数
 
 - RANGE_CENTER_BLOCK_PCT: ADX が ADX_RANGE_THRESHOLD 以下のとき、BB 中心付近のエントリーをどの程度ブロックするか (0.3 = 30%)

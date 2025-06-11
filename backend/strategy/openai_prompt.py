@@ -10,7 +10,7 @@ from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 MIN_TP_PROB = float(env_loader.get_env("MIN_TP_PROB", "0.75"))
 TP_PROB_HOURS = int(env_loader.get_env("TP_PROB_HOURS", "24"))
 MIN_RRR = float(env_loader.get_env("MIN_RRR", "0.8"))
-MIN_NET_TP_PIPS = float(env_loader.get_env("MIN_NET_TP_PIPS", "2"))
+MIN_NET_TP_PIPS = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
 TREND_ADX_THRESH = float(env_loader.get_env("TREND_ADX_THRESH", "20"))
 TREND_PROMPT_BIAS = env_loader.get_env("TREND_PROMPT_BIAS", "normal").lower()
 # レンジ相場でのトレード方針を任意に追記できる環境変数
@@ -300,7 +300,7 @@ Your task:
     • tp_prob must be ≥ {MIN_TP_PROB:.2f}
     • Expected value (tp_pips*tp_prob - sl_pips*sl_prob) must be positive
     • Choose the take-profit level that maximises expected value = probability × pips, subject to RRR ≥ {MIN_RRR}
-    • (tp_pips - spread_pips) must be ≥ {env_loader.get_env("MIN_NET_TP_PIPS","2") } pips
+    • (tp_pips - spread_pips) must be ≥ {env_loader.get_env("MIN_NET_TP_PIPS","1") } pips
     • If constraints are not met, set side to "no".
 
 Respond with **one-line valid JSON** exactly as:
