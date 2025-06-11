@@ -5,6 +5,7 @@ from typing import Any
 import json
 
 from .log_manager import log_trade as _log_trade, log_policy_transition
+from backend.utils import env_loader
 
 
 class ExitReason(Enum):
@@ -29,6 +30,8 @@ def log_trade(
         kwargs["exit_reason"] = exit_reason.value
     if is_manual is not None:
         kwargs["is_manual"] = is_manual
+    if "score_version" not in kwargs:
+        kwargs["score_version"] = int(env_loader.get_env("SCORE_VERSION", "1"))
     _log_trade(**kwargs)
     if strategy_name and state is not None and reward is not None:
         log_policy_transition(json.dumps(state), strategy_name, float(reward))

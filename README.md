@@ -474,7 +474,9 @@ sqlite3 trades.db "PRAGMA journal_mode=WAL;"
 ```
 
 The table now includes an `ai_response` column which stores the full text returned
-by the AI when opening or closing a trade.
+by the AI when opening or closing a trade. In addition `score_version` records
+the scoring algorithm version used for that trade. Run `init_db()` once to add
+the column to older databases.
 
 If you need a clean database locally, copy the example file if available:
 
