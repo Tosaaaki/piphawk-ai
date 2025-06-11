@@ -83,6 +83,7 @@ class OrderManager:
         entry_uuid: str | None = None,
         valid_sec: int = 180,
         risk_info: dict | None = None,
+        exec_mode: str = "auto",
     ) -> dict:
         """
         Submit a LIMIT order with optional TP/SL. Returns API JSON.
@@ -97,7 +98,11 @@ class OrderManager:
                 tp_price = limit_price - tp_pips * pip
                 sl_price = limit_price + sl_pips * pip
 
-        comment_dict = {"entry_uuid": entry_uuid, "mode": "limit"}
+        comment_dict = {
+            "entry_uuid": entry_uuid,
+            "order_type": "limit",
+            "mode": exec_mode,
+        }
         if risk_info:
             comment_dict.update(
                 tp=risk_info.get("tp_pips"),
@@ -502,6 +507,7 @@ class OrderManager:
                 entry_uuid=entry_uuid,
                 valid_sec=valid_sec,
                 risk_info=strategy_params.get("risk"),
+                exec_mode=strategy_params.get("exec_mode", "auto"),
             )
 
         # ---- embed entry‑regime JSON into clientExtensions.comment (≤255 bytes) ----
@@ -511,7 +517,8 @@ class OrderManager:
             comment_dict = {
                 "regime": regime_info.get("market_condition"),
                 "dir": regime_info.get("trend_direction"),
-                "mode": mode,
+                "order_type": mode,
+                "mode": strategy_params.get("exec_mode", "auto"),
                 "entry_uuid": entry_uuid,
             }
             # ---- embed AI risk info (tp/sl & probabilities) if present ----
