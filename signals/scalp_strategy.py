@@ -53,13 +53,15 @@ def should_enter_trade_s10(
         prev = closes[-2]
         if prev < lower and price > lower:
             if candles:
-                pattern = DoubleBottomSignal().evaluate(candles[-3:])
+                subset = candles[-4:] if len(candles) >= 4 else candles
+                pattern = DoubleBottomSignal().evaluate(subset)
                 if pattern is None:
                     return None
             return "long"
         if prev > upper and price < upper:
             if candles:
-                pattern = DoubleTopSignal().evaluate(candles[-3:])
+                subset = candles[-4:] if len(candles) >= 4 else candles
+                pattern = DoubleTopSignal().evaluate(subset)
                 if pattern is None:
                     return None
             return "short"
