@@ -320,6 +320,7 @@ SCALE_TRIGGER_ATR=0.5
 ## リスク管理
 
 - **ACCOUNT_BALANCE**: 口座残高想定値 (デフォルト: 10000)
+- **RISK_PER_TRADE**: PortfolioRiskManager が参照する1トレードあたりのリスク割合 (デフォルト: 0.005)
 - **ENTRY_RISK_PCT**: 1トレードあたりのリスク許容比率 (デフォルト: 0.01)
 - **PIP_VALUE_JPY**: 1pipあたりの円換算値 (デフォルト: 100)
 - **MARGIN_WARNING_THRESHOLD**: 証拠金アラートを出す残高比率 (デフォルト: 0)

@@ -1,5 +1,6 @@
 from piphawk_ai.risk.manager import PortfolioRiskManager
 from backend.strategy.risk_manager import calc_lot_size
+import pytest
 
 
 def test_portfolio_risk_manager_basic():
@@ -16,3 +17,10 @@ def test_portfolio_risk_manager_reduction():
     lot = calc_lot_size(10000, 0.01, 20, 0.1, risk_engine=mgr)
     base = calc_lot_size(10000, 0.01, 20, 0.1)
     assert 0 < lot < base
+
+
+def test_allowed_lot_default_env(monkeypatch):
+    monkeypatch.setenv("RISK_PER_TRADE", "0.02")
+    mgr = PortfolioRiskManager(max_cvar=10.0)
+    lot = mgr.get_allowed_lot(10000, sl_pips=25, pip_value=0.1)
+    assert lot == pytest.approx(80.0)
