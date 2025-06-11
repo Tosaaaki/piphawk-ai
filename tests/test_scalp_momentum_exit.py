@@ -22,8 +22,12 @@ class DummyOM:
 
 
 def test_exit_on_momentum_loss(monkeypatch):
+    dummy_mod = SimpleNamespace(
+        OrderManager=DummyOM,
+        get_pip_size=lambda i: 0.01 if i.endswith("_JPY") else 0.0001,
+    )
+    monkeypatch.setitem(sys.modules, "backend.orders.order_manager", dummy_mod)
     importlib.reload(sm)
-    monkeypatch.setattr(sm, "OrderManager", lambda: DummyOM())
     sm.order_mgr = sm.OrderManager()
     monkeypatch.setattr(
         sm,

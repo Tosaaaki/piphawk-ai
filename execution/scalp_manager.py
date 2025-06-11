@@ -14,12 +14,8 @@ from backend.strategy.risk_manager import calc_lot_size
 
 try:
     from backend.orders.order_manager import OrderManager, get_pip_size
-except Exception:  # テストでモックが残っている場合のフォールバック
-    class OrderManager:
-        pass
-
-    def get_pip_size(instrument: str) -> float:
-        return 0.01 if instrument.endswith("_JPY") else 0.0001
+except ImportError as exc:  # pragma: no cover - raise for missing dependency
+    raise
 
 import inspect
 from backend.orders.position_manager import get_open_positions

@@ -26,10 +26,16 @@ class DummyOM:
 
 
 def test_auto_exit_on_timeout(monkeypatch):
+    dummy_mod = SimpleNamespace(
+        OrderManager=DummyOM,
+        get_pip_size=lambda i: 0.01 if i.endswith("_JPY") else 0.0001,
+    )
+    monkeypatch.setitem(sys.modules, "backend.orders.order_manager", dummy_mod)
     importlib.reload(sm)
-    monkeypatch.setattr(sm, "OrderManager", lambda: DummyOM())
     sm.order_mgr = sm.OrderManager()
-    monkeypatch.setattr(sm, "get_open_positions", lambda: [{"instrument": "USD_JPY", "id": "t1"}])
+    monkeypatch.setattr(
+        sm, "get_open_positions", lambda: [{"instrument": "USD_JPY", "id": "t1"}]
+    )
     monkeypatch.setattr(sm, "get_dynamic_hold_seconds", lambda _i: 1)
     sm._open_scalp_trades["t1"] = time.time() - 2
     sm.monitor_scalp_positions()
@@ -50,8 +56,12 @@ class FakeSeries:
 
 
 def test_hold_seconds_varies_with_atr(monkeypatch):
+    dummy_mod = SimpleNamespace(
+        OrderManager=DummyOM,
+        get_pip_size=lambda i: 0.01 if i.endswith("_JPY") else 0.0001,
+    )
+    monkeypatch.setitem(sys.modules, "backend.orders.order_manager", dummy_mod)
     importlib.reload(sm)
-    monkeypatch.setattr(sm, "OrderManager", lambda: DummyOM())
     sm.order_mgr = sm.OrderManager()
 
     candle = {"mid": {"h": "1.0", "l": "0.9", "c": "0.95"}, "complete": True}
