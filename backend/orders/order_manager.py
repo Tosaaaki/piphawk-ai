@@ -233,7 +233,7 @@ class OrderManager:
             f"?state=PENDING&instrument={instrument}"
         )
         try:
-
+          
             r = _SESSION.get(
                 url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
             )
