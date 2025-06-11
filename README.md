@@ -354,6 +354,20 @@ reentry:
 `min_atr_sl_multiplier` は ATR を基にした最小ストップ幅の倍率、`min_rr_ratio` は最低リスクリワード比を示します。`avoid_false_break` ではブレイク失敗回避のための期間と閾値を設定し、`reentry` を有効にするとブレイク後に再びエントリーする条件を制御できます。
 これらの値は `params_loader.load_params()` により `MIN_ATR_MULT` などの環境変数に変換されます。
 
+#### fallback ブロック
+
+`config/strategy.yml` ではエントリー判定に失敗した際の予備動作も定義できます。
+
+```yaml
+fallback:
+  force_on_no_side: false
+  default_sl_pips: 12
+  default_tp_pips: 18
+  dynamic_risk: false
+```
+
+`force_on_no_side` は AI が `side: "no"` を返してもトレンド方向のエントリーを強制するかどうかを決めます。`default_sl_pips` と `default_tp_pips` は AI から値が得られない場合の初期値で、`dynamic_risk` を `true` にすると指標から SL/TP を自動計算します。これらは `FALLBACK_FORCE_ON_NO_SIDE`, `FALLBACK_DEFAULT_SL_PIPS`, `FALLBACK_DEFAULT_TP_PIPS`, `FALLBACK_DYNAMIC_RISK` 環境変数として読み込まれます。
+
 ## パラメータ変更履歴の確認
 
 `init_db()` でデータベースを作成または更新した後、`log_param_change()` と `log_trade()` を
