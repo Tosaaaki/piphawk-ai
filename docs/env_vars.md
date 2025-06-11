@@ -74,6 +74,12 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
   BB下限をATR×この倍率だけ下回った場合はエントリーをブロック
 - OVERSHOOT_DYNAMIC_COEFF:
   BB幅に応じて上記倍率を補正する係数。0なら補正なし
+- OVERSHOOT_BASE_MULT:
+  Overshoot 検出直後に適用するATR倍率。デフォルトは0.5。
+- OVERSHOOT_MAX_MULT:
+  時間経過により上限となるATR倍率。デフォルトは0.7。
+- OVERSHOOT_RECOVERY_RATE:
+  Overshoot検出後、1分ごとに倍率をどれだけ緩和するか。
 - OVERSHOOT_MAX_PIPS:
   Overshoot判定に使う最大許容幅（pips）。0なら無効。
 - OVERSHOOT_DYNAMIC:
