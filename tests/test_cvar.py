@@ -8,6 +8,12 @@ def test_calc_cvar_basic():
     assert result == pytest.approx((-4.0 - 2.0)/2)
 
 
+def test_calc_cvar_rounding():
+    returns = [1.0, -2.0, -1.0, 3.0, -4.0]
+    result = calc_cvar(returns, alpha=0.3)
+    assert result == pytest.approx((-4.0 - 2.0) / 2)
+
+
 def test_calc_cvar_errors():
     with pytest.raises(ValueError):
         calc_cvar([])
