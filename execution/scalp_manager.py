@@ -37,6 +37,7 @@ MAX_SCALP_HOLD_SECONDS = int(_CONFIG.get("max_hold_sec", 20))
 
 order_mgr = OrderManager()
 _open_scalp_trades: dict[str, float] = {}
+TRAIL_AFTER_TP = env_loader.get_env("TRAIL_AFTER_TP", "false").lower() == "true"
 
 
 def enter_scalp_trade(instrument: str, side: str = "long") -> None:
@@ -131,6 +132,29 @@ def enter_scalp_trade(instrument: str, side: str = "long") -> None:
                     logger.info(f"Reattached TP/SL for trade {trade_id}")
                 except Exception as exc:
                     logger.warning(f"TP/SL reattach failed: {exc}")
+        # --- check TP hit and attach trailing if enabled ---
+        if TRAIL_AFTER_TP and atr_pips is not None and tp_pips is not None:
+            try:
+                from backend.market_data.tick_fetcher import fetch_tick_data
+
+                tick = fetch_tick_data(instrument)
+                bid = float(tick["prices"][0]["bids"][0]["price"])
+                ask = float(tick["prices"][0]["asks"][0]["price"])
+                current_price = bid if side == "long" else ask
+                entry_price = float(res.get("orderFillTransaction", {}).get("price", 0.0))
+                target_price = (
+                    entry_price + tp_pips * pip_size
+                    if side == "long"
+                    else entry_price - tp_pips * pip_size
+                )
+                if (side == "long" and current_price >= target_price) or (
+                    side == "short" and current_price <= target_price
+                ):
+                    order_mgr.attach_trailing_after_tp(
+                        trade_id, instrument, entry_price, atr_pips
+                    )
+            except Exception as exc:  # pragma: no cover - network failure ignored
+                logger.debug(f"trail after TP check failed: {exc}")
     logger.info(f"Enter SCALP {instrument} at {datetime.now(timezone.utc).isoformat()}")
 
 

@@ -843,6 +843,33 @@ class OrderManager:
             response.raise_for_status()
         return response.json()
 
+    def attach_trailing_after_tp(
+        self,
+        trade_id: str,
+        instrument: str,
+        entry_price: float,
+        atr_pips: float,
+    ) -> dict | None:
+        """Attach trailing stop after TP hit at breakeven.
+
+        The trailing distance is ATR×0.3 and the stop is first moved to
+        breakeven before converting to a trailing stop.
+        """
+        try:
+            self.update_trade_sl(trade_id, instrument, entry_price)
+        except Exception as exc:  # pragma: no cover - network failure ignored
+            logger.warning(f"BE SL update failed: {exc}")
+        distance = int(atr_pips * 0.3)
+        try:
+            return self.place_trailing_stop(
+                trade_id=trade_id,
+                instrument=instrument,
+                distance_pips=distance,
+            )
+        except Exception as exc:  # pragma: no cover - network failure ignored
+            logger.warning(f"Trailing placement failed: {exc}")
+            return None
+
     def update_trade_sl(self, trade_id, instrument, new_sl_price):
         """Create or modify a Stop Loss order for the given trade."""
         url = (
