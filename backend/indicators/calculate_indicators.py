@@ -78,7 +78,8 @@ def calculate_indicators(
     bb_df = calculate_bollinger_bands(close_prices)
 
     # --- ADX (trend strength) and DI lines ---
-    adx_series = calculate_adx(high_prices, low_prices, close_prices)
+    adx_period = int(env_loader.get_env("ADX_PERIOD", "12"))
+    adx_series = calculate_adx(high_prices, low_prices, close_prices, period=adx_period)
     if calculate_di:
         plus_di, minus_di = calculate_di(high_prices, low_prices, close_prices)
     else:  # pragma: no cover - fallback when calculate_di is absent

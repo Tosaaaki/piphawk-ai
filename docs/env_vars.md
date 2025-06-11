@@ -31,6 +31,10 @@ EMA（指数平滑移動平均）の計算期間。
 
 ATR（ボラティリティ指標）の計算期間。
 
+### ADX_PERIOD
+
+ADX 指標の計算に用いる期間。デフォルトは12。
+
 ### BOLLINGER_WINDOW / BOLLINGER_STD
 
 ボリンジャーバンドの移動平均期間と標準偏差設定。
@@ -243,9 +247,9 @@ SCALE_TRIGGER_ATR=0.5
 - SCALP_OVERRIDE_RANGE: true でレンジ判定を無視してスキャルを実行
 
 - SCALP_ENTER_SCORE / SCALP_HOLD_SCORE: スコアリングで `scalp_momentum` へ
-  移行・維持する際のしきい値。推奨 `0.33` / `0.30`。
+  移行・維持する際のしきい値。推奨 `0.20` / `0.15`。
 - RANGE_ADX_MIN: ADX がこの値を下回るとカウンターを加算し、連続
-  `RANGE_ADX_COUNT` 回でスキャルプモードへ切替。推奨 `20`。
+  `RANGE_ADX_COUNT` 回でスキャルプモードへ切替。推奨 `15`。
 - SCALP_AI_BBWIDTH_MAX: スキャルプAIを呼び出す際のBB幅上限(pips)。`0` で無効。
   通常は `4` 程度に設定。
 

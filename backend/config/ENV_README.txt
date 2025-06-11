@@ -21,6 +21,9 @@ EMA（指数平滑移動平均）の計算期間。
 ■ ATR_PERIOD
 ATR（ボラティリティ指標）の計算期間。
 
+■ ADX_PERIOD
+ADX 指標の計算期間。デフォルト12。
+
 ■ BOLLINGER_WINDOW / BOLLINGER_STD
 ボリンジャーバンドの移動平均期間と標準偏差設定。
 

@@ -147,8 +147,8 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 - `MODE_QTL_LOOKBACK` … 分位点計算に使う過去本数
 - `HTF_SLOPE_MIN` … 上位足 EMA 傾きチェック用のしきい値
 - `SCALP_ENTER_SCORE` / `SCALP_HOLD_SCORE` … スキャルプ判定と維持に使うスコア
-  閾値。推奨 0.33 / 0.30
-- `RANGE_ADX_MIN` … ADX がこの値を下回るとレンジ判定カウンターを加算。標準 20
+  閾値。推奨 0.20 / 0.15
+- `RANGE_ADX_MIN` … ADX がこの値を下回るとレンジ判定カウンターを加算。標準 15
 - `SCALP_AI_BBWIDTH_MAX` … スキャルプAI呼び出しを行う BB 幅上限 (pips)。通常 4
 - `AI_MODEL` … OpenAI モデル名
 - `LINE_CHANNEL_TOKEN` / `LINE_USER_ID` … LINE 通知に使用する認証情報
@@ -158,9 +158,9 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 
 ```bash
 CORS_ALLOW_ORIGINS=http://localhost:3000
-SCALP_ENTER_SCORE=0.33
-SCALP_HOLD_SCORE=0.30
-RANGE_ADX_MIN=20
+SCALP_ENTER_SCORE=0.20
+SCALP_HOLD_SCORE=0.15
+RANGE_ADX_MIN=15
 SCALP_AI_BBWIDTH_MAX=4
 ```
 
