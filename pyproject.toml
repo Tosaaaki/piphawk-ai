@@ -54,4 +54,21 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["piphawk_ai", "backend", "signals"]
+include = [
+    "piphawk_ai",
+    "backend",
+    "signals",
+    "ai",
+    "analysis",
+    "core",
+    "execution",
+    "indicators",
+    "monitoring",
+    "risk",
+    "strategies",
+    "policy",
+    "regime",
+    "runner",
+    "models",
+    "training",
+]
