@@ -790,5 +790,19 @@ quickly using the helper script:
 ./run_tests.sh
 ```
 
+
+This will run all tests defined in the project to verify core modules and
+configuration loaders.
+
+Alternatively, you can use the provided helper script which installs
+development dependencies before executing the tests:
+
+```bash
+./scripts/run_tests.sh
+```
+
+This script runs `pip install -r requirements-dev.txt` and then launches
+`pytest` automatically.
+
 The script installs dependencies from `requirements-dev.txt` and then executes
 `pytest`. Pass any additional arguments to forward them to `pytest`.
