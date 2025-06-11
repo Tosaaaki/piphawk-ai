@@ -13,8 +13,12 @@ from backend.filters.trend_pullback import (
 
 try:
     scalp_mod = importlib.import_module("backend.filters.scalp_entry")
-    should_enter_long_scalp = getattr(scalp_mod, "should_enter_long", lambda *_a, **_k: True)
-    should_enter_short_scalp = getattr(scalp_mod, "should_enter_short", lambda *_a, **_k: True)
+    should_enter_long_scalp = getattr(
+        scalp_mod, "should_enter_long", lambda *_a, **_k: True
+    )
+    should_enter_short_scalp = getattr(
+        scalp_mod, "should_enter_short", lambda *_a, **_k: True
+    )
 except ModuleNotFoundError:  # pragma: no cover
 
     def should_enter_long_scalp(*_a, **_k):
@@ -29,6 +33,7 @@ try:
 except ModuleNotFoundError:  # pragma: no cover
 
     def should_enter_breakout(*_a, **_k):
+        logging.debug("breakout_entry module missing -> returning False")
         return False
 
 
@@ -44,9 +49,11 @@ try:
 except ModuleNotFoundError:  # pragma: no cover
 
     def is_near_h1_support(*_a, **_k):
+        logging.debug("h1_level_block module missing -> assuming not near support")
         return False
 
     def is_near_h1_resistance(*_a, **_k):
+        logging.debug("h1_level_block module missing -> assuming not near resistance")
         return False
 
 
@@ -60,6 +67,7 @@ from backend.risk_manager import (
 )
 from datetime import datetime, timezone
 from backend.utils import env_loader
+
 # signals パッケージはプロジェクト直下にあるため、
 # 絶対インポートで確実に読み込む
 from piphawk_ai.signals.composite_mode import decide_trade_mode
@@ -69,6 +77,8 @@ import json
 import uuid
 
 logger = logging.getLogger(__name__)
+log_level = env_loader.get_env("LOG_LEVEL", "INFO").upper()
+logger.setLevel(getattr(logging, log_level, logging.INFO))
 
 # optional helper; fallback stub if module is absent
 try:
@@ -253,7 +263,11 @@ def process_entry(
             adx_series = indicators.get("adx")
             adx_val = None
             if adx_series is not None and len(adx_series):
-                adx_val = float(adx_series.iloc[-1]) if hasattr(adx_series, "iloc") else float(adx_series[-1])
+                adx_val = (
+                    float(adx_series.iloc[-1])
+                    if hasattr(adx_series, "iloc")
+                    else float(adx_series[-1])
+                )
             bb_upper = indicators.get("bb_upper")
             bb_lower = indicators.get("bb_lower")
             use_ai = False
@@ -264,8 +278,16 @@ def process_entry(
                 if bw_max > 0 and bb_upper is not None and bb_lower is not None:
                     try:
                         pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-                        u = bb_upper.iloc[-1] if hasattr(bb_upper, "iloc") else bb_upper[-1]
-                        l = bb_lower.iloc[-1] if hasattr(bb_lower, "iloc") else bb_lower[-1]
+                        u = (
+                            bb_upper.iloc[-1]
+                            if hasattr(bb_upper, "iloc")
+                            else bb_upper[-1]
+                        )
+                        l = (
+                            bb_lower.iloc[-1]
+                            if hasattr(bb_lower, "iloc")
+                            else bb_lower[-1]
+                        )
                         bw = (float(u) - float(l)) / pip_size
                         if bw > bw_max:
                             use_ai = False
@@ -273,20 +295,33 @@ def process_entry(
                         pass
             if use_ai:
                 import importlib
-                scalp_ai = importlib.import_module("backend.strategy.openai_scalp_analysis")
-                plan = scalp_ai.get_scalp_plan(indicators, candles, higher_tf_direction=(market_cond or {}).get("trend_direction"))
+
+                scalp_ai = importlib.import_module(
+                    "backend.strategy.openai_scalp_analysis"
+                )
+                plan = scalp_ai.get_scalp_plan(
+                    indicators,
+                    candles,
+                    higher_tf_direction=(market_cond or {}).get("trend_direction"),
+                )
                 ai_side = plan.get("side")
                 if ai_side in ("long", "short"):
-                    tp_pips = float(plan.get("tp_pips", env_loader.get_env("SCALP_TP_PIPS", "2")))
-                    sl_pips = float(plan.get("sl_pips", env_loader.get_env("SCALP_SL_PIPS", "1")))
+                    tp_pips = float(
+                        plan.get("tp_pips", env_loader.get_env("SCALP_TP_PIPS", "2"))
+                    )
+                    sl_pips = float(
+                        plan.get("sl_pips", env_loader.get_env("SCALP_SL_PIPS", "1"))
+                    )
                     side = ai_side
                 else:
+                    logging.info("Scalp AI returned no tradable side → skip entry")
                     return False
             else:
                 adx_min = float(env_loader.get_env("ADX_SCALP_MIN", "0"))
                 if adx_val is not None and adx_val >= adx_min:
                     side = (market_cond or {}).get("trend_direction", "long")
                 else:
+                    logging.info(f"ADX {adx_val} < {adx_min} → skip scalp entry")
                     return False
                 tp_pips = None
                 sl_pips = None
@@ -538,6 +573,7 @@ def process_entry(
                 ).lower()
                 == "true"
             ):
+                logging.info("Alignment adjustment failed and strict mode → skip entry")
                 return False
 
     try:
@@ -609,7 +645,9 @@ def process_entry(
         ):
             logging.info("Trend pullback conditions not met → skip entry")
             return False
-        filter_short = should_enter_short_scalp if scalp_mode else should_enter_short_trend
+        filter_short = (
+            should_enter_short_scalp if scalp_mode else should_enter_short_trend
+        )
         if (
             not is_break
             and side == "short"
