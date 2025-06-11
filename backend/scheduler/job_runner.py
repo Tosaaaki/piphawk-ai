@@ -1197,11 +1197,6 @@ class JobRunner:
                                 new_sl_price = entry_price
                             trade_id = has_position[position_side]["tradeIDs"][0]
                             result = order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
-                            if result is None:
-                                log.warning("SL update failed on first attempt; retrying")
-                                result = order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
-                                if result is None:
-                                    log.error("SL update failed after retry")
                             if result is not None:
                                 log.info(f"SL updated to entry price to secure minimum profit: {new_sl_price}")
                                 self.breakeven_reached = True
@@ -1231,9 +1226,6 @@ class JobRunner:
                                 else:
                                     new_sl_price = entry_price + atr_val * 2
                                 result = order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
-                                if result is None:
-                                    log.warning("SL reapply failed on first attempt; retrying")
-                                    result = order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, new_sl_price)
                                 if result is not None:
                                     log.info(f"SL reapplied at {new_sl_price}")
                                     self.sl_reset_done = True

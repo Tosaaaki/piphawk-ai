@@ -3,6 +3,7 @@ import requests
 from backend.logs.log_manager import log_trade, log_error
 from backend.logs.info_logger import info
 from backend.logs.trade_logger import ExitReason
+from backend.logs.update_oanda_trades import fetch_trade_details
 from backend.utils.price import format_price
 from backend.risk_manager import (
     validate_rrr,
@@ -801,15 +802,25 @@ class OrderManager:
             }
         }
 
+        try:
+            trade_info = fetch_trade_details(trade_id) or {}
+            trade = trade_info.get("trade", {})
+            if trade.get("state") != "OPEN":
+                logger.debug(
+                    "Trade %s not open, skipping SL update: %s",
+                    trade_id,
+                    trade.get("state"),
+                )
+                return None
+        except Exception as exc:
+            logger.debug(f"Failed to fetch trade details: {exc}")
+            trade = {}
+
         min_rrr = float(os.getenv("MIN_RRR", "0.8"))
         current_tp = None
         entry_price = None
         try:
             current_tp = self.get_current_tp(trade_id)
-            from backend.logs.update_oanda_trades import fetch_trade_details
-
-            trade_info = fetch_trade_details(trade_id) or {}
-            trade = trade_info.get("trade", {})
             entry_price = float(trade.get("price") or trade.get("averagePrice", 0))
         except Exception as exc:
             logger.debug(f"RRR fetch failed: {exc}")
