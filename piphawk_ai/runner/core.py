@@ -1511,6 +1511,7 @@ class JobRunner:
 
                         # ── Entry side ───────────────────────────────
                         current_price = float(tick_data["prices"][0]["bids"][0]["price"])
+                        filter_ctx = {}
                         if pass_entry_filter(
                             indicators,
                             current_price,
@@ -1518,7 +1519,21 @@ class JobRunner:
                             self.indicators_M15,
                             self.indicators_H1,
                             mode=self.trade_mode,
+                            context=filter_ctx,
                         ):
+                            self.ai_cooldown = 0
+                            adx_min_val = float(env_loader.get_env("ADX_MIN", "0"))
+                            adx_series = indicators.get("adx")
+                            adx_val = None
+                            if adx_series is not None and len(adx_series):
+                                adx_val = adx_series.iloc[-1] if hasattr(adx_series, "iloc") else adx_series[-1]
+                            if adx_min_val > 0 and adx_val is not None and float(adx_val) < adx_min_val:
+                                logger.info(f"ADX {adx_val} < {adx_min_val} → skip AI entry")
+                                self.last_run = now
+                                update_oanda_trades()
+                                time.sleep(self.interval_seconds)
+                                timer.stop()
+                                continue
                             if self.trade_mode == "scalp_momentum" and not has_position:
                                 ema = indicators.get("ema_slope")
                                 if ema is not None:
@@ -1694,7 +1709,8 @@ class JobRunner:
                                     env_loader.get_env("COUNTER_TREND_TP_RATIO", "0.5")
                                 )
 
-                            entry_params = {"tp_ratio": tp_ratio} if tp_ratio else None
+                            entry_params = {"tp_ratio": tp_ratio} if tp_ratio else {}
+                            entry_params["filter_ctx"] = filter_ctx
                             result = process_entry(
                                 indicators,
                                 candles_m5,
