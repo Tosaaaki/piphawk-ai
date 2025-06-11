@@ -6,7 +6,7 @@ import requests
 from typing import Any
 import httpx
 
-from backend.utils import env_loader
+from backend.utils import env_loader, run_async
 from piphawk_ai.ai.local_model import ask_model, ask_model_async
 from piphawk_ai.ai.prompt_templates import get_template
 
@@ -129,7 +129,7 @@ class MacroAnalyzer:
         if articles:
             try:
                 summary = self.summarize_articles(articles)
-                sentiment = asyncio.run(self.analyze_sentiment_async(summary))
+                sentiment = run_async(self.analyze_sentiment_async(summary))
             except Exception:
                 summary = ""
                 sentiment = None
