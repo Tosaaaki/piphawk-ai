@@ -1169,7 +1169,7 @@ Allow short-term counter-trend trades only when all of the following are true:
 - TP kept small (5–10 pips) and risk tightly controlled.
 
 📈【Trend Entry Clarification】
-Once a TREND is confirmed, prioritize entries on pullbacks. Shorts enter after price rises {pullback_needed:.1f} pips above the latest low, longs after price drops {pullback_needed:.1f} pips below the latest high. This pullback rule overrides RSI extremes.{no_pullback_msg}
+Once a TREND is confirmed, prioritize entries on pullbacks. Use recent volatility (ATR or Bollinger width) to gauge the pullback depth. Shorts enter after price rises {pullback_needed:.1f} pips above the latest low, longs after price drops {pullback_needed:.1f} pips below the latest high. This pullback rule overrides RSI extremes.{no_pullback_msg}
 """ + (
     "\n\n⏳【Trend Overshoot Handling】\n"
     "When RSI exceeds 70 in an uptrend or falls below 30 in a downtrend, do not immediately set side to 'no'.\n"

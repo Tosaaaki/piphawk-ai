@@ -195,7 +195,7 @@ Price has just printed multiple upper shadows and ADX(S10) fell >30% from its pe
 Evaluate if a short scalp is favorable given potential exhaustion.
 
 📈【Trend Entry Clarification】
-Once a TREND is confirmed, prioritize entries on pullbacks. Shorts enter after price rises {pullback_needed:.1f} pips above the latest low, longs after price drops {pullback_needed:.1f} pips below the latest high. This pullback rule overrides RSI extremes.{no_pullback_msg}""" + (
+Once a TREND is confirmed, prioritize entries on pullbacks. Use recent volatility (ATR or Bollinger width) to gauge the pullback depth. Shorts enter after price rises {pullback_needed:.1f} pips above the latest low, longs after price drops {pullback_needed:.1f} pips below the latest high. This pullback rule overrides RSI extremes.{no_pullback_msg}""" + (
         "\n\n⏳【Trend Overshoot Handling】\n"
         "When RSI exceeds 70 in an uptrend or falls below 30 in a downtrend, do not immediately set side to 'no'.\n"
         "If momentum is still strong you may follow the trend. Otherwise respond with mode:'wait' so the system rechecks after a pullback of about {pullback_needed:.1f} pips.\n"
