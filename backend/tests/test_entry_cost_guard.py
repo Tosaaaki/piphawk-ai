@@ -32,7 +32,10 @@ class TestEntryCostGuard(unittest.TestCase):
         pandas_stub = types.ModuleType("pandas")
         pandas_stub.Series = FakeSeries
         add("pandas", pandas_stub)
-        add("requests", types.ModuleType("requests"))
+        requests_stub = types.ModuleType("requests")
+        requests_stub.Session = lambda: types.SimpleNamespace(request=lambda *a, **k: None)
+        requests_stub.Response = type("Response", (), {})
+        add("requests", requests_stub)
         dotenv_stub = types.ModuleType("dotenv")
         dotenv_stub.load_dotenv = lambda *a, **k: None
         add("dotenv", dotenv_stub)
