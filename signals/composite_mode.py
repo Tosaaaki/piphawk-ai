@@ -191,31 +191,58 @@ def decide_trade_mode_detail(
     max_points = 0
     reasons: list[str] = []
 
-    def _score_step(val: float | None, low: float, high: float, name: str) -> None:
+    def _score_step(
+        val: float | None,
+        low: float,
+        high: float,
+        name: str,
+        weight_key: str | None = None,
+    ) -> None:
+        """個別指標のスコアを計算し、重み付けして加算する"""
+
         nonlocal points, max_points
-        max_points += 2
+        weight = float(WEIGHTS.get(weight_key or name.lower().replace(" ", "_"), 1.0))
+        max_points += 2 * weight
         if val is None:
             reasons.append(f"{name} N/A")
             return
         if val >= high:
-            points += 2
+            points += 2 * weight
             reasons.append(f"{name} strong {val:.2f}")
         elif val >= low:
-            points += 1
+            points += 1 * weight
             reasons.append(f"{name} {val:.2f}")
         else:
             reasons.append(f"{name} weak {val:.2f}")
 
-    _score_step(adx_val, MODE_ADX_MIN, MODE_ADX_STRONG, "ADX")
+    _score_step(adx_val, MODE_ADX_MIN, MODE_ADX_STRONG, "ADX", "adx_m5")
     _score_step(di_diff, MODE_DI_DIFF_MIN, MODE_DI_DIFF_STRONG, "DI diff")
-    _score_step(abs(ema_val) if ema_val is not None else None, MODE_EMA_SLOPE_MIN, MODE_EMA_SLOPE_STRONG, "EMA slope")
-    _score_step(abs(ema_diff_grad) if ema_diff_grad is not None else None, MODE_EMA_DIFF_MIN, MODE_EMA_DIFF_STRONG, "EMA diff")
+    _score_step(
+        abs(ema_val) if ema_val is not None else None,
+        MODE_EMA_SLOPE_MIN,
+        MODE_EMA_SLOPE_STRONG,
+        "EMA slope",
+        "ema_slope_base",
+    )
+    _score_step(
+        abs(ema_diff_grad) if ema_diff_grad is not None else None,
+        MODE_EMA_DIFF_MIN,
+        MODE_EMA_DIFF_STRONG,
+        "EMA diff",
+        "ema_slope_strong",
+    )
     if vol_ma is not None:
         ratio = vol_ma / MODE_VOL_MA_MIN
     else:
         ratio = None
     _score_step(ratio, MODE_VOL_RATIO_MIN, MODE_VOL_RATIO_STRONG, "Volume")
-    _score_step(atr_val, MODE_ATR_PIPS_MIN, MODE_ATR_PIPS_MIN * 2, "ATR")
+    _score_step(
+        atr_val,
+        MODE_ATR_PIPS_MIN,
+        MODE_ATR_PIPS_MIN * 2,
+        "ATR",
+        "atr_pct_m5",
+    )
 
     bonus = 0
     now_jst = datetime.datetime.utcnow().timestamp() + 9 * 3600
