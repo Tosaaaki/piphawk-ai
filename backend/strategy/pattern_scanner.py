@@ -1,16 +1,16 @@
 import math
-import os
 from typing import Iterable, Mapping
+from backend.utils import env_loader
 
 CANDLE_KEYS = ('o', 'h', 'l', 'c')
 
 # Pattern detection tunables
-PATTERN_MIN_BARS = int(os.getenv("PATTERN_MIN_BARS", "5"))
-PATTERN_TOLERANCE = float(os.getenv("PATTERN_TOLERANCE", "0.005"))
+PATTERN_MIN_BARS = int(env_loader.get_env("PATTERN_MIN_BARS", "5"))
+PATTERN_TOLERANCE = float(env_loader.get_env("PATTERN_TOLERANCE", "0.005"))
 # Comma separated timeframes to skip when scanning for patterns
 PATTERN_EXCLUDE_TFS = [
     tf.strip().upper()
-    for tf in os.getenv("PATTERN_EXCLUDE_TFS", "").split(",")
+    for tf in env_loader.get_env("PATTERN_EXCLUDE_TFS", "").split(",")
     if tf.strip()
 ]
 

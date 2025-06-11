@@ -8,53 +8,52 @@ from backend.logs.trade_logger import ExitReason
 from backend.logs.exit_logger import append_exit_log
 from datetime import datetime, timezone
 import logging
-import os
 from backend.utils import env_loader
 from backend.utils import trade_age_seconds
 
 # Trailing‑stop configuration
 TRAIL_TRIGGER_PIPS = float(
 
-    os.getenv("TRAIL_TRIGGER_PIPS", "10")
+    env_loader.get_env("TRAIL_TRIGGER_PIPS", "10")
 
 )  # profit threshold to arm trailing stop
 TRAIL_DISTANCE_PIPS = float(
-    os.getenv("TRAIL_DISTANCE_PIPS", "6")
+    env_loader.get_env("TRAIL_DISTANCE_PIPS", "6")
 )  # distance of the trailing stop itself
 # Toggle for enabling/disabling trailing‑stop logic
-TRAIL_ENABLED = os.getenv("TRAIL_ENABLED", "true").lower() == "true"
+TRAIL_ENABLED = env_loader.get_env("TRAIL_ENABLED", "true").lower() == "true"
 
 # --- Early‑exit & breakeven settings ------------------------------------
-EARLY_EXIT_ENABLED = os.getenv("EARLY_EXIT_ENABLED", "true").lower() == "true"
+EARLY_EXIT_ENABLED = env_loader.get_env("EARLY_EXIT_ENABLED", "true").lower() == "true"
 BREAKEVEN_BUFFER_PIPS = float(
-    os.getenv("BREAKEVEN_BUFFER_PIPS", "2")
+    env_loader.get_env("BREAKEVEN_BUFFER_PIPS", "2")
 )  # pips offset from BE
 # 低ボラ停滞時の早期利確設定
-STAGNANT_EXIT_SEC = int(os.getenv("STAGNANT_EXIT_SEC", "0"))
-STAGNANT_ATR_PIPS = float(os.getenv("STAGNANT_ATR_PIPS", "0"))
+STAGNANT_EXIT_SEC = int(env_loader.get_env("STAGNANT_EXIT_SEC", "0"))
+STAGNANT_ATR_PIPS = float(env_loader.get_env("STAGNANT_ATR_PIPS", "0"))
 
 # 逆行判定のための閾値設定
-REVERSAL_EXIT_ATR_MULT = float(os.getenv("REVERSAL_EXIT_ATR_MULT", "1.0"))
-REVERSAL_EXIT_ADX_MIN = float(os.getenv("REVERSAL_EXIT_ADX_MIN", "25"))
+REVERSAL_EXIT_ATR_MULT = float(env_loader.get_env("REVERSAL_EXIT_ATR_MULT", "1.0"))
+REVERSAL_EXIT_ADX_MIN = float(env_loader.get_env("REVERSAL_EXIT_ADX_MIN", "25"))
 
 # ATRが高くADXが低いときの早期撤退判定に使う閾値
-HIGH_ATR_PIPS = float(os.getenv("HIGH_ATR_PIPS", "10"))
-LOW_ADX_THRESH = float(os.getenv("LOW_ADX_THRESH", "20"))
+HIGH_ATR_PIPS = float(env_loader.get_env("HIGH_ATR_PIPS", "10"))
+LOW_ADX_THRESH = float(env_loader.get_env("LOW_ADX_THRESH", "20"))
 
 # polarity-based exit threshold
-POLARITY_EXIT_THRESHOLD = float(os.getenv("POLARITY_EXIT_THRESHOLD", "0.4"))
+POLARITY_EXIT_THRESHOLD = float(env_loader.get_env("POLARITY_EXIT_THRESHOLD", "0.4"))
 
 # 早期撤退を行う際の最低利益幅（pips）
 MIN_EARLY_EXIT_PROFIT_PIPS = float(
-    os.getenv("MIN_EARLY_EXIT_PROFIT_PIPS", "5")
+    env_loader.get_env("MIN_EARLY_EXIT_PROFIT_PIPS", "5")
 )
 
 # Dynamic ATR‑based trailing‑stop (always enabled)
-TRAIL_TRIGGER_MULTIPLIER = float(os.getenv("TRAIL_TRIGGER_MULTIPLIER", "1.2"))
-TRAIL_DISTANCE_MULTIPLIER = float(os.getenv("TRAIL_DISTANCE_MULTIPLIER", "1.0"))
+TRAIL_TRIGGER_MULTIPLIER = float(env_loader.get_env("TRAIL_TRIGGER_MULTIPLIER", "1.2"))
+TRAIL_DISTANCE_MULTIPLIER = float(env_loader.get_env("TRAIL_DISTANCE_MULTIPLIER", "1.0"))
 # カレンダーイベント時の追加距離倍率
-CALENDAR_VOL_THRESHOLD = int(os.getenv("CALENDAR_VOL_THRESHOLD", "3"))
-CALENDAR_TRAIL_MULTIPLIER = float(os.getenv("CALENDAR_TRAIL_MULTIPLIER", "1.5"))
+CALENDAR_VOL_THRESHOLD = int(env_loader.get_env("CALENDAR_VOL_THRESHOLD", "3"))
+CALENDAR_TRAIL_MULTIPLIER = float(env_loader.get_env("CALENDAR_TRAIL_MULTIPLIER", "1.5"))
 from backend.orders.position_manager import get_position_details
 import json
 
@@ -156,7 +155,7 @@ def process_exit(
     patterns=None,
     pattern_names=None,
 ):
-    default_pair = os.getenv("DEFAULT_PAIR", "USD_JPY")
+    default_pair = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
     position = get_position_details(default_pair)
     if position is None:
         logging.info(f"No open position for {default_pair}; skip exit logic.")
@@ -465,8 +464,8 @@ def process_exit(
 
 
             # ---------- partial close check -----------------------------
-            partial_thresh = float(os.getenv("PARTIAL_CLOSE_PIPS", "0"))
-            partial_ratio = float(os.getenv("PARTIAL_CLOSE_RATIO", "0"))
+            partial_thresh = float(env_loader.get_env("PARTIAL_CLOSE_PIPS", "0"))
+            partial_ratio = float(env_loader.get_env("PARTIAL_CLOSE_RATIO", "0"))
             if partial_thresh > 0 and partial_ratio > 0 and profit_pips >= partial_thresh:
                 trade_ids = position.get(position_side, {}).get("tradeIDs", [])
                 if trade_ids:
@@ -516,7 +515,7 @@ def process_exit(
                         atr_pips * TRAIL_DISTANCE_MULTIPLIER,
                         TRAIL_DISTANCE_PIPS,
                     )
-                    if int(os.getenv("CALENDAR_VOLATILITY_LEVEL", "0")) > CALENDAR_VOL_THRESHOLD:
+                    if int(env_loader.get_env("CALENDAR_VOLATILITY_LEVEL", "0")) > CALENDAR_VOL_THRESHOLD:
                         distance_pips *= CALENDAR_TRAIL_MULTIPLIER
 
 

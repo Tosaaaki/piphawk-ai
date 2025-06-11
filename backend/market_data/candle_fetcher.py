@@ -1,11 +1,11 @@
-import os
 import logging
+from backend.utils import env_loader
 import requests
 from datetime import datetime, timedelta, timezone
 
 OANDA_API_URL = "https://api-fxtrade.oanda.com/v3/instruments/{instrument}/candles"
-OANDA_API_KEY = os.getenv("OANDA_API_KEY")
-OANDA_ACCOUNT_ID = os.getenv("OANDA_ACCOUNT_ID")
+OANDA_API_KEY = env_loader.get_env("OANDA_API_KEY")
+OANDA_ACCOUNT_ID = env_loader.get_env("OANDA_ACCOUNT_ID")
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ def fetch_candles(
         list: List of candle data dictionaries.
     """
     if instrument is None:
-        instrument = os.getenv("DEFAULT_PAIR")
+        instrument = env_loader.get_env("DEFAULT_PAIR")
         if not instrument:
             raise ValueError("Instrument not specified and DEFAULT_PAIR environment variable is not set.")
     headers = {
@@ -72,7 +72,7 @@ def fetch_candles(
 # New function to fetch multiple timeframes
 def _parse_env_timeframes() -> dict:
     """環境変数 ``TRADE_TIMEFRAMES`` を解析して辞書を返す。"""
-    tf_env = os.getenv("TRADE_TIMEFRAMES")
+    tf_env = env_loader.get_env("TRADE_TIMEFRAMES")
     if not tf_env:
         return {}
     result: dict[str, int] = {}
@@ -102,7 +102,7 @@ def fetch_multiple_timeframes(instrument=None, timeframes=None):
             "D": 90,    # 日足
         }
 
-    scalp_tf = os.getenv("SCALP_COND_TF", "").upper()
+    scalp_tf = env_loader.get_env("SCALP_COND_TF", "").upper()
     if scalp_tf and scalp_tf not in timeframes:
         default_count = 60
         timeframes[scalp_tf] = default_count
@@ -126,7 +126,7 @@ def fetch_multiple_timeframes(instrument=None, timeframes=None):
 
 
 if __name__ == "__main__":
-    instrument = os.getenv('DEFAULT_PAIR', 'USD_JPY')
+    instrument = env_loader.get_env('DEFAULT_PAIR', 'USD_JPY')
     candles = fetch_multiple_timeframes(instrument)
     for tf, data in candles.items():
         logger.info("%s candles (%d):", tf, len(data))

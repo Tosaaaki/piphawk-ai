@@ -3,12 +3,12 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
+from backend.utils import env_loader
 
 from backend.orders.order_manager import OrderManager, get_pip_size
 from backend.orders.position_manager import get_open_positions
@@ -61,10 +61,10 @@ def enter_scalp_trade(instrument: str, side: str = "long") -> None:
         logger.debug("scalp plan/indicator fetch failed: %s", exc)
 
     if tp_pips is None and atr_pips is not None:
-        mult = float(os.getenv("ATR_MULT_TP", "0.8"))
+        mult = float(env_loader.get_env("ATR_MULT_TP", "0.8"))
         tp_pips = atr_pips * mult
     if sl_pips is None and atr_pips is not None:
-        mult = float(os.getenv("ATR_MULT_SL", "1.1"))
+        mult = float(env_loader.get_env("ATR_MULT_SL", "1.1"))
         sl_pips = atr_pips * mult
 
     if tp_pips is None:
@@ -72,10 +72,10 @@ def enter_scalp_trade(instrument: str, side: str = "long") -> None:
     if sl_pips is None:
         sl_pips = SCALP_SL_PIPS
 
-    min_sl = float(os.getenv("MIN_SL_PIPS", "0"))
+    min_sl = float(env_loader.get_env("MIN_SL_PIPS", "0"))
     dyn_min = 0.0
     if atr_pips is not None:
-        mult = float(os.getenv("ATR_SL_MULTIPLIER", "2.0"))
+        mult = float(env_loader.get_env("ATR_SL_MULTIPLIER", "2.0"))
         dyn_min = atr_pips * mult
     sl_pips = max(sl_pips, min_sl, dyn_min)
 

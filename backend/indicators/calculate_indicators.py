@@ -1,5 +1,5 @@
-import os
 from typing import Sequence
+from backend.utils import env_loader
 
 import numpy as np
 try:
@@ -49,7 +49,7 @@ def calculate_indicators(
 ) -> dict:
     """Calculate trading indicators and recent-percentile stats."""
     if allow_incomplete is None:
-        allow_incomplete = os.getenv("USE_INCOMPLETE_BARS", "false").lower() == "true"
+        allow_incomplete = env_loader.get_env("USE_INCOMPLETE_BARS", "false").lower() == "true"
     close_prices = [
         float(c['mid']['c'])
         for c in market_data
@@ -71,8 +71,8 @@ def calculate_indicators(
     # 最近の終値をデバッグレベルで出力
     logger.debug(f"Latest close prices: {close_prices[-15:]}")
 
-    ema_fast_period = int(os.getenv("EMA_FAST_PERIOD", "9"))
-    ema_slow_period = int(os.getenv("EMA_SLOW_PERIOD", "21"))
+    ema_fast_period = int(env_loader.get_env("EMA_FAST_PERIOD", "9"))
+    ema_slow_period = int(env_loader.get_env("EMA_SLOW_PERIOD", "21"))
 
     # --- Bollinger Bands (DataFrame) ---
     bb_df = calculate_bollinger_bands(close_prices)
@@ -141,7 +141,7 @@ def calculate_indicators(
 
     # --- Percentile stats from historical daily data --------------------
     if pair is None:
-        pair = os.getenv("DEFAULT_PAIR")
+        pair = env_loader.get_env("DEFAULT_PAIR")
     try:
         history = fetch_candles(pair, granularity="D", count=history_days)
     except Exception:

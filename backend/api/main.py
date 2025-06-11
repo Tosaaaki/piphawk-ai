@@ -100,8 +100,8 @@ class NotificationSettings(BaseModel):
 notification_settings = {"enabled": False, "token": "", "user_id": ""}
 logger.info(
     "API startup - LINE token set: %s, user ID set: %s",
-    bool(os.getenv("LINE_CHANNEL_TOKEN")),
-    bool(os.getenv("LINE_USER_ID")),
+    bool(env_loader.get_env("LINE_CHANNEL_TOKEN")),
+    bool(env_loader.get_env("LINE_USER_ID")),
 )
 
 

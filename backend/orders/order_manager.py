@@ -1,5 +1,5 @@
-import os
 import requests
+from backend.utils import env_loader
 from backend.logs.log_manager import log_trade, log_error
 from backend.logs.info_logger import info
 from backend.logs.trade_logger import ExitReason
@@ -18,9 +18,9 @@ import uuid
 
 logger = logging.getLogger(__name__)
 
-OANDA_API_URL = os.getenv("OANDA_API_URL", "https://api-fxtrade.oanda.com/v3")
-OANDA_ACCOUNT_ID = os.getenv("OANDA_ACCOUNT_ID")
-OANDA_API_KEY = os.getenv("OANDA_API_KEY")
+OANDA_API_URL = env_loader.get_env("OANDA_API_URL", "https://api-fxtrade.oanda.com/v3")
+OANDA_ACCOUNT_ID = env_loader.get_env("OANDA_ACCOUNT_ID")
+OANDA_API_KEY = env_loader.get_env("OANDA_API_KEY")
 
 HEADERS = {
     "Authorization": f"Bearer {OANDA_API_KEY}",
@@ -30,11 +30,11 @@ HEADERS = {
 _SESSION = requests.Session()
 
 # リトライ設定（最大試行回数と待機時間上限）を環境変数で調整可能にする
-HTTP_MAX_RETRIES = int(os.getenv("HTTP_MAX_RETRIES", "3"))
-HTTP_BACKOFF_CAP_SEC = int(os.getenv("HTTP_BACKOFF_CAP_SEC", "8"))
+HTTP_MAX_RETRIES = int(env_loader.get_env("HTTP_MAX_RETRIES", "3"))
+HTTP_BACKOFF_CAP_SEC = int(env_loader.get_env("HTTP_BACKOFF_CAP_SEC", "8"))
 
 # HTTPタイムアウト秒数を環境変数で設定（デフォルト10秒）
-HTTP_TIMEOUT_SEC = int(os.getenv("HTTP_TIMEOUT_SEC", "10"))
+HTTP_TIMEOUT_SEC = int(env_loader.get_env("HTTP_TIMEOUT_SEC", "10"))
 
 _ORDER_TEMPLATE = {
     "order": {
@@ -57,7 +57,7 @@ def _extract_error_details(response) -> tuple[str | None, str | None]:
 # ----------------------------------------------------------------------
 #  Pip‑size table (extend as needed) and helper
 # ----------------------------------------------------------------------
-DEFAULT_PAIR = os.getenv("DEFAULT_PAIR", "USD_JPY")
+DEFAULT_PAIR = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
 
 PIP_SIZES: dict[str, float] = {
     "USD_JPY": 0.01,
@@ -453,8 +453,8 @@ class OrderManager:
         *,
         with_oco: bool = True,
     ):
-        min_lot = float(os.getenv("MIN_TRADE_LOT", "0.01"))
-        max_lot = float(os.getenv("MAX_TRADE_LOT", "0.1"))
+        min_lot = float(env_loader.get_env("MIN_TRADE_LOT", "0.01"))
+        max_lot = float(env_loader.get_env("MAX_TRADE_LOT", "0.1"))
         lot_size = max(min_lot, min(lot_size, max_lot))
 
         mode = strategy_params.get("mode", "market")
@@ -466,7 +466,7 @@ class OrderManager:
             mode = "limit"
         entry_uuid = strategy_params.get("entry_uuid") or str(uuid.uuid4())[:8]
         valid_sec = int(
-            strategy_params.get("valid_for_sec", os.getenv("MAX_LIMIT_AGE_SEC", "180"))
+            strategy_params.get("valid_for_sec", env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
         )
 
         instrument = strategy_params["instrument"]
@@ -475,7 +475,7 @@ class OrderManager:
         pip = get_pip_size(instrument)
         # side = strategy_params.get("side", "long").lower()
 
-        min_rrr = float(os.getenv("MIN_RRR", "0.8"))
+        min_rrr = float(env_loader.get_env("MIN_RRR", "0.8"))
         if tp_pips is not None and sl_pips is not None:
             try:
                 if not validate_rrr(float(tp_pips), float(sl_pips), min_rrr):
@@ -497,8 +497,8 @@ class OrderManager:
         if tp_pips is not None and sl_pips is not None:
             try:
                 spread_pips = (ask - bid) / pip
-                slip = float(os.getenv("ENTRY_SLIPPAGE_PIPS", "0"))
-                min_rrr_cost = float(os.getenv("MIN_RRR_AFTER_COST", "1.2"))
+                slip = float(env_loader.get_env("ENTRY_SLIPPAGE_PIPS", "0"))
+                min_rrr_cost = float(env_loader.get_env("MIN_RRR_AFTER_COST", "1.2"))
                 if not validate_rrr_after_cost(float(tp_pips), float(sl_pips), spread_pips + slip, min_rrr_cost):
                     logger.warning(
                         "RRR after cost %.2f below %.2f – aborting entry",
@@ -818,7 +818,7 @@ class OrderManager:
             dict: OANDA API JSON response.
         """
         if distance_pips is None:
-            distance_pips = int(os.getenv("TRAIL_DISTANCE_PIPS", 6))
+            distance_pips = int(env_loader.get_env("TRAIL_DISTANCE_PIPS", 6))
 
         # Convert pips to price distance (JPY pairs use 0.01, most majors 0.0001)
         pip_factor = 0.01 if instrument.endswith("JPY") else 0.0001
@@ -875,7 +875,7 @@ class OrderManager:
             logger.debug(f"Failed to fetch trade details: {exc}")
             trade = {}
 
-        min_rrr = float(os.getenv("MIN_RRR", "0.8"))
+        min_rrr = float(env_loader.get_env("MIN_RRR", "0.8"))
         current_tp = None
         entry_price = None
         try:

@@ -1,4 +1,4 @@
-import os
+from backend.utils import env_loader
 try:
     import pandas as pd
 except ImportError as e:
@@ -20,7 +20,7 @@ def calculate_atr(high, low, close, period=None):
         pd.Series: ATR values.
     """
     if period is None:
-        period = int(os.getenv('ATR_PERIOD', 14))
+        period = int(env_loader.get_env('ATR_PERIOD', 14))
     high = pd.Series(high)
     low = pd.Series(low)
     close = pd.Series(close)

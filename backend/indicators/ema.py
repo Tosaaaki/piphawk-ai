@@ -1,4 +1,3 @@
-import os
 try:
     import pandas as pd
 except ImportError as e:
@@ -7,6 +6,7 @@ except ImportError as e:
         " Install it with 'pip install pandas'."
     ) from e
 from typing import List, Union
+from backend.utils import env_loader
 
 def calculate_ema(
     prices: Union[List[float], pd.Series],
@@ -24,7 +24,7 @@ def calculate_ema(
         pd.Series: EMA values.
     """
     if period is None:
-        period_env = os.getenv("EMA_PERIOD")
+        period_env = env_loader.get_env("EMA_PERIOD")
         try:
             period = int(period_env) if period_env is not None else 20
         except ValueError:
