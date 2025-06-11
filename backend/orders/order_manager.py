@@ -233,6 +233,10 @@ class OrderManager:
             f"?state=PENDING&instrument={instrument}"
         )
         try:
+
+            r = _SESSION.get(
+                url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+            )
             r = self._request_with_retries("get", url)
             r.raise_for_status()
             orders = r.json().get("orders", [])
@@ -340,7 +344,12 @@ class OrderManager:
 
         if new_tp is not None:
             for attempt in range(3):
+
+                response = _SESSION.put(
+                    url, json=tp_payload, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+                )
                 response = self._request_with_retries("put", url, json=tp_payload)
+
                 if response.status_code == 200:
                     results["tp"] = response.json()
                     break
@@ -373,6 +382,11 @@ class OrderManager:
         """現在設定されているTP価格を取得する。"""
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}"
         try:
+
+            resp = _SESSION.get(
+                url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+            )
+
             resp = self._request_with_retries("get", url)
             resp.raise_for_status()
             data = resp.json()
@@ -381,6 +395,11 @@ class OrderManager:
                 order_url = (
                     f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{tp_id}"
                 )
+
+                order_resp = _SESSION.get(
+                    order_url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+                )
+
                 order_resp = self._request_with_retries("get", order_url)
                 order_resp.raise_for_status()
                 order_data = order_resp.json()
@@ -401,7 +420,13 @@ class OrderManager:
         """現在設定されているトレーリングストップ距離(pips)を取得する。"""
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}"
         try:
+
+            resp = _SESSION.get(
+                url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+            )
+
             resp = self._request_with_retries("get", url)
+
             resp.raise_for_status()
             data = resp.json()
             ts_id = data.get("trade", {}).get("trailingStopLossOrderID")
@@ -409,7 +434,13 @@ class OrderManager:
                 order_url = (
                     f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders/{ts_id}"
                 )
+
+                order_resp = _SESSION.get(
+                    order_url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+                )
+
                 order_resp = self._request_with_retries("get", order_url)
+
                 order_resp.raise_for_status()
                 order_data = order_resp.json()
                 order_info = order_data.get("order") or order_data.get(
@@ -589,7 +620,12 @@ class OrderManager:
                 "timeInForce": "GTC",
             }
 
+        response = _SESSION.post(
+            url, json=order_body, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+        )
+
         response = self._request_with_retries("post", url, json=order_body)
+
         logger.debug(
             f"Order placement response: {response.status_code} - {response.text}"
         )
@@ -668,6 +704,11 @@ class OrderManager:
         logger.debug(f"[exit_trade] raw units={units_val} position={position}")
 
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/positions/{instrument}"
+
+        response = _SESSION.get(
+            url, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+        )
+
         response = self._request_with_retries("get", url)
         if response.status_code != 200:
             code, msg = _extract_error_details(response)
@@ -741,6 +782,11 @@ class OrderManager:
             payload = {"longUnits": "ALL", "shortUnits": "ALL"}
 
         logger.debug(f"[close_position] payload={payload}")
+
+        response = _SESSION.put(
+            url, json=payload, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+        )
+
         response = self._request_with_retries("put", url, json=payload)
 
         if not response.ok:
@@ -759,7 +805,13 @@ class OrderManager:
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/{trade_id}/close"
         payload = {"units": str(units)}
         logger.debug(f"[close_partial] trade_id={trade_id} units={units}")
+
+        resp = _SESSION.put(
+            url, json=payload, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+        )
+
         resp = self._request_with_retries("put", url, json=payload)
+
         if not resp.ok:
             code, msg = _extract_error_details(resp)
             log_error(
@@ -824,7 +876,13 @@ class OrderManager:
         url = (
             f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/" f"{trade_id}/orders"
         )
+
+        response = _SESSION.put(
+            url, json=body, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+        )
+
         response = self._request_with_retries("put", url, json=body)
+
         if response.status_code != 200:
             code, msg = _extract_error_details(response)
             log_error(
@@ -881,6 +939,10 @@ class OrderManager:
                     min_rrr,
                 )
                 return None
+
+        response = _SESSION.put(
+            url, json=body, headers=HEADERS, timeout=HTTP_TIMEOUT_SEC
+        )
 
         response = self._request_with_retries("put", url, json=body)
 
