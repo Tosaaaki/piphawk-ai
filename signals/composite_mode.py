@@ -24,7 +24,7 @@ MODE_EMA_SLOPE_MIN = float(env_loader.get_env("MODE_EMA_SLOPE_MIN", "0.1"))
 MODE_ADX_MIN = float(env_loader.get_env("MODE_ADX_MIN", "25"))
 MODE_VOL_MA_MIN = float(env_loader.get_env("MODE_VOL_MA_MIN", env_loader.get_env("MIN_VOL_MA", "80")))
 VOL_MA_PERIOD = int(env_loader.get_env("VOL_MA_PERIOD", "5"))
-RANGE_ADX_MIN = float(env_loader.get_env("RANGE_ADX_MIN", "20"))
+RANGE_ADX_MIN = float(env_loader.get_env("RANGE_ADX_MIN", "15"))
 RANGE_ADX_COUNT = int(env_loader.get_env("RANGE_ADX_COUNT", "3"))
 
 # --- Additional scoring parameters -------------------------------------
@@ -59,9 +59,9 @@ LOW_ADX_THRESH = float(env_loader.get_env("LOW_ADX_THRESH", "20"))
 
 # --- Hysteresis & mode score thresholds ------------------------------
 TREND_ENTER_SCORE = float(env_loader.get_env("TREND_ENTER_SCORE", "0.66"))
-SCALP_ENTER_SCORE = float(env_loader.get_env("SCALP_ENTER_SCORE", "0.33"))
+SCALP_ENTER_SCORE = float(env_loader.get_env("SCALP_ENTER_SCORE", "0.20"))
 TREND_HOLD_SCORE = float(env_loader.get_env("TREND_HOLD_SCORE", "0.50"))
-SCALP_HOLD_SCORE = float(env_loader.get_env("SCALP_HOLD_SCORE", "0.30"))
+SCALP_HOLD_SCORE = float(env_loader.get_env("SCALP_HOLD_SCORE", "0.15"))
 MODE_STRONG_TREND_THRESH = float(env_loader.get_env("MODE_STRONG_TREND_THRESH", "0.9"))
 
 
