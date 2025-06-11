@@ -63,8 +63,9 @@ EXIT_BIAS_FACTOR: float = float(env_loader.get_env("EXIT_BIAS_FACTOR", "1.0"))
 # --- Volatility and ADX filters ---
 COOL_BBWIDTH_PCT: float = float(env_loader.get_env("COOL_BBWIDTH_PCT", "0"))
 COOL_ATR_PCT: float = float(env_loader.get_env("COOL_ATR_PCT", "0"))
-ADX_NO_TRADE_MIN: float = float(env_loader.get_env("ADX_NO_TRADE_MIN", "20"))
-ADX_NO_TRADE_MAX: float = float(env_loader.get_env("ADX_NO_TRADE_MAX", "30"))
+# ADXノートレード域のデフォルト値を15-18に緩和
+ADX_NO_TRADE_MIN: float = float(env_loader.get_env("ADX_NO_TRADE_MIN", "15"))
+ADX_NO_TRADE_MAX: float = float(env_loader.get_env("ADX_NO_TRADE_MAX", "18"))
 ADX_SLOPE_LOOKBACK: int = int(env_loader.get_env("ADX_SLOPE_LOOKBACK", "3"))
 ALLOW_NO_PULLBACK_WHEN_ADX: float = float(
     env_loader.get_env("ALLOW_NO_PULLBACK_WHEN_ADX", "0")
