@@ -313,7 +313,7 @@ The indicators module also calculates `adx_bb_score`, a composite value derived 
 `VOL_MA_PERIOD` sets the averaging window for volume checks. If the average falls below `MIN_VOL_MA` (or `MIN_VOL_M1`) the entry is blocked.
 `ADX_SLOPE_LOOKBACK` defines how many candles to look back when computing ADX slope, and `ADX_DYNAMIC_COEFF` scales the ADX threshold based on Bollinger width.
 `EMA_FLAT_PIPS` determines the range treated as a flat EMA slope; convergence with a reversal within this range triggers the *急反転* filter.
-`OVERSHOOT_ATR_MULT` blocks entries when price overshoots below the lower Bollinger Band by this multiple of ATR.
+`OVERSHOOT_ATR_MULT` blocks entries when price overshoots below the lower Bollinger Band by this multiple of ATR. `OVERSHOOT_DYNAMIC_COEFF` adjusts this multiplier based on Bollinger width.
 `REV_BLOCK_BARS`, `TAIL_RATIO_BLOCK` and `VOL_SPIKE_PERIOD` configure the Recent Candle Bias filter, blocking entries when recent candles show sharp tails or volume spikes in the opposite direction.
 `STRICT_TF_ALIGN` enforces multi-timeframe EMA alignment before entering.
 `COUNTER_TREND_TP_RATIO` scales down the take-profit when entering against the higher timeframe trend.

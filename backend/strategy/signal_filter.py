@@ -554,9 +554,17 @@ def pass_entry_filter(
             # バンド幅が閾値以下ならレンジモード扱い
             range_mode = True
 
+        width_ratio = (
+            (bw_pips - bw_thresh) / bw_thresh
+            if bw_pips is not None and bw_thresh != 0
+            else 0.0
+        )
+
         # Overshoot check --------------------------------------------------
         overshoot_mult = float(env_loader.get_env("OVERSHOOT_ATR_MULT", "1.0"))
-        threshold = bb_lower.iloc[-1] - atr_series.iloc[-1] * overshoot_mult
+        dyn_coeff = float(env_loader.get_env("OVERSHOOT_DYNAMIC_COEFF", "0"))
+        dynamic_mult = overshoot_mult * (1 + dyn_coeff * width_ratio)
+        threshold = bb_lower.iloc[-1] - atr_series.iloc[-1] * dynamic_mult
         if price is not None and price <= threshold:
             logger.info("Filter NG: overshoot")
             logger.debug("EntryFilter blocked: price overshoot below lower BB")
@@ -565,11 +573,6 @@ def pass_entry_filter(
     # --- Dynamic ADX threshold based on BB width -----------------------
     adx_base = float(env_loader.get_env("ADX_RANGE_THRESHOLD", "25"))
     coeff = float(env_loader.get_env("ADX_DYNAMIC_COEFF", "0"))
-    width_ratio = (
-        (bw_pips - bw_thresh) / bw_thresh
-        if bw_pips is not None and bw_thresh != 0
-        else 0.0
-    )
     adx_thresh = adx_base * (1 + coeff * width_ratio)
     range_mode = latest_adx is not None and latest_adx < adx_thresh
 
