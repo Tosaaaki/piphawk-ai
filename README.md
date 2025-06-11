@@ -317,6 +317,7 @@ The indicators module also calculates `adx_bb_score`, a composite value derived 
 `OVERSHOOT_MAX_PIPS` sets the maximum overshoot allowed in pips.
 `OVERSHOOT_DYNAMIC` enables ATR-based scaling of this limit (`OVERSHOOT_FACTOR` with floor/ceil).
 `OVERSHOOT_MODE` set to `warn` logs a warning instead of blocking.
+`OVERSHOOT_WINDOW_CANDLES` defines how many recent candles to inspect when evaluating overshoot range.
 `OVERSHOOT_WINDOW_CANDLES` defines how many recent candles are averaged when computing the overshoot. Example: setting `OVERSHOOT_WINDOW_CANDLES=3` bases the filter on the last three closes.
 `REV_BLOCK_BARS`, `TAIL_RATIO_BLOCK` and `VOL_SPIKE_PERIOD` configure the Recent Candle Bias filter, blocking entries when recent candles show sharp tails or volume spikes in the opposite direction.
 `STRICT_TF_ALIGN` enforces multi-timeframe EMA alignment before entering.

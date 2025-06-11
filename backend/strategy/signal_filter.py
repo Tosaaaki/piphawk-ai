@@ -17,12 +17,28 @@ from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from backend.market_data.tick_fetcher import fetch_tick_data
 from backend.indicators.adx import calculate_adx_slope
 from backend.utils import env_loader
+from collections import deque
 
 logger = logging.getLogger(__name__)
 
 REVERSAL_RSI_DIFF = float(env_loader.get_env("REVERSAL_RSI_DIFF", "15"))
 # スキャル専用の厳格判定フラグ
 SCALP_STRICT_FILTER = env_loader.get_env("SCALP_STRICT_FILTER", "false").lower() == "true"
+
+# Overshoot 評価用の直近ローソク足高値・安値を保持
+_WINDOW_LEN = int(env_loader.get_env("OVERSHOOT_WINDOW_CANDLES", "0"))
+_recent_highs: deque[float] = deque(maxlen=_WINDOW_LEN) if _WINDOW_LEN > 0 else deque()
+_recent_lows: deque[float] = deque(maxlen=_WINDOW_LEN) if _WINDOW_LEN > 0 else deque()
+
+def update_overshoot_window(high: float, low: float) -> None:
+    """Add latest candle high/low to the deque."""
+    if _WINDOW_LEN <= 0:
+        return
+    try:
+        _recent_highs.append(float(high))
+        _recent_lows.append(float(low))
+    except Exception:
+        pass
 
 
 def _ema_direction(fast, slow) -> str | None:
@@ -545,6 +561,7 @@ def pass_entry_filter(
     bb_middle = indicators.get("bb_middle")
     band_width_ok = False
     bw_pips = None
+    width_ratio = 0.0
     bw_thresh = float(env_loader.get_env("BAND_WIDTH_THRESH_PIPS", "4"))
     # ボリンジャーバンドデータが無い場合はデフォルトで0.0を使用する
     width_ratio = 0.0
@@ -599,6 +616,24 @@ def pass_entry_filter(
                 logger.debug(
                     "EntryFilter blocked: price overshoot below lower BB"
                 )
+                return False
+
+        # Overshoot window range check ----------------------------------
+        if _WINDOW_LEN > 1 and len(_recent_highs) >= _WINDOW_LEN:
+            high = max(_recent_highs)
+            low = min(_recent_lows)
+            range_pips = (high - low) / pip_size
+            limit_pips = float(env_loader.get_env("OVERSHOOT_MAX_PIPS", "0"))
+            if dynamic:
+                factor = float(env_loader.get_env("OVERSHOOT_FACTOR", "0.5"))
+                floor = float(env_loader.get_env("OVERSHOOT_FLOOR", "1.0"))
+                ceil = float(env_loader.get_env("OVERSHOOT_CEIL", "20.0"))
+                atr_pips = atr_series.iloc[-1] / pip_size
+                limit_pips = min(max(atr_pips * factor, floor), ceil)
+            atr_limit_pips = atr_series.iloc[-1] * dynamic_mult / pip_size
+            if (limit_pips and range_pips > limit_pips) or range_pips > atr_limit_pips:
+                logger.info("Filter NG: overshoot_range")
+                logger.debug("EntryFilter blocked: high-low range exceeds window limit")
                 return False
 
     # --- Dynamic ADX threshold based on BB width -----------------------

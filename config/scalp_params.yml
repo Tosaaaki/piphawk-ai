@@ -24,3 +24,4 @@ overshoot:
   floor: 1.0
   ceil: 20.0
   mode: warn
+  window_candles: 2

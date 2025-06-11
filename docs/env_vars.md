@@ -85,6 +85,7 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - OVERSHOOT_MODE:
   warnを指定するとOvershoot検出時に警告のみで通過する。
 - OVERSHOOT_WINDOW_CANDLES:
+  直近のローソク足を何本参照してOvershoot幅を判定するか。
   Overshoot平均を計算するローソク足本数。例: 3 なら直近3本の終値平均で判定。
 - REVERSAL_EXIT_ATR_MULT / REVERSAL_EXIT_ADX_MIN:
   価格がボリンジャーバンドの反対側を終値で越えた際、
