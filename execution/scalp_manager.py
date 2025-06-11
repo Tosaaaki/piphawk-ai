@@ -40,6 +40,7 @@ SCALP_SL_PIPS = float(_CONFIG.get("sl_pips", 1.0))
 order_mgr = OrderManager()
 _open_scalp_trades: dict[str, float] = {}
 TRAIL_AFTER_TP = env_loader.get_env("TRAIL_AFTER_TP", "false").lower() == "true"
+risk_mgr: PortfolioRiskManager | None = None
 
 def get_dynamic_hold_seconds(instrument: str) -> int:
     """Return hold time based on M1 ATR and env constraints."""
@@ -95,9 +96,16 @@ def get_dynamic_hold_seconds(instrument: str) -> int:
     return max(min(hold, max_sec), min_sec)
 
 
-def enter_scalp_trade(instrument: str, side: str = "long") -> None:
+def enter_scalp_trade(
+    instrument: str,
+    side: str = "long",
+    risk_mgr: PortfolioRiskManager | None = None,
+) -> None:
 
     """Place a market order with dynamically calculated TP/SL."""
+
+    if risk_mgr is None:
+        risk_mgr = globals().get("risk_mgr")
 
     tp_pips = None
     sl_pips = None
