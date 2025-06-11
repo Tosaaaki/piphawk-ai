@@ -1319,6 +1319,11 @@ Respond with **one-line valid JSON** exactly as:
         logger.info("Invalid JSON response: %s", raw)
         return {"entry": {"side": "no"}, "raw": raw, "reason": "PARSE_FAIL"}
 
+    if plan.get("entry", {}).get("side") == "no":
+        why = plan.get("why") or plan.get("entry", {}).get("why")
+        if isinstance(why, str) and why:
+            plan["reason"] = why
+
     entry_conf = plan.get("entry_confidence")
     try:
         entry_conf = float(entry_conf) if entry_conf is not None else None
