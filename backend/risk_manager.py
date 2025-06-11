@@ -1,4 +1,5 @@
 import logging
+from backend.utils import env_loader
 
 logger = logging.getLogger(__name__)
 
@@ -103,4 +104,41 @@ def cost_guard(tp_pips: float | None, spread_pips: float) -> bool:
         return (tp - spread) >= min_net
     except Exception:
         return True
+
+
+def calc_fallback_tp_sl(indicators: dict, pip_size: float) -> tuple[float | None, float | None]:
+    """ATRやBB幅からTP/SLを算出する補助関数"""
+    atr_series = indicators.get("atr")
+    bb_upper = indicators.get("bb_upper")
+    bb_lower = indicators.get("bb_lower")
+
+    atr_pips = None
+    if atr_series is not None and len(atr_series):
+        try:
+            atr_val = atr_series.iloc[-1] if hasattr(atr_series, "iloc") else atr_series[-1]
+            atr_pips = float(atr_val) / pip_size
+        except Exception:
+            atr_pips = None
+
+    tp = sl = None
+    try:
+        mult_tp = float(env_loader.get_env("ATR_MULT_TP", "0.8"))
+        mult_sl = float(env_loader.get_env("ATR_MULT_SL", "1.1"))
+        if atr_pips is not None:
+            tp = atr_pips * mult_tp
+            sl = atr_pips * mult_sl
+    except Exception:
+        pass
+
+    if tp is None and bb_upper is not None and bb_lower is not None:
+        try:
+            up = bb_upper.iloc[-1] if hasattr(bb_upper, "iloc") else bb_upper[-1]
+            low = bb_lower.iloc[-1] if hasattr(bb_lower, "iloc") else bb_lower[-1]
+            width = float(up) - float(low)
+            ratio = float(env_loader.get_env("TP_BB_RATIO", "0.6"))
+            tp = width / pip_size * ratio
+        except Exception:
+            pass
+
+    return tp, sl
 

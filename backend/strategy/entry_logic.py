@@ -60,6 +60,7 @@ from backend.risk_manager import (
     calc_min_sl,
     get_recent_swing_diff,
     is_high_vol_session,
+    calc_fallback_tp_sl,
 )
 from datetime import datetime, timezone
 from backend.utils import env_loader
@@ -218,6 +219,11 @@ def process_entry(
         allow_delayed_entry = (
             env_loader.get_env("ALLOW_DELAYED_ENTRY", "true").lower() == "true"
         )
+
+    forced_entry = False
+    use_dynamic_risk = (
+        env_loader.get_env("FALLBACK_DYNAMIC_RISK", "false").lower() == "true"
+    )
 
     pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
     spread_pips = None
@@ -498,15 +504,41 @@ def process_entry(
                 logging.info("Fallback forces side %s", fallback_side)
                 side = fallback_side
                 entry_info["side"] = side
+                forced_entry = True
                 risk_info = plan.setdefault("risk", {})
-                risk_info.setdefault(
-                    "sl_pips",
-                    float(env_loader.get_env("FALLBACK_DEFAULT_SL_PIPS", "8")),
-                )
-                risk_info.setdefault(
-                    "tp_pips",
-                    float(env_loader.get_env("FALLBACK_DEFAULT_TP_PIPS", "12")),
-                )
+                if use_dynamic_risk:
+                    dyn_tp, dyn_sl = calc_fallback_tp_sl(indicators, pip_size)
+                    if dyn_sl is not None:
+                        risk_info["sl_pips"] = dyn_sl
+                    else:
+                        risk_info.setdefault(
+                            "sl_pips",
+                            float(
+                                env_loader.get_env(
+                                    "FALLBACK_DEFAULT_SL_PIPS", "8"
+                                )
+                            ),
+                        )
+                    if dyn_tp is not None:
+                        risk_info["tp_pips"] = dyn_tp
+                    else:
+                        risk_info.setdefault(
+                            "tp_pips",
+                            float(
+                                env_loader.get_env(
+                                    "FALLBACK_DEFAULT_TP_PIPS", "12"
+                                )
+                            ),
+                        )
+                else:
+                    risk_info.setdefault(
+                        "sl_pips",
+                        float(env_loader.get_env("FALLBACK_DEFAULT_SL_PIPS", "8")),
+                    )
+                    risk_info.setdefault(
+                        "tp_pips",
+                        float(env_loader.get_env("FALLBACK_DEFAULT_TP_PIPS", "12")),
+                    )
 
     if side not in ("long", "short"):
         logger.debug("reject: reason=AI_DECISION side=%s", side)
@@ -926,6 +958,11 @@ def process_entry(
         )
     except Exception as exc:
         logging.debug(f"[process_entry] ATR-based SL calc failed: {exc}")
+
+    if not use_dynamic_risk and forced_entry:
+        fallback_tp = None
+        fallback_sl = None
+        dynamic_min_sl = 0.0
 
     if tp_pips is None:
         tp_pips = (

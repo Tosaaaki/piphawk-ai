@@ -18,6 +18,7 @@ fallback:
   force_on_no_side: true
   default_sl_pips: 12
   default_tp_pips: 18
+  dynamic_risk: false
 
 order:
   max_spread_pips: 2.0
