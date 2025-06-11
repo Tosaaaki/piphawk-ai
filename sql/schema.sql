@@ -79,3 +79,9 @@ CREATE TABLE IF NOT EXISTS policy_transitions (
     action TEXT NOT NULL,
     reward REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS trade_labels (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    trade_id INTEGER NOT NULL,
+    label TEXT NOT NULL,
+    timestamp TEXT NOT NULL
+);
