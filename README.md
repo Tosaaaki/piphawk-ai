@@ -791,3 +791,13 @@ pip install --extra-index-url https://download.pytorch.org/whl/cpu -r backend/re
 
 This will run all tests defined in the project to verify core modules and
 configuration loaders.
+
+Alternatively, you can use the provided helper script which installs
+development dependencies before executing the tests:
+
+```bash
+./scripts/run_tests.sh
+```
+
+This script runs `pip install -r requirements-dev.txt` and then launches
+`pytest` automatically.
