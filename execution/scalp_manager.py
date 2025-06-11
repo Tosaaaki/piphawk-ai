@@ -21,6 +21,7 @@ except Exception:  # テストでモックが残っている場合のフォー�
 
 import inspect
 from backend.orders.position_manager import get_open_positions
+from signals.scalp_momentum import exit_if_momentum_loss
 
 logger = logging.getLogger(__name__)
 
@@ -151,3 +152,27 @@ def monitor_scalp_positions() -> None:
                 f"Exit SCALP {pos['instrument']} – timeout hit ({MAX_SCALP_HOLD_SECONDS}s)"
             )
             _open_scalp_trades.pop(str(trade_id), None)
+            continue
+
+        # ----- momentum loss check ----------------------------------
+        try:
+            from backend.market_data.candle_fetcher import fetch_candles
+            from backend.indicators.calculate_indicators import calculate_indicators
+
+            candles = fetch_candles(
+                pos["instrument"], granularity="M5", count=30, allow_incomplete=True
+            )
+            indicators = calculate_indicators(candles, pair=pos["instrument"])
+        except Exception as exc:  # pragma: no cover - network failure
+            logger.debug("indicator fetch failed: %s", exc)
+            continue
+
+        try:
+            if exit_if_momentum_loss(indicators):
+                order_mgr.close_position(pos["instrument"])
+                logger.info(
+                    f"Exit SCALP {pos['instrument']} – momentum loss"
+                )
+                _open_scalp_trades.pop(str(trade_id), None)
+        except Exception as exc:  # pragma: no cover - safety
+            logger.debug("momentum check failed: %s", exc)
