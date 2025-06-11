@@ -472,6 +472,7 @@ def process_entry(
         patterns=patterns,
         detected_patterns=detected,
         allow_delayed_entry=allow_delayed_entry,
+        filter_ctx=strategy_params.get("filter_ctx") if isinstance(strategy_params, dict) else None,
     )
 
     # -- "no" の場合は攻めたバイアスで再試行 --------------------
@@ -487,6 +488,7 @@ def process_entry(
             detected_patterns=detected,
             allow_delayed_entry=allow_delayed_entry,
             trend_prompt_bias="aggressive",
+            filter_ctx=strategy_params.get("filter_ctx") if isinstance(strategy_params, dict) else None,
         )
         ai_raw = json.dumps(plan, ensure_ascii=False)
         logging.info(f"AI trade plan aggressive retry: {ai_raw}")

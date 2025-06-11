@@ -963,6 +963,7 @@ def get_trade_plan(
     trade_mode: str | None = None,
     mode_reason: str | None = None,
     trend_prompt_bias: str | None = None,
+    filter_ctx: dict | None = None,
 ) -> dict:
     """
     Single‑shot call to the LLM that returns a dict:
@@ -1280,6 +1281,11 @@ Respond with **one-line valid JSON** exactly as:
         log_ai_decision("ENTRY", instrument, json.dumps(raw, ensure_ascii=False))
     except Exception as exc:  # pragma: no cover - logging failure shouldn't stop flow
         logger.warning("log_ai_decision failed: %s", exc)
+    try:
+        from diagnostics import diagnostics as diag
+        diag.log("entry", json.dumps(raw, ensure_ascii=False))
+    except Exception:
+        pass
 
     plan, err = parse_json_answer(raw)
     if plan is None:
@@ -1316,6 +1322,12 @@ Respond with **one-line valid JSON** exactly as:
     if entry_conf is not None and higher_tf_direction in ("long", "short") and side_planned in ("long", "short"):
         if (higher_tf_direction == "long" and side_planned == "short") or (higher_tf_direction == "short" and side_planned == "long"):
             entry_conf = max(0.0, entry_conf - 0.3)
+
+    pivot_penalty = None
+    if filter_ctx:
+        pivot_penalty = filter_ctx.get("pivot_penalty")
+    if entry_conf is not None and pivot_penalty is not None:
+        entry_conf = max(0.0, entry_conf - float(pivot_penalty))
     if entry_conf is None:
         entry_conf = 0.5
     plan["entry_confidence"] = entry_conf
