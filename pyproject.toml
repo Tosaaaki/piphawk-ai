@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "piphawk-ai"
 version = "0.5.0.dev0"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "annotated-types==0.7.0",
     "anyio==4.9.0",
