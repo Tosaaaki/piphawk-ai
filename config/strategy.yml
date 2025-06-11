@@ -16,9 +16,9 @@ SCALP_PROMPT_BIAS: aggressive
 
 fallback:
   force_on_no_side: true
-  default_sl_pips: 8
-  default_tp_pips: 12
+  default_sl_pips: 12
+  default_tp_pips: 18
 
 order:
-  max_spread_pips: 1.5
-  price_bound_pips: 2.0
+  max_spread_pips: 2.0
+  price_bound_pips: 3.0

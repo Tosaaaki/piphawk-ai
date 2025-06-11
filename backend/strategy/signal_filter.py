@@ -556,11 +556,35 @@ def pass_entry_filter(
 
         # Overshoot check --------------------------------------------------
         overshoot_mult = float(env_loader.get_env("OVERSHOOT_ATR_MULT", "1.0"))
-        threshold = bb_lower.iloc[-1] - atr_series.iloc[-1] * overshoot_mult
-        if price is not None and price <= threshold:
-            logger.info("Filter NG: overshoot")
-            logger.debug("EntryFilter blocked: price overshoot below lower BB")
-            return False
+        dynamic = env_loader.get_env("OVERSHOOT_DYNAMIC", "false").lower() == "true"
+        max_pips = float(env_loader.get_env("OVERSHOOT_MAX_PIPS", "0"))
+        if dynamic:
+            factor = float(env_loader.get_env("OVERSHOOT_FACTOR", "0.5"))
+            floor = float(env_loader.get_env("OVERSHOOT_FLOOR", "1.0"))
+            ceil = float(env_loader.get_env("OVERSHOOT_CEIL", "20.0"))
+            atr_pips = atr_series.iloc[-1] / pip_size
+            max_pips = min(max(atr_pips * factor, floor), ceil)
+        threshold_atr = bb_lower.iloc[-1] - atr_series.iloc[-1] * overshoot_mult
+        threshold_pips = (
+            bb_lower.iloc[-1] - max_pips * pip_size if max_pips else None
+        )
+        over = False
+        if price is not None:
+            if overshoot_mult > 0 and price <= threshold_atr:
+                over = True
+            if threshold_pips is not None and price <= threshold_pips:
+                over = True
+        if over:
+            if env_loader.get_env("OVERSHOOT_MODE", "block").lower() == "warn":
+                logger.warning(
+                    "Overshoot detected but mode=warn → allowing entry"
+                )
+            else:
+                logger.info("Filter NG: overshoot")
+                logger.debug(
+                    "EntryFilter blocked: price overshoot below lower BB"
+                )
+                return False
 
     # --- Dynamic ADX threshold based on BB width -----------------------
     adx_base = float(env_loader.get_env("ADX_RANGE_THRESHOLD", "25"))
