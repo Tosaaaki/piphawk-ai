@@ -1295,10 +1295,29 @@ Respond with **one-line valid JSON** exactly as:
         entry_conf = float(entry_conf) if entry_conf is not None else None
     except (TypeError, ValueError):
         entry_conf = None
+    if entry_conf is None:
+        side_planned = plan.get("entry", {}).get("side")
+        probs = plan.get("probs")
+        if isinstance(probs, dict) and side_planned in probs:
+            try:
+                vals = [float(v) for v in probs.values()]
+                total = sum(vals)
+                if not (0.9 <= total <= 1.1):
+                    import math
+                    e_vals = [math.exp(float(v)) for v in vals]
+                    total = sum(e_vals)
+                    norm = {k: math.exp(float(v)) / total for k, v in probs.items()}
+                    entry_conf = float(norm.get(side_planned))
+                else:
+                    entry_conf = float(probs.get(side_planned))
+            except Exception:
+                entry_conf = None
     side_planned = plan.get("entry", {}).get("side")
     if entry_conf is not None and higher_tf_direction in ("long", "short") and side_planned in ("long", "short"):
         if (higher_tf_direction == "long" and side_planned == "short") or (higher_tf_direction == "short" and side_planned == "long"):
             entry_conf = max(0.0, entry_conf - 0.3)
+    if entry_conf is None:
+        entry_conf = 0.5
     plan["entry_confidence"] = entry_conf
 
     # ---- local guards -------------------------------------------------
