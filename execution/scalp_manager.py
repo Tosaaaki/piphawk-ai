@@ -175,7 +175,7 @@ def enter_scalp_trade(instrument: str, side: str = "long") -> None:
         .get("tradeID")
     )
     if trade_id:
-        _open_scalp_trades[trade_id] = time.time()
+        _open_scalp_trades[str(trade_id)] = time.time()
         # TP が付いているか確認し、無ければ再設定する
         if hasattr(order_mgr, "get_current_tp"):
             time.sleep(1)
