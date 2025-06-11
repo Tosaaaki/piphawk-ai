@@ -10,7 +10,6 @@ from pathlib import Path
 import yaml
 from backend.utils import env_loader
 from piphawk_ai.risk.manager import PortfolioRiskManager
-from backend.strategy.risk_manager import calc_lot_size
 
 try:
     from backend.orders.order_manager import OrderManager, get_pip_size
@@ -36,6 +35,7 @@ SCALP_SL_PIPS = float(_CONFIG.get("sl_pips", 1.0))
 order_mgr = OrderManager()
 _open_scalp_trades: dict[str, float] = {}
 TRAIL_AFTER_TP = env_loader.get_env("TRAIL_AFTER_TP", "false").lower() == "true"
+risk_mgr: PortfolioRiskManager | None = None
 
 def get_dynamic_hold_seconds(instrument: str) -> int:
     """Return hold time based on M1 ATR and env constraints."""
@@ -147,10 +147,10 @@ def enter_scalp_trade(instrument: str, side: str = "long") -> None:
         lot = risk_mgr.get_allowed_lot(
             balance, sl_pips=sl_pips, pip_value=pip_value
         )
+        units = int(lot * 1000) if side == "long" else -int(lot * 1000)
     else:
-        risk_pct = float(env_loader.get_env("RISK_PER_TRADE", "0.005"))
-        lot = calc_lot_size(balance, risk_pct, sl_pips, pip_value)
-    units = int(lot * 1000) if side == "long" else -int(lot * 1000)
+        # リスク計算を行わない場合は設定されたユニット数を使う
+        units = SCALP_UNIT_SIZE if side == "long" else -SCALP_UNIT_SIZE
     params = {
         "tp_pips": tp_pips,
         "sl_pips": sl_pips,
