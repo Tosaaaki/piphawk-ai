@@ -1,3 +1,9 @@
 pytest
 mabwiser
 scikit-learn
+
+httpx
+numpy
+pandas
+requests
+PyYAML
