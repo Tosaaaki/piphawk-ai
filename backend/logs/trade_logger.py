@@ -4,7 +4,15 @@ from enum import Enum
 from typing import Any
 import json
 
-from .log_manager import log_trade as _log_trade, log_policy_transition
+try:
+    from .log_manager import log_trade as _log_trade, log_policy_transition
+except Exception:  # pragma: no cover - log_manager may be stubbed
+    from .log_manager import log_trade as _log_trade
+
+    def log_policy_transition(*_a, **_k):
+        return None
+
+
 from backend.utils import env_loader
 
 
