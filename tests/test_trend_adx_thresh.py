@@ -27,3 +27,5 @@ def test_trend_adx_env_override():
     assert prompt.TREND_ADX_THRESH == 30.0
     assert openai_analysis.TREND_ADX_THRESH == 30.0
     os.environ.pop('TREND_ADX_THRESH')
+    sys.modules.pop('openai', None)
+    sys.modules.pop('pandas', None)
