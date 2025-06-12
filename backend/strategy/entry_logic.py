@@ -268,14 +268,30 @@ def process_entry(
         try:
             import importlib
 
-            scalp_ai = importlib.import_module(
-                "backend.strategy.openai_scalp_analysis"
-            )
-            plan = scalp_ai.get_scalp_plan(
-                indicators,
-                candles,
-                higher_tf_direction=(market_cond or {}).get("trend_direction"),
-            )
+            micro_enabled = env_loader.get_env("MICRO_SCALP_ENABLED", "false").lower() == "true"
+            micro_plan = None
+            if micro_enabled:
+                from backend.market_data import calc_tick_features
+
+                ticks = []
+                if isinstance(strategy_params, dict):
+                    ticks = strategy_params.get("ticks") or []
+                mscalp = importlib.import_module("backend.strategy.openai_micro_scalp")
+                feats = calc_tick_features(ticks)
+                micro_plan = mscalp.get_plan(feats)
+
+            if micro_plan and micro_plan.get("enter"):
+                plan = micro_plan
+            else:
+                scalp_ai = importlib.import_module(
+                    "backend.strategy.openai_scalp_analysis"
+                )
+                plan = scalp_ai.get_scalp_plan(
+                    indicators,
+                    candles,
+                    higher_tf_direction=(market_cond or {}).get("trend_direction"),
+                )
+
             ai_side = plan.get("side")
             if ai_side in ("long", "short"):
                 tp_pips = float(
