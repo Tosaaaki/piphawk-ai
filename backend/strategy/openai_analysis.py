@@ -1189,6 +1189,23 @@ def get_trade_plan(
     except Exception:
         pullback_done = False
 
+    # --- 最新出来高比率を計算 --------------------------------------
+    vol_ratio = None
+    try:
+        if candles_m5:
+            last = candles_m5[-1]
+            if not last.get('complete'):
+                vol_last = float(last.get('volume', 0))
+                prev_vols = [
+                    float(c.get('volume', 0))
+                    for c in candles_m5[:-1]
+                    if c.get('complete')
+                ][-6:]
+                avg = sum(prev_vols) / len(prev_vols) if prev_vols else 0.0
+                vol_ratio = (vol_last / avg) if avg else 1.0
+    except Exception:
+        vol_ratio = None
+
     prompt, comp_val = build_trade_plan_prompt(
         ind_m5,
         ind_m1,
@@ -1203,6 +1220,8 @@ def get_trade_plan(
         macro_summary,
         macro_sentiment,
         pullback_done=pullback_done,
+        vol_ratio=vol_ratio,
+        weight_last=ind_m5.get("weight_last"),
         allow_delayed_entry=allow_delayed_entry,
         higher_tf_direction=higher_tf_direction,
         trend_prompt_bias=trend_prompt_bias,

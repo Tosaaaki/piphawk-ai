@@ -66,6 +66,22 @@ def calculate_indicators(
         if allow_incomplete or c.get('complete')
     ]
 
+    # --- 出来高関連の計算 -------------------------------------------
+    vol_last = 0.0
+    if market_data and not market_data[-1].get('complete'):
+        vol_last = float(market_data[-1].get('volume', 0))
+        complete_vols = [
+            float(c.get('volume', 0))
+            for c in market_data[:-1]
+            if c.get('complete')
+        ]
+    else:
+        complete_vols = [float(c.get('volume', 0)) for c in market_data if c.get('complete')]
+    recent_vols = complete_vols[-6:]
+    vol_avg = sum(recent_vols) / len(recent_vols) if recent_vols else 0.0
+    vol_ratio = (vol_last / vol_avg) if vol_avg else 1.0
+    weight_last = min(1.0, 0.5 + 0.5 * vol_ratio)
+
     import logging
     logger = logging.getLogger(__name__)
     # 最近の終値をデバッグレベルで出力
@@ -111,6 +127,7 @@ def calculate_indicators(
         'plus_di': plus_di,
         'minus_di': minus_di,
         'polarity': calculate_polarity(close_prices),
+        'weight_last': weight_last,
     }
 
     try:

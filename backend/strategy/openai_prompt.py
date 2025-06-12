@@ -49,6 +49,8 @@ def build_trade_plan_prompt(
     macro_sentiment: str | None = None,
     pullback_done: bool = False,
     *,
+    vol_ratio: float | None = None,
+    weight_last: float | None = None,
     allow_delayed_entry: bool = False,
     higher_tf_direction: str | None = None,
     trend_prompt_bias: str | None = None,
@@ -287,6 +289,12 @@ Pivot: {ind_m5.get('pivot')}, R1: {ind_m5.get('pivot_r1')}, S1: {ind_m5.get('piv
 
 ### N-Wave Target
 {ind_m5.get('n_wave_target')}
+
+### Volume Ratio
+{f"{vol_ratio:.2f}" if vol_ratio is not None else 'N/A'}
+
+### Weight Last
+{f"{weight_last:.2f}" if weight_last is not None else 'N/A'}
 
 ### Pullback Completed
 {pullback_done}
