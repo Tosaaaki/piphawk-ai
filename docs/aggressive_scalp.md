@@ -21,6 +21,19 @@
 - `SCALP_PROMPT_BIAS=aggressive`
 - `AI_RETRY_ON_NO=true`
 
+## マイクロ構造モードの有効化
+
+Tick データから超短期エントリーを判定する `openai_micro_scalp.py` を使う場合は、
+以下を `.env` に追加します。
+
+```bash
+MICRO_SCALP_ENABLED=true
+MICRO_SCALP_LOOKBACK=5
+MICRO_SCALP_MIN_PIPS=1
+```
+
+設定後にジョブランナーを再起動するとマイクロ構造モードが有効になります。
+
 ## 反映手順
 
 1. `backend/config/settings.env` に上記を追記または変更します。

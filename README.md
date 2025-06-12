@@ -66,6 +66,7 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 - React dashboard and API endpoints for runtime control.
 - Prometheus metrics from both API and job runner.
 - Dockerfiles for containerized deployment.
+- `openai_micro_scalp.py` for tick-level micro structure scalping.
 
 ### Planned
 
@@ -137,6 +138,9 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 - `ADX_TREND_MIN` … ADX がこの値以上でトレンドフォローモード
 - `TREND_PROMPT_BIAS` … `aggressive` にするとトレンドフォローAIがより積極的
 - `AI_RETRY_ON_NO` … true にするとAIが "no" を返した際に再度 "aggressive" バイアスで判定
+- `MICRO_SCALP_ENABLED` … openai_micro_scalp を有効にするフラグ
+- `MICRO_SCALP_LOOKBACK` … マイクロ構造判定に使うティック本数
+- `MICRO_SCALP_MIN_PIPS` … 微小スキャルプの最低TP幅
 - `MODE_ATR_PIPS_MIN` / `MODE_BBWIDTH_PIPS_MIN` … ボラティリティ判定用の閾値
 - `MODE_EMA_SLOPE_MIN` / `MODE_ADX_MIN` … モメンタム判定のしきい値
 - `MODE_VOL_MA_MIN` … 流動性判定に使う出来高平均
