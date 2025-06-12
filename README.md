@@ -226,14 +226,14 @@ YAML ファイルの変更は `settings.env` と同様、ジョブランナー�
 ### LLM model settings
 
 `strategy.yml` では利用する OpenAI モデルを個別に指定できます。次の設定例はモード
-選択に `gpt-3.5-turbo-0125`、エントリーとエグジットに `gpt-4.1-nano` を利用する
+選択に `gpt-3.5-turbo-0125`、エントリーとエグジットに `gpt-4o-nano` を利用する
 場合です。
 
 ```yaml
 LLM:
   mode_selector: gpt-3.5-turbo-0125
-  entry_logic: gpt-4.1-nano
-  exit_logic: gpt-4.1-nano
+  entry_logic: gpt-4o-nano
+  exit_logic: gpt-4o-nano
 ```
 
 `AI_REGIME_MODEL` などの値は `.env` を編集して変更できます。
@@ -312,7 +312,7 @@ exit is considered.
 `LOW_ADX_THRESH` is the ADX threshold paired with `HIGH_ATR_PIPS` for this early-exit rule.
 `MM_DRAW_MAX_ATR_RATIO` controls how much drawdown from the peak is allowed before the peak exit guard triggers. The value is multiplied by ATR to derive the threshold.
 `PULLBACK_LIMIT_OFFSET_PIPS` is the base distance for a pullback LIMIT order when the AI proposes a market entry. The actual offset is derived from ATR and ADX, and if price runs away while the trend persists the order can be switched to a market order under AI control.
-`AI_LIMIT_CONVERT_MODEL` sets the OpenAI model used when asking whether a pending LIMIT should be switched to a market order. The default is `gpt-4.1-nano`.
+`AI_LIMIT_CONVERT_MODEL` sets the OpenAI model used when asking whether a pending LIMIT should be switched to a market order. The default is `gpt-4o-nano`.
 `PULLBACK_PIPS` defines the offset used specifically when the price is within the pivot suppression range. The defaults are `2` and `3` respectively.
 `PULLBACK_ATR_RATIO` は ATR に基づくプルバック深度の調整係数で、1.0 なら ATR と同じ値、0.5 なら半分の深さを待ちます。
 `PIP_SIZE` specifies the pip value for the traded pair (e.g. `0.01` for JPY pairs) and is used when calculating the new volatility‑based pullback threshold.
