@@ -32,6 +32,7 @@ elif adx >= 25:
 AI へモードを伝える際は、**"mode: trend_follow"** などと先に宣言すると返答が安定します。また、AI にはスコアリングの根拠をテキストで列挙し、
 
 ```
+# AI に渡すプロンプトの例
 mode: trend_follow
 reason:
 - ADX strong (35)
