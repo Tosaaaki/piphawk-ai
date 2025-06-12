@@ -20,6 +20,9 @@ def test_llm_fallback(monkeypatch):
     monkeypatch.setattr(lm, "ask_openai", lambda *a, **k: {"mode": "trend_follow"})
     assert lm.select_mode_llm({}) == "trend_follow"
 
+    monkeypatch.setattr(lm, "ask_openai", lambda *a, **k: {"mode": "scalp_reversion"})
+    assert lm.select_mode_llm({}) == "scalp_reversion"
+
     def raise_err(*_a, **_k):
         raise RuntimeError("fail")
 

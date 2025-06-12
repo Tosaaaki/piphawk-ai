@@ -374,7 +374,7 @@ def decide_trade_mode_detail(
 
 def map_llm(llm_mode: str) -> str:
     """LLM からの出力を正規化する."""
-    if llm_mode in {"trend_follow", "scalp_momentum", "no_trade"}:
+    if llm_mode in {"trend_follow", "scalp_momentum", "scalp_reversion", "no_trade"}:
         return llm_mode
     return "no_trade"
 
