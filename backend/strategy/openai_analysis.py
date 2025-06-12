@@ -1431,6 +1431,9 @@ Respond with **one-line valid JSON** exactly as:
         logger.info("Invalid JSON response: %s", raw)
         return {"entry": {"side": "no"}, "raw": raw, "reason": "PARSE_FAIL"}
 
+    # AIが返したレジーム情報を取り出す
+    market_cond = plan.get("regime")
+
     if plan.get("entry", {}).get("side") == "no":
         why = plan.get("why") or plan.get("entry", {}).get("why")
         if isinstance(why, str) and why:
