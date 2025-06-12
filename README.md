@@ -223,6 +223,22 @@ YAML ファイルの変更は `settings.env` と同様、ジョブランナー�
 ます。値を変えた後はジョブランナーを再起動するか、明示的に
 `params_loader.load_params()` を実行してください。
 
+### LLM model settings
+
+`strategy.yml` では利用する OpenAI モデルを個別に指定できます。次の設定例はモード
+選択に `gpt-3.5-turbo-0125`、エントリーとエグジットに `gpt-4.1-nano` を利用する
+場合です。
+
+```yaml
+LLM:
+  mode_selector: gpt-3.5-turbo-0125
+  entry_logic: gpt-4.1-nano
+  exit_logic: gpt-4.1-nano
+```
+
+これらはそれぞれ `AI_REGIME_MODEL`、`AI_ENTRY_MODEL`、`AI_EXIT_MODEL` 環境変数に
+展開されます。
+
 ジョブランナーは ADX の値からスキャルプかトレンドフォローかを判断し、モードが
 切り替わった際に `config/<mode>.yml` を自動で再読み込みします。環境変数
 `AUTO_RESTART=true` を設定すると、読み込み後にプロセスを `os.execv()` で
