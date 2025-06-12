@@ -1,12 +1,16 @@
 from __future__ import annotations
+
 """Composite trade mode decision utility."""
 
-from typing import Sequence, Iterable
-from indicators.candlestick import detect_upper_wick_cluster
-import logging
 import datetime
+import logging
+from typing import Iterable, Sequence
 
+from analysis.llm_mode_selector import select_mode_llm
+from analysis.mode_preclassifier import classify_regime
 from backend.utils import env_loader
+from indicators.candlestick import detect_upper_wick_cluster
+
 from .mode_params import get_params
 
 MODE_PARAMS = get_params()
@@ -22,7 +26,9 @@ MODE_ATR_PIPS_MIN = float(env_loader.get_env("MODE_ATR_PIPS_MIN", "5"))
 MODE_BBWIDTH_PIPS_MIN = float(env_loader.get_env("MODE_BBWIDTH_PIPS_MIN", "3"))
 MODE_EMA_SLOPE_MIN = float(env_loader.get_env("MODE_EMA_SLOPE_MIN", "0.1"))
 MODE_ADX_MIN = float(env_loader.get_env("MODE_ADX_MIN", "25"))
-MODE_VOL_MA_MIN = float(env_loader.get_env("MODE_VOL_MA_MIN", env_loader.get_env("MIN_VOL_MA", "80")))
+MODE_VOL_MA_MIN = float(
+    env_loader.get_env("MODE_VOL_MA_MIN", env_loader.get_env("MIN_VOL_MA", "80"))
+)
 VOL_MA_PERIOD = int(env_loader.get_env("VOL_MA_PERIOD", "5"))
 RANGE_ADX_MIN = float(env_loader.get_env("RANGE_ADX_MIN", "15"))
 RANGE_ADX_COUNT = int(env_loader.get_env("RANGE_ADX_COUNT", "3"))
@@ -123,6 +129,8 @@ def decide_trade_mode_matrix(
     if atr_ratio <= atr_low_thr and adx >= adx_trend_thr:
         return "trend_follow"
     return "flat"
+
+
 def _quantile(data: Iterable, q: float) -> float | None:
     """Return q-th quantile from sequence ``data``."""
     try:
@@ -151,7 +159,9 @@ def decide_trade_mode_detail(
         vols = []
     elif hasattr(vols, "tolist"):
         vols = vols.tolist()
-    vol_ma = sum(vols[-VOL_MA_PERIOD:]) / min(len(vols), VOL_MA_PERIOD) if vols else None
+    vol_ma = (
+        sum(vols[-VOL_MA_PERIOD:]) / min(len(vols), VOL_MA_PERIOD) if vols else None
+    )
 
     atr_val = _last(m5.get("atr"))
     adx_vals = m5.get("adx")
@@ -324,14 +334,27 @@ def decide_trade_mode_detail(
         _LAST_MODE = mode
         _LAST_SWITCH = candle_len
 
-    logging.getLogger(__name__).info("decide_trade_mode -> %s (score=%.2f)", mode, score)
+    logging.getLogger(__name__).info(
+        "decide_trade_mode -> %s (score=%.2f)", mode, score
+    )
     return mode, score, reasons
 
 
+def map_llm(llm_mode: str) -> str:
+    """LLM からの出力を正規化する."""
+    if llm_mode in {"trend_follow", "scalp_momentum", "no_trade"}:
+        return llm_mode
+    return "no_trade"
+
+
 def decide_trade_mode(indicators: dict) -> str:
-    """Return trade mode based on scoring approach."""
-    mode, _score, _reasons = decide_trade_mode_detail(indicators)
-    return mode
+    """Return trade mode using preclassifier and LLM."""
+    regime = classify_regime(indicators)
+    if regime in ("trend", "range"):
+        return {"trend": "trend_follow", "range": "scalp_momentum"}[regime]
+    if regime == "gray":
+        return map_llm(select_mode_llm(indicators))
+    return "no_trade"
 
 
 def calculate_scores(indicators: dict) -> float:
@@ -343,6 +366,7 @@ def calculate_scores(indicators: dict) -> float:
 
 __all__ = [
     "decide_trade_mode",
+    "map_llm",
     "decide_trade_mode_detail",
     "decide_trade_mode_matrix",
     "calculate_scores",
