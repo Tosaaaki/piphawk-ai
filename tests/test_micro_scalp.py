@@ -16,6 +16,10 @@ class TestMicroScalp(unittest.TestCase):
         val = calc_of_imbalance(ticks)
         self.assertAlmostEqual(val, (2 - 1) / 3)
 
+    def test_load_prompt(self):
+        text = micro.load_prompt()
+        self.assertIn("breakout continuation", text.lower())
+
     def test_get_plan_json(self):
         micro.ask_openai = lambda *a, **k: '{"enter":true,"side":"long","tp_pips":1,"sl_pips":0.5}'
         plan = micro.get_plan({"of_imbalance": 0, "vol_burst": 0, "spd_avg": 0})
