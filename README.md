@@ -319,6 +319,7 @@ exit is considered.
 `TRADE_TIMEFRAMES` allows overriding which candle intervals are fetched for analysis. Specify as `S10:60,M1:20,M5:50,M15:50,H1:120,H4:90,D:90` to cover short to long horizons. `S10` denotes 10‑second candles.
 The system derives a dynamic pullback requirement from ATR, ADX and recent price swings. If indicators are missing, the fallback is `PULLBACK_PIPS`.
 `BYPASS_PULLBACK_ADX_MIN` を設定すると、その値以上の ADX ではプルバック待機を完全にスキップし、AI プロンプトにも "Pullback not required" と記載されます。
+`ALLOW_NO_PULLBACK_WHEN_ADX` を `20` に設定すると、ADX が 20 以上のときプルバック不要と明示的に AI に伝えます。
 `TP_BB_RATIO` scales the Bollinger band width when deriving a fallback take-profit target. For example, `0.6` uses 60% of the band width.
 `RANGE_ENTRY_OFFSET_PIPS` determines how far from the Bollinger band center price must be (in pips) before converting a market order to a LIMIT when `ENABLE_RANGE_ENTRY` is active. If the price is within this range, `entry_logic.py` places the order near the band high or low. The default is `3`.
 `想定ノイズ` is automatically computed from ATR and Bollinger Band width and included in the AI prompt to help choose wider stop-loss levels.
