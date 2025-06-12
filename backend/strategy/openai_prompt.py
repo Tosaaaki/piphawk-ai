@@ -274,8 +274,9 @@ def build_trade_plan_prompt(
     bias_note = ""
     if bias == "aggressive":
         # 条件が曖昧な場合でも積極的にポジションを示すよう指示
+        # "sell" を併記しているのはショートを意味することを明確にするため
         bias_note = (
-            "\nBe strongly proactive: unless risk rules clearly prohibit, choose 'long' or 'short' instead of 'no'. "
+            "\nBe strongly proactive: unless risk rules clearly prohibit, choose 'long' or 'short (sell)' instead of 'no'. "
             "Return 'no' only when absolutely no valid setup exists."
         )
     prompt += bias_note
