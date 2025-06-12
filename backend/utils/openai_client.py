@@ -10,6 +10,7 @@ import logging
 import asyncio
 import time
 from typing import Dict, Tuple, Optional
+from collections import OrderedDict
 
 # env_loader はインポート時に既定の .env を読み込む
 
@@ -35,8 +36,9 @@ AI_MODEL = env_loader.get_env("AI_MODEL", "gpt-4.1-nano")
 # ──────────────────────────────────
 #   Lightweight in-memory cache
 # ──────────────────────────────────
-_cache: Dict[Tuple[str, str, str], Tuple[float, dict]] = {}
+_cache: "OrderedDict[Tuple[str, str, str], Tuple[float, dict]]" = OrderedDict()
 _CACHE_TTL_SEC = int(env_loader.get_env("OPENAI_CACHE_TTL_SEC", "30"))
+_CACHE_MAX = int(env_loader.get_env("OPENAI_CACHE_MAX", "100"))
 
 # --- AI 呼び出し制御 ----------------------------
 _CALL_LIMIT_PER_LOOP = int(env_loader.get_env("MAX_AI_CALLS_PER_LOOP", "1"))
@@ -92,9 +94,13 @@ def ask_openai(
     key = (model, system_prompt, prompt)
     now = time.time()
     cached = _cache.get(key)
-    if cached and now - cached[0] < _CACHE_TTL_SEC:
-        logger.debug("OpenAI cache hit for %s", model)
-        return cached[1]
+    if cached:
+        if now - cached[0] < _CACHE_TTL_SEC:
+            logger.debug("OpenAI cache hit for %s", model)
+            _cache.move_to_end(key)
+            return cached[1]
+        else:
+            _cache.pop(key, None)
     try:
         if response_format is None:
             response_format = {"type": "json_object"}
@@ -113,6 +119,9 @@ def ask_openai(
         response_content = response.choices[0].message.content.strip()
         parsed = json.loads(response_content)
         _cache[key] = (now, parsed)
+        _cache.move_to_end(key)
+        while len(_cache) > _CACHE_MAX:
+            _cache.popitem(last=False)
         return parsed
     except json.JSONDecodeError as exc:
         logger.error("Malformed JSON from OpenAI: %s", response_content)
