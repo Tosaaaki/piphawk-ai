@@ -185,6 +185,38 @@ def _calc_scalp_tp_sl(
     return max(tp, 0.0), max(sl, 0.0)
 
 
+def _calc_reversion_tp_sl(indicators: dict, pip_size: float) -> tuple[float | None, float | None]:
+    """Return TP/SL using ATR or Bollinger width for scalp reversion."""
+    atr_series = indicators.get("atr")
+    bb_upper = indicators.get("bb_upper")
+    bb_lower = indicators.get("bb_lower")
+    atr_pips = None
+    width_pips = None
+    if atr_series is not None and len(atr_series):
+        try:
+            atr_val = atr_series.iloc[-1] if hasattr(atr_series, "iloc") else atr_series[-1]
+            atr_pips = float(atr_val) / pip_size
+        except Exception:
+            atr_pips = None
+    if bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
+        try:
+            up = bb_upper.iloc[-1] if hasattr(bb_upper, "iloc") else bb_upper[-1]
+            low = bb_lower.iloc[-1] if hasattr(bb_lower, "iloc") else bb_lower[-1]
+            width_pips = (up - low) / pip_size
+        except Exception:
+            width_pips = None
+    noise = 0.0
+    if atr_pips is not None:
+        noise = max(noise, atr_pips)
+    if width_pips is not None:
+        noise = max(noise, width_pips)
+    if noise == 0.0:
+        return None, None
+    tp_mult = float(env_loader.get_env("SCALP_REV_TP_MULT", "0.6"))
+    sl_mult = float(env_loader.get_env("SCALP_REV_SL_MULT", "1.0"))
+    return noise * tp_mult, noise * sl_mult
+
+
 def process_entry(
     indicators,
     candles,
@@ -333,6 +365,13 @@ def process_entry(
             if sl_pips is None:
                 sl_pips = float(env_loader.get_env("SCALP_SL_PIPS", "1"))
 
+            if trade_mode == "scalp_reversion":
+                rev_tp, rev_sl = _calc_reversion_tp_sl(indicators, pip_size)
+                if rev_tp is not None:
+                    tp_pips = rev_tp
+                if rev_sl is not None:
+                    sl_pips = rev_sl
+
             # --- Volatility / spread filters for scalping ------------------
             try:
                 cool_bw = float(env_loader.get_env("COOL_BBWIDTH_PCT", "0"))
@@ -399,6 +438,10 @@ def process_entry(
                 "ai_response": "scalp",
                 "market_cond": market_cond,
             }
+            if trade_mode == "scalp_reversion":
+                params["time_limit_sec"] = float(
+                    env_loader.get_env("SCALP_REV_TIME_LIMIT_SEC", "120")
+                )
             risk_pct = float(env_loader.get_env("ENTRY_RISK_PCT", "0.01"))
             pip_val = float(env_loader.get_env("PIP_VALUE_JPY", "100"))
             lot = calc_lot_size(

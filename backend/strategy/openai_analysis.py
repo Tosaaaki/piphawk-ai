@@ -1254,6 +1254,7 @@ def get_trade_plan(
         allow_delayed_entry=allow_delayed_entry,
         higher_tf_direction=higher_tf_direction,
         trend_prompt_bias=trend_prompt_bias,
+        trade_mode=trade_mode,
     )
     pattern_text = f"\n### Detected Chart Pattern\n{pattern_line}\n" if pattern_line else "\n### Detected Chart Pattern\nNone\n"
     # ADX が高い場合はプルバック不要メッセージを追加する

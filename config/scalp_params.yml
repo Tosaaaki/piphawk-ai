@@ -25,3 +25,11 @@ overshoot:
   ceil: 20.0
   mode: warn
   window_candles: 2
+
+scalp_reversion:
+  bb_sigma: 2.5
+  rsi_extreme: "70/30"
+  adx_max: 18
+  tp_pips: 8
+  sl_pips: 10
+  time_limit_sec: 120
