@@ -79,8 +79,9 @@ def calculate_indicators(
         complete_vols = [float(c.get('volume', 0)) for c in market_data if c.get('complete')]
     recent_vols = complete_vols[-6:]
     vol_avg = sum(recent_vols) / len(recent_vols) if recent_vols else 0.0
-    vol_ratio = (vol_last / vol_avg) if vol_avg else 1.0
-    weight_last = min(1.0, 0.5 + 0.5 * vol_ratio)
+    # 平均値が得られない場合は 0.5 を用いる
+    vol_ratio = (vol_last / vol_avg) if vol_avg else 0.5
+    weight_last = 0.5 + 0.5 * vol_ratio
 
     import logging
     logger = logging.getLogger(__name__)
