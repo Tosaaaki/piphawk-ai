@@ -34,6 +34,8 @@ RANGE_ENTRY_NOTE = env_loader.get_env(
 
 # 共通のタスク指示文テンプレートを外部ファイルから読み込む
 INSTRUCTION_TEMPLATE = load_template("trade_plan.txt")
+# 新しいトレードプランテンプレート
+TRADE_PLAN_PROMPT = load_template("trade_plan_instruction.txt")
 
 def _instruction_text() -> str:
     """Return formatted instruction section."""
@@ -201,138 +203,69 @@ def build_trade_plan_prompt(
 
     mode_header = f"### TRADING_MODE\n{trade_mode}\n" if trade_mode else ""
 
-    prompt = mode_header + f"""
-⚠️【Market Regime Classification – Flexible Criteria】
-Classify as "TREND" if ANY TWO of the following conditions are met:
-- ADX ≥ {TREND_ADX_THRESH} maintained over at least the last 3 candles.
-- EMA consistently sloping upwards or downwards without major reversals within the last 3 candles.
-- Price consistently outside the Bollinger Band midline (above for bullish, below for bearish).
+    overshoot = ""
+    if allow_delayed_entry:
+        overshoot = (
+            "\n\n⏳【Trend Overshoot Handling】\n"
+            "When RSI exceeds 70 in an uptrend or falls below 30 in a downtrend, do not immediately set side to 'no'.\n"
+            f"If momentum is still strong you may follow the trend. Otherwise respond with mode:'wait' so the system rechecks after a pullback of about {pullback_needed:.1f} pips.\n"
+        )
 
-If these conditions are not clearly met, classify the market as "RANGE".
-{RANGE_ENTRY_NOTE}
-
-🚫【Counter-trend Trade Prohibition】
-Under clearly identified TREND conditions, avoid counter-trend trades and never rely solely on RSI extremes. Treat pullbacks as trend continuation. However, if a strong reversal pattern such as a double top/bottom or head-and-shoulders is detected and ADX is turning down, a small counter-trend position is acceptable.
-
-🔄【Counter-Trend Trade Allowance】
-Allow short-term counter-trend trades only when all of the following are true:
-- ADX ≤ {TREND_ADX_THRESH} or clearly declining.
-- A clear reversal pattern (double top/bottom, head-and-shoulders) is present.
-- RSI ≤ 30 for LONG or ≥ 70 for SHORT, showing potential exhaustion.
-- Price action has stabilized with minor reversal candles.
-- TP kept small (5–10 pips) and risk tightly controlled.
-
-Price has just printed multiple upper shadows and ADX(S10) fell >30% from its peak.
-Evaluate if a short scalp is favorable given potential exhaustion.
-
-📈【Trend Entry Clarification】
-Once a TREND is confirmed, prioritize entries on pullbacks. Use recent volatility (ATR or Bollinger width) to gauge the pullback depth. Shorts enter after price rises {pullback_needed:.1f} pips above the latest low, longs after price drops {pullback_needed:.1f} pips below the latest high. This pullback rule overrides RSI extremes.{no_pullback_msg}""" + (
-        "\n\n⏳【Trend Overshoot Handling】\n"
-        "When RSI exceeds 70 in an uptrend or falls below 30 in a downtrend, do not immediately set side to 'no'.\n"
-        "If momentum is still strong you may follow the trend. Otherwise respond with mode:'wait' so the system rechecks after a pullback of about {pullback_needed:.1f} pips.\n"
-        if allow_delayed_entry else ""
-    ) + f"""
-
-🔎【Minor Retracement Clarification】
-Do not interpret short-term retracements as trend reversals. Genuine trend reversals require ALL of the following simultaneously:
-- EMA direction reversal sustained for at least 3 candles.
-- ADX clearly drops below {TREND_ADX_THRESH}, indicating weakening trend momentum.
-
-🎯【Improved Exit Strategy】
-Avoid exiting during normal trend pullbacks. Only exit a trend trade if **ALL** of the following are true:
-- EMA reverses direction and this is sustained for at least 3 consecutive candles.
-- ADX drops clearly below {TREND_ADX_THRESH}, showing momentum has faded.
-If these are not all met, HOLD the position even if RSI is extreme or price briefly retraces.
-
-♻️【Immediate Re-entry Policy】
-If a stop-loss is triggered but original trend conditions remain intact (ADX≥{TREND_ADX_THRESH}, clear EMA slope), immediately re-enter in the same direction upon the next valid signal.
-
-### Recent Indicators (last 20 values each)
-## M5
-RSI  : {_series_tail_list(ind_m5.get('rsi'), 20)}
-ATR  : {_series_tail_list(ind_m5.get('atr'), 20)}
-ADX  : {_series_tail_list(ind_m5.get('adx'), 20)}
-BB_hi: {_series_tail_list(ind_m5.get('bb_upper'), 20)}
-BB_lo: {_series_tail_list(ind_m5.get('bb_lower'), 20)}
-EMA_f: {_series_tail_list(ind_m5.get('ema_fast'), 20)}
-EMA_s: {_series_tail_list(ind_m5.get('ema_slow'), 20)}
-
-## M15
-RSI  : {_series_tail_list(ind_m15.get('rsi'), 20)}
-ATR  : {_series_tail_list(ind_m15.get('atr'), 20)}
-ADX  : {_series_tail_list(ind_m15.get('adx'), 20)}
-BB_hi: {_series_tail_list(ind_m15.get('bb_upper'), 20)}
-BB_lo: {_series_tail_list(ind_m15.get('bb_lower'), 20)}
-EMA_f: {_series_tail_list(ind_m15.get('ema_fast'), 20)}
-EMA_s: {_series_tail_list(ind_m15.get('ema_slow'), 20)}
-
-## M1
-RSI  : {_series_tail_list(ind_m1.get('rsi'), 20)}
-ATR  : {_series_tail_list(ind_m1.get('atr'), 20)}
-ADX  : {_series_tail_list(ind_m1.get('adx'), 20)}
-BB_hi: {_series_tail_list(ind_m1.get('bb_upper'), 20)}
-BB_lo: {_series_tail_list(ind_m1.get('bb_lower'), 20)}
-EMA_f: {_series_tail_list(ind_m1.get('ema_fast'), 20)}
-EMA_s: {_series_tail_list(ind_m1.get('ema_slow'), 20)}
-
-## D1
-RSI  : {_series_tail_list(ind_d1.get('rsi'), 20)}
-ATR  : {_series_tail_list(ind_d1.get('atr'), 20)}
-ADX  : {_series_tail_list(ind_d1.get('adx'), 20)}
-BB_hi: {_series_tail_list(ind_d1.get('bb_upper'), 20)}
-BB_lo: {_series_tail_list(ind_d1.get('bb_lower'), 20)}
-EMA_f: {_series_tail_list(ind_d1.get('ema_fast'), 20)}
-EMA_s: {_series_tail_list(ind_d1.get('ema_slow'), 20)}
-
-### M5 Candles
-{candles_m5[-50:]}
-
-### M15 Candles
-{candles_m15[-30:]}
-
-### M1 Candles
-{candles_m1[-20:]}
-
-### D1 Candles
-{candles_d1[-60:]}
-
-{adx_snapshot}{pattern_text}{direction_line}
-### How to use the provided candles:
-- Use the medium-term view (50 candles) to understand the general market trend, key support/resistance levels, and to avoid noisy, short-lived moves.
-- Use the short-term view (20 candles) specifically for optimizing entry timing (such as waiting for pullbacks or breakouts) and to confirm recent price momentum.
-
-### 90-day Historical Stats
-{json.dumps(hist_stats or {}, separators=(',', ':'))}
-
-### Estimated Noise
-{noise_val} pips is the approximate short-term market noise.
-Use this as a baseline for setting wider stop-loss levels.
-After calculating TP hit probability, widen the SL by at least {env_loader.get_env("NOISE_SL_MULT", "1.5")} times.
-
-### Composite Trend Score
-{tv_score}
-
-### Pivot Levels
-Pivot: {ind_m5.get('pivot')}, R1: {ind_m5.get('pivot_r1')}, S1: {ind_m5.get('pivot_s1')}
-
-### N-Wave Target
-{ind_m5.get('n_wave_target')}
-
-### Volume Ratio
-{f"{vol_ratio:.2f}" if vol_ratio is not None else 'N/A'}
-
-### Weight Last
-{f"{weight_last:.2f}" if weight_last is not None else 'N/A'}
-
-### Pullback Completed
-{pullback_done}
-
-### Macro News Summary
-{macro_summary if macro_summary else 'N/A'}
-### Macro Sentiment
-{macro_sentiment if macro_sentiment else 'N/A'}
-
-""" + _instruction_text()
+    prompt = mode_header + TRADE_PLAN_PROMPT.format(
+        TREND_ADX_THRESH=TREND_ADX_THRESH,
+        RANGE_ENTRY_NOTE=RANGE_ENTRY_NOTE,
+        pullback_needed=pullback_needed,
+        no_pullback_msg=no_pullback_msg,
+        TREND_OVERSHOOT_SECTION=overshoot,
+        m5_rsi=_series_tail_list(ind_m5.get("rsi"), 20),
+        m5_atr=_series_tail_list(ind_m5.get("atr"), 20),
+        m5_adx=_series_tail_list(ind_m5.get("adx"), 20),
+        m5_bb_u=_series_tail_list(ind_m5.get("bb_upper"), 20),
+        m5_bb_l=_series_tail_list(ind_m5.get("bb_lower"), 20),
+        m5_ema_f=_series_tail_list(ind_m5.get("ema_fast"), 20),
+        m5_ema_s=_series_tail_list(ind_m5.get("ema_slow"), 20),
+        m15_rsi=_series_tail_list(ind_m15.get("rsi"), 20),
+        m15_atr=_series_tail_list(ind_m15.get("atr"), 20),
+        m15_adx=_series_tail_list(ind_m15.get("adx"), 20),
+        m15_bb_u=_series_tail_list(ind_m15.get("bb_upper"), 20),
+        m15_bb_l=_series_tail_list(ind_m15.get("bb_lower"), 20),
+        m15_ema_f=_series_tail_list(ind_m15.get("ema_fast"), 20),
+        m15_ema_s=_series_tail_list(ind_m15.get("ema_slow"), 20),
+        m1_rsi=_series_tail_list(ind_m1.get("rsi"), 20),
+        m1_atr=_series_tail_list(ind_m1.get("atr"), 20),
+        m1_adx=_series_tail_list(ind_m1.get("adx"), 20),
+        m1_bb_u=_series_tail_list(ind_m1.get("bb_upper"), 20),
+        m1_bb_l=_series_tail_list(ind_m1.get("bb_lower"), 20),
+        m1_ema_f=_series_tail_list(ind_m1.get("ema_fast"), 20),
+        m1_ema_s=_series_tail_list(ind_m1.get("ema_slow"), 20),
+        d1_rsi=_series_tail_list(ind_d1.get("rsi"), 20),
+        d1_atr=_series_tail_list(ind_d1.get("atr"), 20),
+        d1_adx=_series_tail_list(ind_d1.get("adx"), 20),
+        d1_bb_u=_series_tail_list(ind_d1.get("bb_upper"), 20),
+        d1_bb_l=_series_tail_list(ind_d1.get("bb_lower"), 20),
+        d1_ema_f=_series_tail_list(ind_d1.get("ema_fast"), 20),
+        d1_ema_s=_series_tail_list(ind_d1.get("ema_slow"), 20),
+        candles_m5_tail=candles_m5[-50:],
+        candles_m15_tail=candles_m15[-30:],
+        candles_m1_tail=candles_m1[-20:],
+        candles_d1_tail=candles_d1[-60:],
+        adx_snapshot=adx_snapshot,
+        pattern_text=pattern_text,
+        direction_line=direction_line,
+        hist_stats_json=json.dumps(hist_stats or {}, separators=(",", ":")),
+        noise_val=noise_val,
+        noise_sl_mult=env_loader.get_env("NOISE_SL_MULT", "1.5"),
+        tv_score=tv_score,
+        pivot=ind_m5.get("pivot"),
+        pivot_r1=ind_m5.get("pivot_r1"),
+        pivot_s1=ind_m5.get("pivot_s1"),
+        n_wave_target=ind_m5.get("n_wave_target"),
+        vol_ratio_formatted=f"{vol_ratio:.2f}" if vol_ratio is not None else "N/A",
+        weight_last_formatted=f"{weight_last:.2f}" if weight_last is not None else "N/A",
+        pullback_done=pullback_done,
+        macro_summary_formatted=macro_summary if macro_summary else "N/A",
+        macro_sentiment_formatted=macro_sentiment if macro_sentiment else "N/A",
+    ) + _instruction_text()
     bias = trend_prompt_bias or TREND_PROMPT_BIAS
     bias_note = ""
     if bias == "aggressive":

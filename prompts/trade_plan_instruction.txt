@@ -1,0 +1,124 @@
+⚠️【Market Regime Classification – Flexible Criteria】
+Classify as "TREND" if ANY TWO of the following conditions are met:
+- ADX ≥ {TREND_ADX_THRESH} maintained over at least the last 3 candles.
+- EMA consistently sloping upwards or downwards without major reversals within the last 3 candles.
+- Price consistently outside the Bollinger Band midline (above for bullish, below for bearish).
+
+If these conditions are not clearly met, classify the market as "RANGE".
+{RANGE_ENTRY_NOTE}
+
+🚫【Counter-trend Trade Prohibition】
+Under clearly identified TREND conditions, avoid counter-trend trades and never rely solely on RSI extremes. Treat pullbacks as trend continuation. However, if a strong reversal pattern such as a double top/bottom or head-and-shoulders is detected and ADX is turning down, a small counter-trend position is acceptable.
+
+🔄【Counter-Trend Trade Allowance】
+Allow short-term counter-trend trades only when all of the following are true:
+- ADX ≤ {TREND_ADX_THRESH} or clearly declining.
+- A clear reversal pattern (double top/bottom, head-and-shoulders) is present.
+- RSI ≤ 30 for LONG or ≥ 70 for SHORT, showing potential exhaustion.
+- Price action has stabilized with minor reversal candles.
+- TP kept small (5–10 pips) and risk tightly controlled.
+
+Price has just printed multiple upper shadows and ADX(S10) fell >30% from its peak.
+Evaluate if a short scalp is favorable given potential exhaustion.
+
+📈【Trend Entry Clarification】
+Once a TREND is confirmed, prioritize entries on pullbacks. Use recent volatility (ATR or Bollinger width) to gauge the pullback depth. Shorts enter after price rises {pullback_needed:.1f} pips above the latest low, longs after price drops {pullback_needed:.1f} pips below the latest high. This pullback rule overrides RSI extremes.{no_pullback_msg}
+{TREND_OVERSHOOT_SECTION}
+🔎【Minor Retracement Clarification】
+Do not interpret short-term retracements as trend reversals. Genuine trend reversals require ALL of the following simultaneously:
+- EMA direction reversal sustained for at least 3 candles.
+- ADX clearly drops below {TREND_ADX_THRESH}, indicating weakening trend momentum.
+
+🎯【Improved Exit Strategy】
+Avoid exiting during normal trend pullbacks. Only exit a trend trade if **ALL** of the following are true:
+- EMA reverses direction and this is sustained for at least 3 consecutive candles.
+- ADX drops clearly below {TREND_ADX_THRESH}, showing momentum has faded.
+If these are not all met, HOLD the position even if RSI is extreme or price briefly retraces.
+
+♻️【Immediate Re-entry Policy】
+If a stop-loss is triggered but original trend conditions remain intact (ADX≥{TREND_ADX_THRESH}, clear EMA slope), immediately re-enter in the same direction upon the next valid signal.
+
+### Recent Indicators (last 20 values each)
+## M5
+RSI  : {m5_rsi}
+ATR  : {m5_atr}
+ADX  : {m5_adx}
+BB_hi: {m5_bb_u}
+BB_lo: {m5_bb_l}
+EMA_f: {m5_ema_f}
+EMA_s: {m5_ema_s}
+
+## M15
+RSI  : {m15_rsi}
+ATR  : {m15_atr}
+ADX  : {m15_adx}
+BB_hi: {m15_bb_u}
+BB_lo: {m15_bb_l}
+EMA_f: {m15_ema_f}
+EMA_s: {m15_ema_s}
+
+## M1
+RSI  : {m1_rsi}
+ATR  : {m1_atr}
+ADX  : {m1_adx}
+BB_hi: {m1_bb_u}
+BB_lo: {m1_bb_l}
+EMA_f: {m1_ema_f}
+EMA_s: {m1_ema_s}
+
+## D1
+RSI  : {d1_rsi}
+ATR  : {d1_atr}
+ADX  : {d1_adx}
+BB_hi: {d1_bb_u}
+BB_lo: {d1_bb_l}
+EMA_f: {d1_ema_f}
+EMA_s: {d1_ema_s}
+
+### M5 Candles
+{candles_m5_tail}
+
+### M15 Candles
+{candles_m15_tail}
+
+### M1 Candles
+{candles_m1_tail}
+
+### D1 Candles
+{candles_d1_tail}
+
+{adx_snapshot}{pattern_text}{direction_line}
+### How to use the provided candles:
+- Use the medium-term view (50 candles) to understand the general market trend, key support/resistance levels, and to avoid noisy, short-lived moves.
+- Use the short-term view (20 candles) specifically for optimizing entry timing (such as waiting for pullbacks or breakouts) and to confirm recent price momentum.
+
+### 90-day Historical Stats
+{hist_stats_json}
+
+### Estimated Noise
+{noise_val} pips is the approximate short-term market noise.
+Use this as a baseline for setting wider stop-loss levels.
+After calculating TP hit probability, widen the SL by at least {noise_sl_mult} times.
+
+### Composite Trend Score
+{tv_score}
+
+### Pivot Levels
+Pivot: {pivot}, R1: {pivot_r1}, S1: {pivot_s1}
+
+### N-Wave Target
+{n_wave_target}
+
+### Volume Ratio
+{vol_ratio_formatted}
+
+### Weight Last
+{weight_last_formatted}
+
+### Pullback Completed
+{pullback_done}
+
+### Macro News Summary
+{macro_summary_formatted}
+### Macro Sentiment
+{macro_sentiment_formatted}

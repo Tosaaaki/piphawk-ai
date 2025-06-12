@@ -860,5 +860,6 @@ The script installs dependencies from `requirements-dev.txt` and then executes
 
 各 AI 機能の指示文は `prompts/` ディレクトリにテンプレートとして保存されています。
 モデルへ送る内容を調整したい場合は、対応するテンプレートファイルを編集するだけで
-反映されます。コードを変更せずに `trade_plan.txt` や `scalp_analysis.txt` を更新する
-ことで、プロンプトを簡単にカスタマイズできます。
+反映されます。コードを変更せずに `trade_plan.txt` や `scalp_analysis.txt`、
+`trade_plan_instruction.txt` を更新することで、プロンプトを簡単にカスタマイズ
+できます。
