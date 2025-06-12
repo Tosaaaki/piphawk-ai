@@ -30,6 +30,8 @@ from backend.risk_manager import (
 )
 
 from backend.strategy.openai_prompt import build_trade_plan_prompt, TREND_ADX_THRESH
+
+USE_CANDLE_SUMMARY = env_loader.get_env("USE_CANDLE_SUMMARY", "false").lower() == "true"
 from backend.strategy.validators import normalize_probs, risk_autofix
 from backend.config.defaults import MIN_ABS_SL_PIPS
 
@@ -1247,6 +1249,7 @@ def get_trade_plan(
         higher_tf_direction=higher_tf_direction,
         trend_prompt_bias=trend_prompt_bias,
         trade_mode=trade_mode,
+        summarize_candles=USE_CANDLE_SUMMARY,
     )
     try:
         raw = ask_model(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano"))
