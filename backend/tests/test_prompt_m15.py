@@ -29,6 +29,9 @@ class TestPromptM15(unittest.TestCase):
         self.op = op
 
     def test_prompt_includes_m15(self):
+        os.environ["PROMPT_TAIL_LEN"] = "5"
+        os.environ["PROMPT_CANDLE_LEN"] = "4"
+        importlib.reload(self.op)
         ind_dummy = {
             "rsi": FakeSeries([50]*20),
             "atr": FakeSeries([0]*20),
@@ -54,6 +57,10 @@ class TestPromptM15(unittest.TestCase):
         )
         self.assertIn("## M15", prompt)
         self.assertIn("### M15 Candles", prompt)
+        self.assertIn(str([50]*5), prompt)
+        self.assertIn(str(candles_dummy[-4:]), prompt)
+        os.environ.pop("PROMPT_TAIL_LEN")
+        os.environ.pop("PROMPT_CANDLE_LEN")
 
 if __name__ == "__main__":
     unittest.main()

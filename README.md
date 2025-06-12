@@ -138,6 +138,8 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 - `ADX_TREND_MIN` … ADX がこの値以上でトレンドフォローモード
 - `TREND_PROMPT_BIAS` … `aggressive` にするとトレンドフォローAIがより積極的に判断します。モデルは追加のリトライなしで `long` か `sell` を選択するよう指示されます
 - `AI_RETRY_ON_NO` … true にするとAIが "no" を返した際に再度 "aggressive" バイアスで判定
+- `PROMPT_TAIL_LEN` … プロンプトへ含める指標履歴の本数
+- `PROMPT_CANDLE_LEN` … プロンプトへ含めるローソク足の本数
 - `MICRO_SCALP_ENABLED` … openai_micro_scalp を有効にするフラグ
 - `MICRO_SCALP_LOOKBACK` … マイクロ構造判定に使うティック本数
 - `MICRO_SCALP_MIN_PIPS` … 微小スキャルプの最低TP幅
@@ -865,3 +867,5 @@ The script installs dependencies from `requirements-dev.txt` and then executes
 反映されます。コードを変更せずに `trade_plan.txt` や `scalp_analysis.txt`、
 `trade_plan_instruction.txt` を更新することで、プロンプトを簡単にカスタマイズ
 できます。
+`PROMPT_TAIL_LEN` と `PROMPT_CANDLE_LEN` を設定すると、指標やローソク足の履歴本数
+を変更できます。
