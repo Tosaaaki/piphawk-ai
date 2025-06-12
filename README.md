@@ -839,7 +839,7 @@ quickly using the helper script:
 ```
 
 
-This script installs dependencies from `requirements-dev.txt` and then launches
+This script installs dependencies from `requirements-test.txt` and then launches
 `pytest` automatically. Recent additions include tests for the monitoring
 utilities such as ``SafetyTrigger`` and ``metrics_publisher``.
 
