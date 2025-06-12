@@ -77,6 +77,7 @@ def build_trade_plan_prompt(
     allow_delayed_entry: bool = False,
     higher_tf_direction: str | None = None,
     trend_prompt_bias: str | None = None,
+    trade_mode: str | None = None,
 ) -> Tuple[str, float | None]:
     """Return the prompt string for ``get_trade_plan`` and the composite score."""
     # --------------------------------------------------------------
@@ -196,7 +197,9 @@ def build_trade_plan_prompt(
     adx_avg3_val = f"{adx_avg3:.2f}" if adx_avg3 is not None else "N/A"
     adx_snapshot = f"\n### ADX Snapshot\nlast:{adx_last_val}, last3_avg:{adx_avg3_val}\n"
 
-    prompt = f"""
+    mode_header = f"### TRADING_MODE\n{trade_mode}\n" if trade_mode else ""
+
+    prompt = mode_header + f"""
 ⚠️【Market Regime Classification – Flexible Criteria】
 Classify as "TREND" if ANY TWO of the following conditions are met:
 - ADX ≥ {TREND_ADX_THRESH} maintained over at least the last 3 candles.

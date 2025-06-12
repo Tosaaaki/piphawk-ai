@@ -32,6 +32,14 @@ MODE_VOL_MA_MIN = float(
 VOL_MA_PERIOD = int(env_loader.get_env("VOL_MA_PERIOD", "5"))
 RANGE_ADX_MIN = float(env_loader.get_env("RANGE_ADX_MIN", "15"))
 RANGE_ADX_COUNT = int(env_loader.get_env("RANGE_ADX_COUNT", "3"))
+SCALP_REV_ADX_MAX = float(env_loader.get_env("SCALP_REV_ADX_MAX", "18"))
+_rsi_ext = env_loader.get_env("SCALP_REV_RSI_EXTREME", "70/30").split("/")
+try:
+    SCALP_REV_RSI_HIGH = float(_rsi_ext[0])
+    SCALP_REV_RSI_LOW = float(_rsi_ext[1]) if len(_rsi_ext) > 1 else 100 - SCALP_REV_RSI_HIGH
+except Exception:
+    SCALP_REV_RSI_HIGH = 70.0
+    SCALP_REV_RSI_LOW = 30.0
 
 # --- Additional scoring parameters -------------------------------------
 MODE_TREND_SCORE_MIN = int(env_loader.get_env("MODE_TREND_SCORE_MIN", "4"))
@@ -325,6 +333,30 @@ def decide_trade_mode_detail(
     else:
         mode = _LAST_MODE or "flat"
 
+    if mode == "flat":
+        try:
+            rsi_val = _last(m5.get("rsi"))
+            bb_u = _last(m5.get("bb_upper"))
+            bb_l = _last(m5.get("bb_lower"))
+            price = None
+            if candles:
+                c = candles[-1]
+                price = float(c.get("mid", {}).get("c", c.get("c")))
+            if (
+                adx_val is not None
+                and adx_val <= SCALP_REV_ADX_MAX
+                and rsi_val is not None
+                and bb_u is not None
+                and bb_l is not None
+                and price is not None
+            ):
+                if price > bb_u and rsi_val >= SCALP_REV_RSI_HIGH:
+                    mode = "scalp_reversion"
+                elif price < bb_l and rsi_val <= SCALP_REV_RSI_LOW:
+                    mode = "scalp_reversion"
+        except Exception:
+            pass
+
     if _RANGE_ADX_COUNTER >= RANGE_ADX_COUNT:
         mode = "scalp_momentum"
 
@@ -406,4 +438,7 @@ __all__ = [
     "TREND_HOLD_SCORE",
     "SCALP_HOLD_SCORE",
     "MODE_STRONG_TREND_THRESH",
+    "SCALP_REV_ADX_MAX",
+    "SCALP_REV_RSI_HIGH",
+    "SCALP_REV_RSI_LOW",
 ]
