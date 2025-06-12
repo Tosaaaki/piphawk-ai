@@ -6,6 +6,7 @@ from .ai_entry_plan import generate_plan, EntryPlan
 from .entry_buffer import PlanBuffer
 from .post_filters import final_filter
 from .market_air_sensor import MarketSnapshot, air_index
+from .pipeline import run_cycle, PipelineResult
 
 __all__ = [
     "MarketMetrics",
@@ -18,4 +19,6 @@ __all__ = [
     "final_filter",
     "MarketSnapshot",
     "air_index",
+    "run_cycle",
+    "PipelineResult",
 ]
