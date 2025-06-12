@@ -137,7 +137,7 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 - `ADX_SCALP_MIN` … ADX がこの値以上でスキャルプモード
 - `ADX_TREND_MIN` … ADX がこの値以上でトレンドフォローモード
 - `TREND_PROMPT_BIAS` … `aggressive` にするとトレンドフォローAIがより積極的に判断します。モデルは追加のリトライなしで `long` か `sell` を選択するよう指示されます
-- `AI_RETRY_ON_NO` … true にするとAIが "no" を返した際に再度 "aggressive" バイアスで判定
+- `AI_RETRY_ON_NO` … (廃止) このオプションは無効化され、AIを再試行しません
 - `PROMPT_TAIL_LEN` … プロンプトへ含める指標履歴の本数
 - `PROMPT_CANDLE_LEN` … プロンプトへ含めるローソク足の本数
 - `MICRO_SCALP_ENABLED` … openai_micro_scalp を有効にするフラグ
