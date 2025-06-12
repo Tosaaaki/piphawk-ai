@@ -25,6 +25,9 @@ jobs:
           pip install --upgrade pip
           # PyTorch の CPU ホイールを取得するために専用インデックスを追加
           pip install --extra-index-url https://download.pytorch.org/whl/cpu -r backend/requirements.txt
+          # テストに必要な追加依存もインストール
+          pip install -r backend/requirements-dev.txt
+          pip install -r requirements-dev.txt
           pytest -q
 
   build-and-push:
