@@ -58,13 +58,9 @@ ADX 指標の計算に用いる期間。デフォルトは12。
 
 AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 
-### AI_COOLDOWN_SEC
-
- AI呼び出しの基本クールダウン時間。デフォルトは 30 秒。
-
 ### AI_COOLDOWN_SEC_OPEN / AI_COOLDOWN_SEC_FLAT / AI_REGIME_COOLDOWN_SEC
 
- AI呼び出しの最小間隔（秒）を個別に設定する。OPENはポジション保有時、FLATはノーポジ時、REGIMEはトレンド判定用。デフォルトは OPEN=60、FLAT=30、REGIME=20。
+ AI呼び出しの最小間隔（秒）を個別に設定する。OPENはポジション保有時、FLATはノーポジ時、REGIMEはトレンド判定用。デフォルトは OPEN=30、FLAT=60、REGIME=60。
 
 ### フィルター設定（AI呼び出し制御用）
 
