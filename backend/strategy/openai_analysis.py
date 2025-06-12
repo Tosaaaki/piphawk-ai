@@ -118,6 +118,10 @@ USE_LOCAL_PATTERN: bool = (
 LOCAL_WEIGHT_THRESHOLD: float = float(
     env_loader.get_env("LOCAL_WEIGHT_THRESHOLD", "0.6")
 )
+# Disable regime conflict resolution when true
+IGNORE_REGIME_CONFLICT: bool = (
+    env_loader.get_env("IGNORE_REGIME_CONFLICT", "false").lower() == "true"
+)
 
 # --- Consistency weight configuration ---------------------------
 _DEFAULT_CONSISTENCY_WEIGHTS = {"ema": 0.4, "adx": 0.3, "rsi": 0.3}
@@ -659,13 +663,21 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
     blended = alpha * local_score + (1 - alpha) * ai_score
     final_regime = "trend" if blended >= 0.5 else "range"
 
-    if local_regime and llm_regime != local_regime:
+    if (
+        local_regime
+        and llm_regime != local_regime
+        and not IGNORE_REGIME_CONFLICT
+    ):
         if alpha >= LOCAL_WEIGHT_THRESHOLD:
             final_regime = local_regime
         elif (1 - alpha) >= LOCAL_WEIGHT_THRESHOLD:
             final_regime = llm_regime
 
-    if local_regime and llm_regime != local_regime:
+    if (
+        local_regime
+        and llm_regime != local_regime
+        and not IGNORE_REGIME_CONFLICT
+    ):
         logger.warning(
             "LLM regime '%s' conflicts with local regime '%s'; alpha=%.2f -> %s",
             llm_regime,
@@ -1639,6 +1651,7 @@ __all__ = [
     "ADX_NO_TRADE_MAX",
     "EXIT_BIAS_FACTOR",
     "LOCAL_WEIGHT_THRESHOLD",
+    "IGNORE_REGIME_CONFLICT",
     "ADX_SLOPE_LOOKBACK",
     "ENABLE_RANGE_ENTRY",
     "calc_consistency",
