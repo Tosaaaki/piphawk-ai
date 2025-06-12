@@ -360,3 +360,4 @@ SCALE_TRIGGER_ATR=0.5
 - **ENTRY_BUFFER_K**: Entry Plan を平均化するバッファ長。
 - **REGIME_ADX_TREND**: Regime 判定でトレンドとみなすADX値。
 - **REGIME_BB_NARROW**: Range 判定で用いるBB幅の閾値。
+フロー全体の解説は [majority_vote_flow.md](majority_vote_flow.md) を参照してください。

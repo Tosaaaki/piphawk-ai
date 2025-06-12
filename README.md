@@ -16,6 +16,9 @@ Piphawk AI consists of the following components:
 The backend resides in the `backend/` directory and is designed to run either
 directly with Python or inside Docker containers. Configuration values are
 loaded from environment variables and optional YAML files under `config/`.
+Trading decisions are determined through a majority vote pipeline that filters
+indicators, selects a strategy via OpenAI, and averages entry plans. For a
+detailed diagram see [docs/majority_vote_flow.md](docs/majority_vote_flow.md).
 
 ## QuickStart
 
