@@ -29,6 +29,35 @@ RANGE_ENTRY_NOTE = env_loader.get_env(
     ),
 )
 
+# 共通のタスク指示文をテンプレート化して再利用
+INSTRUCTION_TEMPLATE = """
+Your task:
+1. Clearly classify the current regime as "trend" or "range". If "trend", specify direction as "long" or "short". Output this at JSON key "regime".
+2. Decide whether to open a trade now, strictly adhering to the above criteria. Return JSON key "entry" with: {{ "side":"long"|"short"|"no", "rationale":"…" }}. Also include numeric key "entry_confidence" between 0 and 1 representing your confidence. Additionally return key "probs" as {{"long":float,"short":float,"no":float}} where all values sum to 1.
+3. If side is not "no", propose TP/SL distances **in pips** along with their {TP_PROB_HOURS}-hour hit probabilities: {{ "tp_pips":int, "sl_pips":int, "tp_prob":float, "sl_prob":float }}. Output this at JSON key "risk". These four keys must always be included. Use decimals for all probability values. When you output side "long" or "short", the risk object must contain both "tp_pips" and "sl_pips" or the trade will be skipped.
+   - Constraints:
+    • tp_prob must be ≥ {MIN_TP_PROB:.2f}
+    • Expected value (tp_pips*tp_prob - sl_pips*sl_prob) must be positive
+    • Choose the take-profit level that maximises expected value = probability × pips, subject to RRR ≥ {MIN_RRR}
+    • (tp_pips - spread_pips) must be ≥ {MIN_NET_TP_PIPS} pips
+    • If constraints are not met, set side to "no".
+
+4. When "entry.side" is "no", also return key "why" summarizing the reason.
+5. When "entry.side" is "yes", the "risk" object must include "tp_pips", "sl_pips", "tp_prob" and "sl_prob", and tp_prob must be ≥ 0.70.
+
+Respond with **one-line valid JSON** exactly as:
+{{"regime":{{...}},"entry":{{...}},"risk":{{...}},"entry_confidence":0.0,"probs":{{"long":0.5,"short":0.5,"no":0.0}}}}
+"""
+
+def _instruction_text() -> str:
+    """Return formatted instruction section."""
+    return INSTRUCTION_TEMPLATE.format(
+        TP_PROB_HOURS=TP_PROB_HOURS,
+        MIN_TP_PROB=MIN_TP_PROB,
+        MIN_RRR=MIN_RRR,
+        MIN_NET_TP_PIPS=MIN_NET_TP_PIPS,
+    )
+
 
 def _series_tail_list(series, n: int = 20) -> list:
     """Return the last ``n`` values from a pandas Series or list."""
@@ -314,23 +343,7 @@ Pivot: {ind_m5.get('pivot')}, R1: {ind_m5.get('pivot_r1')}, S1: {ind_m5.get('piv
 ### Macro Sentiment
 {macro_sentiment if macro_sentiment else 'N/A'}
 
-Your task:
-1. Clearly classify the current regime as "trend" or "range". If "trend", specify direction as "long" or "short". Output this at JSON key "regime".
-2. Decide whether to open a trade now, strictly adhering to the above criteria. Return JSON key "entry" with: {{ "side":"long"|"short"|"no", "rationale":"…" }}. Also include numeric key "entry_confidence" between 0 and 1 representing your confidence. Additionally return key "probs" as {{"long":float,"short":float,"no":float}} where all values sum to 1.
-3. If side is not "no", propose TP/SL distances **in pips** along with their {TP_PROB_HOURS}-hour hit probabilities: {{ "tp_pips":int, "sl_pips":int, "tp_prob":float, "sl_prob":float }}. Output this at JSON key "risk". These four keys must always be included. Use decimals for all probability values. When you output side "long" or "short", the risk object must contain both "tp_pips" and "sl_pips" or the trade will be skipped.
-   - Constraints:
-    • tp_prob must be ≥ {MIN_TP_PROB:.2f}
-    • Expected value (tp_pips*tp_prob - sl_pips*sl_prob) must be positive
-    • Choose the take-profit level that maximises expected value = probability × pips, subject to RRR ≥ {MIN_RRR}
-    • (tp_pips - spread_pips) must be ≥ {env_loader.get_env("MIN_NET_TP_PIPS","1") } pips
-    • If constraints are not met, set side to "no".
-
-4. When "entry.side" is "no", also return key "why" summarizing the reason.
-5. When "entry.side" is "yes", the "risk" object must include "tp_pips", "sl_pips", "tp_prob" and "sl_prob", and tp_prob must be ≥ 0.70.
-
-Respond with **one-line valid JSON** exactly as:
-{{"regime":{{...}},"entry":{{...}},"risk":{{...}},"entry_confidence":0.0,"probs":{{"long":0.5,"short":0.5,"no":0.0}}}}
-"""
+""" + _instruction_text()
     bias = trend_prompt_bias or TREND_PROMPT_BIAS
     bias_note = ""
     if bias == "aggressive":

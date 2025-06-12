@@ -563,6 +563,50 @@ class JobRunner:
             tf = env_loader.get_env("SCALP_COND_TF", self.scalp_cond_tf).upper()
         return getattr(self, f"indicators_{tf}", {}) or {}
 
+    def _evaluate_market_condition(
+        self,
+        candles_m1: list,
+        candles_m5: list,
+        candles_d1: list,
+        higher_tf: dict,
+    ) -> dict:
+        """Return market condition using precomputed indicators."""
+        cond_ind = self._get_cond_indicators()
+        ctx = {
+            "indicators": {
+                k: (
+                    float(val.iloc[-1])
+                    if hasattr(val, "iloc") and val.iloc[-1] is not None
+                    else float(val) if val is not None else None
+                )
+                for k, val in cond_ind.items()
+            },
+            "indicators_h1": {
+                k: (
+                    float(v.iloc[-1])
+                    if hasattr(v, "iloc") and v.iloc[-1] is not None
+                    else float(v) if v is not None else None
+                )
+                for k, v in (self.indicators_H1 or {}).items()
+            },
+            "indicators_h4": {
+                k: (
+                    float(v.iloc[-1])
+                    if hasattr(v, "iloc") and v.iloc[-1] is not None
+                    else float(v) if v is not None else None
+                )
+                for k, v in (self.indicators_H4 or {}).items()
+            },
+            "candles_m1": candles_m1,
+            "candles_m5": candles_m5,
+            "candles_d1": candles_d1,
+        }
+        try:
+            return get_market_condition(ctx, higher_tf)
+        except Exception as exc:  # pragma: no cover - optional dependency
+            log.warning(f"get_market_condition failed: {exc}")
+            return {}
+
     def reload_params_for_mode(self, mode: str) -> None:
         """Load YAML parameters for the given mode and optionally restart."""
         file_map = {
@@ -1322,6 +1366,15 @@ class JobRunner:
                             timer.stop()
                             continue
 
+                    # 市場コンディションを一度だけ評価し再利用する
+                    market_cond = self._evaluate_market_condition(
+                        candles_m1,
+                        candles_m5,
+                        candles_d1,
+                        higher_tf,
+                    )
+                    log.debug(f"Market condition: {market_cond}")
+
                     # ポジション確認
                     has_position = check_current_position(DEFAULT_PAIR)
                     log.info(f"Current position status: {has_position}")
@@ -1573,58 +1626,6 @@ class JobRunner:
                                         "Filter OK → Processing exit decision with AI."
                                     )
                                     self.last_ai_call = datetime.now()
-                                    cond_ind = self._get_cond_indicators()
-                                    market_cond = get_market_condition(
-                                        {
-                                            "indicators": {
-                                                key: (
-                                                    float(val.iloc[-1])
-                                                    if hasattr(val, "iloc")
-                                                    and val.iloc[-1] is not None
-                                                    else (
-                                                        float(val)
-                                                        if val is not None
-                                                        else None
-                                                    )
-                                                )
-                                                for key, val in cond_ind.items()
-                                            },
-                                            "indicators_h1": {
-                                                key: (
-                                                    float(v.iloc[-1])
-                                                    if hasattr(v, "iloc")
-                                                    and v.iloc[-1] is not None
-                                                    else (
-                                                        float(v)
-                                                        if v is not None
-                                                        else None
-                                                    )
-                                                )
-                                                for key, v in (
-                                                    self.indicators_H1 or {}
-                                                ).items()
-                                            },
-                                            "indicators_h4": {
-                                                key: (
-                                                    float(v.iloc[-1])
-                                                    if hasattr(v, "iloc")
-                                                    and v.iloc[-1] is not None
-                                                    else (
-                                                        float(v)
-                                                        if v is not None
-                                                        else None
-                                                    )
-                                                )
-                                                for key, v in (
-                                                    self.indicators_H4 or {}
-                                                ).items()
-                                            },
-                                            "candles_m1": candles_m1,
-                                            "candles_m5": candles_m5,
-                                            "candles_d1": candles_d1,
-                                        },
-                                        higher_tf,
-                                    )
                                     log.debug(f"Market condition (exit): {market_cond}")
                                     exit_ctx = build_exit_context(
                                         has_position,
@@ -1864,42 +1865,6 @@ class JobRunner:
                                 "Filter OK → Processing periodic exit decision with AI."
                             )
                             self.last_ai_call = datetime.now()
-                            cond_ind = self._get_cond_indicators()
-                            market_cond = get_market_condition(
-                                {
-                                    "indicators": {
-                                        key: (
-                                            float(val.iloc[-1])
-                                            if hasattr(val, "iloc")
-                                            and val.iloc[-1] is not None
-                                            else float(val) if val is not None else None
-                                        )
-                                        for key, val in cond_ind.items()
-                                    },
-                                    "indicators_h1": {
-                                        key: (
-                                            float(v.iloc[-1])
-                                            if hasattr(v, "iloc")
-                                            and v.iloc[-1] is not None
-                                            else float(v) if v is not None else None
-                                        )
-                                        for key, v in (self.indicators_H1 or {}).items()
-                                    },
-                                    "indicators_h4": {
-                                        key: (
-                                            float(v.iloc[-1])
-                                            if hasattr(v, "iloc")
-                                            and v.iloc[-1] is not None
-                                            else float(v) if v is not None else None
-                                        )
-                                        for key, v in (self.indicators_H4 or {}).items()
-                                    },
-                                    "candles_m1": candles_m1,
-                                    "candles_m5": candles_m5,
-                                    "candles_d1": candles_d1,
-                                },
-                                higher_tf,
-                            )
                             log.debug(f"Market condition (review): {market_cond}")
                             exit_ctx = build_exit_context(
                                 has_position,
@@ -2099,45 +2064,7 @@ class JobRunner:
                             mode=self.trade_mode,
                         ):
                             log.info("Filter OK → Processing entry decision with AI.")
-                            self.last_ai_call = (
-                                datetime.now()
-                            )  # record AI call time *before* the call
-                            cond_ind = self._get_cond_indicators()
-                            market_cond = get_market_condition(
-                                {
-                                    "indicators": {
-                                        key: (
-                                            float(val.iloc[-1])
-                                            if hasattr(val, "iloc")
-                                            and val.iloc[-1] is not None
-                                            else float(val) if val is not None else None
-                                        )
-                                        for key, val in cond_ind.items()
-                                    },
-                                    "indicators_h1": {
-                                        key: (
-                                            float(v.iloc[-1])
-                                            if hasattr(v, "iloc")
-                                            and v.iloc[-1] is not None
-                                            else float(v) if v is not None else None
-                                        )
-                                        for key, v in (self.indicators_H1 or {}).items()
-                                    },
-                                    "indicators_h4": {
-                                        key: (
-                                            float(v.iloc[-1])
-                                            if hasattr(v, "iloc")
-                                            and v.iloc[-1] is not None
-                                            else float(v) if v is not None else None
-                                        )
-                                        for key, v in (self.indicators_H4 or {}).items()
-                                    },
-                                    "candles_m1": candles_m1,
-                                    "candles_m5": candles_m5,
-                                    "candles_d1": candles_d1,
-                                },
-                                higher_tf,
-                            )
+                            self.last_ai_call = datetime.now()  # record AI call time *before* the call
                             log.debug(f"Market condition (post‑filter): {market_cond}")
 
                             climax_side = detect_climax_reversal(candles_m5, indicators)
