@@ -41,6 +41,8 @@ _CACHE_TTL_SEC = int(env_loader.get_env("OPENAI_CACHE_TTL_SEC", "30"))
 _CACHE_MAX = int(env_loader.get_env("OPENAI_CACHE_MAX", "100"))
 
 # --- AI 呼び出し制御 ----------------------------
+_CALL_LIMIT_PER_LOOP = int(env_loader.get_env("MAX_AI_CALLS_PER_LOOP", "4"))
+_calls_this_loop = 0
 
 
 def set_call_limit(_limit: int) -> None:
