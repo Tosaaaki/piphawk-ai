@@ -37,6 +37,10 @@ INSTRUCTION_TEMPLATE = load_template("trade_plan.txt")
 # 新しいトレードプランテンプレート
 TRADE_PLAN_PROMPT = load_template("trade_plan_instruction.txt")
 
+# デフォルトの指標・ローソク足履歴本数
+DEFAULT_PROMPT_TAIL_LEN = 20
+DEFAULT_PROMPT_CANDLE_LEN = 20
+
 def _instruction_text() -> str:
     """Return formatted instruction section."""
     return INSTRUCTION_TEMPLATE.format(
@@ -47,7 +51,7 @@ def _instruction_text() -> str:
     )
 
 
-def _series_tail_list(series, n: int = 20) -> list:
+def _series_tail_list(series, n: int = DEFAULT_PROMPT_TAIL_LEN) -> list:
     """Return the last ``n`` values from a pandas Series or list."""
     if series is None:
         return []
@@ -84,6 +88,12 @@ def build_trade_plan_prompt(
     trade_mode: str | None = None,
 ) -> Tuple[str, float | None]:
     """Return the prompt string for ``get_trade_plan`` and the composite score."""
+    tail_len = int(
+        env_loader.get_env("PROMPT_TAIL_LEN", str(DEFAULT_PROMPT_TAIL_LEN))
+    )
+    candle_len = int(
+        env_loader.get_env("PROMPT_CANDLE_LEN", str(DEFAULT_PROMPT_CANDLE_LEN))
+    )
     # --------------------------------------------------------------
     # Estimate market "noise" from ATR and Bollinger band width
     # --------------------------------------------------------------
@@ -217,38 +227,38 @@ def build_trade_plan_prompt(
         pullback_needed=pullback_needed,
         no_pullback_msg=no_pullback_msg,
         TREND_OVERSHOOT_SECTION=overshoot,
-        m5_rsi=_series_tail_list(ind_m5.get("rsi"), 20),
-        m5_atr=_series_tail_list(ind_m5.get("atr"), 20),
-        m5_adx=_series_tail_list(ind_m5.get("adx"), 20),
-        m5_bb_u=_series_tail_list(ind_m5.get("bb_upper"), 20),
-        m5_bb_l=_series_tail_list(ind_m5.get("bb_lower"), 20),
-        m5_ema_f=_series_tail_list(ind_m5.get("ema_fast"), 20),
-        m5_ema_s=_series_tail_list(ind_m5.get("ema_slow"), 20),
-        m15_rsi=_series_tail_list(ind_m15.get("rsi"), 20),
-        m15_atr=_series_tail_list(ind_m15.get("atr"), 20),
-        m15_adx=_series_tail_list(ind_m15.get("adx"), 20),
-        m15_bb_u=_series_tail_list(ind_m15.get("bb_upper"), 20),
-        m15_bb_l=_series_tail_list(ind_m15.get("bb_lower"), 20),
-        m15_ema_f=_series_tail_list(ind_m15.get("ema_fast"), 20),
-        m15_ema_s=_series_tail_list(ind_m15.get("ema_slow"), 20),
-        m1_rsi=_series_tail_list(ind_m1.get("rsi"), 20),
-        m1_atr=_series_tail_list(ind_m1.get("atr"), 20),
-        m1_adx=_series_tail_list(ind_m1.get("adx"), 20),
-        m1_bb_u=_series_tail_list(ind_m1.get("bb_upper"), 20),
-        m1_bb_l=_series_tail_list(ind_m1.get("bb_lower"), 20),
-        m1_ema_f=_series_tail_list(ind_m1.get("ema_fast"), 20),
-        m1_ema_s=_series_tail_list(ind_m1.get("ema_slow"), 20),
-        d1_rsi=_series_tail_list(ind_d1.get("rsi"), 20),
-        d1_atr=_series_tail_list(ind_d1.get("atr"), 20),
-        d1_adx=_series_tail_list(ind_d1.get("adx"), 20),
-        d1_bb_u=_series_tail_list(ind_d1.get("bb_upper"), 20),
-        d1_bb_l=_series_tail_list(ind_d1.get("bb_lower"), 20),
-        d1_ema_f=_series_tail_list(ind_d1.get("ema_fast"), 20),
-        d1_ema_s=_series_tail_list(ind_d1.get("ema_slow"), 20),
-        candles_m5_tail=candles_m5[-50:],
-        candles_m15_tail=candles_m15[-30:],
-        candles_m1_tail=candles_m1[-20:],
-        candles_d1_tail=candles_d1[-60:],
+        m5_rsi=_series_tail_list(ind_m5.get("rsi"), tail_len),
+        m5_atr=_series_tail_list(ind_m5.get("atr"), tail_len),
+        m5_adx=_series_tail_list(ind_m5.get("adx"), tail_len),
+        m5_bb_u=_series_tail_list(ind_m5.get("bb_upper"), tail_len),
+        m5_bb_l=_series_tail_list(ind_m5.get("bb_lower"), tail_len),
+        m5_ema_f=_series_tail_list(ind_m5.get("ema_fast"), tail_len),
+        m5_ema_s=_series_tail_list(ind_m5.get("ema_slow"), tail_len),
+        m15_rsi=_series_tail_list(ind_m15.get("rsi"), tail_len),
+        m15_atr=_series_tail_list(ind_m15.get("atr"), tail_len),
+        m15_adx=_series_tail_list(ind_m15.get("adx"), tail_len),
+        m15_bb_u=_series_tail_list(ind_m15.get("bb_upper"), tail_len),
+        m15_bb_l=_series_tail_list(ind_m15.get("bb_lower"), tail_len),
+        m15_ema_f=_series_tail_list(ind_m15.get("ema_fast"), tail_len),
+        m15_ema_s=_series_tail_list(ind_m15.get("ema_slow"), tail_len),
+        m1_rsi=_series_tail_list(ind_m1.get("rsi"), tail_len),
+        m1_atr=_series_tail_list(ind_m1.get("atr"), tail_len),
+        m1_adx=_series_tail_list(ind_m1.get("adx"), tail_len),
+        m1_bb_u=_series_tail_list(ind_m1.get("bb_upper"), tail_len),
+        m1_bb_l=_series_tail_list(ind_m1.get("bb_lower"), tail_len),
+        m1_ema_f=_series_tail_list(ind_m1.get("ema_fast"), tail_len),
+        m1_ema_s=_series_tail_list(ind_m1.get("ema_slow"), tail_len),
+        d1_rsi=_series_tail_list(ind_d1.get("rsi"), tail_len),
+        d1_atr=_series_tail_list(ind_d1.get("atr"), tail_len),
+        d1_adx=_series_tail_list(ind_d1.get("adx"), tail_len),
+        d1_bb_u=_series_tail_list(ind_d1.get("bb_upper"), tail_len),
+        d1_bb_l=_series_tail_list(ind_d1.get("bb_lower"), tail_len),
+        d1_ema_f=_series_tail_list(ind_d1.get("ema_fast"), tail_len),
+        d1_ema_s=_series_tail_list(ind_d1.get("ema_slow"), tail_len),
+        candles_m5_tail=candles_m5[-candle_len:],
+        candles_m15_tail=candles_m15[-candle_len:],
+        candles_m1_tail=candles_m1[-candle_len:],
+        candles_d1_tail=candles_d1[-candle_len:],
         adx_snapshot=adx_snapshot,
         pattern_text=pattern_text,
         direction_line=direction_line,
