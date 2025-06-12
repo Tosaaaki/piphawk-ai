@@ -530,25 +530,7 @@ def process_entry(
         filter_ctx=strategy_params.get("filter_ctx") if isinstance(strategy_params, dict) else None,
     )
 
-    # -- "no" の場合は攻めたバイアスで再試行 --------------------
-    # ただし TREND_PROMPT_BIAS が aggressive のときは同じプロンプトを繰り返さない
-    if (
-        plan.get("entry", {}).get("side", "no").lower() not in ("long", "short")
-        and env_loader.get_env("AI_RETRY_ON_NO", "false").lower() == "true"
-        and env_loader.get_env("TREND_PROMPT_BIAS", "normal").lower() != "aggressive"
-    ):
-        plan = oa.get_trade_plan(
-            market_data,
-            indicators_multi,
-            candles_dict,
-            patterns=patterns,
-            detected_patterns=detected,
-            allow_delayed_entry=allow_delayed_entry,
-            trend_prompt_bias="aggressive",
-            filter_ctx=strategy_params.get("filter_ctx") if isinstance(strategy_params, dict) else None,
-        )
-        ai_raw = json.dumps(plan, ensure_ascii=False)
-        logging.info(f"AI trade plan aggressive retry: {ai_raw}")
+    # AI_RETRY_ON_NO 機能は廃止されたため、ここでの再試行は行わない
 
     # Raw JSON for audit log
     ai_raw = json.dumps(plan, ensure_ascii=False)
