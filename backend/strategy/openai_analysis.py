@@ -68,6 +68,10 @@ AI_REGIME_COOLDOWN_SEC: int = int(env_loader.get_env("AI_REGIME_COOLDOWN_SEC", A
 
 # --- Threshold for AI‑proposed TP probability ---
 MIN_TP_PROB: float = float(env_loader.get_env("MIN_TP_PROB", "0.75"))
+DYN_TP_PROB_FLOOR: float = float(env_loader.get_env("DYN_TP_PROB_FLOOR", "0.55"))
+DYN_TP_PROB_CEIL: float = float(
+    env_loader.get_env("DYN_TP_PROB_CEIL", str(MIN_TP_PROB))
+)
 TP_PROB_HOURS: int = int(env_loader.get_env("TP_PROB_HOURS", "24"))
 PROB_MARGIN: float = float(env_loader.get_env("PROB_MARGIN", "0.1"))
 MIN_EXPECTED_VALUE: float = float(
@@ -1134,8 +1138,16 @@ def get_trade_plan(
     except Exception:
         noise_pips = None
 
+    # noise_pips を用いて動的な TP 達成確率下限を算出
+    try:
+        dynamic_min_tp_prob = max(DYN_TP_PROB_FLOOR, (noise_pips or 0) * 0.6)
+        dynamic_min_tp_prob = min(dynamic_min_tp_prob, DYN_TP_PROB_CEIL)
+    except Exception:
+        dynamic_min_tp_prob = DYN_TP_PROB_CEIL
 
-    # build_trade_plan_promptで返されるコンポジット値を後で使用する
+    noise_val = f"{noise_pips:.1f}" if noise_pips is not None else "N/A"
+    tv_score = "N/A"
+
     comp_val = None
 
     recent_high = None
@@ -1429,7 +1441,7 @@ def get_trade_plan(
             plan["reason"] = "RISK_PARSE_FAIL"
             return plan
 
-        if p < MIN_TP_PROB or (tp * p - sl * q) < MIN_EXPECTED_VALUE:
+        if p < dynamic_min_tp_prob or (tp * p - sl * q) < MIN_EXPECTED_VALUE:
             plan["entry"]["side"] = "no"
             plan.setdefault("reason", "PROB_TOO_LOW")
 
