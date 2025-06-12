@@ -68,7 +68,10 @@ from backend.utils import env_loader
 
 # signals パッケージはプロジェクト直下にあるため、
 # 絶対インポートで確実に読み込む
-from piphawk_ai.signals.composite_mode import decide_trade_mode
+from piphawk_ai.signals.composite_mode import (
+    decide_trade_mode,
+    decide_trade_mode_detail,
+)
 import os
 import logging
 import json
@@ -486,6 +489,30 @@ def process_entry(
     # Raw JSON for audit log
     ai_raw = json.dumps(plan, ensure_ascii=False)
     logging.info(f"AI trade plan raw: {ai_raw}")
+
+    llm_regime = (plan.get("regime") or {}).get("market_condition")
+    local_mode, _score, _ = decide_trade_mode_detail(indicators)
+    local_regime = "trend" if local_mode in ("trend_follow", "strong_trend") else "range"
+    momentum_score = None
+    try:
+        mom = indicators.get("momentum", {})
+        if isinstance(mom, dict):
+            momentum_score = float(mom.get("score"))
+    except Exception:
+        momentum_score = None
+    if (
+        momentum_score is not None
+        and momentum_score >= 0.5
+        and llm_regime == "range"
+        and local_regime == "trend"
+    ):
+        logging.info(
+            "Regime conflict resolved in favor of local trend (momentum.score=%.2f)",
+            momentum_score,
+        )
+        plan.setdefault("regime", {})["market_condition"] = local_regime
+        if market_cond is not None:
+            market_cond["market_condition"] = local_regime
 
     entry_info = plan.get("entry", {})
     risk_info = plan.get("risk", {})
