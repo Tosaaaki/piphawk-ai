@@ -16,7 +16,17 @@ TREND_PROMPT_BIAS = env_loader.get_env("TREND_PROMPT_BIAS", "normal").lower()
 # レンジ相場でのトレード方針を任意に追記できる環境変数
 RANGE_ENTRY_NOTE = env_loader.get_env(
     "RANGE_ENTRY_NOTE",
-    "When the market is RANGE, consider quick trades near Bollinger Band edges with small targets."
+    (
+        "When the market is RANGE, consider quick trades near Bollinger Band edges with small targets.\n"
+        "### Micro-range step-down handling\n"
+        "If market_state == \"micro_downtrend\":\n"
+        "  • Treat each micro range (width ≤ 0.6*atr5) as 'box'.\n"
+        "  • Short only:\n"
+        "    - on retest of box_high −2 pips OR\n"
+        "    - on breakout below box_low −1 pip with vol_burst ≥1.5\n"
+        "  • Do NOT long unless price closes above 2 consecutive box_high levels.\n"
+        "Return \"NoTrade\" when price is inside mid-zone of the box (±30%)."
+    ),
 )
 
 
