@@ -2,10 +2,63 @@ try:
     from fastapi import FastAPI, HTTPException, APIRouter, Response
     from fastapi.middleware.cors import CORSMiddleware
 except Exception:  # FastAPI が利用できないテスト環境向け
-    FastAPI = HTTPException = APIRouter = Response = object  # type: ignore
+    class _StubFastAPI:
+        def __init__(self, *a, **kw):
+            pass
+
+        def __getattr__(self, name):
+            if name.lower() in {
+                "get",
+                "post",
+                "put",
+                "delete",
+                "patch",
+                "options",
+                "head",
+            }:
+                return lambda *a, **kw: (lambda f: f)
+            if name in {"add_middleware", "include_router"}:
+                return lambda *a, **kw: None
+            raise AttributeError(name)
+
+    class _StubHTTPException(Exception):
+        def __init__(self, status_code: int, detail: str | None = None):
+            super().__init__(f"{status_code}: {detail or ''}")
+            self.status_code = status_code
+            self.detail = detail
+
+    class _StubAPIRouter:
+        def __init__(self, *a, **kw):
+            pass
+
+        def __getattr__(self, name):
+            if name.lower() in {
+                "get",
+                "post",
+                "put",
+                "delete",
+                "patch",
+                "options",
+                "head",
+            }:
+                return lambda *a, **kw: (lambda f: f)
+            if name == "include_router":
+                return lambda *a, **kw: None
+            raise AttributeError(name)
+
+    class _StubResponse:
+        def __init__(self, *a, **kw):
+            self.content = kw.get("content")
+            self.media_type = kw.get("media_type")
+
     class CORSMiddleware:  # type: ignore
         def __init__(self, *a, **k):
             pass
+
+    FastAPI = _StubFastAPI  # type: ignore
+    HTTPException = _StubHTTPException  # type: ignore
+    APIRouter = _StubAPIRouter  # type: ignore
+    Response = _StubResponse  # type: ignore
 from backend.utils import env_loader
 import sqlite3
 import os
