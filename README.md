@@ -247,6 +247,8 @@ TRADES_DB_PATH=trades-002.db
 `backend.logs.update_oanda_trades` を走らせると最新履歴が保存されます。
 ローカルの `trades` テーブルと OANDA の取引履歴を突き合わせて
 実現損益を反映させるには `backend.logs.reconcile_trades` を実行します。
+履歴更新から反映までを一度に行う場合は
+`execution.sync_manager.sync_exits()` を呼び出してください。
 分割エントリーに関する解説は `docs/scale_entry.md` にまとめています。
 エントリーフィルタの詳細は `docs/entry_filter.md` を参照してください。
 高位足の使い方に関する補足は `docs/higher_tf_strategy.md` を参照してください。
