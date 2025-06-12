@@ -29,7 +29,7 @@ def _load_cfg() -> dict:
 
 
 _cfg = _load_cfg()
-_MODEL = _cfg.get("LLM", {}).get("mode_selector", "gpt-3.5-turbo-0125")
+_MODEL = _cfg.get("LLM", {}).get("mode_selector", "gpt-4.1-nano")
 _SYSTEM_PROMPT = (
     "You are a FX trading mode selector. "
     "Return one of ['trend_follow','scalp_momentum','no_trade'] "
