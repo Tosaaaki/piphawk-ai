@@ -65,6 +65,40 @@ def _series_tail_list(series, n: int = DEFAULT_PROMPT_TAIL_LEN) -> list:
         return []
 
 
+def _candles_summary(candles: list) -> dict:
+    """Return OHLC averages and last values for a candle list."""
+    opens: list[float] = []
+    highs: list[float] = []
+    lows: list[float] = []
+    closes: list[float] = []
+    for c in candles:
+        if not isinstance(c, dict):
+            continue
+        v = c.get("mid", c)
+        try:
+            opens.append(float(v.get("o")))
+            highs.append(float(v.get("h")))
+            lows.append(float(v.get("l")))
+            closes.append(float(v.get("c")))
+        except Exception:
+            continue
+    if not opens:
+        return {}
+    def _avg(vals: list[float]) -> float:
+        return sum(vals) / len(vals)
+
+    return {
+        "open_avg": _avg(opens),
+        "high_avg": _avg(highs),
+        "low_avg": _avg(lows),
+        "close_avg": _avg(closes),
+        "open_last": opens[-1],
+        "high_last": highs[-1],
+        "low_last": lows[-1],
+        "close_last": closes[-1],
+    }
+
+
 def build_trade_plan_prompt(
     ind_m5: dict,
     ind_m1: dict,
@@ -86,6 +120,7 @@ def build_trade_plan_prompt(
     higher_tf_direction: str | None = None,
     trend_prompt_bias: str | None = None,
     trade_mode: str | None = None,
+    summarize_candles: bool = False,
 ) -> Tuple[str, float | None]:
     """Return the prompt string for ``get_trade_plan`` and the composite score."""
     tail_len = int(

@@ -87,6 +87,10 @@ EMA_s: {d1_ema_s}
 ### D1 Candles
 {candles_d1_tail}
 
+### Candle Summary
+{candle_summary}
+# Example: {{"m5": {{"open_avg": 1.2345, "close_last": 1.2360}}}}
+
 {adx_snapshot}{pattern_text}{direction_line}
 ### How to use the provided candles:
 - Use the medium-term view (50 candles) to understand the general market trend, key support/resistance levels, and to avoid noisy, short-lived moves.

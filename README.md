@@ -136,7 +136,7 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 - `LOG_LEVEL` … 出力するログレベル。`DEBUG` を指定するとAI拒否理由など詳細情報が表示されます
 - `ADX_SCALP_MIN` … ADX がこの値以上でスキャルプモード
 - `ADX_TREND_MIN` … ADX がこの値以上でトレンドフォローモード
-- `TREND_PROMPT_BIAS` … `aggressive` にするとトレンドフォローAIがより積極的
+- `TREND_PROMPT_BIAS` … `aggressive` にするとトレンドフォローAIがより積極的に判断します。モデルは追加のリトライなしで `long` か `sell` を選択するよう指示されます
 - `AI_RETRY_ON_NO` … true にするとAIが "no" を返した際に再度 "aggressive" バイアスで判定
 - `PROMPT_TAIL_LEN` … プロンプトへ含める指標履歴の本数
 - `PROMPT_CANDLE_LEN` … プロンプトへ含めるローソク足の本数
@@ -283,6 +283,7 @@ TRADES_DB_PATH=trades-002.db
    contracting*.
 `ENABLE_RANGE_ENTRY` を `true` にすると、ADX のノートレード判定を無視してレンジ相場でもエントリーを許可します。価格がボリンジャーバンド中心から `RANGE_ENTRY_OFFSET_PIPS` pips 以内にある場合は、市場注文をバンド端の LIMIT に変換します。この処理は `backend/strategy/entry_logic.py` で行われます。
 `RANGE_ENTRY_NOTE` を指定すると、その内容が AI プロンプトに追記され、レンジ相場での細かな指示を外部から設定できます。
+`USE_CANDLE_SUMMARY` を `true` にすると、ローソク足リストの代わりに平均値まとめを AI へ送信し、トークン消費を抑えられます。
 `AI_PROFIT_TRIGGER_RATIO` defines what portion of the take-profit target must
 be reached before an AI exit check occurs. The default value is `0.5` (50%).
 `SCALE_LOT_SIZE` sets how many lots are added when the AI exit decision is `SCALE`.

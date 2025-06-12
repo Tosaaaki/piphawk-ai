@@ -178,6 +178,14 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 
   スプレッド控除後に許容される最小TP幅(pips)。デフォルトは1。
 
+### DYN_TP_PROB_FLOOR / DYN_TP_PROB_CEIL
+
+  `noise_pips` を用いて算出される動的な TP 達成確率の下限値・上限値を設定
+  する。計算式は `dynamic_min_tp_prob = max(DYN_TP_PROB_FLOOR, noise_pips * 0.6)`
+  で求めた値を DYN_TP_PROB_CEIL 以下に切り詰める。
+  DYN_TP_PROB_FLOOR のデフォルトは 0.55、DYN_TP_PROB_CEIL のデフォルトは
+  MIN_TP_PROB。
+
 # 以下は README に記載されていた追加の環境変数
 
 - RANGE_CENTER_BLOCK_PCT: ADX が ADX_RANGE_THRESHOLD 以下のとき、BB 中心付近のエントリーをどの程度ブロックするか (0.3 = 30%)
@@ -301,6 +309,7 @@ SCALE_TRIGGER_ATR=0.5
 - USE_LOCAL_MODEL: OpenAI APIの代わりにローカルモデルを使用するか (true/false)
 - LOCAL_MODEL_NAME: 使用するローカルモデル名 (例: distilgpt2)
 - USE_LOCAL_PATTERN: チャートパターン検出をローカルで行うか (true/false)
+- USE_CANDLE_SUMMARY: ローソク足情報を平均値で要約して AI へ渡すか (true/false)
 - FRED_API_KEY: 米国経済指標取得に使用するFRED APIキー
 - KAFKA_SERVERS: Kafkaブローカーの接続先リスト (例: localhost:9092)
   - KAFKA_BROKERS や KAFKA_BROKER_URL、KAFKA_BOOTSTRAP_SERVERS でも同じ値を指定可能
