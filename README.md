@@ -71,6 +71,7 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 ### Planned
 
 - Offline reinforcement policy integration for strategy selection.
+- See [docs/training_guide.md](docs/training_guide.md) for training scripts.
 
 ## Setup
 
