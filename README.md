@@ -26,10 +26,10 @@ loaded from environment variables and optional YAML files under `config/`.
    cd piphawk-ai
    ```
 
-2. Create .env from example
+2. Create .env from template
 
    ```bash
-   cp backend/config/secret.env.example .env
+   cp .env.template .env
    ```
 
    Edit `.env` and set OPENAI_API_KEY, OANDA_API_KEY and OANDA_ACCOUNT_ID.
@@ -100,13 +100,13 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
    ```
 
 3. **Environment variables**
-   まず `backend/config/secret.env.example` をコピーして `.env` を作成するか、
-   自分で `.env` を新規作成してください。
+   まずルートの `.env.template` をコピーして `.env` を作成します。
+   必要に応じて `backend/config/secret.env.example` の値も追記してください。
 
    ```bash
-   cp backend/config/secret.env.example .env
+   cp .env.template .env
    cp backend/config/settings.env .
-   # Edit .env and set OPENAI_API_KEY, OANDA_API_KEY and OANDA_ACCOUNT_ID
+   # Edit `.env` and set OPENAI_API_KEY, OANDA_API_KEY and OANDA_ACCOUNT_ID
    ```
 
    アプリケーションは `.env`, `backend/config/settings.env`, `backend/config/secret.env` の順で環境変数を読み込みます。
@@ -235,6 +235,8 @@ LLM:
   entry_logic: gpt-4.1-nano
   exit_logic: gpt-4.1-nano
 ```
+
+`AI_REGIME_MODEL` などの値は `.env` を編集して変更できます。
 
 これらはそれぞれ `AI_REGIME_MODEL`、`AI_ENTRY_MODEL`、`AI_EXIT_MODEL` 環境変数に
 展開されます。
