@@ -1,13 +1,14 @@
-import json
 import logging
 
 from backend.utils.openai_client import ask_openai
 from backend.utils import env_loader, parse_json_answer
+from backend.utils.prompt_loader import load_template
 
 logger = logging.getLogger(__name__)
 
 AI_SCALP_MODEL = env_loader.get_env("AI_SCALP_MODEL", "gpt-4.1-nano")
 SCALP_PROMPT_BIAS = env_loader.get_env("SCALP_PROMPT_BIAS", "normal").lower()
+PROMPT_TEMPLATE = load_template("scalp_analysis.txt")
 
 
 def _series_tail_list(series, n: int = 20) -> list:
@@ -35,13 +36,14 @@ def get_scalp_plan(indicators: dict, candles: list, *, higher_tf_direction: str 
         bias_note = (
             "\nAct decisively: choose 'long' or 'short' whenever possible. Return 'no' only if no valid setup exists."
         )
-    prompt = (
-        "You are a forex scalping assistant.\n"
-        "Analyze the short-term indicators and decide whether to buy, sell or stay flat.\n"
-        f"ADX:{adx_vals}\nRSI:{rsi_vals}\nBB_upper:{bb_upper}\nBB_lower:{bb_lower}\n"
-        f"Candles:{candles[-20:]}\nHigher direction:{higher_tf_direction}\n"
-        f"{bias_note}\n"
-        "Respond with JSON as {\"side\":\"long|short|no\",\"tp_pips\":float,\"sl_pips\":float,\"wait_pips\":float}"
+    prompt = PROMPT_TEMPLATE.format(
+        adx_vals=adx_vals,
+        rsi_vals=rsi_vals,
+        bb_upper=bb_upper,
+        bb_lower=bb_lower,
+        candles=candles[-20:],
+        higher_tf_direction=higher_tf_direction,
+        bias_note=bias_note,
     )
     try:
         raw = ask_openai(prompt, model=AI_SCALP_MODEL)
