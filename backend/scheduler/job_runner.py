@@ -18,7 +18,7 @@ except Exception:  # pragma: no cover - optional dependency or test stub
 from backend.utils import env_loader, trade_age_seconds
 from backend.utils.restart_guard import can_restart
 from maintenance.disk_guard import maybe_cleanup
-from backend.utils.openai_client import reset_ai_call_counter
+from backend.utils.openai_client import reset_ai_call_counter, set_call_limit
 
 try:
     from config import params_loader
@@ -457,6 +457,9 @@ class JobRunner:
             self.trade_mode = "trend_follow"
             self.current_params_file = "config/trend.yml"
         self.mode_reason = ""
+        # set initial AI call limit based on mode
+        default_limit = int(env_loader.get_env("MAX_AI_CALLS_PER_LOOP", "1"))
+        set_call_limit(4 if self.trade_mode == "scalp_momentum" else default_limit)
 
         # Restore TP adjustment flags based on existing TP order comment
         try:
@@ -578,6 +581,8 @@ class JobRunner:
             params_loader.load_params(path=path)
             # update AI cooldown values after reload
             self.refresh_ai_cooldowns()
+            default_limit = int(env_loader.get_env("MAX_AI_CALLS_PER_LOOP", "1"))
+            set_call_limit(4 if mode == "scalp_momentum" else default_limit)
             self.current_params_file = path
         except Exception as exc:
             log.error("Param reload failed: %s", exc)
