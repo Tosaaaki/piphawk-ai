@@ -347,3 +347,12 @@ SCALE_TRIGGER_ATR=0.5
 - **ENTRY_RISK_PCT**: 1トレードあたりのリスク許容比率 (デフォルト: 0.01)
 - **PIP_VALUE_JPY**: 1pipあたりの円換算値 (デフォルト: 100)
 - **MARGIN_WARNING_THRESHOLD**: 証拠金アラートを出す残高比率 (デフォルト: 0)
+
+## 多数決フロー関連
+
+- **STRAT_TEMP**: Strategy Select で使う temperature。
+- **STRAT_N**: Strategy Select の生成本数。
+- **STRAT_VOTE_MIN**: 採用に必要な一致数。
+- **ENTRY_BUFFER_K**: Entry Plan を平均化するバッファ長。
+- **REGIME_ADX_TREND**: Regime 判定でトレンドとみなすADX値。
+- **REGIME_BB_NARROW**: Range 判定で用いるBB幅の閾値。
