@@ -19,7 +19,7 @@ from backend.utils import env_loader, trade_age_seconds
 from backend.core.ai_throttle import get_cooldown
 from backend.utils.restart_guard import can_restart
 from maintenance.disk_guard import maybe_cleanup
-from backend.utils.openai_client import reset_ai_call_counter, set_call_limit
+from backend.utils.openai_client import set_call_limit
 
 try:
     from config import params_loader
@@ -1108,7 +1108,6 @@ class JobRunner:
         while not self._stop:
             try:
                 maybe_cleanup()
-                reset_ai_call_counter()
                 timer = PerfTimer("job_loop")
                 now = datetime.now(timezone.utc)
                 # ---- Market‑hours guard ---------------------------------
