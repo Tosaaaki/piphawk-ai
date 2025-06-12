@@ -1206,6 +1206,35 @@ def get_trade_plan(
     except Exception:
         vol_ratio = None
 
+    range_box = {}
+    try:
+        highs = [float(c.get('mid', c).get('h')) for c in candles_m5[-12:]]
+        lows = [float(c.get('mid', c).get('l')) for c in candles_m5[-12:]]
+        box_high = max(highs)
+        box_low = min(lows)
+        atr_series = ind_m5.get('atr')
+        atr_val = None
+        if atr_series is not None:
+            atr_val = (
+                float(atr_series.iloc[-1]) if hasattr(atr_series, 'iloc') else float(atr_series[-1])
+            )
+        width = box_high - box_low
+        is_micro = atr_val is not None and width <= 0.6 * atr_val
+        range_box = {'high': box_high, 'low': box_low, 'is_micro': is_micro}
+    except Exception:
+        range_box = {}
+
+    try:
+        from backend.strategy.signal_filter import (
+            consecutive_lower_lows,
+            consecutive_lower_highs,
+        )
+        lower_highs = consecutive_lower_highs(candles_m5)
+        lower_lows = consecutive_lower_lows(candles_m5)
+        micro_downtrend = range_box.get('is_micro') and lower_highs and lower_lows
+    except Exception:
+        micro_downtrend = False
+
     prompt, comp_val = build_trade_plan_prompt(
         ind_m5,
         ind_m1,
@@ -1351,6 +1380,9 @@ Pivot: {ind_m5.get('pivot')}, R1: {ind_m5.get('pivot_r1')}, S1: {ind_m5.get('piv
 
 ### N-Wave Target
 {ind_m5.get('n_wave_target')}
+
+### Range Box
+high:{range_box.get('high')} low:{range_box.get('low')} is_micro:{range_box.get('is_micro')} micro_downtrend:{micro_downtrend}
 
 Your task:
 1. Clearly classify the current regime as "trend" or "range". If "trend", specify direction as "long" or "short". Output this at JSON key "regime".
