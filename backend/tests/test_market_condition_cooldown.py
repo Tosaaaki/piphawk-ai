@@ -36,6 +36,7 @@ class TestMarketConditionCooldown(unittest.TestCase):
             return {"market_condition": "trend"}
         oc.ask_openai = dummy_ask
         oc.AI_MODEL = "gpt"
+        oc.set_call_limit = lambda *_a, **_k: None
         add_module("backend.utils.openai_client", oc)
 
         import backend.strategy.openai_analysis as oa

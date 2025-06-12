@@ -54,11 +54,17 @@ def reset_ai_call_counter() -> None:
 def _register_ai_call() -> bool:
     """Return True if a new AI call is allowed in this loop."""
     global _calls_this_loop
-    if _calls_this_loop >= _CALL_LIMIT_PER_LOOP:
+    if _CALL_LIMIT_PER_LOOP > 0 and _calls_this_loop >= _CALL_LIMIT_PER_LOOP:
         logger.info("AI call skipped due to per-loop limit")
         return False
     _calls_this_loop += 1
     return True
+
+
+def set_call_limit(limit: int) -> None:
+    """Update the per-loop AI call limit."""
+    global _CALL_LIMIT_PER_LOOP
+    _CALL_LIMIT_PER_LOOP = int(limit)
 
 def ask_openai(
     prompt: str,
@@ -157,4 +163,5 @@ __all__ = [
     "ask_openai_async",
     "AI_MODEL",
     "reset_ai_call_counter",
+    "set_call_limit",
 ]

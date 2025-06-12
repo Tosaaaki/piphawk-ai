@@ -88,6 +88,7 @@ class TestMarketConditionAtrBreak(unittest.TestCase):
         oc = types.ModuleType("backend.utils.openai_client")
         oc.ask_openai = lambda *a, **k: {"market_condition": "range"}
         oc.AI_MODEL = "gpt"
+        oc.set_call_limit = lambda *_a, **_k: None
         add("backend.utils.openai_client", oc)
 
         import importlib

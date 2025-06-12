@@ -67,6 +67,7 @@ class TestJobRunnerRestoreMode(unittest.TestCase):
         oc = types.ModuleType("backend.utils.openai_client")
         oc.ask_openai = lambda *a, **k: {}
         oc.AI_MODEL = "gpt"
+        oc.set_call_limit = lambda *_a, **_k: None
         add("backend.utils.openai_client", oc)
         sys.modules["backend.strategy.pattern_scanner"].PATTERN_DIRECTION = {}
         sys.modules["backend.strategy.momentum_follow"].follow_breakout = lambda *a, **k: True
