@@ -38,6 +38,22 @@ from backend.strategy.exit_ai_decision import AIDecision, evaluate as evaluate_e
 import time
 from datetime import datetime, timezone
 
+
+def _is_schema_valid(plan: dict) -> bool:
+    """Return True if required probability fields sum to one."""
+    try:
+        conf = float(plan.get("entry_confidence", 0))
+        if not 0.0 <= conf <= 1.0:
+            return False
+        probs = plan.get("probs")
+        if not isinstance(probs, dict):
+            return False
+        vals = [float(probs.get(k, 0)) for k in ("long", "short", "no")]
+        total = sum(vals)
+        return abs(total - 1.0) <= 0.01
+    except Exception:
+        return False
+
 macro_analyzer = MacroAnalyzer()
 
 # ----------------------------------------------------------------------
@@ -1431,6 +1447,16 @@ Respond with **one-line valid JSON** exactly as:
             logger.warning("log_ai_decision failed: %s", exc)
         logger.info("Invalid JSON response: %s", raw)
         return {"entry": {"side": "no"}, "raw": raw, "reason": "PARSE_FAIL"}
+    if not _is_schema_valid(plan):
+        try:
+            raw_retry = ask_model(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4o-nano"))
+            plan_retry, _ = parse_json_answer(raw_retry)
+            if plan_retry and _is_schema_valid(plan_retry):
+                plan = plan_retry
+            else:
+                logger.warning("Schema validation failed twice")
+        except Exception:
+            logger.warning("Retry after schema validation failed")
 
     # AIが返したレジーム情報を取り出す
     market_cond = plan.get("regime")
@@ -1567,7 +1593,13 @@ Respond with **one-line valid JSON** exactly as:
                 plan["reason"] = "PROB_INVALID"
                 return plan
 
-            if (tp - spread) < MIN_NET_TP_PIPS:
+            min_net = MIN_NET_TP_PIPS
+            if noise_pips is not None:
+                try:
+                    min_net = max(min_net, noise_pips * 0.6)
+                except Exception:
+                    pass
+            if (tp - spread) < min_net:
                 plan["entry"]["side"] = "no"
                 plan.setdefault("reason", "NET_TP_TOO_SMALL")
         except (TypeError, ValueError):
