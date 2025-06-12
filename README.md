@@ -136,7 +136,7 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 - `LOG_LEVEL` … 出力するログレベル。`DEBUG` を指定するとAI拒否理由など詳細情報が表示されます
 - `ADX_SCALP_MIN` … ADX がこの値以上でスキャルプモード
 - `ADX_TREND_MIN` … ADX がこの値以上でトレンドフォローモード
-- `TREND_PROMPT_BIAS` … `aggressive` にするとトレンドフォローAIがより積極的
+- `TREND_PROMPT_BIAS` … `aggressive` にするとトレンドフォローAIがより積極的に判断します。モデルは追加のリトライなしで `long` か `sell` を選択するよう指示されます
 - `AI_RETRY_ON_NO` … true にするとAIが "no" を返した際に再度 "aggressive" バイアスで判定
 - `MICRO_SCALP_ENABLED` … openai_micro_scalp を有効にするフラグ
 - `MICRO_SCALP_LOOKBACK` … マイクロ構造判定に使うティック本数
