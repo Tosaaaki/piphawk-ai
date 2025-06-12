@@ -16,6 +16,7 @@ except Exception:  # pragma: no cover - optional dependency or test stub
 
 
 from backend.utils import env_loader, trade_age_seconds
+from backend.core.ai_throttle import get_cooldown
 from backend.utils.restart_guard import can_restart
 from maintenance.disk_guard import maybe_cleanup
 from backend.utils.openai_client import reset_ai_call_counter
@@ -1801,9 +1802,11 @@ class JobRunner:
                     elapsed_seconds = (
                         datetime.now() - self.last_ai_call
                     ).total_seconds()
-                    if (not due_for_review) and elapsed_seconds < self.ai_cooldown:
+                    mode_cd = get_cooldown(self.trade_mode or "")
+                    cooldown = min(self.ai_cooldown, mode_cd)
+                    if (not due_for_review) and elapsed_seconds < cooldown:
                         log.info(
-                            f"AI cooldown active ({elapsed_seconds:.1f}s < {self.ai_cooldown}s). Skipping AI call."
+                            f"AI cooldown active ({elapsed_seconds:.1f}s < {cooldown}s). Skipping AI call."
                         )
                         self.last_run = now
                         # Update OANDA trade history every second
