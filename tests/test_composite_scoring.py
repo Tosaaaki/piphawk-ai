@@ -3,6 +3,7 @@ import os
 import pytest
 
 
+
 def _reload_module():
     import signals.composite_mode as cm
     return importlib.reload(cm)
@@ -91,3 +92,11 @@ def test_mode_scores_strong_trend(monkeypatch):
     mode, score, _ = cm.decide_trade_mode_detail(inds)
     assert mode == "strong_trend"
     assert score == pytest.approx(1.0, abs=1e-6)
+
+
+def test_entry_type_boost_and_clip():
+    from backend.strategy.openai_analysis import _apply_entry_type_boost
+
+    assert _apply_entry_type_boost(0.55, "breakout") == pytest.approx(0.6)
+    assert _apply_entry_type_boost(-0.35, "reversal") == pytest.approx(-0.4)
+    assert _apply_entry_type_boost(0.1, "pullback") == pytest.approx(0.1)

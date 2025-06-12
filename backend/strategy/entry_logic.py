@@ -470,6 +470,10 @@ def process_entry(
     # Raw JSON for audit log
     ai_raw = json.dumps(plan, ensure_ascii=False)
     logging.info(f"AI trade plan raw: {ai_raw}")
+    entry_type = plan.get("entry_type")
+    if entry_type:
+        logging.info(f"Entry type from AI: {entry_type}")
+
 
     entry_info = plan.get("entry", {})
     risk_info = plan.get("risk", {})
@@ -1068,11 +1072,16 @@ def process_entry(
             "ai_response": ai_raw,
             "market_cond": market_cond,
         }
+        risk_pct = float(env_loader.get_env("ENTRY_RISK_PCT", "0.01"))
+        if entry_type == "breakout":
+            risk_pct *= 1.05
+        elif entry_type == "reversal":
+            risk_pct *= 0.95
         result = order_manager.enter_trade(
             side=side,
             lot_size=calc_lot_size(
                 float(env_loader.get_env("ACCOUNT_BALANCE", "10000")),
-                float(env_loader.get_env("ENTRY_RISK_PCT", "0.01")),
+                risk_pct,
                 sl_pips,
                 float(env_loader.get_env("PIP_VALUE_JPY", "100")),
                 risk_engine=risk_engine,
@@ -1110,11 +1119,16 @@ def process_entry(
             "market_cond": market_cond,
         }
 
+    risk_pct = float(env_loader.get_env("ENTRY_RISK_PCT", "0.01"))
+    if entry_type == "breakout":
+        risk_pct *= 1.05
+    elif entry_type == "reversal":
+        risk_pct *= 0.95
     trade_result = order_manager.enter_trade(
         side=side,
         lot_size=calc_lot_size(
             float(env_loader.get_env("ACCOUNT_BALANCE", "10000")),
-            float(env_loader.get_env("ENTRY_RISK_PCT", "0.01")),
+            risk_pct,
             sl_pips,
             float(env_loader.get_env("PIP_VALUE_JPY", "100")),
             risk_engine=risk_engine,
@@ -1126,9 +1140,14 @@ def process_entry(
 
     if trade_result and mode == "market":
         instrument = params["instrument"]
+        risk_pct = float(env_loader.get_env("ENTRY_RISK_PCT", "0.01"))
+        if entry_type == "breakout":
+            risk_pct *= 1.05
+        elif entry_type == "reversal":
+            risk_pct *= 0.95
         lot_size = calc_lot_size(
             float(env_loader.get_env("ACCOUNT_BALANCE", "10000")),
-            float(env_loader.get_env("ENTRY_RISK_PCT", "0.01")),
+            risk_pct,
             sl_pips,
             float(env_loader.get_env("PIP_VALUE_JPY", "100")),
             risk_engine=risk_engine,
@@ -1149,6 +1168,7 @@ def process_entry(
             units=units,
             ai_reason=ai_raw,
             ai_response=ai_raw,
+            entry_regime=entry_type,
             tp_pips=tp_pips,
             sl_pips=sl_pips,
             rrr=rrr,
