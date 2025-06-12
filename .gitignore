@@ -180,3 +180,4 @@ node_modules/
 backend/logs/*.db
 backend/logs/*.db*
 backend/logs/*.jsonl
+*.swp
