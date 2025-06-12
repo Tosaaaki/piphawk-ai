@@ -130,6 +130,18 @@ def build_trade_plan_prompt(
         env_loader.get_env("PROMPT_CANDLE_LEN", str(DEFAULT_PROMPT_CANDLE_LEN))
     )
     # --------------------------------------------------------------
+    # summarize candle statistics when requested
+    # --------------------------------------------------------------
+    candle_summary_str = "N/A"
+    if summarize_candles:
+        summary = {
+            "m5": _candles_summary(candles_m5),
+            "m15": _candles_summary(candles_m15),
+            "m1": _candles_summary(candles_m1),
+            "d1": _candles_summary(candles_d1),
+        }
+        candle_summary_str = json.dumps(summary, separators=(",", ":"))
+    # --------------------------------------------------------------
     # Estimate market "noise" from ATR and Bollinger band width
     # --------------------------------------------------------------
     noise_pips = None
@@ -294,6 +306,7 @@ def build_trade_plan_prompt(
         candles_m15_tail=candles_m15[-candle_len:],
         candles_m1_tail=candles_m1[-candle_len:],
         candles_d1_tail=candles_d1[-candle_len:],
+        candle_summary=candle_summary_str,
         adx_snapshot=adx_snapshot,
         pattern_text=pattern_text,
         direction_line=direction_line,
