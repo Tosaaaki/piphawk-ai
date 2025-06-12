@@ -239,6 +239,25 @@ def process_entry(
     except Exception:
         spread_pips = None
 
+    noise_pips = None
+    try:
+        atr_series = indicators.get("atr")
+        bb_upper = indicators.get("bb_upper")
+        bb_lower = indicators.get("bb_lower")
+        atr_val = None
+        if atr_series is not None and len(atr_series):
+            atr_val = (
+                float(atr_series.iloc[-1]) if hasattr(atr_series, "iloc") else float(atr_series[-1])
+            )
+        bw_val = None
+        if bb_upper is not None and bb_lower is not None and len(bb_upper) and len(bb_lower):
+            bw_val = float(bb_upper.iloc[-1]) - float(bb_lower.iloc[-1])
+        atr_pips = atr_val / pip_size if atr_val is not None else 0.0
+        bw_pips = bw_val / pip_size if bw_val is not None else 0.0
+        noise_pips = max(atr_pips, bw_pips)
+    except Exception:
+        noise_pips = None
+
     # ADX からトレードモードを判定
     adx_series = indicators.get("adx")
     adx_val = None
@@ -380,7 +399,7 @@ def process_entry(
             if spread_pips is not None:
                 from backend.risk_manager import cost_guard
 
-                if not cost_guard(tp_pips, spread_pips):
+                if not cost_guard(tp_pips, spread_pips, noise_pips=noise_pips):
                     min_net = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
                     net = float(tp_pips) - spread_pips
                     logging.info(f"Net TP {net:.1f} < {min_net} \u2192 skip entry")
@@ -492,6 +511,9 @@ def process_entry(
     entry_type = plan.get("entry_type")
     if entry_type:
         logging.info(f"Entry type from AI: {entry_type}")
+        if entry_type != "pullback" and trade_mode == "trend_follow":
+            trade_mode = "scalp_momentum"
+            strong_trend_mode = False
 
 
     llm_regime = (plan.get("regime") or {}).get("market_condition")
@@ -597,7 +619,7 @@ def process_entry(
     if spread_pips is not None:
         from backend.risk_manager import cost_guard
 
-        if not cost_guard(risk_info.get("tp_pips"), spread_pips):
+        if not cost_guard(risk_info.get("tp_pips"), spread_pips, noise_pips=noise_pips):
             min_net = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
             net = float(risk_info.get("tp_pips", 0)) - spread_pips
             logging.info(f"Net TP {net:.1f} < {min_net} → skip entry")

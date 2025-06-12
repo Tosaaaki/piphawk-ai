@@ -44,8 +44,8 @@ class TestRiskManager(unittest.TestCase):
     def test_cost_guard(self):
         import os
         os.environ["MIN_NET_TP_PIPS"] = "2"
-        self.assertTrue(cost_guard(5, 2))
-        self.assertFalse(cost_guard(3, 2.5))
+        self.assertTrue(cost_guard(5, 2, noise_pips=1.0))
+        self.assertFalse(cost_guard(3, 2.5, noise_pips=1.0))
         os.environ.pop("MIN_NET_TP_PIPS", None)
 
 

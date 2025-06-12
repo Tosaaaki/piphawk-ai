@@ -91,7 +91,7 @@ def calc_short_sl_price(
     except Exception:
         return None
 
-def cost_guard(tp_pips: float | None, spread_pips: float) -> bool:
+def cost_guard(tp_pips: float | None, spread_pips: float, *, noise_pips: float | None = None) -> bool:
     """Return True if net take-profit after spread meets threshold."""
     from backend.utils import env_loader
 
@@ -100,8 +100,10 @@ def cost_guard(tp_pips: float | None, spread_pips: float) -> bool:
         spread = float(spread_pips)
         if tp is None:
             return True
-        min_net = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
-        return (tp - spread) >= min_net
+        base_min = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
+        if noise_pips is not None:
+            base_min = max(base_min, float(noise_pips) * 0.6)
+        return (tp - spread) >= base_min
     except Exception:
         return True
 
