@@ -219,6 +219,30 @@ def calc_consistency(
     return alpha
 
 
+def _apply_entry_type_boost(score: float, entry_type: str) -> float:
+    """Return score adjusted by entry type and clipped."""
+    boost = 0.0
+    if entry_type == "breakout":
+        boost = 0.05
+    elif entry_type == "reversal":
+        boost = -0.05
+    new_score = score + boost
+    new_score = max(-0.4, min(new_score, 0.6))
+    logging.getLogger(__name__).info(
+        "entry_type %s -> score %.2f", entry_type, new_score
+    )
+    return new_score
+
+
+def _classify_entry_type(market_cond: dict | None, pullback_done: bool) -> str:
+    """Classify entry type from market condition and pullback state."""
+    if market_cond and market_cond.get("market_condition") == "break":
+        return "breakout"
+    if pullback_done:
+        return "pullback"
+    return "reversal"
+
+
 
 # ----------------------------------------------------------------------
 # Market‑regime classification helper (OpenAI direct, enhanced English prompt)
@@ -1395,7 +1419,10 @@ Respond with **one-line valid JSON** exactly as:
         entry_conf = max(0.0, entry_conf - float(pivot_penalty))
     if entry_conf is None:
         entry_conf = 0.5
+    entry_type = _classify_entry_type(market_cond, pullback_done)
+    entry_conf = _apply_entry_type_boost(entry_conf, entry_type)
     plan["entry_confidence"] = entry_conf
+    plan["entry_type"] = entry_type
 
     # ---- local guards -------------------------------------------------
     risk = risk_autofix(plan.get("risk"))
@@ -1692,4 +1719,6 @@ __all__ = [
     "ADX_SLOPE_LOOKBACK",
     "ENABLE_RANGE_ENTRY",
     "calc_consistency",
+    "_apply_entry_type_boost",
+    "_classify_entry_type",
 ]
