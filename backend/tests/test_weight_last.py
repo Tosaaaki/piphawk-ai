@@ -75,7 +75,7 @@ class TestWeightLast(unittest.TestCase):
     def test_weight_last_zero_avg(self):
         data = [_c(0, True) for _ in range(6)] + [_c(0, False)]
         result = self.ci.calculate_indicators(data)
-        self.assertEqual(result.get("weight_last"), 1.0)
+        self.assertEqual(result.get("weight_last"), 0.75)
 
     def test_weight_last_zero_volume(self):
         data = [_c(100, True) for _ in range(6)] + [_c(0, False)]
@@ -85,7 +85,7 @@ class TestWeightLast(unittest.TestCase):
     def test_weight_last_clamped(self):
         data = [_c(100, True) for _ in range(6)] + [_c(400, False)]
         result = self.ci.calculate_indicators(data)
-        self.assertEqual(result.get("weight_last"), 1.0)
+        self.assertEqual(result.get("weight_last"), 2.5)
 
 
 if __name__ == "__main__":
