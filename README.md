@@ -835,3 +835,10 @@ This script runs `pip install -r requirements-dev.txt` and then launches
 
 The script installs dependencies from `requirements-dev.txt` and then executes
 `pytest`. Pass any additional arguments to forward them to `pytest`.
+
+## プロンプト変更手順
+
+各 AI 機能の指示文は `prompts/` ディレクトリにテンプレートとして保存されています。
+モデルへ送る内容を調整したい場合は、対応するテンプレートファイルを編集するだけで
+反映されます。コードを変更せずに `trade_plan.txt` や `scalp_analysis.txt` を更新する
+ことで、プロンプトを簡単にカスタマイズできます。
