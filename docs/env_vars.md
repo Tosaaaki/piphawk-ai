@@ -19,6 +19,16 @@
 
 利用するOpenAIモデル名（gpt-4-turbo / gpt-4oなど）
 
+### GPT model variants
+
+- AI_REGIME_MODEL: トレンド判定に使用するモデル
+- AI_ENTRY_MODEL: エントリー判断用モデル
+- AI_EXIT_MODEL: エグジット判断用モデル
+- AI_TRADE_MODEL: 取引全般を扱う統合モデル
+- AI_SCALP_MODEL: スキャルピング専用モデル
+- AI_LIMIT_CONVERT_MODEL: 指値を成行に変換するか判定するモデル
+- AI_PATTERN_MODEL: チャートパターン検出用モデル
+
 ### RSI_PERIOD
 
 RSI指標の計算期間。一般的には14が標準。
