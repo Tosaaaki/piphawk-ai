@@ -531,9 +531,11 @@ def process_entry(
     )
 
     # -- "no" の場合は攻めたバイアスで再試行 --------------------
+    # ただし TREND_PROMPT_BIAS が aggressive のときは同じプロンプトを繰り返さない
     if (
         plan.get("entry", {}).get("side", "no").lower() not in ("long", "short")
         and env_loader.get_env("AI_RETRY_ON_NO", "false").lower() == "true"
+        and env_loader.get_env("TREND_PROMPT_BIAS", "normal").lower() != "aggressive"
     ):
         plan = oa.get_trade_plan(
             market_data,
