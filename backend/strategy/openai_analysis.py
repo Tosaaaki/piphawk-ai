@@ -1,3 +1,5 @@
+"""OpenAIモデルを用いたトレード分析ユーティリティ"""
+
 import logging
 import json
 from piphawk_ai.ai.local_model import ask_model
@@ -1145,18 +1147,8 @@ def get_trade_plan(
 
     noise_val = f"{noise_pips:.1f}" if noise_pips is not None else "N/A"
     tv_score = "N/A"
+
     comp_val = None
-    try:
-        adx_series = ind_m5.get("adx")
-        bb_upper = ind_m5.get("bb_upper")
-        bb_lower = ind_m5.get("bb_lower")
-        if adx_series is not None and bb_upper is not None and bb_lower is not None:
-            from backend.indicators.adx import calculate_adx_bb_score
-            comp_val = calculate_adx_bb_score(adx_series, bb_upper, bb_lower)
-            tv_score = f"{comp_val:.2f}"
-    except Exception:
-        tv_score = "N/A"
-        comp_val = None
 
     recent_high = None
     recent_low = None
@@ -1233,34 +1225,7 @@ def get_trade_plan(
     except Exception:
         vol_ratio = None
 
-    range_box = {}
-    try:
-        highs = [float(c.get('mid', c).get('h')) for c in candles_m5[-12:]]
-        lows = [float(c.get('mid', c).get('l')) for c in candles_m5[-12:]]
-        box_high = max(highs)
-        box_low = min(lows)
-        atr_series = ind_m5.get('atr')
-        atr_val = None
-        if atr_series is not None:
-            atr_val = (
-                float(atr_series.iloc[-1]) if hasattr(atr_series, 'iloc') else float(atr_series[-1])
-            )
-        width = box_high - box_low
-        is_micro = atr_val is not None and width <= 0.6 * atr_val
-        range_box = {'high': box_high, 'low': box_low, 'is_micro': is_micro}
-    except Exception:
-        range_box = {}
 
-    try:
-        from backend.strategy.signal_filter import (
-            consecutive_lower_lows,
-            consecutive_lower_highs,
-        )
-        lower_highs = consecutive_lower_highs(candles_m5)
-        lower_lows = consecutive_lower_lows(candles_m5)
-        micro_downtrend = range_box.get('is_micro') and lower_highs and lower_lows
-    except Exception:
-        micro_downtrend = False
 
     prompt, comp_val = build_trade_plan_prompt(
         ind_m5,
@@ -1283,149 +1248,6 @@ def get_trade_plan(
         trend_prompt_bias=trend_prompt_bias,
         trade_mode=trade_mode,
     )
-    pattern_text = f"\n### Detected Chart Pattern\n{pattern_line}\n" if pattern_line else "\n### Detected Chart Pattern\nNone\n"
-    # ADX が高い場合はプルバック不要メッセージを追加する
-    no_pullback_msg = ""
-    try:
-        adx_series = ind_m5.get("adx")
-        if adx_series is not None and len(adx_series):
-            adx_val = adx_series.iloc[-1] if hasattr(adx_series, "iloc") else adx_series[-1]
-            threshold = max(ALLOW_NO_PULLBACK_WHEN_ADX, BYPASS_PULLBACK_ADX_MIN)
-            if threshold > 0 and float(adx_val) >= threshold:
-                no_pullback_msg = "\nPullback not required when ADX is high."
-    except Exception:
-        pass
-    # ここからAIへの英語プロンプト
-
-    mode_prefix = ""
-    if trade_mode:
-        mode_prefix = f"mode: {trade_mode}\n"
-        if mode_reason:
-            mode_prefix += "reason:\n" + mode_reason + "\n"
-
-    prompt = mode_prefix + f"""
-⚠️【Market Regime Classification – Flexible Criteria】
-Classify as "TREND" if ANY TWO of the following conditions are met:
-- ADX ≥ {TREND_ADX_THRESH} maintained over at least the last 3 candles.
-- EMA consistently sloping upwards or downwards without major reversals within the last 3 candles.
-- Price consistently outside the Bollinger Band midline (above for bullish, below for bearish).
-
-If these conditions are not clearly met, classify the market as "RANGE".
-
-🚫【Counter-trend Trade Prohibition】
-Under clearly identified TREND conditions, avoid counter-trend trades and never rely solely on RSI extremes. Treat pullbacks as trend continuation. However, if a strong reversal pattern such as a double top/bottom or head-and-shoulders is detected and ADX is turning down, a small counter-trend position is acceptable.
-
-🔄【Counter-Trend Trade Allowance】
-Allow short-term counter-trend trades only when all of the following are true:
-- ADX ≤ {TREND_ADX_THRESH} or clearly declining.
-- A clear reversal pattern (double top/bottom, head-and-shoulders) is present.
-- RSI ≤ 30 for LONG or ≥ 70 for SHORT, showing potential exhaustion.
-- Price action has stabilized with minor reversal candles.
-- TP kept small (5–10 pips) and risk tightly controlled.
-
-📈【Trend Entry Clarification】
-Once a TREND is confirmed, prioritize entries on pullbacks. Use recent volatility (ATR or Bollinger width) to gauge the pullback depth. Shorts enter after price rises {pullback_needed:.1f} pips above the latest low, longs after price drops {pullback_needed:.1f} pips below the latest high. This pullback rule overrides RSI extremes.{no_pullback_msg}
-""" + (
-    "\n\n⏳【Trend Overshoot Handling】\n"
-    "When RSI exceeds 70 in an uptrend or falls below 30 in a downtrend, do not immediately set side to 'no'.\n"
-    "If momentum is still strong you may follow the trend. Otherwise respond with mode:'wait' so the system rechecks after a pullback of about {pullback_needed:.1f} pips.\n"
-    if allow_delayed_entry else ""
-) + f"""
-
-🔎【Minor Retracement Clarification】
-Do not interpret short-term retracements as trend reversals. Genuine trend reversals require ALL of the following simultaneously:
-- EMA direction reversal sustained for at least 3 candles.
-- ADX clearly drops below {TREND_ADX_THRESH}, indicating weakening trend momentum.
-
-🎯【Improved Exit Strategy】
-Avoid exiting during normal trend pullbacks. Only exit a trend trade if **ALL** of the following are true:
-- EMA reverses direction and this is sustained for at least 3 consecutive candles.
-- ADX drops clearly below {TREND_ADX_THRESH}, showing momentum has faded.
-If these are not all met, HOLD the position even if RSI is extreme or price briefly retraces.
-
-♻️【Immediate Re-entry Policy】
-If a stop-loss is triggered but original trend conditions remain intact (ADX≥{TREND_ADX_THRESH}, clear EMA slope), immediately re-enter in the same direction upon the next valid signal.
-
-### Recent Indicators (last 20 values each)
-## M5
-RSI  : {_series_tail_list(ind_m5.get('rsi'), 20)}
-ATR  : {_series_tail_list(ind_m5.get('atr'), 20)}
-ADX  : {_series_tail_list(ind_m5.get('adx'), 20)}
-BB_hi: {_series_tail_list(ind_m5.get('bb_upper'), 20)}
-BB_lo: {_series_tail_list(ind_m5.get('bb_lower'), 20)}
-EMA_f: {_series_tail_list(ind_m5.get('ema_fast'), 20)}
-EMA_s: {_series_tail_list(ind_m5.get('ema_slow'), 20)}
-
-## M1
-RSI  : {_series_tail_list(ind_m1.get('rsi'), 20)}
-ATR  : {_series_tail_list(ind_m1.get('atr'), 20)}
-ADX  : {_series_tail_list(ind_m1.get('adx'), 20)}
-BB_hi: {_series_tail_list(ind_m1.get('bb_upper'), 20)}
-BB_lo: {_series_tail_list(ind_m1.get('bb_lower'), 20)}
-EMA_f: {_series_tail_list(ind_m1.get('ema_fast'), 20)}
-EMA_s: {_series_tail_list(ind_m1.get('ema_slow'), 20)}
-
-## D1
-RSI  : {_series_tail_list(ind_d1.get('rsi'), 20)}
-ATR  : {_series_tail_list(ind_d1.get('atr'), 20)}
-ADX  : {_series_tail_list(ind_d1.get('adx'), 20)}
-BB_hi: {_series_tail_list(ind_d1.get('bb_upper'), 20)}
-BB_lo: {_series_tail_list(ind_d1.get('bb_lower'), 20)}
-EMA_f: {_series_tail_list(ind_d1.get('ema_fast'), 20)}
-EMA_s: {_series_tail_list(ind_d1.get('ema_slow'), 20)}
-
-### M5 Candles
-{candles_m5[-50:]}
-
-### M1 Candles
-{candles_m1[-20:]}
-
-### D1 Candles
-{candles_d1[-60:]}
-
-{pattern_text}
-
-### How to use the provided candles:
-- Use the medium-term view (50 candles) to understand the general market trend, key support/resistance levels, and to avoid noisy, short-lived moves.
-- Use the short-term view (20 candles) specifically for optimizing entry timing (such as waiting for pullbacks or breakouts) and to confirm recent price momentum.
-
-### 90-day Historical Stats
-{json.dumps(hist_stats or {}, separators=(',', ':'))}
-
-### Estimated Noise
-{noise_val} pips is the approximate short-term market noise.
-Use this as a baseline for setting wider stop-loss levels.
-After calculating TP hit probability, widen the SL by at least {env_loader.get_env("NOISE_SL_MULT", "1.5")} times.
-
-### Composite Trend Score
-{tv_score}
-
-### Higher Timeframe Direction
-{higher_tf_direction or "unknown"}
-
-### Pivot Levels
-Pivot: {ind_m5.get('pivot')}, R1: {ind_m5.get('pivot_r1')}, S1: {ind_m5.get('pivot_s1')}
-
-### N-Wave Target
-{ind_m5.get('n_wave_target')}
-
-### Range Box
-high:{range_box.get('high')} low:{range_box.get('low')} is_micro:{range_box.get('is_micro')} micro_downtrend:{micro_downtrend}
-
-Your task:
-1. Clearly classify the current regime as "trend" or "range". If "trend", specify direction as "long" or "short". Output this at JSON key "regime".
-2. Decide whether to open a trade now, strictly adhering to the above criteria. Return JSON key "entry" with: {{ "side":"long"|"short"|"no", "rationale":"…" }}
-3. If side is not "no", propose TP/SL distances **in pips** along with their {TP_PROB_HOURS}-hour hit probabilities: {{ "tp_pips":int, "sl_pips":int, "tp_prob":float, "sl_prob":float }}. Output this at JSON key "risk".
-   - Constraints:
-    • tp_prob must be ≥ {MIN_TP_PROB:.2f}
-    • Expected value (tp_pips*tp_prob - sl_pips*sl_prob) must be positive
-    • Choose the take-profit level that maximises expected value = probability × pips, subject to RRR ≥ {MIN_RRR}
-    • (tp_pips - spread_pips) must be ≥ {env_loader.get_env("MIN_NET_TP_PIPS","1")} pips
-    • If constraints are not met, set side to "no".
-
-Respond with **one-line valid JSON** exactly as:
-{{"regime":{{...}},"entry":{{...}},"risk":{{...}}}}
-"""
     try:
         raw = ask_model(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano"))
         log_prompt_response(
