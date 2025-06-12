@@ -45,26 +45,9 @@ _CALL_LIMIT_PER_LOOP = int(env_loader.get_env("MAX_AI_CALLS_PER_LOOP", "4"))
 _calls_this_loop = 0
 
 
-def reset_ai_call_counter() -> None:
-    """Reset the AI call counter (JobRunner が各ループ開始時に呼び出す)."""
-    global _calls_this_loop
-    _calls_this_loop = 0
-
-
-def _register_ai_call() -> bool:
-    """Return True if a new AI call is allowed in this loop."""
-    global _calls_this_loop
-    if _CALL_LIMIT_PER_LOOP > 0 and _calls_this_loop >= _CALL_LIMIT_PER_LOOP:
-        logger.info("AI call skipped due to per-loop limit")
-        return False
-    _calls_this_loop += 1
-    return True
-
-
-def set_call_limit(limit: int) -> None:
-    """Update the per-loop AI call limit."""
-    global _CALL_LIMIT_PER_LOOP
-    _CALL_LIMIT_PER_LOOP = int(limit)
+def set_call_limit(_limit: int) -> None:
+    """Deprecated stub retained for backward compatibility."""
+    return None
 
 def ask_openai(
     prompt: str,
@@ -89,9 +72,6 @@ def ask_openai(
     Raises:
         Exception: If the API request fails.
     """
-    # ループ開始時に呼び出し許可を確認
-    if not _register_ai_call():
-        return {}
 
     # Use env‑defined default when caller does not specify
     if model is None:
@@ -162,6 +142,5 @@ __all__ = [
     "ask_openai",
     "ask_openai_async",
     "AI_MODEL",
-    "reset_ai_call_counter",
     "set_call_limit",
 ]
