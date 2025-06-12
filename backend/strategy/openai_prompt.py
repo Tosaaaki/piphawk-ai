@@ -61,6 +61,40 @@ def _series_tail_list(series, n: int = 20) -> list:
         return []
 
 
+def _candles_summary(candles: list) -> dict:
+    """Return OHLC averages and last values for a candle list."""
+    opens: list[float] = []
+    highs: list[float] = []
+    lows: list[float] = []
+    closes: list[float] = []
+    for c in candles:
+        if not isinstance(c, dict):
+            continue
+        v = c.get("mid", c)
+        try:
+            opens.append(float(v.get("o")))
+            highs.append(float(v.get("h")))
+            lows.append(float(v.get("l")))
+            closes.append(float(v.get("c")))
+        except Exception:
+            continue
+    if not opens:
+        return {}
+    def _avg(vals: list[float]) -> float:
+        return sum(vals) / len(vals)
+
+    return {
+        "open_avg": _avg(opens),
+        "high_avg": _avg(highs),
+        "low_avg": _avg(lows),
+        "close_avg": _avg(closes),
+        "open_last": opens[-1],
+        "high_last": highs[-1],
+        "low_last": lows[-1],
+        "close_last": closes[-1],
+    }
+
+
 def build_trade_plan_prompt(
     ind_m5: dict,
     ind_m1: dict,
@@ -82,6 +116,7 @@ def build_trade_plan_prompt(
     higher_tf_direction: str | None = None,
     trend_prompt_bias: str | None = None,
     trade_mode: str | None = None,
+    summarize_candles: bool = False,
 ) -> Tuple[str, float | None]:
     """Return the prompt string for ``get_trade_plan`` and the composite score."""
     # --------------------------------------------------------------
@@ -245,10 +280,16 @@ def build_trade_plan_prompt(
         d1_bb_l=_series_tail_list(ind_d1.get("bb_lower"), 20),
         d1_ema_f=_series_tail_list(ind_d1.get("ema_fast"), 20),
         d1_ema_s=_series_tail_list(ind_d1.get("ema_slow"), 20),
-        candles_m5_tail=candles_m5[-50:],
-        candles_m15_tail=candles_m15[-30:],
-        candles_m1_tail=candles_m1[-20:],
-        candles_d1_tail=candles_d1[-60:],
+        candles_m5_tail=[] if summarize_candles else candles_m5[-50:],
+        candles_m15_tail=[] if summarize_candles else candles_m15[-30:],
+        candles_m1_tail=[] if summarize_candles else candles_m1[-20:],
+        candles_d1_tail=[] if summarize_candles else candles_d1[-60:],
+        candle_summary=json.dumps({
+            "m5": _candles_summary(candles_m5),
+            "m1": _candles_summary(candles_m1),
+            "m15": _candles_summary(candles_m15),
+            "d1": _candles_summary(candles_d1),
+        }, separators=(",", ":")) if summarize_candles else "",
         adx_snapshot=adx_snapshot,
         pattern_text=pattern_text,
         direction_line=direction_line,

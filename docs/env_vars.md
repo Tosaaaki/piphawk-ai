@@ -301,6 +301,7 @@ SCALE_TRIGGER_ATR=0.5
 - USE_LOCAL_MODEL: OpenAI APIの代わりにローカルモデルを使用するか (true/false)
 - LOCAL_MODEL_NAME: 使用するローカルモデル名 (例: distilgpt2)
 - USE_LOCAL_PATTERN: チャートパターン検出をローカルで行うか (true/false)
+- USE_CANDLE_SUMMARY: ローソク足情報を平均値で要約して AI へ渡すか (true/false)
 - FRED_API_KEY: 米国経済指標取得に使用するFRED APIキー
 - KAFKA_SERVERS: Kafkaブローカーの接続先リスト (例: localhost:9092)
   - KAFKA_BROKERS や KAFKA_BROKER_URL、KAFKA_BOOTSTRAP_SERVERS でも同じ値を指定可能
