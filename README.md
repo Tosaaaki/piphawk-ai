@@ -770,6 +770,13 @@ plan = get_trade_plan({}, {}, candles_dict,
                       pattern_tf="M15")
 ```
 
+## レジーム衝突処理
+
+`LOCAL_WEIGHT_THRESHOLD` を使ってローカル判定と LLM 判定のどちらを優先するか決め
+ます。両者の結果が異なる場合、しきい値を上回った側を採用し警告が出力されます。
+`IGNORE_REGIME_CONFLICT=true` を設定するとこの衝突チェックを無効化し、単純にスコア
+を平均した結果を利用します。
+
 ## ブレイクアウト追随エントリー
 
 `follow_breakout()` 関数はレンジをブレイクした直後の押し戻しが十分小さいかどうかを判定します。ADX が設定値以上であることを確認し、ブレイクアウト足と直近足の終値差を ATR と比較します。押し戻し幅が `FOLLOW_PULLBACK_ATR_RATIO` × ATR 以下であれば `True` を返します。
