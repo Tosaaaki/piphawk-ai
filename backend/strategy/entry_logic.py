@@ -602,6 +602,7 @@ def process_entry(
                 logging.info("Fallback forces side %s", fallback_side)
                 side = fallback_side
                 entry_info["side"] = side
+                # このフラグが立つと後続のTF整合チェックをスキップする
                 forced_entry = True
                 risk_info = plan.setdefault("risk", {})
                 if use_dynamic_risk:
@@ -664,7 +665,8 @@ def process_entry(
         except Exception as exc:
             logging.debug(f"[process_entry] peak reversal check failed: {exc}")
 
-    if tf_align:
+    # forced_entry が True の場合は上位足整合チェックをスキップ
+    if tf_align and not forced_entry:
         try:
             from piphawk_ai.analysis.signal_filter import is_multi_tf_aligned
 
