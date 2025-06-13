@@ -20,7 +20,9 @@ def generate_plan(prompt: str) -> EntryPlan | None:
     """Return EntryPlan from AI."""
     resp = ask_openai(
         prompt,
-        system_prompt="You are a trading entry planner.",
+        system_prompt=(
+            "You are a trading entry planner. Respond in JSON format."
+        ),
         model=AI_ENTRY_MODEL,
         temperature=0.0,
         response_format={"type": "json_object"},
