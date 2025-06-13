@@ -59,8 +59,9 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 ### Implemented
 
 - Automated entry and exit decisions using OpenAI models with technical indicator context.
-- Composite trade mode logic switching between **scalp** and **trend_follow**.
+- Composite trade mode logic switching between **scalp** and **trend_follow** based on indicator scores.
 - Multi-timeframe indicators and regime detection.
+- Parameterized `mode_detector` allows tuning without any LLM calls.
 - Optional chart pattern detection via OpenAI or a local scanner.
 - CVaR-based portfolio risk management.
 - Parameters managed via environment variables and YAML with hot reload.
