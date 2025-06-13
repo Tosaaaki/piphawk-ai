@@ -464,7 +464,7 @@ class JobRunner:
         self.last_candles_m5: list[dict] | None = None
 
         # Majority-vote architecture toggle
-        self.use_vote_arch = env_loader.get_env("USE_VOTE_ARCH", "false").lower() == "true"
+        self.use_vote_arch = env_loader.get_env("USE_VOTE_ARCH", "true").lower() == "true"
         self.plan_buffer = PlanBuffer() if self.use_vote_arch else None
 
         # SCALP_MODE 時に市場判断へ使う時間足
