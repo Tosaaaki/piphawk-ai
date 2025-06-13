@@ -1,11 +1,12 @@
-from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
-from backend.orders.order_manager import OrderManager
-from backend.logs.trade_logger import log_trade
-from backend.strategy.risk_manager import calc_lot_size
-from risk.tp_sl_manager import adjust_sl_for_rr
 import importlib
 
 from backend.filters.false_break_filter import should_skip as false_break_skip
+from backend.logs.trade_logger import log_trade
+from backend.orders.order_manager import OrderManager
+from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
+from backend.strategy.risk_manager import calc_lot_size
+from risk.tp_sl_manager import adjust_sl_for_rr
+
 # trend_pullback filter removed – AI handles pullback assessment
 
 try:
@@ -36,12 +37,11 @@ except ModuleNotFoundError:  # pragma: no cover
 
 from backend.filters.extension_block import is_extension
 
-
 try:
 
     from backend.filters.h1_level_block import (
-        is_near_h1_support,
         is_near_h1_resistance,
+        is_near_h1_support,
     )
 except ModuleNotFoundError:  # pragma: no cover
 
@@ -54,16 +54,21 @@ except ModuleNotFoundError:  # pragma: no cover
         return False
 
 
+import json
+import logging
+import os
+import uuid
+from datetime import datetime, timezone
+
 from backend.risk_manager import (
-    validate_rrr,
-    validate_rrr_after_cost,
-    validate_sl,
+    calc_fallback_tp_sl,
     calc_min_sl,
     get_recent_swing_diff,
     is_high_vol_session,
-    calc_fallback_tp_sl,
+    validate_rrr,
+    validate_rrr_after_cost,
+    validate_sl,
 )
-from datetime import datetime, timezone
 from backend.utils import env_loader
 
 # signals パッケージはプロジェクト直下にあるため、
@@ -72,10 +77,6 @@ from piphawk_ai.signals.composite_mode import (
     decide_trade_mode,
     decide_trade_mode_detail,
 )
-import os
-import logging
-import json
-import uuid
 
 logger = logging.getLogger(__name__)
 log_level = env_loader.get_env("LOG_LEVEL", "INFO").upper()
@@ -601,6 +602,7 @@ def process_entry(
                 logging.info("Fallback forces side %s", fallback_side)
                 side = fallback_side
                 entry_info["side"] = side
+                # このフラグが立つと後続のTF整合チェックをスキップする
                 forced_entry = True
                 risk_info = plan.setdefault("risk", {})
                 if use_dynamic_risk:
@@ -663,7 +665,8 @@ def process_entry(
         except Exception as exc:
             logging.debug(f"[process_entry] peak reversal check failed: {exc}")
 
-    if tf_align:
+    # forced_entry が True の場合は上位足整合チェックをスキップ
+    if tf_align and not forced_entry:
         try:
             from piphawk_ai.analysis.signal_filter import is_multi_tf_aligned
 
