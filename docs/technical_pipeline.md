@@ -37,14 +37,17 @@ flowchart TD
     RISK -- OK --> SIG
     SIG -- None --> SCHED
 
-    %% ===== 5. AI GATE & TP TUNE =====
-    subgraph AI[5. AI Decision & TP Tuner]
+    %% ===== 5. ENTRY DECISION =====
+    AI_ON{ENTRY_USE_AI?}
+    subgraph AI[5a. AI Decision & TP Tuner]
         direction TB
         PAYLOAD[[JSON Payload<br>(pair, mode, signal,<br>M5 + H1/H4 指標, cost,<br>default TP/SL)]]
         LLM[[OpenAI<br>chat.completions]]
         RESP[[{decision, tp_mult,<br>sl_mult, rationale}]]
     end
-    SIG -- signalOK --> PAYLOAD --> LLM --> RESP
+    SIG -- signalOK --> AI_ON
+    AI_ON -- "false" --> TPSL
+    AI_ON -- "true" --> PAYLOAD --> LLM --> RESP
     RESP -- decision:PASS --> SCHED
 
     %% ===== 6. ORDER =====
@@ -68,13 +71,18 @@ flowchart TD
 |2|market_classifier.classify_market|ADX14・EMA50乖離・BB 幅 …|mode = "trend" or "range"|
 |3|簡易リスクフィルタ|スプレッド／証拠金／重複／異常ボラ|NG→skip|
 |4|m5_entry.detect_entry|Trend:高値/安値ブレイク Range:包み足反発|None→skip|
-|5|ai_decision.call_llm|JSON で LLM へ Go/PASS と TP チューニング依頼|PASS→skip|
-|6|tpsl_calc → order_manager|ATR×倍率で TP/SL, 発注|注文 ID 取得|
+|5|ai_decision.call_llm (optional)|ENTRY_USE_AI=true なら LLM へ TP 調整を依頼|PASS→skip|
+|6|tpsl_calc → order_manager|ATR×倍率で TP/SL, 発注 (ENTRY_USE_AI=false 時は既定倍率)|注文 ID 取得|
 |7|Logger / Metrics / LINE|DB 保存・Prometheus カウント・通知|ループ完了|
 
 EXIT ロジック（トレイリング SL, 時間切れ, AI exit 等）は既存のままで TP/SL に追随します。
 
 これが最新の最小フィルタ × M5 即エントリー × AI TP チューナー フローです。
 
+
 多数決パイプラインと異なり、指標ベースでシンプルに判定を行う点が特徴です。AI は
 TP/SL 調整のみで使用され、戦略選択や投票処理は行いません。
+### ENTRY_USE_AI
+
+環境変数 `ENTRY_USE_AI` を `false` にすると、LLM への問い合わせを行わずに既定の TP/SL 倍率を用いてエントリーします。`backend/scheduler/job_runner.py` もこの変数を参照し、無効時は本パイプラインを用いて発注を行います。
+

@@ -144,6 +144,7 @@ from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from backend.strategy import pattern_scanner
 from backend.strategy.momentum_follow import follow_breakout
 from piphawk_ai.analysis.regime_detector import RegimeDetector
+from piphawk_ai.tech_arch.pipeline import run_cycle as tech_run_cycle
 try:
     from piphawk_ai.vote_arch.pipeline import (
         run_cycle as vote_run_cycle,
@@ -307,6 +308,7 @@ RUNNER_INSTANCE = None
 
 
 DEFAULT_PAIR = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
+ENTRY_USE_AI = env_loader.get_env("ENTRY_USE_AI", "true").lower() == "true"
 
 # Comma-separated chart pattern names used for AI analysis
 PATTERN_NAMES = [
@@ -2287,6 +2289,28 @@ class JobRunner:
                                 )
 
                             entry_params = {"tp_ratio": tp_ratio} if tp_ratio else None
+
+                            if not ENTRY_USE_AI:
+                                res = tech_run_cycle()
+                                if res:
+                                    price = float(tick_data["prices"][0]["bids"][0]["price"])
+                                    send_line_message(
+                                        f"【ENTRY】{DEFAULT_PAIR} {price} でエントリーしました。"
+                                    )
+                                    info(
+                                        "entry",
+                                        pair=DEFAULT_PAIR,
+                                        side=res.get("side"),
+                                        price=price,
+                                        lot=1.0,
+                                        regime=res.get("mode"),
+                                    )
+                                self.last_run = now
+                                update_oanda_trades()
+                                time.sleep(self.interval_seconds)
+                                timer.stop()
+                                continue
+
                             if self.use_vote_arch:
                                 pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
                                 bb_width = None
