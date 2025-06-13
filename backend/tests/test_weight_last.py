@@ -39,7 +39,7 @@ class TestWeightLast(unittest.TestCase):
             "backend.indicators.rsi": {"calculate_rsi": lambda prices: FakeSeries(prices)},
             "backend.indicators.ema": {"calculate_ema": lambda prices, period=None: FakeSeries(prices)},
             "backend.indicators.atr": {"calculate_atr": lambda *a, **k: FakeSeries([0])},
-            "backend.indicators.bollinger": {"calculate_bollinger_bands": lambda x: {"upper_band": FakeSeries(x), "lower_band": FakeSeries(x), "middle_band": FakeSeries(x)}},
+            "indicators.bollinger": {"calculate_bollinger_bands": lambda x: {"upper_band": FakeSeries(x), "lower_band": FakeSeries(x), "middle_band": FakeSeries(x)}},
             "backend.indicators.adx": {
                 "calculate_adx": lambda *a, **k: FakeSeries([0]),
                 "calculate_adx_bb_score": lambda *a, **k: 0.0,

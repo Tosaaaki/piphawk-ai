@@ -13,7 +13,7 @@ except ImportError as e:
 from backend.indicators.rsi import calculate_rsi
 from backend.indicators.ema import calculate_ema
 from backend.indicators.atr import calculate_atr
-from backend.indicators.bollinger import calculate_bollinger_bands
+from indicators.bollinger import calculate_bollinger_bands
 from backend.indicators.adx import calculate_adx
 try:
     from backend.indicators.adx import calculate_adx_bb_score
