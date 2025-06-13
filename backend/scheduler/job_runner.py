@@ -143,6 +143,30 @@ from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from backend.strategy import pattern_scanner
 from backend.strategy.momentum_follow import follow_breakout
 from piphawk_ai.analysis.regime_detector import RegimeDetector
+try:
+    from piphawk_ai.vote_arch.pipeline import run_cycle, PipelineResult
+    from piphawk_ai.vote_arch.entry_buffer import PlanBuffer
+    from piphawk_ai.vote_arch.regime_detector import MarketMetrics
+    from piphawk_ai.vote_arch.market_air_sensor import MarketSnapshot
+except Exception:  # pragma: no cover - optional module
+    run_cycle = lambda *_a, **_k: PipelineResult(None, "", "", False)
+
+    class PlanBuffer:
+        def __init__(self) -> None:
+            pass
+
+    class MarketMetrics:
+        def __init__(self, adx_m5: float, ema_fast: float, ema_slow: float, bb_width_m5: float) -> None:
+            self.adx_m5 = adx_m5
+            self.ema_fast = ema_fast
+            self.ema_slow = ema_slow
+            self.bb_width_m5 = bb_width_m5
+
+    class MarketSnapshot:
+        def __init__(self, atr: float, news_score: float, oi_bias: float) -> None:
+            self.atr = atr
+            self.news_score = news_score
+            self.oi_bias = oi_bias
 import requests
 
 try:
@@ -438,6 +462,10 @@ class JobRunner:
         self.scale_count: int = 0
         # recent M5 candles for peak detection
         self.last_candles_m5: list[dict] | None = None
+
+        # Majority-vote architecture toggle
+        self.use_vote_arch = env_loader.get_env("USE_VOTE_ARCH", "false").lower() == "true"
+        self.plan_buffer = PlanBuffer() if self.use_vote_arch else None
 
         # SCALP_MODE 時に市場判断へ使う時間足
         self.scalp_cond_tf = env_loader.get_env("SCALP_COND_TF", "M1").upper()
@@ -2237,25 +2265,109 @@ class JobRunner:
                                 )
 
                             entry_params = {"tp_ratio": tp_ratio} if tp_ratio else None
-                            result = process_entry(
-                                indicators,
-                                candles_m5,
-                                tick_data,
-                                market_cond,
-                                entry_params,
-                                higher_tf=higher_tf,
-                                patterns=PATTERN_NAMES,
-                                candles_dict={"M1": candles_m1, "M5": candles_m5},
-                                pattern_names=self.patterns_by_tf,
-                                tf_align=align,
-                                indicators_multi={
-                                    "M1": self.indicators_M1 or {},
-                                    "M5": self.indicators_M5 or {},
-                                    "H1": self.indicators_H1 or {},
-                                },
-                                risk_engine=self.risk_mgr,
-                            )
-                            if not result:
+                            if self.use_vote_arch:
+                                pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+                                bb_width = None
+                                try:
+                                    bb_width = (
+                                        (self.indicators_M5["bb_upper"].iloc[-1] - self.indicators_M5["bb_lower"].iloc[-1])
+                                        / pip_size
+                                    )
+                                except Exception:
+                                    bb_width = 0.0
+                                metrics = MarketMetrics(
+                                    adx_m5=float(
+                                        self.indicators_M5.get("adx").iloc[-1]
+                                        if hasattr(self.indicators_M5.get("adx"), "iloc")
+                                        else self.indicators_M5.get("adx", [0])[-1]
+                                    ),
+                                    ema_fast=float(
+                                        self.indicators_M5.get("ema_fast").iloc[-1]
+                                        if hasattr(self.indicators_M5.get("ema_fast"), "iloc")
+                                        else self.indicators_M5.get("ema_fast", [0])[-1]
+                                    ),
+                                    ema_slow=float(
+                                        self.indicators_M5.get("ema_slow").iloc[-1]
+                                        if hasattr(self.indicators_M5.get("ema_slow"), "iloc")
+                                        else self.indicators_M5.get("ema_slow", [0])[-1]
+                                    ),
+                                    bb_width_m5=float(bb_width),
+                                )
+                                atr_val = float(
+                                    self.indicators_M5.get("atr").iloc[-1]
+                                    if hasattr(self.indicators_M5.get("atr"), "iloc")
+                                    else self.indicators_M5.get("atr", [0])[-1]
+                                )
+                                snapshot = MarketSnapshot(
+                                    atr=atr_val,
+                                    news_score=float(market_cond.get("news_score", 0.0)),
+                                    oi_bias=float(market_cond.get("oi_bias", 0.0)),
+                                )
+                                res = run_cycle(indicators, metrics, snapshot, self.plan_buffer)
+                                if not res or not res.plan:
+                                    log.info("Pipeline declined entry → skipping")
+                                    self.last_run = now
+                                    update_oanda_trades()
+                                    time.sleep(self.interval_seconds)
+                                    timer.stop()
+                                    continue
+                                plan = res.plan
+                                side = plan.side
+                                lot = plan.lot
+                                params = {
+                                    "instrument": DEFAULT_PAIR,
+                                    "side": side,
+                                    "tp_pips": plan.tp,
+                                    "sl_pips": plan.sl,
+                                    "mode": "market",
+                                    "market_cond": market_cond,
+                                }
+                                order_mgr.enter_trade(
+                                    side=side,
+                                    lot_size=lot if lot > 0 else 0.0,
+                                    market_data=tick_data,
+                                    strategy_params=params,
+                                )
+                                price = float(tick_data["prices"][0]["bids"][0]["price"])
+                                send_line_message(
+                                    f"【ENTRY】{DEFAULT_PAIR} {price} でエントリーしました。"
+                                )
+                                info(
+                                    "entry",
+                                    pair=DEFAULT_PAIR,
+                                    side=side,
+                                    price=price,
+                                    lot=lot,
+                                    regime=res.mode,
+                                )
+                                self.scale_count = 0
+                                self.last_entry_context = self.current_context
+                                self.last_entry_strategy = self.current_strategy_name
+                                self.last_run = now
+                                update_oanda_trades()
+                                time.sleep(self.interval_seconds)
+                                timer.stop()
+                                continue
+                            else:
+                                result = process_entry(
+                                    indicators,
+                                    candles_m5,
+                                    tick_data,
+                                    market_cond,
+                                    entry_params,
+                                    higher_tf=higher_tf,
+                                    patterns=PATTERN_NAMES,
+                                    candles_dict={"M1": candles_m1, "M5": candles_m5},
+                                    pattern_names=self.patterns_by_tf,
+                                    tf_align=align,
+                                    indicators_multi={
+                                        "M1": self.indicators_M1 or {},
+                                        "M5": self.indicators_M5 or {},
+                                        "H1": self.indicators_H1 or {},
+                                    },
+                                    risk_engine=self.risk_mgr,
+                                )
+                            if not self.use_vote_arch and not result:
                                 pend = get_pending_entry_order(DEFAULT_PAIR)
                                 if pend and pend.get("order_id"):
                                     age = time.time() - pend.get("ts", 0)
