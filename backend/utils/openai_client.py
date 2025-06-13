@@ -57,8 +57,16 @@ _calls_this_loop = 0
 
 
 def set_call_limit(_limit: int) -> None:
-    """Deprecated stub retained for backward compatibility."""
-    return None
+    """Set the maximum number of OpenAI calls allowed per loop."""
+    global _CALL_LIMIT_PER_LOOP, _calls_this_loop
+    _CALL_LIMIT_PER_LOOP = _limit
+    _calls_this_loop = 0
+
+
+def reset_call_counter() -> None:
+    """Reset the per-loop OpenAI call counter."""
+    global _calls_this_loop
+    _calls_this_loop = 0
 
 def ask_openai(
     prompt: str,
@@ -85,9 +93,15 @@ def ask_openai(
         Exception: If the API request fails.
     """
 
+    global _calls_this_loop
+
     # Use env‑defined default when caller does not specify
     if model is None:
         model = AI_MODEL
+
+    if _calls_this_loop >= _CALL_LIMIT_PER_LOOP:
+        raise RuntimeError("OpenAI call limit exceeded")
+    _calls_this_loop += 1
 
     key = (model, system_prompt, prompt)
     now = time.time()
@@ -161,4 +175,5 @@ __all__ = [
     "ask_openai_async",
     "AI_MODEL",
     "set_call_limit",
+    "reset_call_counter",
 ]
