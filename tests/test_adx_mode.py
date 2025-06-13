@@ -130,8 +130,9 @@ def test_decide_trade_mode_high_atr_low_adx(monkeypatch):
 
 
 def test_detect_mode_direct(monkeypatch):
-    monkeypatch.setenv("HIGH_ATR_PIPS", "3")
-    monkeypatch.setenv("LOW_ADX_THRESH", "20")
+    monkeypatch.setenv("ATR_PCT_MIN", "0.02")
+    monkeypatch.setenv("ADX_RANGE_MAX", "20")
+    monkeypatch.setenv("ADX_TREND_MIN", "25")
     from analysis.mode_detector import MarketContext, detect_mode
 
     ctx = MarketContext(
