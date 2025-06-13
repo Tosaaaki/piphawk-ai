@@ -1270,7 +1270,9 @@ def get_trade_plan(
         summarize_candles=USE_CANDLE_SUMMARY,
     )
     try:
-        raw = ask_openai(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano"))
+        raw = ask_openai(
+            prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano")
+        )
         log_prompt_response(
             "ENTRY",
             instrument,
@@ -1283,6 +1285,13 @@ def get_trade_plan(
         except Exception as log_exc:  # pragma: no cover
             logger.warning("log_ai_decision failed: %s", log_exc)
         raise
+
+    # OpenAI から JSON 文字列が返ってきた場合に備えて辞書化
+    try:
+        raw = json.loads(raw) if isinstance(raw, str) else raw
+    except json.JSONDecodeError as e:
+        logging.warning("\u26a0\ufe0f JSON decode error: %s", e)
+        return {"entry": {"side": "no"}, "raw": raw, "reason": "PARSE_FAIL"}
     try:
         log_ai_decision("ENTRY", instrument, json.dumps(raw, ensure_ascii=False))
     except Exception as exc:  # pragma: no cover - logging failure shouldn't stop flow
