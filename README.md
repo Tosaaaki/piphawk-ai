@@ -60,6 +60,7 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 
 - Automated entry and exit decisions using OpenAI models with technical indicator context.
 - Composite trade mode logic switching between **scalp** and **trend_follow**.
+- Local mode detection via `analysis.detect_mode()` without LLM.
 - Multi-timeframe indicators and regime detection.
 - Optional chart pattern detection via OpenAI or a local scanner.
 - CVaR-based portfolio risk management.
@@ -231,21 +232,20 @@ YAML ファイルの変更は `settings.env` と同様、ジョブランナー�
 
 ### LLM model settings
 
-`strategy.yml` では利用する OpenAI モデルを個別に指定できます。次の設定例はモード
-選択、エントリー、エグジットすべてに `gpt-4.1-nano` を利用する
-場合です。
+`strategy.yml` では利用する OpenAI モデルを個別に指定できます。現在はトレードモー
+ド判定がローカルの `analysis.detect_mode()` へ置き換わったため、`mode_selector`
+キーは無視されます。以下の例ではエントリーとエグジットのみ AI モデルを指定してい
+ます。
 
 ```yaml
 LLM:
-  mode_selector: gpt-4.1-nano
   entry_logic: gpt-4.1-nano
   exit_logic: gpt-4.1-nano
 ```
 
-`AI_REGIME_MODEL` などの値は `.env` を編集して変更できます。
+`AI_ENTRY_MODEL` や `AI_EXIT_MODEL` などの値は `.env` を編集して変更できます。
 
-これらはそれぞれ `AI_REGIME_MODEL`、`AI_ENTRY_MODEL`、`AI_EXIT_MODEL` 環境変数に
-展開されます。
+これらはそれぞれ `AI_ENTRY_MODEL`、`AI_EXIT_MODEL` 環境変数に展開されます。
 
 ジョブランナーは ADX の値からスキャルプかトレンドフォローかを判断し、モードが
 切り替わった際に `config/<mode>.yml` を自動で再読み込みします。環境変数
@@ -775,11 +775,7 @@ plan = get_trade_plan({}, {}, candles_dict,
 ```
 
 ## レジーム衝突処理
-
-`LOCAL_WEIGHT_THRESHOLD` を使ってローカル判定と LLM 判定のどちらを優先するか決め
-ます。両者の結果が異なる場合、しきい値を上回った側を採用し警告が出力されます。
-`IGNORE_REGIME_CONFLICT=true` を設定するとこの衝突チェックを無効化し、単純にスコア
-を平均した結果を利用します。
+以前は `LOCAL_WEIGHT_THRESHOLD` を用いてローカル判定と LLM 判定の整合度を比較していましたが、現在は `analysis.detect_mode()` のみを利用するためこの設定は不要になりました。`LOCAL_WEIGHT_THRESHOLD` はチャートパターン検出の重み付けにのみ使用されます。
 
 ## ブレイクアウト追随エントリー
 

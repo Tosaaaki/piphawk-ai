@@ -2,6 +2,8 @@
 
 `decide_trade_mode` は ATR、ADX、DI 差、EMA 傾き、出来高を各 0〜2 点でスコア化し、合計点を正規化して市況を判定します。指標が強ければ 2 点、基準を満たせば 1 点と段階的に加算されます。スコアが 0.66 以上なら `trend_follow`、0.33 以上なら `scalp_momentum` となり、それ未満は直前のモードを維持します。
 
+このロジックは `analysis.detect_mode()` として公開され、戻り値にはモード、スコア、理由をまとめた `MarketContext` クラスを使用します。LLM を介さないため高速かつ再現性のある判定が可能です。
+
 主な環境変数は次の通りです。
 
 - `MODE_ATR_PIPS_MIN` / `MODE_BBWIDTH_PIPS_MIN` … ボラティリティ判定に使う閾値
