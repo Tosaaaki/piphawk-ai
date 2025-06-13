@@ -21,6 +21,9 @@ indicators, selects a strategy via OpenAI, and averages entry plans. For a
 detailed diagram see [docs/majority_vote_flow.md](docs/majority_vote_flow.md).
 An alternative fully technical pipeline is available under
 `piphawk_ai.tech_arch`; see [docs/technical_pipeline.md](docs/technical_pipeline.md).
+Set `USE_VOTE_PIPELINE=false` to force this technical pipeline.
+With `ENTRY_USE_AI=false` the system skips LLM entry tuning and simply applies
+fixed ATR multiples.
 The module exposes `run_cycle()` which implements a simplified M5 entry flow.
 
 ## QuickStart
@@ -39,6 +42,13 @@ The module exposes `run_cycle()` which implements a simplified M5 entry flow.
    ```
 
    Edit `.env` and set OPENAI_API_KEY, OANDA_API_KEY and OANDA_ACCOUNT_ID.
+   To disable AI entry or the vote pipeline add:
+
+   ```bash
+   ENTRY_USE_AI=false
+   USE_VOTE_PIPELINE=false
+   MAX_AI_EXIT_CALLS=5
+   ```
 3. Build and run the backend container
 
    ```bash
