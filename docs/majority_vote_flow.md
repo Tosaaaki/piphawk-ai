@@ -4,8 +4,8 @@ AI モデルのノイズを抑えるため、複数ステップを組み合わ�
 
 ```text
 [Indicators] --pass_entry_filter--> [Regime Detection]
-                 \-- NG --> stop
-Regime Detection --prompt--> Strategy Select (n times)
+                \-- NG --> stop
+Regime Detection --> Strategy Select (n times)
 Strategy Select --vote--> Trade Mode
 Trade Mode --prompt--> Entry Plan
 Entry Plan --> Plan Buffer --> Final Filter --> PipelineResult
