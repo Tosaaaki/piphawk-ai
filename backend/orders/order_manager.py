@@ -1,9 +1,9 @@
 import requests
 from backend.utils import env_loader
 from backend.utils.http_client import request_with_retries
-from backend.logs.log_manager import log_trade, log_error
+from backend.logs.log_manager import log_error
 from backend.logs.info_logger import info
-from backend.logs.trade_logger import ExitReason
+from backend.logs.trade_logger import ExitReason, log_trade
 from backend.logs.update_oanda_trades import fetch_trade_details
 from backend.utils.price import format_price
 from backend.risk_manager import (

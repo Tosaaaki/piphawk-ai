@@ -1,6 +1,6 @@
 from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 from backend.orders.order_manager import OrderManager
-from backend.logs.log_manager import log_trade
+from backend.logs.trade_logger import log_trade
 from backend.strategy.risk_manager import calc_lot_size
 from risk.tp_sl_manager import adjust_sl_for_rr
 import importlib

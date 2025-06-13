@@ -28,9 +28,12 @@ def select_strategy(prompt: str, n: int | None = None) -> tuple[str, bool]:
     except Exception:
         resp_list = []
     if isinstance(resp_list, dict):
-        modes = [str(resp_list.get("trade_mode", ""))]
+        modes = [str(resp_list.get("trade_mode", "")).strip()]
     else:
-        modes = [str(r.get("trade_mode", "")) for r in resp_list]
+        modes = [str(r.get("trade_mode", "")).strip() for r in resp_list]
+    modes = [m for m in modes if m]
+    if not modes:
+        return "", False
     vote, cnt = Counter(modes).most_common(1)[0]
     return vote, cnt >= STRAT_VOTE_MIN
 
