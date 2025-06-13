@@ -169,6 +169,9 @@ The root also includes `Dockerfile` definitions for containerized deployment and
 `trades.db` as the default SQLite database path.
 When running inside Docker this file is located at `/app/backend/logs/trades.db` by default.
 
+For details on the role of each top-level file and directory, see
+[docs/file_roles.md](docs/file_roles.md).
+
 ### Logging
 
 Set the `LOG_LEVEL` environment variable to control verbosity. When `DEBUG` is
