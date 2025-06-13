@@ -8,6 +8,7 @@ from typing import Iterable, Sequence
 
 from analysis.llm_mode_selector import select_mode_llm
 from analysis.mode_preclassifier import classify_regime
+from analysis.mode_detector import detect_mode, MarketContext
 from backend.utils import env_loader
 from indicators.candlestick import detect_upper_wick_cluster
 
@@ -36,7 +37,9 @@ SCALP_REV_ADX_MAX = float(env_loader.get_env("SCALP_REV_ADX_MAX", "18"))
 _rsi_ext = env_loader.get_env("SCALP_REV_RSI_EXTREME", "70/30").split("/")
 try:
     SCALP_REV_RSI_HIGH = float(_rsi_ext[0])
-    SCALP_REV_RSI_LOW = float(_rsi_ext[1]) if len(_rsi_ext) > 1 else 100 - SCALP_REV_RSI_HIGH
+    SCALP_REV_RSI_LOW = (
+        float(_rsi_ext[1]) if len(_rsi_ext) > 1 else 100 - SCALP_REV_RSI_HIGH
+    )
 except Exception:
     SCALP_REV_RSI_HIGH = 70.0
     SCALP_REV_RSI_LOW = 30.0
@@ -380,13 +383,10 @@ def map_llm(llm_mode: str) -> str:
 
 
 def decide_trade_mode(indicators: dict) -> str:
-    """Return trade mode using preclassifier and LLM."""
-    regime = classify_regime(indicators)
-    if regime in ("trend", "range"):
-        return {"trend": "trend_follow", "range": "scalp_momentum"}[regime]
-    if regime == "gray":
-        return map_llm(select_mode_llm(indicators))
-    return "no_trade"
+    """Return trade mode using rule-based detector."""
+
+    ctx = MarketContext(price=0.0, indicators=indicators)
+    return detect_mode(ctx)
 
 
 def calculate_scores(indicators: dict) -> float:
