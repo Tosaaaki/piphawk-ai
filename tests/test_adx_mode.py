@@ -15,6 +15,10 @@ def _reload_composite():
 
     return importlib.reload(cm)
 
+def _reload_detector():
+    import analysis.mode_detector as md
+    return importlib.reload(md)
+
 
 def test_choose_strategy_default():
     os.environ.pop("ADX_SCALP_MIN", None)
@@ -78,6 +82,7 @@ def test_decide_trade_mode_matrix(monkeypatch):
     monkeypatch.setenv("ADX_TREND_THR", "25")
     monkeypatch.setenv("ADX_FLAT_THR", "15")
     cm = _reload_composite()
+    md = _reload_detector()
     inds = {
         "atr": [0.05],
         "bb_upper": [101.0],
@@ -87,7 +92,7 @@ def test_decide_trade_mode_matrix(monkeypatch):
         "adx": [30],
         "volume": [60, 70, 80, 90, 100],
     }
-    assert cm.decide_trade_mode(inds) == "scalp_momentum"
+    assert md.detect_mode(inds) == "scalp_momentum"
 
 
 def test_decide_trade_mode_scalp(monkeypatch):
@@ -97,6 +102,7 @@ def test_decide_trade_mode_scalp(monkeypatch):
     monkeypatch.setenv("MODE_ADX_MIN", "50")
     monkeypatch.setenv("MODE_VOL_MA_MIN", "100")
     cm = _reload_composite()
+    md = _reload_detector()
     inds = {
         "atr": [0.03],
         "bb_upper": [100.03],
@@ -106,13 +112,14 @@ def test_decide_trade_mode_scalp(monkeypatch):
         "adx": [20],
         "volume": [20, 30, 40, 50, 60],
     }
-    assert cm.decide_trade_mode(inds) == "flat"
+    assert md.detect_mode(inds) == "flat"
 
 
 def test_decide_trade_mode_high_atr_low_adx(monkeypatch):
     monkeypatch.setenv("HIGH_ATR_PIPS", "3")
     monkeypatch.setenv("LOW_ADX_THRESH", "20")
     cm = _reload_composite()
+    md = _reload_detector()
     inds = {
         "atr": [0.03],
         "bb_upper": [101.0],
@@ -122,7 +129,7 @@ def test_decide_trade_mode_high_atr_low_adx(monkeypatch):
         "adx": [10],
         "volume": [50, 50, 50, 50, 50],
     }
-    assert cm.decide_trade_mode(inds) == "scalp_momentum"
+    assert md.detect_mode(inds) == "scalp_momentum"
     assert cm.decide_trade_mode_matrix(1.5, 1.0, 10) == "scalp_range"
     assert cm.decide_trade_mode_matrix(1.5, 1.0, 30) == "scalp_momentum"
     assert cm.decide_trade_mode_matrix(0.7, 1.0, 30) == "trend_follow"
