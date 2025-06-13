@@ -1254,7 +1254,7 @@ def process_entry(
         except Exception:
             rrr = None
         log_trade(
-            instrument,
+            instrument=instrument,
             entry_time=entry_time,
             entry_price=entry_price,
             units=units,

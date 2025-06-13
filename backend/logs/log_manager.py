@@ -1,5 +1,6 @@
 import sqlite3
 import logging
+from enum import Enum
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -249,6 +250,8 @@ def log_trade(
     is_manual: bool | None = None,
     score_version: int | None = None,
 ):
+    if isinstance(exit_reason, Enum):
+        exit_reason = exit_reason.name
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute('''

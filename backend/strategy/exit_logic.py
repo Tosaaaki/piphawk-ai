@@ -213,7 +213,7 @@ def process_exit(
             else -int(position["short"]["units"])
         )
         log_trade(
-            position["instrument"],
+            instrument=position["instrument"],
             exit_time=exit_time,
             entry_time=position.get("entry_time", exit_time),
             entry_price=float(position[position_side]["averagePrice"]),
@@ -367,7 +367,7 @@ def process_exit(
                     else -int(position["short"]["units"])
                 )
                 log_trade(
-                    position["instrument"],
+                    instrument=position["instrument"],
                     exit_time=exit_time,
                     entry_time=position.get(
                         "entry_time", position.get("openTime", exit_time)
@@ -428,7 +428,7 @@ def process_exit(
         exit_time = datetime.now(timezone.utc).isoformat()
 
         log_trade(
-            instrument,
+            instrument=instrument,
             exit_time=exit_time,
             entry_time=entry_time,
             entry_price=entry_price,
@@ -473,7 +473,7 @@ def process_exit(
                         close_units = close_units if units > 0 else -close_units
                         order_manager.close_partial(trade_ids[0], close_units)
                         log_trade(
-                            position["instrument"],
+                            instrument=position["instrument"],
                             entry_time=position.get("entry_time", position.get("openTime", datetime.now(timezone.utc).isoformat())),
                             entry_price=entry_price,
                             units=close_units,
