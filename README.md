@@ -35,20 +35,13 @@ The module exposes `run_cycle()` which implements a simplified M5 entry flow.
    cd piphawk-ai
    ```
 
-2. Create .env from template
+2. Create `.env` from the template
 
    ```bash
    cp .env.template .env
    ```
-
-   Edit `.env` and set OPENAI_API_KEY, OANDA_API_KEY and OANDA_ACCOUNT_ID.
-   To disable AI entry or the vote pipeline add:
-
-   ```bash
-   ENTRY_USE_AI=false
-   USE_VOTE_PIPELINE=false
-   MAX_AI_EXIT_CALLS=5
-   ```
+   Edit the file and set your API keys. Detailed options are covered in the
+   [Setup](#setup) section.
 3. Build and run the backend container
 
    ```bash
@@ -66,6 +59,7 @@ The module exposes `run_cycle()` which implements a simplified M5 entry flow.
    ```
 
 See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
+For detailed instructions, refer to [Setup](#setup).
 
 ## Features
 
@@ -92,6 +86,8 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 - See [docs/training_guide.md](docs/training_guide.md) for training scripts.
 
 ## Setup
+
+See [AGENTS.md](AGENTS.md) for coding guidelines and test commands.
 
 1. **Clone the repository**
 
@@ -867,25 +863,14 @@ TP/SL の組み合わせは複数候補から期待値を計算し、最も利�
 
 ## Running Tests
 
-The repository includes a set of unit tests under `tests/`. You can run them
-quickly using the helper script:
+Use the helper script to run unit tests:
 
 ```bash
 ./run_tests.sh
 ```
 
-
-This script installs dependencies from `requirements-test.txt` and then launches
-`pytest` automatically. Recent additions include tests for the monitoring
-utilities such as ``SafetyTrigger`` and ``metrics_publisher``.
-
-Pass any extra arguments to forward them directly to `pytest`.
-
-For example, run only the technical pipeline tests with:
-
-```bash
-./run_tests.sh -k test_tech_arch_no_ai.py
-```
+For lint and type checks, refer to the commands listed in
+[AGENTS.md](AGENTS.md).
 
 ## プロンプト変更手順
 
