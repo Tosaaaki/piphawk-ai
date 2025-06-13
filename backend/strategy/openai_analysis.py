@@ -1353,6 +1353,18 @@ def get_trade_plan(
     plan["entry_confidence"] = entry_conf
     plan["entry_type"] = entry_type
 
+    # LLMが反守方向を出した場合の後処理
+    try:
+        regime = market_cond.get("market_condition") if market_cond else None
+        if regime == "trend" and plan.get("entry_type") == "reversal":
+            plan["entry_type"] = "trend"
+            probs = plan.get("probs", {})
+            if "long" in probs and "short" in probs:
+                probs["long"], probs["short"] = probs["short"], probs["long"]
+            plan["probs"] = probs
+    except Exception:
+        pass
+
     # ---- local guards -------------------------------------------------
     risk = risk_autofix(plan.get("risk"))
     plan["risk"] = risk
