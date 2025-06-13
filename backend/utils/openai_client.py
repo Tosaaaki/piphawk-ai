@@ -1,9 +1,13 @@
-try:
-    from openai import APIError, OpenAI
-except ModuleNotFoundError as exc:
-    raise RuntimeError(
-        "openai package is required. Install via 'pip install openai'."
-    ) from exc
+"""Thin wrapper around the OpenAI client with optional lazy import."""
+
+try:  # Lazy import when available
+    from openai import APIError as _APIError
+    from openai import OpenAI as _OpenAI
+    APIError = _APIError
+    OpenAI = _OpenAI
+except Exception:  # pragma: no cover - allow tests without openai
+    APIError = Exception
+    OpenAI = None
 import asyncio
 import json
 import logging
@@ -21,8 +25,14 @@ client: Optional[OpenAI] = None
 
 def _get_client() -> OpenAI:
     """Return an initialized OpenAI client."""
-    global client
+    global client, OpenAI
     if client is None:
+        if OpenAI is None:
+            try:  # Import lazily to avoid hard dependency during tests
+                from openai import OpenAI as _OpenAI
+                OpenAI = _OpenAI
+            except Exception as exc:  # pragma: no cover - optional dependency
+                raise RuntimeError("openai package is required") from exc
         api_key = env_loader.get_env("OPENAI_API_KEY")
         if not api_key:
             raise RuntimeError("OPENAI_API_KEY not set in environment variables.")

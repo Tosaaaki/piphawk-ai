@@ -1,6 +1,8 @@
 """Entry rule selector with LinUCB."""
 from __future__ import annotations
 
+import sys
+import types
 from typing import Any, Callable, Dict
 
 import numpy as np
@@ -31,7 +33,6 @@ except Exception:  # pragma: no cover - fallback when dependency fails
 
     MAB = _FallbackMAB
     LearningPolicy = _FallbackPolicy
-
 
 class RuleSelector:
     """複数ルールから最適なものを選択するセレクタ."""
