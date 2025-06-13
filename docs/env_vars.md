@@ -187,6 +187,7 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - RANGE_CENTER_BLOCK_PCT: ADX が ADX_RANGE_THRESHOLD 以下のとき、BB 中心付近のエントリーをどの程度ブロックするか (0.3 = 30%)
 - BAND_WIDTH_THRESH_PIPS: BB 幅がこの値未満になると自動的にレンジモードに切り替える
 - AI_PROFIT_TRIGGER_RATIO: TP 目標の何割到達で AI に利確を問い合わせるか
+- MAX_AI_EXIT_CALLS: 1ポジションあたり propose_exit_adjustment を呼び出す上限回数
 - MIN_RRR: 最低許容リスクリワード比
 - ENFORCE_RRR: true にすると MIN_RRR を下回らないよう TP/SL を調整
 - MIN_RRR_AFTER_COST: スプレッド控除後のRRR下限

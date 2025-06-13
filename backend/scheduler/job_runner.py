@@ -121,6 +121,20 @@ from monitoring import metrics_publisher
 from monitoring.safety_trigger import SafetyTrigger
 from backend.strategy.signal_filter import pass_exit_filter
 from backend.utils.ai_parse import parse_trade_plan
+try:
+    from backend.strategy.llm_exit import propose_exit_adjustment
+except Exception:  # pragma: no cover - optional during tests
+    def propose_exit_adjustment(*_a, **_k):
+        return {"action": "HOLD", "tp": None, "sl": None}
+
+try:
+    from backend.logs.log_manager import log_exit_adjust, count_exit_adjust_calls
+except Exception:  # pragma: no cover
+    def log_exit_adjust(*_a, **_k) -> None:
+        pass
+
+    def count_exit_adjust_calls(*_a, **_k) -> int:
+        return 0
 
 try:
     from backend.strategy.openai_analysis import (
@@ -321,6 +335,7 @@ MAX_LIMIT_AGE_SEC = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
 # seconds before a pending LIMIT is cancelled
 PENDING_GRACE_MIN = int(env_loader.get_env("PENDING_GRACE_MIN", "3"))
 SL_COOLDOWN_SEC = int(env_loader.get_env("SL_COOLDOWN_SEC", "300"))
+MAX_AI_EXIT_CALLS = int(env_loader.get_env("MAX_AI_EXIT_CALLS", "1"))
 
 # POSITION_REVIEW_ENABLED : "true" | "false"  – enable/disable periodic position reviews (default "true")
 # POSITION_REVIEW_SEC     : seconds between AI reviews while holding a position   (default 60)
@@ -1082,6 +1097,44 @@ class JobRunner:
         except Exception as exc:
             log.warning(f"TP reduction failed: {exc}")
 
+    def _maybe_exit_adjustment(
+        self,
+        position: dict,
+        indicators: dict,
+        side: str,
+        pip_size: float,
+        tick_data: dict,
+        profit_pips: float,
+        entry_price: float,
+    ) -> None:
+        trade_id = position[side]["tradeIDs"][0]
+        if count_exit_adjust_calls(trade_id) >= MAX_AI_EXIT_CALLS:
+            return
+        ctx = build_exit_context(position, tick_data, indicators, indicators_m1=self.indicators_M1)
+        ctx["profit_pips"] = profit_pips
+        ctx["trade_id"] = trade_id
+        result = propose_exit_adjustment(ctx)
+        log_exit_adjust(trade_id, result.get("action"), result.get("tp"), result.get("sl"))
+        entry_uuid = None
+        er_raw = position.get("entry_regime")
+        if er_raw:
+            try:
+                entry_uuid = json.loads(er_raw).get("entry_uuid")
+            except Exception:
+                entry_uuid = None
+        if result.get("action") == "MOVE_BE":
+            order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, entry_price)
+            self.breakeven_reached = True
+        if result.get("action") == "REDUCE_TP" and result.get("tp") is not None:
+            order_mgr.adjust_tp_sl(
+                DEFAULT_PAIR,
+                trade_id,
+                new_tp=float(result["tp"]),
+                entry_uuid=entry_uuid,
+            )
+        if result.get("action") == "SHRINK_SL" and result.get("sl") is not None:
+            order_mgr.update_trade_sl(trade_id, DEFAULT_PAIR, float(result["sl"]))
+
     # ────────────────────────────────────────────────────────────
     #  Trailing-stop settings update based on calendar/quiet hours
     # ────────────────────────────────────────────────────────────
@@ -1652,6 +1705,15 @@ class JobRunner:
                                 )
                             else:
                                 # EXITフィルターを評価し、フィルターNGの場合はAIの決済判断をスキップ
+                                self._maybe_exit_adjustment(
+                                    has_position,
+                                    indicators,
+                                    position_side,
+                                    pip_size,
+                                    tick_data,
+                                    current_profit_pips,
+                                    entry_price,
+                                )
                                 if pass_exit_filter(indicators, position_side):
                                     log.info(
                                         "Filter OK → Processing exit decision with AI."
