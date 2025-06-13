@@ -57,7 +57,8 @@ def ask_openai(
     max_tokens: int = 512,
     temperature: float = 0.7,
     response_format: dict | None = None,
-) -> dict:
+    n: int = 1,
+) -> dict | list[dict]:
     """
     Send a prompt to OpenAI's API and return the response text.
     Args:
@@ -68,7 +69,7 @@ def ask_openai(
             to the OpenAI client's ``chat.completions.create`` method.
             Defaults to requesting a JSON object when not provided.
     Returns:
-        dict: Parsed JSON object returned by the assistant.
+        dict or list[dict]: Parsed JSON object(s) returned by the assistant.
     Raises:
         Exception: If the API request fails.
     """
@@ -101,9 +102,13 @@ def ask_openai(
             max_tokens=max_tokens,
             temperature=temperature,
             response_format=response_format,
+            n=n,
         )
-        response_content = response.choices[0].message.content.strip()
-        parsed = json.loads(response_content)
+        results = []
+        for choice in response.choices:
+            response_content = choice.message.content.strip()
+            results.append(json.loads(response_content))
+        parsed = results[0] if n == 1 else results
         _cache[key] = (now, parsed)
         _cache.move_to_end(key)
         while len(_cache) > _CACHE_MAX:
@@ -124,7 +129,8 @@ async def ask_openai_async(
     max_tokens: int = 512,
     temperature: float = 0.7,
     response_format: dict | None = None,
-) -> dict:
+    n: int = 1,
+) -> dict | list[dict]:
     """Non-blocking wrapper around ``ask_openai``."""
 
     return await asyncio.to_thread(
@@ -135,6 +141,7 @@ async def ask_openai_async(
         max_tokens=max_tokens,
         temperature=temperature,
         response_format=response_format,
+        n=n,
     )
 
 

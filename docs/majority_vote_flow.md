@@ -15,7 +15,7 @@ Entry Plan --> Plan Buffer --> Final Filter --> PipelineResult
 
 1. **pass_entry_filter** – RSI やATRなどの指標から事前条件を判定し、不適切な状況では早期に終了します。
 2. **Regime Detection** – ADXとボリンジャーバンド幅から `trend` / `range` / `vol_spike` を推定します。
-3. **Strategy Select** – OpenAI API を複数回呼び出し、`STRAT_N` 本の候補から多数決でモードを決定します。温度は `STRAT_TEMP` で調整します。
+3. **Strategy Select** – OpenAI API を1回呼び出して `STRAT_N` 本の候補を生成し、多数決でモードを決定します。温度は `STRAT_TEMP` で調整します。
 4. **Trade Mode** – 多数決が十分でない場合はレジームに応じたフォールバックを行います (`STRAT_VOTE_MIN` が閾値)。
 5. **Entry Plan** – 選択されたモードをプロンプトに与え、TP/SL などの具体的なプランを生成します。
 6. **Plan Buffer** – 直近 `ENTRY_BUFFER_K` 個のプランを平均化して外れ値を緩和します。

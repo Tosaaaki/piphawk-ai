@@ -16,20 +16,21 @@ def select_strategy(prompt: str, n: int | None = None) -> tuple[str, bool]:
     """Return voted trade mode and bool indicating majority."""
     if n is None:
         n = STRAT_N
-    modes = []
-    for _ in range(n):
-        try:
-            resp = ask_openai(
-                prompt,
-                system_prompt="You are a trading strategy selector.",
-                model=AI_STRATEGY_MODEL,
-                temperature=STRAT_TEMP,
-                response_format={"type": "json_object"},
-            )
-            if isinstance(resp, dict):
-                modes.append(str(resp.get("trade_mode", "")))
-        except Exception:
-            continue
+    try:
+        resp_list = ask_openai(
+            prompt,
+            system_prompt="You are a trading strategy selector.",
+            model=AI_STRATEGY_MODEL,
+            temperature=STRAT_TEMP,
+            response_format={"type": "json_object"},
+            n=n,
+        )
+    except Exception:
+        resp_list = []
+    if isinstance(resp_list, dict):
+        modes = [str(resp_list.get("trade_mode", ""))]
+    else:
+        modes = [str(r.get("trade_mode", "")) for r in resp_list]
     vote, cnt = Counter(modes).most_common(1)[0]
     return vote, cnt >= STRAT_VOTE_MIN
 
