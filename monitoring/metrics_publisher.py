@@ -5,10 +5,14 @@
 import json
 import logging
 from datetime import datetime
-from backend.utils import env_loader
 
-from kafka import KafkaProducer
+try:
+    from kafka import KafkaProducer
+except Exception:  # pragma: no cover - Kafka optional
+    KafkaProducer = None
 from prometheus_client import Gauge
+
+from backend.utils import env_loader
 
 logger = logging.getLogger(__name__)
 
