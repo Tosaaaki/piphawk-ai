@@ -869,6 +869,12 @@ utilities such as ``SafetyTrigger`` and ``metrics_publisher``.
 
 Pass any extra arguments to forward them directly to `pytest`.
 
+For example, run only the technical pipeline tests with:
+
+```bash
+./run_tests.sh -k test_tech_arch_no_ai.py
+```
+
 ## プロンプト変更手順
 
 各 AI 機能の指示文は `prompts/` ディレクトリにテンプレートとして保存されています。
