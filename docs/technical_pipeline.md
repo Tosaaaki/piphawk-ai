@@ -2,6 +2,8 @@
 
 PipHawk が採用する最新の最小フィルタ構成です。M5 シグナルを直接トリガーとし、AI で TP/SL 倍率を調整します。
 
+環境変数 `USE_VOTE_PIPELINE` を `false` にすると、ジョブランナーはこのテクニカルパイプラインを実行します。`true` の場合は [majority_vote_flow.md](majority_vote_flow.md) で説明する多数決パイプラインが利用されます。
+
 ```mermaid
 flowchart TD
     %% ===== 0. LOOP =====
@@ -77,6 +79,10 @@ EXIT ロジック（トレイリング SL, 時間切れ, AI exit 等）は既存
 
 これが最新の最小フィルタ × M5 即エントリー × AI TP チューナー フローです。
 
+
+多数決パイプラインと異なり、指標ベースでシンプルに判定を行う点が特徴です。AI は
+TP/SL 調整のみで使用され、戦略選択や投票処理は行いません。
 ### ENTRY_USE_AI
 
 環境変数 `ENTRY_USE_AI` を `false` にすると、LLM への問い合わせを行わずに既定の TP/SL 倍率を用いてエントリーします。`backend/scheduler/job_runner.py` もこの変数を参照し、無効時は本パイプラインを用いて発注を行います。
+

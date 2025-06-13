@@ -22,3 +22,11 @@ Entry Plan --> Plan Buffer --> Final Filter --> PipelineResult
 7. **Final Filter** – EMA 乖離やリスクリワード比を再確認し、条件を満たした場合のみ採用します。
 
 詳細な実装は `piphawk_ai/vote_arch/` ディレクトリを参照してください。
+
+## 設定方法
+
+環境変数 `USE_VOTE_PIPELINE` を `true` にするとこの多数決パイプラインが有効化されます。
+`false` を指定した場合は [technical_pipeline.md](technical_pipeline.md) に記載の
+テクニカル重視フローへ切り替わります。
+こちらは戦略選択とエントリープラン生成を複数回実行し、AI のノイズを平均化する点が
+テクニカルパイプラインとの大きな違いです。
