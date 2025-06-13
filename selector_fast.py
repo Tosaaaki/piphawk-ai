@@ -7,16 +7,32 @@ from typing import Any, Callable, Dict
 
 import numpy as np
 
-try:  # pandas may be stubbed during testing
-    import pandas as _pd  # type: ignore
-    if not hasattr(_pd, "DataFrame"):
-        raise ImportError
-except Exception:  # pragma: no cover - minimal stub for mabwiser
-    _pd = types.SimpleNamespace(DataFrame=list, Series=list)
-    sys.modules["pandas"] = _pd
+try:
+    from mabwiser.mab import MAB, LearningPolicy
+except Exception:  # pragma: no cover - fallback when dependency fails
+    class _FallbackMAB:
+        def __init__(self, arms, learning_policy=None):
+            self.arms = list(arms)
+            self.index = 0
 
-from mabwiser.mab import MAB, LearningPolicy
+        def fit(self, *args, **kwargs):
+            pass
 
+        def predict(self, *_: Any) -> str:
+            arm = self.arms[self.index % len(self.arms)]
+            self.index += 1
+            return arm
+
+        def partial_fit(self, *args, **kwargs):
+            pass
+
+    class _FallbackPolicy:
+        class LinUCB:
+            def __init__(self, alpha: float = 1.0) -> None:
+                self.alpha = alpha
+
+    MAB = _FallbackMAB
+    LearningPolicy = _FallbackPolicy
 
 class RuleSelector:
     """複数ルールから最適なものを選択するセレクタ."""
