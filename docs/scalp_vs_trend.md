@@ -70,3 +70,7 @@ YAML はあくまで設定を切り替えるためのオプションで、`param
 `config/trend.yml` を自動で読み込みます。モードが変化した際は
 `params_loader.load_params()` を実行し、`AUTO_RESTART=true` を設定すると
 読み込み後にプロセスを再起動します。
+
+### モード判定フローの更新
+
+モード切替は `decide_trade_mode` により指標スコアを計算して行います。以前のように LLM を経由する処理は廃止され、完全にローカルで決定されます。詳しいロジックとパラメータ一覧は [mode_detector.md](mode_detector.md) を参照してください。
