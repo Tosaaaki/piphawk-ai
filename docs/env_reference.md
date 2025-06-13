@@ -1,6 +1,8 @@
 # 主要環境変数リファレンス
 
-アプリケーションは `.env`、`backend/config/settings.env`、`backend/config/secret.env` の順に値を読み込みます。よく使う変数を以下にまとめます。
+アプリケーションが参照する環境変数の優先順位は
+**外部で設定された値 → `.env` → `backend/config/settings.env` → `backend/config/secret.env`**
+の順になります。よく使う変数を以下にまとめます。
 
 | 変数 | デフォルト値 | 用途 | 設定例 |
 |---|---|---|---|

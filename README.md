@@ -125,8 +125,9 @@ See [AGENTS.md](AGENTS.md) for coding guidelines and test commands.
    # Edit `.env` and set OPENAI_API_KEY, OANDA_API_KEY and OANDA_ACCOUNT_ID
    ```
 
-   アプリケーションは `.env`, `backend/config/settings.env`, `backend/config/secret.env` の順で環境変数を読み込みます。
-   必要に応じて `settings.env` の値も調整してください。
+   アプリケーションが参照する環境変数の優先順位は
+   **外部で設定された値 → `.env` → `backend/config/settings.env` → `backend/config/secret.env`**
+   です。必要に応じて `settings.env` の値も調整してください。
 詳細な変数解説は [docs/env_reference.md](docs/env_reference.md) を参照してください。
 
 ### Directory Structure
