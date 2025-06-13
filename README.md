@@ -229,6 +229,19 @@ YAML ファイルの変更は `settings.env` と同様、ジョブランナー�
 ます。値を変えた後はジョブランナーを再起動するか、明示的に
 `params_loader.load_params()` を実行してください。
 
+### Using mode_detector.yml
+
+`analysis/mode_detector.py` では ADX や ATR、EMA のしきい値を `config/mode_detector.yml` から読み込みます。環境変数 `MODE_DETECTOR_CONFIG` を指定すると別パスを参照できます。
+
+```yaml
+adx_trend_min: 25
+adx_range_max: 18
+atr_pct_min: 0.003
+ema_slope_min: 0.1
+```
+
+`mode_detector.load_config()` を呼び出すと上記の辞書が返り、存在しない項目はデフォルト値が適用されます。
+
 ### LLM model settings
 
 `strategy.yml` では利用する OpenAI モデルを個別に指定できます。次の設定例はモード

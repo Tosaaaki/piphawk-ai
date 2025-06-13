@@ -28,3 +28,7 @@
 `scalp_momentum` へ切り替えます。推奨値は `15` です。
 
 `SCALP_AI_BBWIDTH_MAX` は旧仕様で、現在は 0 (制限なし) が推奨値です。
+
+モード判定に用いる閾値は `config/mode_detector.yml` にまとめることもできます。
+ファイルが存在すると `analysis.mode_detector.load_config()` が自動で読み込み、
+環境変数よりも優先されます。
