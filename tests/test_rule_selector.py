@@ -1,4 +1,7 @@
 import unittest
+
+import pandas as pd
+
 from selector_fast import RuleSelector, build_entry_context
 from strategies.scalp import entry_rules
 

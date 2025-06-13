@@ -1,4 +1,7 @@
 import unittest
+
+import pandas as pd
+
 from strategies.scalp import entry_rules
 
 

@@ -72,3 +72,17 @@ include = [
     "models",
     "training",
 ]
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+extend-ignore = ["E402", "F401", "F841", "E401", "E741", "E731", "F403", "F821", "F811"]
+
+[tool.mypy]
+ignore_missing_imports = true
+ignore_errors = true
