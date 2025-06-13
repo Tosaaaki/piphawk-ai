@@ -60,7 +60,7 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 
 ### AI_COOLDOWN_SEC_OPEN / AI_COOLDOWN_SEC_FLAT / AI_REGIME_COOLDOWN_SEC
 
- AI呼び出しの最小間隔（秒）を個別に設定する。OPENはポジション保有時、FLATはノーポジ時、REGIMEはトレンド判定用。デフォルトは OPEN=30、FLAT=60、REGIME=60。
+ AI呼び出しの最小間隔（秒）を個別に設定する。OPENはポジション保有時、FLATはノーポジ時、REGIMEはトレンド判定用。デフォルトは OPEN=30、FLAT=15、REGIME=60。
 
 ### フィルター設定（AI呼び出し制御用）
 

@@ -9,6 +9,7 @@ from typing import Any
 
 from backend.utils import env_loader
 from backend.strategy.openai_analysis import get_market_condition, get_trade_plan, should_convert_limit_to_market
+from backend.utils.ai_parse import parse_trade_plan
 from backend.strategy.risk_manager import calc_lot_size
 from backend.utils.oanda_client import get_pending_entry_order
 
@@ -109,6 +110,7 @@ def manage_pending_limits(
                             trade_mode=runner.trade_mode,
                             mode_reason=runner.mode_reason,
                         )
+                        plan = parse_trade_plan(plan)
                         risk = plan.get("risk", {})
                         ai_raw = json.dumps(plan, ensure_ascii=False)
                     except Exception as exc:
@@ -203,6 +205,7 @@ def manage_pending_limits(
             trade_mode=runner.trade_mode,
             mode_reason=runner.mode_reason,
         )
+        plan = parse_trade_plan(plan)
     except Exception as exc:
         runner.logger.warning(f"get_trade_plan failed: {exc}")
         return
