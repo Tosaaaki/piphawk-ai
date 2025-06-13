@@ -317,6 +317,8 @@ TRADES_DB_PATH=trades-002.db
 `USE_CANDLE_SUMMARY` を `true` にすると、ローソク足リストの代わりに平均値まとめを AI へ送信し、トークン消費を抑えられます。
 `AI_PROFIT_TRIGGER_RATIO` defines what portion of the take-profit target must
 be reached before an AI exit check occurs. The default value is `0.5` (50%).
+`MAX_AI_EXIT_CALLS` limits how many times `propose_exit_adjustment()` runs per
+position. Each call uses about 150 tokens so two calls cost roughly $0.001.
 `SCALE_LOT_SIZE` sets how many lots are added when the AI exit decision is `SCALE`.
 `MIN_SL_PIPS` enforces a minimum stop-loss size. If the AI suggests a smaller value the system uses this floor instead (default `8`). OpenAI プラン生成時にもこの値を下回らないよう補正し、ATR と直近スイング幅から算出される動的下限も適用される。またスキャルピングモードでもこの下限が尊重されるようになった。
 `MIN_NET_TP_PIPS` sets the minimum take-profit after subtracting spread. Lower this value (for example `0.5`) when logs show `NET_TP_TOO_SMALL`.

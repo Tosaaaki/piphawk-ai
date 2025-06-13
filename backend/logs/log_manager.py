@@ -229,6 +229,17 @@ def init_db():
             )
         ''')
 
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS exit_adjust_calls (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                trade_id TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                action TEXT,
+                tp REAL,
+                sl REAL
+            )
+        ''')
+
 def log_trade(
     instrument,
     entry_time,
@@ -486,3 +497,29 @@ def log_oanda_trade(
     if own_conn:
         conn.commit()
         conn.close()
+
+
+def log_exit_adjust(trade_id: str, action: str, tp: float | None, sl: float | None) -> None:
+    """Record an exit adjustment action."""
+    with get_db_connection() as conn:
+        conn.execute(
+            '''
+            INSERT INTO exit_adjust_calls (trade_id, timestamp, action, tp, sl)
+            VALUES (?, ?, ?, ?, ?)
+        ''',
+            (
+                trade_id,
+                datetime.now(timezone.utc).isoformat(),
+                action,
+                tp,
+                sl,
+            ),
+        )
+
+
+def count_exit_adjust_calls(trade_id: str) -> int:
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute('SELECT COUNT(*) FROM exit_adjust_calls WHERE trade_id = ?', (trade_id,))
+        row = cur.fetchone()
+        return int(row[0]) if row else 0
