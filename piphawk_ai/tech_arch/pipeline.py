@@ -13,6 +13,8 @@ from .risk_filters import check_risk
 from .m5_entry import detect_entry
 from .ai_decision import call_llm
 
+ENTRY_USE_AI = env_loader.get_env("ENTRY_USE_AI", "true").lower() == "true"
+
 
 def run_cycle() -> dict | None:
     """Run one iteration of the simplified M5 pipeline."""
@@ -27,9 +29,12 @@ def run_cycle() -> dict | None:
     if not signal:
         return None
 
-    decision = call_llm(mode, signal, indicators)
-    if not decision.get("go"):
-        return None
+    if ENTRY_USE_AI:
+        decision = call_llm(mode, signal, indicators)
+        if not decision.get("go"):
+            return None
+    else:
+        decision = {"go": True, "tp_mult": 2.0, "sl_mult": 1.0}
 
     atr = indicators.get("atr")
     pip_size = 0.01 if env_loader.get_env("DEFAULT_PAIR", "USD_JPY").endswith("_JPY") else 0.0001
