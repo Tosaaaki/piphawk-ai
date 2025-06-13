@@ -101,7 +101,7 @@ class TestCalculateIndicatorsMACD(unittest.TestCase):
             "backend.indicators.rsi": {"calculate_rsi": lambda prices: FakeSeries(prices)},
             "backend.indicators.ema": {"calculate_ema": lambda prices, period=None: FakeSeries(prices)},
             "backend.indicators.atr": {"calculate_atr": lambda *a, **k: FakeSeries([0])},
-            "backend.indicators.bollinger": {"calculate_bollinger_bands": lambda x: {"upper_band": FakeSeries(x), "lower_band": FakeSeries(x), "middle_band": FakeSeries(x)}},
+            "indicators.bollinger": {"calculate_bollinger_bands": lambda x: {"upper_band": FakeSeries(x), "lower_band": FakeSeries(x), "middle_band": FakeSeries(x)}},
             "backend.indicators.adx": {"calculate_adx": lambda *a, **k: FakeSeries([0])},
             "backend.indicators.pivot": {"calculate_pivots": lambda h,l,c: {"pivot":1,"r1":1,"s1":1,"r2":1,"s2":1}},
             "backend.indicators.n_wave": {"calculate_n_wave_target": lambda prices: 0.0},
