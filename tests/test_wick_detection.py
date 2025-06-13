@@ -1,4 +1,5 @@
 import unittest
+
 from indicators.candlestick import detect_upper_wick_cluster
 
 

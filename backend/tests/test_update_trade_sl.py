@@ -1,8 +1,9 @@
+import importlib
 import os
 import sys
 import types
-import importlib
 import unittest
+
 
 class DummyResponse:
     def __init__(self, status_code=200, json_data=None, text=''):

@@ -7,8 +7,8 @@ from typing import Any, Dict
 import numpy as np
 
 from backend.indicators.rolling import (
-    RollingATR,
     RollingADX,
+    RollingATR,
     RollingBBWidth,
     RollingVolumeRatio,
 )

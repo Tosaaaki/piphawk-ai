@@ -8,16 +8,18 @@ JobRunner や Strategy 層が AI を呼び出す前に
 strategy_analyzer から自動チューニングが可能。
 """
 
-import math
-import pandas as pd
-import logging
 import datetime
-from datetime import timezone
-from backend.strategy.higher_tf_analysis import analyze_higher_tf
-from backend.market_data.tick_fetcher import fetch_tick_data
-from backend.indicators.adx import calculate_adx_slope
-from backend.utils import env_loader
+import logging
+import math
 from collections import deque
+from datetime import timezone
+
+import pandas as pd
+
+from backend.indicators.adx import calculate_adx_slope
+from backend.market_data.tick_fetcher import fetch_tick_data
+from backend.strategy.higher_tf_analysis import analyze_higher_tf
+from backend.utils import env_loader
 
 logger = logging.getLogger(__name__)
 
@@ -538,8 +540,8 @@ def pass_entry_filter(
     if strict:
         if indicators_m1 is None:
             try:
-                from backend.market_data.candle_fetcher import fetch_candles
                 from backend.indicators.calculate_indicators import calculate_indicators
+                from backend.market_data.candle_fetcher import fetch_candles
 
                 pair = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
                 candles_m1 = fetch_candles(
@@ -565,8 +567,8 @@ def pass_entry_filter(
     # --- Rapid reversal block ---------------------------------------
     if indicators_m15 is None:
         try:
-            from backend.market_data.candle_fetcher import fetch_candles
             from backend.indicators.calculate_indicators import calculate_indicators
+            from backend.market_data.candle_fetcher import fetch_candles
 
             pair = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
             candles_m15 = fetch_candles(

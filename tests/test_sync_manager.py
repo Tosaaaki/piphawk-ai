@@ -1,6 +1,6 @@
+import importlib
 import os
 import sqlite3
-import importlib
 import tempfile
 
 import pytest

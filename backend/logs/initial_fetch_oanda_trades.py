@@ -1,9 +1,11 @@
-import logging
-import requests
-from backend.utils import env_loader
-from backend.logs.log_manager import get_db_connection, init_db, log_oanda_trade
-from datetime import datetime, timedelta, timezone
 import json
+import logging
+from datetime import datetime, timedelta, timezone
+
+import requests
+
+from backend.logs.log_manager import get_db_connection, init_db, log_oanda_trade
+from backend.utils import env_loader
 
 # env_loader automatically loads default env files at import time
 

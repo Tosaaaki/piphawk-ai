@@ -5,12 +5,11 @@ from __future__ import annotations
 import argparse
 import logging
 
-from backend.utils import env_loader
-from backend.logs.log_manager import init_db
-
 import uvicorn
 
+from backend.logs.log_manager import init_db
 from backend.scheduler.job_runner import JobRunner
+from backend.utils import env_loader
 
 
 def main() -> None:

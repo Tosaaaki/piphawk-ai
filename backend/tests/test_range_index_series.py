@@ -1,8 +1,9 @@
+import importlib
 import os
 import sys
 import types
-import importlib
 import unittest
+
 
 class FakeSeries:
     def __init__(self, data):
@@ -80,8 +81,8 @@ class TestSeriesHandling(unittest.TestCase):
         sys.modules["backend.strategy.signal_filter"].pass_exit_filter = lambda *a, **k: True
         sys.modules["backend.strategy.higher_tf_analysis"].analyze_higher_tf = lambda *a, **k: None
         sys.modules["backend.utils.notification"].send_line_message = lambda *a, **k: None
-        import backend.strategy.openai_analysis as oa
         import backend.scheduler.job_runner as jr
+        import backend.strategy.openai_analysis as oa
         importlib.reload(oa)
         importlib.reload(jr)
         self.oa = oa

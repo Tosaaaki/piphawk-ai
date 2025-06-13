@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 from pathlib import Path
+
 import yaml
+
 from backend.utils import env_loader
 
 _DEFAULT_PATH = Path(__file__).resolve().parent.parent / "config/mode_thresholds.yml"

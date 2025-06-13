@@ -1,14 +1,16 @@
+import sqlite3
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import requests
+
+import backend.logs.log_manager
 from backend.utils import env_loader
 
 # env_loader automatically loads default env files at import time
 # 旧バージョン互換用のトレード取得スクリプト
 # log_manager.py のテーブル構造に合わせて列名を統一する
 
-import requests
-import sqlite3
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
-import backend.logs.log_manager
 
 _BASE_DIR = Path(__file__).resolve().parents[2]
 DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", str(_BASE_DIR / "trades.db")))

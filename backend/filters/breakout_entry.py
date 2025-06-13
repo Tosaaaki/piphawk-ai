@@ -1,6 +1,7 @@
 """Breakout entry filter."""
 
-from typing import List, Dict
+from typing import Dict, List
+
 from backend.utils import env_loader
 
 

@@ -1,7 +1,9 @@
 import logging
-from backend.utils import env_loader
-import requests
 from datetime import datetime, timedelta, timezone
+
+import requests
+
+from backend.utils import env_loader
 
 OANDA_API_URL = "https://api-fxtrade.oanda.com/v3/instruments/{instrument}/candles"
 OANDA_API_KEY = env_loader.get_env("OANDA_API_KEY")

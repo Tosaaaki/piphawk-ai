@@ -2,8 +2,8 @@ from __future__ import annotations
 
 """CVaR (Expected Shortfall) 計算ユーティリティ."""
 
-from typing import Sequence
 import math
+from typing import Sequence
 
 
 def calc_cvar(returns: Sequence[float], alpha: float = 0.05) -> float:

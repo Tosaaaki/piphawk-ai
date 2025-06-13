@@ -1,4 +1,5 @@
 import unittest
+
 from backend.indicators.pivot import calculate_pivots
 
 

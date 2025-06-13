@@ -16,6 +16,7 @@ Usage:
 """
 
 from typing import Sequence
+
 try:
     import pandas as pd
 except ImportError as e:

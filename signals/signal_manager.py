@@ -5,6 +5,7 @@ from typing import Sequence
 
 from indicators.patterns import DoubleBottomSignal, DoubleTopSignal
 
+
 class SignalManager:
     """Simple signal manager calling RegimeDetector."""
 

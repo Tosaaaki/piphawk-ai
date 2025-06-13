@@ -1,11 +1,12 @@
 """Simple vertical ensemble buffer for entry plans."""
 from __future__ import annotations
 
-from dataclasses import dataclass
 from collections import deque
+from dataclasses import dataclass
+
+from backend.utils import env_loader
 
 from .ai_entry_plan import EntryPlan
-from backend.utils import env_loader
 
 ENTRY_BUFFER_K = int(env_loader.get_env("ENTRY_BUFFER_K", "3"))
 

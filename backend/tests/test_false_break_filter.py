@@ -16,10 +16,10 @@ def test_is_false_breakout_true():
 def test_is_false_breakout_false():
     candles = [{"mid": {"h": 1.1, "l": 1.0, "c": 1.05}, "complete": True}] * 25
     assert not is_false_breakout(candles)
+import importlib
 import os
 import sys
 import types
-import importlib
 import unittest
 
 from backend.filters.false_break_filter import should_skip

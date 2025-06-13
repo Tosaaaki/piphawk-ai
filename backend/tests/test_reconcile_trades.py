@@ -1,8 +1,9 @@
+import importlib
 import os
 import sqlite3
 import tempfile
-import importlib
 import unittest
+
 
 class TestReconcileTrades(unittest.TestCase):
     def setUp(self):

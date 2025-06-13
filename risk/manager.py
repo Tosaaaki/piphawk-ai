@@ -1,7 +1,7 @@
 """CVaR-based portfolio risk management."""
 from typing import Sequence
-from backend.utils import env_loader
 
+from backend.utils import env_loader
 from piphawk_ai.risk.cvar import calc_cvar
 
 

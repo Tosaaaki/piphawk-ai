@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import asyncio
-import requests
 from typing import Any
+
 import httpx
+import requests
 
 from backend.utils import env_loader, run_async
 from piphawk_ai.ai.local_model import ask_model, ask_model_async

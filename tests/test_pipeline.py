@@ -1,5 +1,6 @@
 import sys
 import types
+
 import pytest
 
 # Stub requests module for isolated testing
@@ -13,11 +14,11 @@ pandas_stub.Series = object
 pandas_stub.DataFrame = object
 sys.modules.setdefault("pandas", pandas_stub)
 
-from piphawk_ai.vote_arch.pipeline import run_cycle, PipelineResult
-from piphawk_ai.vote_arch.regime_detector import MarketMetrics
-from piphawk_ai.vote_arch.market_air_sensor import MarketSnapshot
-from piphawk_ai.vote_arch.entry_buffer import PlanBuffer
 from piphawk_ai.vote_arch.ai_entry_plan import EntryPlan
+from piphawk_ai.vote_arch.entry_buffer import PlanBuffer
+from piphawk_ai.vote_arch.market_air_sensor import MarketSnapshot
+from piphawk_ai.vote_arch.pipeline import PipelineResult, run_cycle
+from piphawk_ai.vote_arch.regime_detector import MarketMetrics
 
 
 def test_run_cycle(monkeypatch):

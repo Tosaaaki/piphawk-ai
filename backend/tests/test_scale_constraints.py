@@ -1,10 +1,10 @@
+import importlib
 import os
 import sys
 import types
-import importlib
 import unittest
-
 from datetime import datetime, timezone
+
 
 class FakeSeries:
     def __init__(self, data):
@@ -130,6 +130,7 @@ class TestScaleConstraints(BaseScaleTest):
     def test_scale_limit(self):
         os.environ['SCALE_MAX_POS'] = '1'
         import importlib
+
         import backend.scheduler.job_runner as jr
         importlib.reload(jr)
         jr.instrument_is_tradeable = lambda instrument: True
@@ -143,6 +144,7 @@ class TestScaleConstraints(BaseScaleTest):
     def test_scale_trigger_atr(self):
         os.environ['SCALE_TRIGGER_ATR'] = '0.5'
         import importlib
+
         import backend.scheduler.job_runner as jr
         importlib.reload(jr)
         jr.instrument_is_tradeable = lambda instrument: True

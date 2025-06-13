@@ -1,6 +1,7 @@
-from piphawk_ai.risk.manager import PortfolioRiskManager
-from backend.strategy.risk_manager import calc_lot_size
 import pytest
+
+from backend.strategy.risk_manager import calc_lot_size
+from piphawk_ai.risk.manager import PortfolioRiskManager
 
 
 def test_portfolio_risk_manager_basic():

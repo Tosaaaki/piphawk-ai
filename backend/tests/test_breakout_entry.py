@@ -1,6 +1,7 @@
-import os
 import importlib
+import os
 import unittest
+
 
 class FakeSeries:
     def __init__(self, data):

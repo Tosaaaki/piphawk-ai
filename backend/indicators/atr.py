@@ -1,4 +1,5 @@
 from backend.utils import env_loader
+
 try:
     import pandas as pd
 except ImportError as e:
@@ -7,6 +8,7 @@ except ImportError as e:
         " Install it with 'pip install pandas'."
     ) from e
 import numpy as np
+
 
 def calculate_atr(high, low, close, period=None):
     """

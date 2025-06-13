@@ -1,4 +1,5 @@
 import pytest
+
 from piphawk_ai.analysis import calculate_trade_score
 
 

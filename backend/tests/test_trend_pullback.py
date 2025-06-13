@@ -1,7 +1,6 @@
-import os
 import importlib
+import os
 import unittest
-
 from typing import List
 
 

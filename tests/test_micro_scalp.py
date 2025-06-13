@@ -1,8 +1,8 @@
-import unittest
 import importlib
+import unittest
 
-from backend.market_data.tick_metrics import calc_of_imbalance
 import backend.strategy.openai_micro_scalp as micro
+from backend.market_data.tick_metrics import calc_of_imbalance
 
 
 class TestMicroScalp(unittest.TestCase):

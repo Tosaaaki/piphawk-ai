@@ -1,6 +1,6 @@
 import json
-from pathlib import Path
 import logging
+from pathlib import Path
 
 LOG_PATH = Path(__file__).resolve().parent / "exit_log.jsonl"
 

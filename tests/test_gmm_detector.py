@@ -1,4 +1,5 @@
 import numpy as np
+
 from regime.gmm_detector import GMMRegimeDetector
 
 

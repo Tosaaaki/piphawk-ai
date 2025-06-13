@@ -1,6 +1,6 @@
 import unittest
 
-from backend.strategy.range_break import detect_range_break, classify_breakout
+from backend.strategy.range_break import classify_breakout, detect_range_break
 
 
 class FakeSeries:

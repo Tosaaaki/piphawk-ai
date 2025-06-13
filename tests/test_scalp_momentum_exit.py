@@ -1,9 +1,9 @@
 import importlib
-import time
+import os
 import sys
+import time
 from types import SimpleNamespace
 
-import os
 import pandas as pd
 
 os.environ.setdefault("OANDA_API_KEY", "x")

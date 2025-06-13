@@ -1,7 +1,8 @@
+import importlib
 import sys
 import types
-import importlib
 import unittest
+
 
 class TestHigherTFPivot(unittest.TestCase):
     def setUp(self):

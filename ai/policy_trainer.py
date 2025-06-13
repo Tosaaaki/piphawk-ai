@@ -1,15 +1,15 @@
 """Offline RL trainer for strategy selection."""
 
-import sqlite3
 import json
+import sqlite3
 from pathlib import Path
-from typing import Dict, Any
-
-from backend.utils import env_loader
+from typing import Any, Dict
 
 import numpy as np
 from d3rlpy.algos import DiscreteCQL
 from d3rlpy.dataset import MDPDataset
+
+from backend.utils import env_loader
 
 DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", "/app/trades.db"))
 MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "policy_model.d3"

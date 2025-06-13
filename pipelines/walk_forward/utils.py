@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
 from sklearn.dummy import DummyClassifier
+from sklearn.linear_model import LogisticRegression
 
 
 def _prepare_features(df: pd.DataFrame) -> pd.DataFrame:

@@ -3,10 +3,11 @@ from __future__ import annotations
 """Simple SQLite helper utilities."""
 
 import sqlite3
-from backend.utils import env_loader
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
+
+from backend.utils import env_loader
 
 # Default DB path is repository root / trades.db unless TRADES_DB_PATH env var is set
 _BASE_DIR = Path(__file__).resolve().parents[2]

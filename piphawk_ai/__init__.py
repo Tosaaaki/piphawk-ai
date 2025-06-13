@@ -1,7 +1,7 @@
 """Namespace package for piphawk AI."""
-from pkgutil import extend_path
 import importlib
 import sys
+from pkgutil import extend_path
 
 _submodules = [
     "backend",

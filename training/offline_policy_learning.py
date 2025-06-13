@@ -4,9 +4,9 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-from backend.utils import env_loader
-
 import numpy as np
+
+from backend.utils import env_loader
 
 DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", "/app/trades.db"))
 MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "strategy_policy.pkl"

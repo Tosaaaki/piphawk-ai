@@ -1,9 +1,10 @@
+import importlib
+import json
 import os
 import sys
 import types
-import importlib
 import unittest
-import json
+
 
 class TestExitPatternOverride(unittest.TestCase):
     def setUp(self):

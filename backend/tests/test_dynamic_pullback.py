@@ -1,8 +1,9 @@
+import importlib
 import os
 import sys
 import types
-import importlib
 import unittest
+
 
 class FakeSeries:
     def __init__(self, data):
@@ -103,8 +104,8 @@ class TestDynamicPullback(unittest.TestCase):
         os.environ["PULLBACK_ATR_RATIO"] = "0.5"
         os.environ["PIP_SIZE"] = "0.01"
 
-        import backend.strategy.entry_logic as el
         import backend.scheduler.job_runner as jr
+        import backend.strategy.entry_logic as el
         importlib.reload(el)
         importlib.reload(jr)
         self.el = el

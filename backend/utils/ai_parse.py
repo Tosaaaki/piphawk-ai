@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Tuple, Dict
+from typing import Any, Dict, Tuple
 
 logger = logging.getLogger(__name__)
 

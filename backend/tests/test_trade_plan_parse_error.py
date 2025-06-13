@@ -1,8 +1,9 @@
+import importlib
 import os
 import sys
 import types
-import importlib
 import unittest
+
 
 class TestTradePlanParseError(unittest.TestCase):
     def setUp(self):

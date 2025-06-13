@@ -1,4 +1,4 @@
-from typing import Sequence, Dict
+from typing import Dict, Sequence
 
 
 def calculate_pivots(high: float, low: float, close: float) -> Dict[str, float]:
