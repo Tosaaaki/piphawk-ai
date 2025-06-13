@@ -380,3 +380,30 @@ SCALE_TRIGGER_ATR=0.5
 ### USE_VOTE_ARCH
 
 vote_arch 全体を無効化したい場合に `false` を指定します。
+
+### FALLBACK_FORCE_ON_NO_SIDE
+
+AI が `side:"no"` を返しても、現在のトレンド方向へエントリーを強制するかを決め
+ます。デフォルトは `false` です。
+
+### FALLBACK_DEFAULT_SL_PIPS
+
+AI が SL 値を返さない場合に利用する予備の幅(pips)。デフォルトは `8` です。
+
+### FALLBACK_DEFAULT_TP_PIPS
+
+AI が TP 値を返さない場合に利用する予備の幅(pips)。デフォルトは `12` です。
+
+### FALLBACK_DYNAMIC_RISK
+
+`true` を指定すると、指標から自動算出した TP/SL を使用します。デフォルトは
+`false` です。
+
+設定例:
+
+```
+FALLBACK_FORCE_ON_NO_SIDE=true
+FALLBACK_DEFAULT_SL_PIPS=10
+FALLBACK_DEFAULT_TP_PIPS=15
+FALLBACK_DYNAMIC_RISK=true
+```
