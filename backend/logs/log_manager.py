@@ -30,8 +30,13 @@ def get_db_connection():
 
 def init_db():
     path = get_db_path()
+    # DB ファイルが存在するかどうかで初期化ログを出し分ける
+    first_time = not path.exists()
     _ensure_db_dir(path)
-    logger.info("Initializing database at %s", path)
+    if first_time:
+        logger.info("Initializing database at %s", path)
+    else:
+        logger.debug("Running DB migrations for %s", path)
     with sqlite3.connect(path) as conn:
         conn.execute("PRAGMA journal_mode=WAL")
         cursor = conn.cursor()
