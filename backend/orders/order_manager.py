@@ -936,12 +936,12 @@ class OrderManager:
 
         result = response.json()
         log_trade(
-            instrument,
-            datetime.now(timezone.utc).isoformat(),
-            new_sl_price,
-            0,
-            "SL dynamically updated",
-            json.dumps(result),
+            instrument=instrument,
+            entry_time=datetime.now(timezone.utc).isoformat(),
+            entry_price=new_sl_price,
+            units=0,
+            ai_reason="SL dynamically updated",
+            ai_response=json.dumps(result),
             is_manual=False,
         )
         logger.debug(f"SL update response: {result}")
