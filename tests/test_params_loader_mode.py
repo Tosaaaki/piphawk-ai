@@ -1,7 +1,9 @@
 import os
 import tempfile
 import unittest
+
 from config import params_loader
+
 
 class TestParamsLoaderMode(unittest.TestCase):
     def test_mode_keys_loaded(self):

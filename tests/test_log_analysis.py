@@ -1,7 +1,8 @@
+import importlib
 import os
 import unittest
-import importlib
 from pathlib import Path
+
 
 class TestLogAnalysis(unittest.TestCase):
     def setUp(self):

@@ -4,8 +4,8 @@ from __future__ import annotations
 import json
 from typing import Tuple
 
-from backend.utils import env_loader
 from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
+from backend.utils import env_loader
 from backend.utils.prompt_loader import load_template
 
 MIN_TP_PROB = float(env_loader.get_env("MIN_TP_PROB", "0.75"))

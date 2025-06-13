@@ -6,7 +6,9 @@ except ImportError as e:
         " Install it with 'pip install pandas'."
     ) from e
 import numpy as np
+
 from backend.utils import env_loader
+
 
 def calculate_rsi(prices, period: int = None):
     if period is None:

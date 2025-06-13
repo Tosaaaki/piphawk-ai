@@ -1,13 +1,13 @@
-import types
 import sys
+import types
 
 sys.modules.setdefault(
     "monitoring.metrics_publisher",
     types.SimpleNamespace(incr_metric=lambda *a, **k: None),
 )
 
-from piphawk_ai.tech_arch.pipeline import run_cycle
 from piphawk_ai.tech_arch.market_context import MarketContext
+from piphawk_ai.tech_arch.pipeline import run_cycle
 
 
 def test_run_cycle(monkeypatch):

@@ -1,10 +1,11 @@
 """Load parameters from params.yaml and strategy.yml into environment variables."""
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
+
 import yaml
-import json
 
 STATE_FILE = Path("/tmp/last_trade_mode.json")
 

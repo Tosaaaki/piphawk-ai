@@ -1,22 +1,24 @@
+import json
+import logging
+import time
+import uuid
+from datetime import datetime, timedelta, timezone
+
 import requests
-from backend.utils import env_loader
-from backend.utils.http_client import request_with_retries
-from backend.logs.log_manager import log_error
+
 from backend.logs.info_logger import info
+from backend.logs.log_manager import log_error
 from backend.logs.trade_logger import ExitReason, log_trade
 from backend.logs.update_oanda_trades import fetch_trade_details
-from backend.utils.price import format_price
 from backend.risk_manager import (
     validate_rrr,
     validate_rrr_after_cost,
     validate_sl,
 )
+from backend.utils import env_loader
+from backend.utils.http_client import request_with_retries
+from backend.utils.price import format_price
 from risk.tp_sl_manager import adjust_sl_for_rr
-from datetime import datetime, timedelta, timezone
-import time
-import json
-import logging
-import uuid
 
 logger = logging.getLogger(__name__)
 

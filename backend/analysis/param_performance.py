@@ -2,8 +2,8 @@ from __future__ import annotations
 
 """Parameter change performance analysis."""
 
-import sqlite3
 import logging
+import sqlite3
 from typing import Dict, Iterable, List, Tuple
 
 try:

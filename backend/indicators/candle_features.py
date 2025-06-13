@@ -3,7 +3,7 @@ try:
 except ImportError:
     pass
 
-from typing import Sequence, Optional
+from typing import Optional, Sequence
 
 
 def compute_volume_sma(volumes: Sequence[float], period: int) -> Optional[float]:

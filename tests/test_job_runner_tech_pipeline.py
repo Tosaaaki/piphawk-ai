@@ -1,7 +1,7 @@
-import os
-import types
 import importlib
+import os
 import sys
+import types
 
 os.environ.setdefault("OANDA_API_KEY", "x")
 os.environ.setdefault("OANDA_ACCOUNT_ID", "x")

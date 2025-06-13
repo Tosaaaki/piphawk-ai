@@ -1,5 +1,6 @@
-import unittest
 import importlib
+import unittest
+
 
 class DummyConn:
     def __init__(self):

@@ -8,6 +8,7 @@ import types
 from typing import Any, Dict, List
 
 import numpy as np
+
 try:  # pandas may be stubbed during testing
     import pandas as _pd  # type: ignore
     if not hasattr(_pd, "DataFrame"):
@@ -18,8 +19,8 @@ except Exception:  # pragma: no cover - minimal stub for mabwiser
 from mabwiser.mab import MAB, LearningPolicy
 
 from backend.utils import env_loader
-from strategies.base import Strategy
 from piphawk_ai.policy.offline import OfflinePolicy
+from strategies.base import Strategy
 
 logger = logging.getLogger(__name__)
 

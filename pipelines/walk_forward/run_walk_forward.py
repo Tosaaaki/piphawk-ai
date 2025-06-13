@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import pickle
+import sys
+from pathlib import Path
 
 import pandas as pd
 
-import sys
 sys.path.append(str(Path(__file__).resolve().parent))
 from utils import calc_sharpe, simulate_trades, train_simple_model
 

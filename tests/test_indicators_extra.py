@@ -1,8 +1,8 @@
-import pytest
 import pandas as pd
+import pytest
 
-from indicators.bollinger import close_breaks_bbands, high_hits_bbands
 from backend.indicators.atr import atr_tick_ratio
+from indicators.bollinger import close_breaks_bbands, high_hits_bbands
 
 
 def test_close_breaks_bbands():

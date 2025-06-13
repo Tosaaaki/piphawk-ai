@@ -1,6 +1,7 @@
 import pytest
-from backend.strategy.validators import normalize_probs, risk_autofix
+
 from backend.config.defaults import MIN_ABS_SL_PIPS
+from backend.strategy.validators import normalize_probs, risk_autofix
 
 
 def test_normalize_probs_within_range():

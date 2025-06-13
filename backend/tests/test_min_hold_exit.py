@@ -1,9 +1,10 @@
+import importlib
 import os
 import sys
 import types
-import importlib
 import unittest
 from datetime import datetime, timezone
+
 
 class TestMinHoldExit(unittest.TestCase):
     def setUp(self):

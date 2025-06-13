@@ -2,9 +2,9 @@ from __future__ import annotations
 
 """学習済みクラスタリングモデルを用いたレジーム推定ヘルパー."""
 
-from typing import Any
 import pickle
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from backend.utils import env_loader
 
+
 @dataclass
 class MarketMetrics:
     """Container for indicator values used in regime detection."""

@@ -21,13 +21,14 @@ If no order is found – or an HTTP error occurs – it returns *None*.
 from __future__ import annotations
 
 import json
+import logging
 import time
 from typing import Any, Dict, Optional
-from backend.utils import env_loader
 
-import logging
 import requests
 from requests.exceptions import HTTPError, RequestException
+
+from backend.utils import env_loader
 
 # ──────────────────────────────────
 #   Environment / Constants

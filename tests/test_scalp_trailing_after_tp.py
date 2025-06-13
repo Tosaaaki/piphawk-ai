@@ -1,11 +1,13 @@
 import importlib
+import os
 import sys
 import types
-import os
+
 os.environ.setdefault("OANDA_API_KEY", "x")
 os.environ.setdefault("OANDA_ACCOUNT_ID", "x")
 
 import execution.scalp_manager as sm
+
 
 class DummyOM:
     def __init__(self):

@@ -1,4 +1,5 @@
 import unittest
+
 from core.ring_buffer import RingBuffer
 from fast_metrics import calc_mid_spread
 

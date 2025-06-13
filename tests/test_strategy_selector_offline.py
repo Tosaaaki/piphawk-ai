@@ -1,7 +1,7 @@
-import pickle
 import logging
+import pickle
 
-from strategies import ScalpStrategy, TrendStrategy, StrategySelector
+from strategies import ScalpStrategy, StrategySelector, TrendStrategy
 
 
 class DummyPolicy:

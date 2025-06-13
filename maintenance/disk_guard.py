@@ -1,7 +1,8 @@
 """Call this from your main loop (or run standalone).
 If '/' usage >= 80 %, execute system_cleanup.run()."""
-import shutil
 import logging
+import shutil
+
 import maintenance.system_cleanup as sc
 from backend.utils import env_loader
 

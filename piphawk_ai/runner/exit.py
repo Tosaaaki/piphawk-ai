@@ -5,8 +5,8 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from backend.utils import env_loader
 from backend.strategy import exit_logic
+from backend.utils import env_loader
 
 __all__ = [
     "maybe_extend_tp",

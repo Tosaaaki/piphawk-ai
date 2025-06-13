@@ -1,7 +1,7 @@
-import unittest
-import types
-import sys
 import importlib
+import sys
+import types
+import unittest
 
 
 class DummyResponse:

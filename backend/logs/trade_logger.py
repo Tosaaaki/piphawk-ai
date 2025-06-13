@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import json
 from enum import Enum
 from typing import Any
-import json
 
 try:
-    from .log_manager import log_trade as _log_trade, log_policy_transition
+    from .log_manager import log_policy_transition
+    from .log_manager import log_trade as _log_trade
 except Exception:  # pragma: no cover - log_manager may be stubbed
     from .log_manager import log_trade as _log_trade
 

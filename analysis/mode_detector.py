@@ -27,6 +27,8 @@ from typing import Any, Dict
 import yaml
 
 from backend.utils import env_loader
+
+
 @dataclass
 class MarketContext:
     """Container for recent price and indicators."""

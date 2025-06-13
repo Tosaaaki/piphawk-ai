@@ -1,7 +1,9 @@
 import os
 import tempfile
 import unittest
+
 from config import params_loader
+
 
 class TestParamsLoaderScalp(unittest.TestCase):
     def test_scalp_keys_loaded(self):

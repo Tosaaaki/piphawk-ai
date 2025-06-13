@@ -3,6 +3,7 @@ from __future__ import annotations
 """Market snapshot utilities for the technical pipeline."""
 
 from dataclasses import dataclass
+
 from backend.market_data.candle_fetcher import fetch_candles
 from backend.market_data.tick_fetcher import fetch_tick_data
 from backend.utils import env_loader

@@ -1,8 +1,8 @@
-import sqlite3
 import logging
+import sqlite3
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 

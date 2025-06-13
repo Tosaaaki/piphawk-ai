@@ -1,7 +1,7 @@
-import sqlite3
 import json
-from pathlib import Path
+import sqlite3
 from datetime import datetime, timezone
+from pathlib import Path
 
 DB_PATH = Path(__file__).resolve().parent / "diagnostics.db"
 

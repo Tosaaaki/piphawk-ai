@@ -1,7 +1,7 @@
+import importlib
 import os
 import sys
 import types
-import importlib
 import unittest
 
 from backend.strategy.range_break import detect_atr_breakout
@@ -92,6 +92,7 @@ class TestMarketConditionAtrBreak(unittest.TestCase):
         add("backend.utils.openai_client", oc)
 
         import importlib
+
         import backend.strategy.openai_analysis as oa
         importlib.reload(oa)
         oa.detect_range_break = lambda candles, pivot=None: {"break": False, "direction": None}

@@ -1,5 +1,6 @@
-from risk.cvar import calc_cvar
 import pytest
+
+from risk.cvar import calc_cvar
 
 
 def test_calc_cvar_basic():

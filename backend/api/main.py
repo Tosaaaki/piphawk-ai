@@ -1,5 +1,5 @@
 try:
-    from fastapi import FastAPI, HTTPException, APIRouter, Response
+    from fastapi import APIRouter, FastAPI, HTTPException, Response
     from fastapi.middleware.cors import CORSMiddleware
 except Exception:  # FastAPI が利用できないテスト環境向け
     class _StubFastAPI:
@@ -59,21 +59,20 @@ except Exception:  # FastAPI が利用できないテスト環境向け
     HTTPException = _StubHTTPException  # type: ignore
     APIRouter = _StubAPIRouter  # type: ignore
     Response = _StubResponse  # type: ignore
-from backend.utils import env_loader
-import sqlite3
-import os
 import importlib
 import logging
+import os
+import sqlite3
+from datetime import datetime, timedelta, timezone
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.base import STATE_RUNNING
-from datetime import datetime, timedelta, timezone
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel
 
-from backend.utils.notification import send_line_message
-
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from backend.orders.order_manager import OrderManager
-
+from backend.utils import env_loader
+from backend.utils.notification import send_line_message
 
 app = FastAPI()
 logger = logging.getLogger(__name__)

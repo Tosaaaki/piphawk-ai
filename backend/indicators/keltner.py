@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Sequence, Dict, List
+from typing import Dict, List, Sequence
+
 from backend.utils import env_loader
 
 

@@ -1,9 +1,9 @@
-import os
-import unittest
 import datetime
-from datetime import timezone
-import types
+import os
 import sys
+import types
+import unittest
+from datetime import timezone
 
 pass_entry_filter = None
 _rsi_cross_up_or_down = None
@@ -59,6 +59,7 @@ class TestEntryFilterRSICross(unittest.TestCase):
 
         global pass_entry_filter, _rsi_cross_up_or_down
         import importlib
+
         # テスト間でモジュールが置き換えられている可能性があるので削除してからインポート
         sys.modules.pop("backend.strategy.signal_filter", None)
         sf = importlib.import_module("backend.strategy.signal_filter")

@@ -1,4 +1,5 @@
 import pytest
+
 from strategies.trend_strategy import TrendStrategy
 
 

@@ -2,12 +2,13 @@ from __future__ import annotations
 
 """OANDA streaming client via HTTP long polling."""
 
-import json
-from typing import Iterable, Callable
-
-import requests
-import httpx
 import asyncio
+import json
+from typing import Callable, Iterable
+
+import httpx
+import requests
+
 from backend.utils import env_loader
 
 STREAM_URL = env_loader.get_env("OANDA_STREAM_URL", "https://stream-fxtrade.oanda.com/v3")

@@ -1,14 +1,17 @@
 import logging
-import requests
 import sqlite3
 import time
+
+import requests
+
 from backend.utils import env_loader
+
 try:
     from backend.logs.log_manager import (
         get_db_connection,
         init_db,
-        log_oanda_trade,
         log_error,
+        log_oanda_trade,
     )
 except Exception:  # テスト環境では簡易版を提供
     def get_db_connection():
@@ -113,6 +116,7 @@ def fetch_trade_details(trade_id):
         return None
 
 import json
+
 
 def update_oanda_trades():
     init_db()

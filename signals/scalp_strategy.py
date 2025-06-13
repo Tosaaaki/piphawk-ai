@@ -2,12 +2,11 @@ from __future__ import annotations
 
 """Simple multi timeframe scalp utilities."""
 
-from typing import Sequence, Optional
+from typing import Optional, Sequence
 
+from backend.utils import env_loader
 from indicators.bollinger import multi_bollinger
 from indicators.patterns import DoubleBottomSignal, DoubleTopSignal
-from backend.utils import env_loader
-
 
 SCALP_COND_TF = env_loader.get_env("SCALP_COND_TF", "M1").upper()
 

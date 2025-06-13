@@ -3,6 +3,7 @@ from __future__ import annotations
 """Utility functions for log analysis."""
 
 from typing import Dict
+
 from backend.logs.log_manager import get_db_connection
 
 

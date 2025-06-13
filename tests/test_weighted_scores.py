@@ -1,5 +1,6 @@
 import importlib
 import textwrap
+
 import pytest
 
 
@@ -7,8 +8,8 @@ def _load_with_weights(tmp_path, yml_text, monkeypatch):
     cfg = tmp_path / "mode.yml"
     cfg.write_text(textwrap.dedent(yml_text))
     monkeypatch.setenv("MODE_CONFIG", str(cfg))
-    import signals.mode_params as mp
     import signals.composite_mode as cm
+    import signals.mode_params as mp
     importlib.reload(mp)
     return importlib.reload(cm)
 

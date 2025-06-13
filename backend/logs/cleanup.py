@@ -1,11 +1,12 @@
 from __future__ import annotations
-from backend.utils import env_loader
+
 import json
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from backend.logs.log_manager import DB_PATH
+from backend.utils import env_loader
 
 LOG_PATH = Path(__file__).resolve().parent / "exit_log.jsonl"
 DAYS = int(env_loader.get_env("DAYS", "30"))

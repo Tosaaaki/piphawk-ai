@@ -10,10 +10,12 @@ Put *all* LINE‑messaging logic here so that other modules
 """
 
 import logging
-from backend.utils import env_loader
+
 from fastapi import HTTPException
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
+
+from backend.utils import env_loader
 
 logger = logging.getLogger(__name__)
 

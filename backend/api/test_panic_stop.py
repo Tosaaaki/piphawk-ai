@@ -1,6 +1,8 @@
 import importlib
-from fastapi.testclient import TestClient
+
 from apscheduler.schedulers.base import STATE_RUNNING
+from fastapi.testclient import TestClient
+
 from backend.api import main
 
 

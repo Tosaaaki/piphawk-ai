@@ -1,4 +1,5 @@
 import unittest
+
 from signals.signal_manager import SignalManager
 
 

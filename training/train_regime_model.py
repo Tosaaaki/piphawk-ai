@@ -1,7 +1,7 @@
 import csv
 import pickle
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from regime.features import RegimeFeatureExtractor
 from regime.gmm_detector import GMMRegimeDetector

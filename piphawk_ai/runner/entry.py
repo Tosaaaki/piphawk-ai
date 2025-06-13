@@ -7,10 +7,10 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from backend.utils import env_loader
 from backend.strategy.openai_analysis import get_market_condition, get_trade_plan, should_convert_limit_to_market
-from backend.utils.ai_parse import parse_trade_plan
 from backend.strategy.risk_manager import calc_lot_size
+from backend.utils import env_loader
+from backend.utils.ai_parse import parse_trade_plan
 from backend.utils.oanda_client import get_pending_entry_order
 
 __all__ = ["manage_pending_limits"]

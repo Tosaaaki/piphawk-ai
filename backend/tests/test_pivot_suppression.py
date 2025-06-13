@@ -1,10 +1,11 @@
+import datetime
+import importlib
 import os
 import sys
 import types
-import importlib
 import unittest
-import datetime
 from datetime import timezone
+
 
 class FakeSeries:
     def __init__(self, data):

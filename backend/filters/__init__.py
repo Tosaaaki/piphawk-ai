@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 import logging
-from backend.utils import env_loader
 
+from backend.utils import env_loader
 
 logger = logging.getLogger(__name__)
 

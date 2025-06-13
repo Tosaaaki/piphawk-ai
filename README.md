@@ -130,6 +130,29 @@ See [AGENTS.md](AGENTS.md) for coding guidelines and test commands.
    です。必要に応じて `settings.env` の値も調整してください。
 詳細な変数解説は [docs/env_reference.md](docs/env_reference.md) を参照してください。
 
+### マイクロスキャルプの有効化
+
+`docs/aggressive_scalp.md` で解説されているマイクロスキャルプを利用すると、
+Tick データから超短期エントリーを判断できます。`.env` に次の値を追加してください。
+
+```bash
+MICRO_SCALP_ENABLED=true
+MICRO_SCALP_LOOKBACK=5
+MICRO_SCALP_MIN_PIPS=1
+```
+
+`backend/strategy/openai_micro_scalp.py` が OpenAI API へ問い合わせ、
+`enter: true` が返れば通常のスキャルプより優先して採用されます。
+`enter: false` またはエラー時は `openai_scalp_analysis.py` へフォールバックします。
+
+```text
+Ticks → openai_micro_scalp.py → enter: true → submit order
+                     ↓ false / error
+                openai_scalp_analysis.py
+```
+
+設定変更後はコンテナを再起動して反映します。
+
 ### Directory Structure
 
 ```

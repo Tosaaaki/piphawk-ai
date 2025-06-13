@@ -3,6 +3,7 @@ from __future__ import annotations
 """Simple market classification utilities."""
 
 import logging
+
 from backend.utils import env_loader
 
 logger = logging.getLogger(__name__)

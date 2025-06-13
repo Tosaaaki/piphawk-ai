@@ -2,7 +2,8 @@ def test_load_config_env_override(tmp_path, monkeypatch):
     cfg_file = tmp_path / "cfg.yml"
     cfg_file.write_text("adx_trend_min: 30\n")
     monkeypatch.setenv("MODE_DETECTOR_CONFIG", str(cfg_file))
-    import importlib.util, sys
+    import importlib.util
+    import sys
     from pathlib import Path
     spec = importlib.util.spec_from_file_location("md", Path("analysis/mode_detector.py"))
     md = importlib.util.module_from_spec(spec)

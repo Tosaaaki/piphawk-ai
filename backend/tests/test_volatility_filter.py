@@ -1,6 +1,7 @@
 import importlib
 import unittest
 
+
 class FakeSeries:
     def __init__(self, data):
         self._data = list(data)

@@ -1,5 +1,5 @@
-import sys
 import importlib
+import sys
 
 orig_pandas = sys.modules.get("pandas")
 try:
@@ -13,7 +13,7 @@ try:
         pass
     if "strategies.selector" in sys.modules:
         importlib.reload(sys.modules["strategies.selector"])
-    from strategies import ScalpStrategy, TrendStrategy, StrategySelector
+    from strategies import ScalpStrategy, StrategySelector, TrendStrategy
 
     def test_selector_basic():
         strategies = {

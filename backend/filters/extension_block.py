@@ -2,7 +2,8 @@ from __future__ import annotations
 
 """Prevent entries when price is extended far from EMA."""
 
-from typing import Sequence, Dict
+from typing import Dict, Sequence
+
 
 def _ema(values: Sequence[float], period: int) -> float:
     """Return EMA of the given values."""

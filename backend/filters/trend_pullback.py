@@ -1,6 +1,7 @@
 """Trend pullback entry filter."""
 
-from typing import List, Dict, Sequence
+from typing import Dict, List, Sequence
+
 from backend.utils import env_loader
 
 

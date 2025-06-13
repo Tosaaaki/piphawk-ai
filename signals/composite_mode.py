@@ -7,8 +7,8 @@ import logging
 from typing import Iterable, Sequence
 
 from analysis.llm_mode_selector import select_mode_llm
+from analysis.mode_detector import MarketContext, detect_mode
 from analysis.mode_preclassifier import classify_regime
-from analysis.mode_detector import detect_mode, MarketContext
 from backend.utils import env_loader
 from indicators.candlestick import detect_upper_wick_cluster
 
