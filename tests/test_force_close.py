@@ -1,10 +1,16 @@
 import os
+
+import pandas as pd
+
 from backend.orders import order_manager
+
 os.environ.setdefault('OANDA_API_KEY', 'x')
 os.environ.setdefault('OANDA_ACCOUNT_ID', 'x')
 os.environ.setdefault('OPENAI_API_KEY', 'x')
 import sys
 from types import ModuleType
+
+
 class Dummy:
     def __init__(self, *a, **k):
         pass

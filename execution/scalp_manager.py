@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
+
 from backend.utils import env_loader
 from piphawk_ai.risk.manager import PortfolioRiskManager
 
@@ -47,20 +48,31 @@ TRAIL_AFTER_TP = env_loader.get_env("TRAIL_AFTER_TP", "false").lower() == "true"
 risk_mgr: PortfolioRiskManager | None = None
 
 
-def get_dynamic_hold_seconds(instrument: str) -> int:
+def get_dynamic_hold_seconds(
+    instrument: str,
+    *,
+    fetch_candles_func=None,
+    calculate_atr_func=None,
+    env_getter=env_loader.get_env,
+    pip_size_fn=get_pip_size,
+) -> int:
     """Return hold time based on M1 ATR and env constraints."""
-    pip_size = get_pip_size(instrument)
+    pip_size = pip_size_fn(instrument)
     try:
-        from backend.market_data.candle_fetcher import fetch_candles
-        from backend.indicators.atr import calculate_atr
+        if fetch_candles_func is None:
+            from backend.market_data.candle_fetcher import \
+                fetch_candles as fetch_candles_func
+        if calculate_atr_func is None:
+            from backend.indicators.atr import \
+                calculate_atr as calculate_atr_func
 
-        candles = fetch_candles(
+        candles = fetch_candles_func(
             instrument, granularity="M1", count=30, allow_incomplete=True
         )
         highs = [float(c["mid"]["h"]) for c in candles]
         lows = [float(c["mid"]["l"]) for c in candles]
         closes = [float(c["mid"]["c"]) for c in candles]
-        atr_series = calculate_atr(highs, lows, closes)
+        atr_series = calculate_atr_func(highs, lows, closes)
         atr_val = (
             float(atr_series.iloc[-1])
             if hasattr(atr_series, "iloc")
@@ -71,8 +83,8 @@ def get_dynamic_hold_seconds(instrument: str) -> int:
         atr_val = pip_size  # fallback to 1 pip
 
     hold = int(atr_val / pip_size / 0.006)
-    min_sec = int(env_loader.get_env("HOLD_TIME_MIN", "10"))
-    max_sec = int(env_loader.get_env("HOLD_TIME_MAX", "300"))
+    min_sec = int(env_getter("HOLD_TIME_MIN", "10"))
+    max_sec = int(env_getter("HOLD_TIME_MAX", "300"))
     return max(min(hold, max_sec), min_sec)
 
 
@@ -92,8 +104,9 @@ def enter_scalp_trade(
     atr_pips = None
     pip_size = get_pip_size(instrument)
     try:
+        from backend.indicators.calculate_indicators import \
+            calculate_indicators
         from backend.market_data.candle_fetcher import fetch_candles
-        from backend.indicators.calculate_indicators import calculate_indicators
         from backend.strategy import openai_scalp_analysis as scalp_ai
 
         candles = fetch_candles(
@@ -237,8 +250,9 @@ def monitor_scalp_positions() -> None:
 
         # ----- momentum loss check ----------------------------------
         try:
+            from backend.indicators.calculate_indicators import \
+                calculate_indicators
             from backend.market_data.candle_fetcher import fetch_candles
-            from backend.indicators.calculate_indicators import calculate_indicators
 
             candles = fetch_candles(
                 pos["instrument"], granularity="M5", count=30, allow_incomplete=True

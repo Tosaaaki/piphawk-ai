@@ -35,20 +35,13 @@ The module exposes `run_cycle()` which implements a simplified M5 entry flow.
    cd piphawk-ai
    ```
 
-2. Create .env from template
+2. Create `.env` from the template
 
    ```bash
    cp .env.template .env
    ```
-
-   Edit `.env` and set OPENAI_API_KEY, OANDA_API_KEY and OANDA_ACCOUNT_ID.
-   To disable AI entry or the vote pipeline add:
-
-   ```bash
-   ENTRY_USE_AI=false
-   USE_VOTE_PIPELINE=false
-   MAX_AI_EXIT_CALLS=5
-   ```
+   Edit the file and set your API keys. Detailed options are covered in the
+   [Setup](#setup) section.
 3. Build and run the backend container
 
    ```bash
@@ -66,6 +59,7 @@ The module exposes `run_cycle()` which implements a simplified M5 entry flow.
    ```
 
 See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
+For detailed instructions, refer to [Setup](#setup).
 
 ## Features
 
@@ -92,6 +86,8 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 - See [docs/training_guide.md](docs/training_guide.md) for training scripts.
 
 ## Setup
+
+See [AGENTS.md](AGENTS.md) for coding guidelines and test commands.
 
 1. **Clone the repository**
 
@@ -130,65 +126,7 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 
    アプリケーションは `.env`, `backend/config/settings.env`, `backend/config/secret.env` の順で環境変数を読み込みます。
    必要に応じて `settings.env` の値も調整してください。
-詳しい環境変数一覧と設定例は `backend/config/ENV_README.txt` を参照してください。
-`REV_BLOCK_BARS` は直近のローソク足から何本を逆行判定に使うか、
-`TAIL_RATIO_BLOCK` はヒゲと実体の比がこの値を超えるとエントリーをブロックし、
-`VOL_SPIKE_PERIOD` は出来高急増を検出する際の平均期間を指定します。
-
-#### settings.env の主な変数
-
-`backend/config/settings.env` には取引ロジックに関わる初期値がまとめられています。 `.env` の次に読み込まれるため、ここを編集すると大半の設定を簡単に変更できます。
-
-- `DEFAULT_PAIR` … 取引する通貨ペア
-- `MIN_RRR` … 最低リスクリワード比。`ENFORCE_RRR` と併用すると常にこの比率を保ちます
-- `MIN_EXPECTED_VALUE` … TPとSLの期待値がこの値未満ならエントリーを行いません
-- `TREND_ADX_THRESH` … トレンド判定に使う ADX のしきい値 (デフォルト 20)
-- `SCALE_LOT_SIZE` … 追加エントリー時のロット数
-- `MIN_TRADE_LOT` / `MAX_TRADE_LOT` … 1 ロット = 1000 通貨。ここで許可するロット範囲を設定します
-- `SCALP_SUPPRESS_ADX_MAX` … この値を超えるADXではスキャルプを無効化
-- `SCALP_TP_PIPS` / `SCALP_SL_PIPS` … ボリンジャーバンドが取得できない場合に使う固定TP/SL幅
-- `SCALP_COND_TF` … スキャルプ時に市場判断へ使用する時間足 (デフォルト `M1`). この値でトレンド/レンジ判定に用いる足を変更できます
-- `TREND_COND_TF` … トレンドフォロー時の市場判定に使う時間足 (デフォルト `M5`)
-- `SCALP_OVERRIDE_RANGE` … true ならレンジ判定を無視してスキャルを優先
-- `SCALP_PROMPT_BIAS` … `aggressive` にするとスキャルプAIが積極的にエントリー判断
-- スキャルプモードではマルチTF整合チェックを自動的にスキップ
-- `LOG_LEVEL` … 出力するログレベル。`DEBUG` を指定するとAI拒否理由など詳細情報が表示されます
-- `ADX_SCALP_MIN` … ADX がこの値以上でスキャルプモード
-- `ADX_TREND_MIN` … ADX がこの値以上でトレンドフォローモード
-- `TREND_PROMPT_BIAS` … `aggressive` にするとトレンドフォローAIがより積極的に判断します。モデルは追加のリトライなしで `long` か `sell` を選択するよう指示されます
-- `AI_RETRY_ON_NO` … (廃止) このオプションは無効化され、AIを再試行しません
-- `PROMPT_TAIL_LEN` … プロンプトへ含める指標履歴の本数
-- `PROMPT_CANDLE_LEN` … プロンプトへ含めるローソク足の本数
-- `MICRO_SCALP_ENABLED` … openai_micro_scalp を有効にするフラグ
-- `MICRO_SCALP_LOOKBACK` … マイクロ構造判定に使うティック本数
-- `MICRO_SCALP_MIN_PIPS` … 微小スキャルプの最低TP幅
-- `MODE_ATR_PIPS_MIN` / `MODE_BBWIDTH_PIPS_MIN` … ボラティリティ判定用の閾値
-- `MODE_EMA_SLOPE_MIN` / `MODE_ADX_MIN` … モメンタム判定のしきい値
-- `MODE_VOL_MA_MIN` … 流動性判定に使う出来高平均
-- `MODE_DI_DIFF_MIN` / `MODE_DI_DIFF_STRONG` … +DIと−DIの差を評価する閾値
-- `MODE_VOL_RATIO_MIN` / `MODE_VOL_RATIO_STRONG` … 出来高比率判定に使用
-- `MODE_BONUS_START_JST` / `MODE_BONUS_END_JST` … トレンドを優遇する時間帯
-- `MODE_PENALTY_START_JST` / `MODE_PENALTY_END_JST` … スキャルプを優遇する時間帯
-- `MODE_ATR_QTL` / `MODE_ADX_QTL` … ATR・ADX の分位点を利用する場合の割合
-- `MODE_QTL_LOOKBACK` … 分位点計算に使う過去本数
-- `HTF_SLOPE_MIN` … 上位足 EMA 傾きチェック用のしきい値
-- `SCALP_ENTER_SCORE` / `SCALP_HOLD_SCORE` … スキャルプ判定と維持に使うスコア
-  閾値。推奨 0.20 / 0.15
-- `RANGE_ADX_MIN` … ADX がこの値を下回るとレンジ判定カウンターを加算。標準 15
-- `AI_MODEL` … OpenAI モデル名
-- `LINE_CHANNEL_TOKEN` / `LINE_USER_ID` … LINE 通知に使用する認証情報
-- `CORS_ALLOW_ORIGINS` … CORSで許可するオリジンをカンマ区切りで指定。
-
-例:
-
-```bash
-CORS_ALLOW_ORIGINS=http://localhost:3000
-SCALP_ENTER_SCORE=0.20
-SCALP_HOLD_SCORE=0.15
-RANGE_ADX_MIN=15
-```
-
-その他の変数は `backend/config/ENV_README.txt` を参照してください。
+詳細な変数解説は [docs/env_reference.md](docs/env_reference.md) を参照してください。
 
 ### Directory Structure
 
@@ -867,25 +805,14 @@ TP/SL の組み合わせは複数候補から期待値を計算し、最も利�
 
 ## Running Tests
 
-The repository includes a set of unit tests under `tests/`. You can run them
-quickly using the helper script:
+Use the helper script to run unit tests:
 
 ```bash
 ./run_tests.sh
 ```
 
-
-This script installs dependencies from `requirements-test.txt` and then launches
-`pytest` automatically. Recent additions include tests for the monitoring
-utilities such as ``SafetyTrigger`` and ``metrics_publisher``.
-
-Pass any extra arguments to forward them directly to `pytest`.
-
-For example, run only the technical pipeline tests with:
-
-```bash
-./run_tests.sh -k test_tech_arch_no_ai.py
-```
+For lint and type checks, refer to the commands listed in
+[AGENTS.md](AGENTS.md).
 
 ## プロンプト変更手順
 

@@ -2,28 +2,26 @@ from __future__ import annotations
 
 """Bollinger Band utilities for multiple timeframes."""
 
+
 from typing import Sequence, Mapping, Dict
 import os
+from typing import Dict, Mapping, Sequence
 
-try:
-    import pandas as pd
-except ImportError as e:  # pragma: no cover - dependency guard
-    raise ImportError(
-        "Pandas is required for indicator calculations."
-        " Install it with 'pip install pandas'."
-    ) from e
+
+from backend.indicators.bollinger import calculate_bollinger_bands
 
 
 def _calc_single(prices: Sequence[float], window: int = 20, num_std: float = 2.0) -> Dict[str, float]:
     """Return latest Bollinger values as a dict."""
-    series = pd.Series(prices)
-    ma = series.rolling(window=window).mean()
-    std = series.rolling(window=window).std()
-    if ma.empty:
+    df = calculate_bollinger_bands(prices, window=window, num_std=num_std)
+    if df.empty:
         return {"middle": 0.0, "upper": 0.0, "lower": 0.0}
-    middle = ma.iloc[-1]
-    sd = std.iloc[-1]
-    return {"middle": middle, "upper": middle + num_std * sd, "lower": middle - num_std * sd}
+    latest = df.iloc[-1]
+    return {
+        "middle": float(latest["middle_band"]),
+        "upper": float(latest["upper_band"]),
+        "lower": float(latest["lower_band"]),
+    }
 
 
 def multi_bollinger(
