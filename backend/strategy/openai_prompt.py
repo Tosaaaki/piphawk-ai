@@ -13,7 +13,7 @@ TP_PROB_HOURS = int(env_loader.get_env("TP_PROB_HOURS", "24"))
 MIN_RRR = float(env_loader.get_env("MIN_RRR", "0.8"))
 MIN_NET_TP_PIPS = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
 TREND_ADX_THRESH = float(
-    env_loader.get_env("TREND_ADX_THRESH", env_loader.get_env("ADX_TREND_THR", "25"))
+    env_loader.get_env("TREND_ADX_THRESH", env_loader.get_env("ADX_TREND_THR", "20"))
 )
 TREND_PROMPT_BIAS = env_loader.get_env("TREND_PROMPT_BIAS", "normal").lower()
 # レンジ相場でのトレード方針を任意に追記できる環境変数

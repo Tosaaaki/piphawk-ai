@@ -2,9 +2,34 @@
 
 from __future__ import annotations
 
-from typing import List
+from typing import Any, List
 
-from mabwiser.mab import MAB, LearningPolicy
+try:
+    from mabwiser.mab import MAB, LearningPolicy
+except Exception:  # pragma: no cover - fallback when dependency fails
+    class _FallbackMAB:
+        def __init__(self, arms, learning_policy=None):
+            self.arms = list(arms)
+            self.index = 0
+
+        def fit(self, *args, **kwargs):
+            pass
+
+        def predict(self, *_: Any):
+            arm = self.arms[self.index % len(self.arms)]
+            self.index += 1
+            return [arm]
+
+        def partial_fit(self, *args, **kwargs):
+            pass
+
+    class _FallbackPolicy:
+        class UCB1:
+            def __init__(self, alpha: float = 1.0) -> None:
+                self.alpha = alpha
+
+    MAB = _FallbackMAB
+    LearningPolicy = _FallbackPolicy
 
 
 class BanditStrategyManager:
