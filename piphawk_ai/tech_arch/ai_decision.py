@@ -11,10 +11,11 @@ logger = logging.getLogger(__name__)
 
 def call_llm(mode: str, signal: dict, indicators: dict) -> dict:
     """Ask OpenAI for final entry decision and TP/SL multipliers."""
+    atr_series = indicators.get("atr")
     prompt = (
         f"mode: {mode}\n"
         f"signal: {signal.get('side')}\n"
-        f"atr: {indicators.get('atr')[-1] if indicators.get('atr') else 'na'}\n"
+        f"atr: {atr_series.iloc[-1] if atr_series is not None and not atr_series.empty else 'na'}\n"
         "Respond with JSON {\"go\":true/false, \"tp_mult\":float, \"sl_mult\":float}"
     )
     try:
