@@ -15,8 +15,8 @@ def test_classify_regime_boundary():
 
 def test_detect_mode():
     features = {"adx": 35, "atr_percentile": 50, "atr_pct": 20}
-    assert md.detect_mode(features) == "trend_follow"
+    assert md.detect_mode_simple(features) == "trend_follow"
     features["adx"] = 19
-    assert md.detect_mode(features) == "scalp_momentum"
+    assert md.detect_mode_simple(features) == "scalp_momentum"
     features["atr_percentile"] = 5
-    assert md.detect_mode(features) == "no_trade"
+    assert md.detect_mode_simple(features) == "no_trade"

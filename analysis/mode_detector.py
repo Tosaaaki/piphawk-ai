@@ -11,12 +11,12 @@ _REGIME_TO_MODE = {
 }
 
 
-def detect_mode(features: dict) -> str:
+def detect_mode_simple(features: dict) -> str:
     """Return trade mode based on preclassifier only."""
     regime = classify_regime(features)
     return _REGIME_TO_MODE.get(regime, "no_trade")
 
-__all__ = ["detect_mode"]
+__all__ = ["detect_mode_simple"]
 
 """Rule-based trade mode detection."""
 
@@ -115,4 +115,4 @@ def load_config(path: str | Path | None = None) -> dict:
     return merged
 
 
-__all__ = ["MarketContext", "detect_mode", "load_config"]
+__all__ = ["MarketContext", "detect_mode", "detect_mode_simple", "load_config"]

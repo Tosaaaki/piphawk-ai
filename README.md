@@ -60,7 +60,7 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 
 - Automated entry and exit decisions using OpenAI models with technical indicator context.
 - Composite trade mode logic switching between **scalp** and **trend_follow**.
-- Local mode detection via `analysis.detect_mode()` without LLM.
+- Local mode detection via `analysis.detect_mode_simple()` without LLM.
 - Multi-timeframe indicators and regime detection.
 - Parameterized `mode_detector` allows tuning without any LLM calls.
 - Optional chart pattern detection via OpenAI or a local scanner.
@@ -247,7 +247,7 @@ ema_slope_min: 0.1
 ### LLM model settings
 
 `strategy.yml` では利用する OpenAI モデルを個別に指定できます。現在はトレードモー
-ド判定がローカルの `analysis.detect_mode()` へ置き換わったため、`mode_selector`
+ド判定がローカルの `analysis.detect_mode_simple()` へ置き換わったため、`mode_selector`
 キーは無視されます。以下の例ではエントリーとエグジットのみ AI モデルを指定してい
 ます。
 
@@ -789,7 +789,7 @@ plan = get_trade_plan({}, {}, candles_dict,
 ```
 
 ## レジーム衝突処理
-以前は `LOCAL_WEIGHT_THRESHOLD` を用いてローカル判定と LLM 判定の整合度を比較していましたが、現在は `analysis.detect_mode()` のみを利用するためこの設定は不要になりました。`LOCAL_WEIGHT_THRESHOLD` はチャートパターン検出の重み付けにのみ使用されます。
+以前は `LOCAL_WEIGHT_THRESHOLD` を用いてローカル判定と LLM 判定の整合度を比較していましたが、現在は `analysis.detect_mode_simple()` のみを利用するためこの設定は不要になりました。`LOCAL_WEIGHT_THRESHOLD` はチャートパターン検出の重み付けにのみ使用されます。
 
 ## ブレイクアウト追随エントリー
 
