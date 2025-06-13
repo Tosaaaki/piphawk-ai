@@ -126,3 +126,5 @@ Pivot: {pivot}, R1: {pivot_r1}, S1: {pivot_s1}
 {macro_summary_formatted}
 ### Macro Sentiment
 {macro_sentiment_formatted}
+
+- If ADX \u2265 25 and price above 50EMA, prefer entry_type "trend" (not "reversal").
