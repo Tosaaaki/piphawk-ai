@@ -19,7 +19,9 @@ def select_strategy(prompt: str, n: int | None = None) -> tuple[str, bool]:
     try:
         resp_list = ask_openai(
             prompt,
-            system_prompt="You are a trading strategy selector.",
+            system_prompt=(
+                "You are a trading strategy selector. Respond in JSON format."
+            ),
             model=AI_STRATEGY_MODEL,
             temperature=STRAT_TEMP,
             response_format={"type": "json_object"},
