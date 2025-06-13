@@ -1,10 +1,10 @@
-from datetime import datetime, timedelta, timezone
-import time
-import uuid
-import logging
 import json
+import logging
 import os
 import sys
+import time
+import uuid
+from datetime import datetime, timedelta, timezone
 
 try:
     from prometheus_client import start_http_server
@@ -15,14 +15,15 @@ except Exception:  # pragma: no cover - optional dependency or test stub
 
 
 from backend.utils import env_loader, trade_age_seconds
-from backend.utils.restart_guard import can_restart
 from backend.utils.openai_client import set_call_limit
+from backend.utils.restart_guard import can_restart
 
 try:
     from config import params_loader
 
     last_mode = getattr(params_loader, "load_last_mode", lambda: None)()
-    if last_mode in ("scalp", "scalp_momentum"):
+    force_scalp = env_loader.get_env("SCALP_MODE", "").lower() == "true"
+    if force_scalp or last_mode in ("scalp", "scalp_momentum"):
         params_loader.load_params(path="config/scalp_params.yml")
     elif last_mode == "trend_follow":
         params_loader.load_params(path="config/trend.yml")
@@ -31,17 +32,15 @@ try:
 except Exception:
     pass
 
-from backend.market_data.tick_fetcher import fetch_tick_data
-
-from backend.market_data.candle_fetcher import fetch_multiple_timeframes
 from backend.indicators.calculate_indicators import (
     calculate_indicators,
     calculate_indicators_multi,
 )
-
+from backend.market_data.candle_fetcher import fetch_multiple_timeframes
+from backend.market_data.tick_fetcher import fetch_tick_data
 
 try:
-    from backend.strategy.entry_logic import process_entry, _pending_limits
+    from backend.strategy.entry_logic import _pending_limits, process_entry
 except Exception:  # pragma: no cover - test stubs may remove module
 
     def process_entry(*_a, **_k):
@@ -67,11 +66,11 @@ except Exception:  # pragma: no cover - test stubs may remove module
 
 from .entry import manage_pending_limits
 from .exit import (
+    get_calendar_volatility_level,
     maybe_extend_tp,
     maybe_reduce_tp,
     refresh_trailing_status,
     should_peak_exit,
-    get_calendar_volatility_level,
 )
 
 try:
@@ -104,12 +103,12 @@ except Exception:  # pragma: no cover - test stubs may remove module
 
 try:
     from backend.strategy.signal_filter import (
-        pass_entry_filter,
-        filter_pre_ai,
-        detect_climax_reversal,
-        counter_trend_block,
-        consecutive_lower_lows,
         consecutive_higher_highs,
+        consecutive_lower_lows,
+        counter_trend_block,
+        detect_climax_reversal,
+        filter_pre_ai,
+        pass_entry_filter,
     )
 except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
     from backend.strategy.signal_filter import pass_entry_filter
@@ -124,12 +123,12 @@ except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
         return False
 
 
-from piphawk_ai.analysis.signal_filter import is_multi_tf_aligned
 from backend.logs.perf_stats_logger import PerfTimer
-from monitoring import metrics_publisher
-from monitoring.safety_trigger import SafetyTrigger
 from backend.strategy.signal_filter import pass_exit_filter
 from backend.utils.ai_parse import parse_trade_plan
+from monitoring import metrics_publisher
+from monitoring.safety_trigger import SafetyTrigger
+from piphawk_ai.analysis.signal_filter import is_multi_tf_aligned
 
 try:
     from backend.strategy.openai_analysis import (
@@ -149,11 +148,12 @@ except Exception:  # pragma: no cover - test stubs may remove module
         return False
 
 
-from backend.strategy.higher_tf_analysis import analyze_higher_tf
+import requests
+
 from backend.strategy import pattern_scanner
+from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from backend.strategy.momentum_follow import follow_breakout
 from piphawk_ai.analysis.regime_detector import RegimeDetector
-import requests
 
 try:
     from signals.composite_mode import decide_trade_mode, decide_trade_mode_detail
@@ -166,17 +166,16 @@ except Exception:  # pragma: no cover - test stubs may remove module
         return "flat", 0.0, []
 
 
-from piphawk_ai.risk.manager import PortfolioRiskManager
-from backend.strategy.risk_manager import calc_lot_size
+from backend.logs.trade_logger import ExitReason, log_trade
 from backend.orders.position_manager import get_account_balance, get_open_positions
-
+from backend.strategy.risk_manager import calc_lot_size
 from backend.utils.notification import send_line_message
-from backend.logs.trade_logger import log_trade, ExitReason
+from piphawk_ai.risk.manager import PortfolioRiskManager
 from strategies import (
     ScalpStrategy,
-    TrendStrategy,
-    StrongTrendStrategy,
     StrategySelector,
+    StrongTrendStrategy,
+    TrendStrategy,
 )
 from strategies.context_builder import build_context, recent_strategy_performance
 
@@ -209,7 +208,7 @@ except ModuleNotFoundError:
         return None
 
 
-from backend.logs.update_oanda_trades import update_oanda_trades, fetch_trade_details
+from backend.logs.update_oanda_trades import fetch_trade_details, update_oanda_trades
 from execution import scalp_manager
 
 

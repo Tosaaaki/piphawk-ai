@@ -376,3 +376,7 @@ SCALE_TRIGGER_ATR=0.5
 ### USE_VOTE_PIPELINE
 
 多数決アーキテクチャ(vote_arch)を利用するか。`false` なら `tech_arch` に切り替わります。
+
+### USE_VOTE_ARCH
+
+vote_arch 全体を無効化したい場合に `false` を指定します。

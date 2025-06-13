@@ -1,11 +1,11 @@
-from datetime import datetime, timedelta, timezone
-import time
-import uuid
-from logging import getLogger
-import logging
 import json
+import logging
 import os
 import sys
+import time
+import uuid
+from datetime import datetime, timedelta, timezone
+from logging import getLogger
 
 try:
     from prometheus_client import start_http_server
@@ -15,17 +15,18 @@ except Exception:  # pragma: no cover - optional dependency or test stub
         return None
 
 
-from backend.utils import env_loader, trade_age_seconds
 from backend.core.ai_throttle import get_cooldown
+from backend.utils import env_loader, trade_age_seconds
+from backend.utils.openai_client import set_call_limit
 from backend.utils.restart_guard import can_restart
 from maintenance.disk_guard import maybe_cleanup
-from backend.utils.openai_client import set_call_limit
 
 try:
     from config import params_loader
 
     last_mode = getattr(params_loader, "load_last_mode", lambda: None)()
-    if last_mode in ("scalp", "scalp_momentum"):
+    force_scalp = env_loader.get_env("SCALP_MODE", "").lower() == "true"
+    if force_scalp or last_mode in ("scalp", "scalp_momentum"):
         params_loader.load_params(path="config/scalp_params.yml")
     elif last_mode == "trend_follow":
         params_loader.load_params(path="config/trend.yml")
@@ -34,14 +35,12 @@ try:
 except Exception:
     pass
 
+from backend.indicators.calculate_indicators import calculate_indicators_multi
+from backend.market_data.candle_fetcher import fetch_multiple_timeframes
 from backend.market_data.tick_fetcher import fetch_tick_data
 
-from backend.market_data.candle_fetcher import fetch_multiple_timeframes
-from backend.indicators.calculate_indicators import calculate_indicators_multi
-
-
 try:
-    from backend.strategy.entry_logic import process_entry, _pending_limits
+    from backend.strategy.entry_logic import _pending_limits, process_entry
 except Exception:  # pragma: no cover - test stubs may remove module
 
     def process_entry(*_a, **_k):
@@ -95,12 +94,12 @@ except Exception:  # pragma: no cover - test stubs may remove module
 
 try:
     from backend.strategy.signal_filter import (
-        pass_entry_filter,
-        filter_pre_ai,
-        detect_climax_reversal,
-        counter_trend_block,
-        consecutive_lower_lows,
         consecutive_higher_highs,
+        consecutive_lower_lows,
+        counter_trend_block,
+        detect_climax_reversal,
+        filter_pre_ai,
+        pass_entry_filter,
     )
 except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
     from backend.strategy.signal_filter import pass_entry_filter
@@ -115,12 +114,13 @@ except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
         return False
 
 
-from piphawk_ai.analysis.signal_filter import is_multi_tf_aligned
 from backend.logs.perf_stats_logger import PerfTimer
-from monitoring import metrics_publisher
-from monitoring.safety_trigger import SafetyTrigger
 from backend.strategy.signal_filter import pass_exit_filter
 from backend.utils.ai_parse import parse_trade_plan
+from monitoring import metrics_publisher
+from monitoring.safety_trigger import SafetyTrigger
+from piphawk_ai.analysis.signal_filter import is_multi_tf_aligned
+
 try:
     from backend.strategy.llm_exit import propose_exit_adjustment
 except Exception:  # pragma: no cover - optional during tests
@@ -128,7 +128,7 @@ except Exception:  # pragma: no cover - optional during tests
         return {"action": "HOLD", "tp": None, "sl": None}
 
 try:
-    from backend.logs.log_manager import log_exit_adjust, count_exit_adjust_calls
+    from backend.logs.log_manager import count_exit_adjust_calls, log_exit_adjust
 except Exception:  # pragma: no cover
     def log_exit_adjust(*_a, **_k) -> None:
         pass
@@ -154,19 +154,20 @@ except Exception:  # pragma: no cover - test stubs may remove module
         return False
 
 
-from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from backend.strategy import pattern_scanner
+from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from backend.strategy.momentum_follow import follow_breakout
 from piphawk_ai.analysis.regime_detector import RegimeDetector
 from piphawk_ai.tech_arch.pipeline import run_cycle as tech_run_cycle
+
 try:
+    from piphawk_ai.vote_arch.entry_buffer import PlanBuffer
+    from piphawk_ai.vote_arch.market_air_sensor import MarketSnapshot
     from piphawk_ai.vote_arch.pipeline import (
-        run_cycle as vote_run_cycle,
         PipelineResult,
     )
-    from piphawk_ai.vote_arch.entry_buffer import PlanBuffer
+    from piphawk_ai.vote_arch.pipeline import run_cycle as vote_run_cycle
     from piphawk_ai.vote_arch.regime_detector import MarketMetrics
-    from piphawk_ai.vote_arch.market_air_sensor import MarketSnapshot
 except Exception:  # pragma: no cover - optional module
     vote_run_cycle = lambda *_a, **_k: PipelineResult(None, "", "", False)
 
@@ -202,8 +203,8 @@ except Exception:  # pragma: no cover - test stubs may remove module
         return "flat", 0.0, []
 
 
-from risk.portfolio_risk_manager import PortfolioRiskManager
 from backend.strategy.risk_manager import calc_lot_size
+from risk.portfolio_risk_manager import PortfolioRiskManager
 
 try:
     from backend.orders.position_manager import (
@@ -219,15 +220,15 @@ except Exception:  # テストでスタブが残っている場合のフォー�
         return []
 
 
+from backend.logs.trade_logger import ExitReason, log_trade
+from backend.scheduler.policy_updater import PolicyUpdater
 from backend.utils.notification import send_line_message
-from backend.logs.trade_logger import log_trade, ExitReason
 from strategies import (
     ScalpStrategy,
-    TrendStrategy,
-    StrongTrendStrategy,
     StrategySelector,
+    StrongTrendStrategy,
+    TrendStrategy,
 )
-from backend.scheduler.policy_updater import PolicyUpdater
 from strategies.context_builder import (
     build_context,
     recent_strategy_performance,
@@ -262,7 +263,7 @@ except ModuleNotFoundError:
         return None
 
 
-from backend.logs.update_oanda_trades import update_oanda_trades, fetch_trade_details
+from backend.logs.update_oanda_trades import fetch_trade_details, update_oanda_trades
 
 
 def build_exit_context(position, tick_data, indicators, indicators_m1=None) -> dict:
@@ -490,20 +491,6 @@ class JobRunner:
         # recent M5 candles for peak detection
         self.last_candles_m5: list[dict] | None = None
 
-        # Majority-vote pipeline selection
-        self.use_vote_arch = env_loader.get_env("USE_VOTE_ARCH", "true").lower() == "true"
-        self.use_vote_pipeline = (
-            env_loader.get_env("USE_VOTE_PIPELINE", "true").lower() == "true"
-        )
-        self.plan_buffer = (
-            PlanBuffer() if self.use_vote_arch and self.use_vote_pipeline else None
-        )
-        log.info(
-            "USE_VOTE_PIPELINE=%s → %s pipeline active",
-            self.use_vote_pipeline,
-            "vote_arch" if self.use_vote_pipeline else "tech_arch",
-        )
-
         # SCALP_MODE 時に市場判断へ使う時間足
         self.scalp_cond_tf = env_loader.get_env("SCALP_COND_TF", "M1").upper()
 
@@ -526,6 +513,21 @@ class JobRunner:
         # set initial AI call limit based on mode
         default_limit = int(env_loader.get_env("MAX_AI_CALLS_PER_LOOP", "1"))
         set_call_limit(4 if self.trade_mode == "scalp_momentum" else default_limit)
+
+        # Majority-vote pipeline selection
+        default_vote = "false" if self.trade_mode == "scalp" else "true"
+        self.use_vote_arch = env_loader.get_env("USE_VOTE_ARCH", "true").lower() == "true"
+        self.use_vote_pipeline = (
+            env_loader.get_env("USE_VOTE_PIPELINE", default_vote).lower() == "true"
+        )
+        self.plan_buffer = (
+            PlanBuffer() if self.use_vote_arch and self.use_vote_pipeline else None
+        )
+        log.info(
+            "USE_VOTE_PIPELINE=%s → %s pipeline active",
+            self.use_vote_pipeline,
+            "vote_arch" if self.use_vote_pipeline else "tech_arch",
+        )
 
         # Restore TP adjustment flags based on existing TP order comment
         try:
