@@ -361,3 +361,17 @@ SCALE_TRIGGER_ATR=0.5
 - **REGIME_ADX_TREND**: Regime 判定でトレンドとみなすADX値。
 - **REGIME_BB_NARROW**: Range 判定で用いるBB幅の閾値。
 フロー全体の解説は [majority_vote_flow.md](majority_vote_flow.md) を参照してください。
+
+## AI 運用オプション
+
+### ENTRY_USE_AI
+
+エントリー判断でAIを使用するかどうか。`false` を指定すると `tech_arch` パイプラインが既定のATR倍率でTP/SLを計算します。
+
+### MAX_AI_EXIT_CALLS
+
+ポジション保有中にAIへエグジット判断を問い合わせる最大回数。デフォルトは5。
+
+### USE_VOTE_PIPELINE
+
+多数決アーキテクチャ(vote_arch)を利用するか。`false` なら `tech_arch` に切り替わります。
