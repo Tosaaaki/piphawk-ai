@@ -188,6 +188,16 @@ except Exception:  # pragma: no cover - optional module
             self.news_score = news_score
             self.oi_bias = oi_bias
 
+# Backward compatibility: unified pipeline runner
+def run_cycle(*args, **kwargs):
+    """Run the selected pipeline based on USE_VOTE_PIPELINE."""
+    if env_loader.get_env("USE_VOTE_PIPELINE", "false").lower() == "true":
+        return vote_run_cycle(*args, **kwargs)
+    tech_run_cycle(*args, **kwargs)
+    if RUNNER_INSTANCE is not None:
+        RUNNER_INSTANCE._stop = True
+    return PipelineResult(None, "", "", True)
+
 try:
     from piphawk_ai.tech_arch.pipeline import run_cycle as tech_run_cycle
 except Exception:  # pragma: no cover - optional module

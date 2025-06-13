@@ -1,9 +1,20 @@
 """Entry rule selector with LinUCB."""
 from __future__ import annotations
 
+import sys
+import types
 from typing import Any, Callable, Dict
 
 import numpy as np
+
+try:  # pandas may be stubbed during testing
+    import pandas as _pd  # type: ignore
+    if not hasattr(_pd, "DataFrame"):
+        raise ImportError
+except Exception:  # pragma: no cover - minimal stub for mabwiser
+    _pd = types.SimpleNamespace(DataFrame=list, Series=list)
+    sys.modules["pandas"] = _pd
+
 from mabwiser.mab import MAB, LearningPolicy
 
 
