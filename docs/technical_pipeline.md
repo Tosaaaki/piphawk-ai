@@ -73,3 +73,7 @@ flowchart TD
 EXIT ロジック（トレイリング SL, 時間切れ, AI exit 等）は既存のままで TP/SL に追随します。
 
 これが最新の最小フィルタ × M5 即エントリー × AI TP チューナー フローです。
+
+### ENTRY_USE_AI
+
+環境変数 `ENTRY_USE_AI` を `false` にすると、LLM への問い合わせを行わずに既定の TP/SL 倍率を用いてエントリーします。`backend/scheduler/job_runner.py` もこの変数を参照し、無効時は本パイプラインを用いて発注を行います。
