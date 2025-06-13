@@ -3,8 +3,7 @@ import importlib
 openai_analysis = importlib.import_module("backend.strategy.openai_analysis")
 EXIT_BIAS_FACTOR = getattr(openai_analysis, "EXIT_BIAS_FACTOR", 1.0)
 from backend.orders.order_manager import OrderManager
-from backend.logs.log_manager import log_trade
-from backend.logs.trade_logger import ExitReason
+from backend.logs.trade_logger import ExitReason, log_trade
 from backend.logs.exit_logger import append_exit_log
 from datetime import datetime, timezone
 import logging
