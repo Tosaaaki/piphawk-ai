@@ -24,3 +24,17 @@ def parse_json_answer(raw: str | dict) -> Tuple[Dict[str, Any] | None, Exception
     except Exception as exc:  # json.JSONDecodeError and others
         logger.error("Failed to parse JSON answer: %s", raw)
         return None, exc
+
+
+def parse_trade_plan(resp: str | dict) -> Dict[str, Any]:
+    """Return dict from LLM response or fallback."""
+    if isinstance(resp, dict):
+        return resp
+    try:
+        return json.loads(resp)
+    except json.JSONDecodeError:
+        logger.error("LLM response not JSON: %s", str(resp)[:120])
+        return {"decision": "PASS"}
+
+
+__all__ = ["parse_json_answer", "parse_trade_plan"]

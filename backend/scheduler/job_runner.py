@@ -120,6 +120,7 @@ from backend.logs.perf_stats_logger import PerfTimer
 from monitoring import metrics_publisher
 from monitoring.safety_trigger import SafetyTrigger
 from backend.strategy.signal_filter import pass_exit_filter
+from backend.utils.ai_parse import parse_trade_plan
 
 try:
     from backend.strategy.openai_analysis import (
@@ -801,6 +802,7 @@ class JobRunner:
                                 trade_mode=self.trade_mode,
                                 mode_reason=self.mode_reason,
                             )
+                            plan = parse_trade_plan(plan)
                             risk = plan.get("risk", {})
                             ai_raw = json.dumps(plan, ensure_ascii=False)
                         except Exception as exc:
@@ -911,6 +913,7 @@ class JobRunner:
                 trade_mode=self.trade_mode,
                 mode_reason=self.mode_reason,
             )
+            plan = parse_trade_plan(plan)
         except Exception as exc:
             log.warning(f"get_trade_plan failed: {exc}")
             return
