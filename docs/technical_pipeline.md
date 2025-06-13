@@ -1,60 +1,75 @@
-# テクニカル判定版エントリー・パイプライン
+# M5 即エントリー × AI TP チューナー フロー
 
-以下のフローではテクニカル指標のみでエントリー可否を決定します。
+PipHawk が採用する最新の最小フィルタ構成です。M5 シグナルを直接トリガーとし、AI で TP/SL 倍率を調整します。
 
 ```mermaid
 flowchart TD
-    A0[0. Scheduler<br>ループ=~4 s] --> A1
-    subgraph Market Snapshot
-        A1[1. MarketContext.build()<br>• M5 Candle / Ticks<br>• 口座・スプレッド]
-        A2[2. IndicatorEngine<br>EMA, ATR, ADX, BB, RSI…]
-    end
-    A2 --> A3
+    %% ===== 0. LOOP =====
+    SCHED[[Scheduler<br>(≈ 4 s周期)]]
 
-    subgraph Mode Detect (100 % Tech)
-        A3[3. ModeDetector.detect_mode()<br>
-            ─ Trend         ⇒ ADX>25 & EMA50>EMA200 & ATR比率
-            ─ ScalpMomentum ⇒ BB±2σ ブレイク & EMA9>EMA21 & TickATR↑
-            ─ ScalpReversal ⇒ RSI7 極値 & BB±3σ 反転 & ADX7<20
-            ─ Range         ⇒ 上記以外]
+    %% ===== 1. SNAPSHOT =====
+    subgraph SNAP[1. 市場スナップショット]
+        direction TB
+        CXT[MarketContext.build()<br>• 最新 M5 × 3 本<br>• Tick 現値・Spread]
+        IND[IndicatorEngine<br>• ADX14 / EMA50<br>• ATR / BB / RSI<br>• H1/H4 ADX & EMA]
     end
-    A3 --> B0
+    SCHED --> CXT --> IND
 
-    subgraph Prefilter
-        B0[4. Generic Prefilters<br>spread / margin / time]
-    end
-    B0 -- NG --> A0
-    B0 -- OK --> B1
+    %% ===== 2. MARKET CLASSIFY =====
+    MCL[2. Range / Trend 分類<br>(ADX & EMA 乖離)]
+    IND --> MCL
 
-    subgraph Mode-Specific Filters
-        B1{{モード分岐}}
-        B2[4-T. Trend Filters<br>EMA乖離, ATR拡大 …]
-        B3[4-S. Scalp Filters<br>無し (Trend専用のみskip)]
-        B1 -->|Trend系| B2
-        B1 -->|Scalp系| B3
-        B2 -- NG --> A0
-        B2 -- OK --> C0
-        B3 --> C0
+    %% ===== 3. RISK FILTERS =====
+    subgraph RISK[3. 簡易リスクフィルタ]
+        direction TB
+        F1[spread ≤ ATR×0.15]
+        F2[marginAvailable > 5 %]
+        F3[duplicateGuard]
+        F4[volSpikeGuard]
     end
+    MCL --> RISK
+    RISK -- NG --> SCHED
 
-    subgraph Decision
-        C0[5. LLM Entry Gate<br>OpenAI に「入る/パス」を尋ねる] --> C1
-        C1[6. RuleValidator<br>RRR, 2/3 ルール]
-        C1 -- fail --> A0
-    end
-    C1 -- pass --> D0
+    %% ===== 4. M5 SIGNAL =====
+    SIG[4. M5 シグナル検出<br>• 高値/安値ブレイク<br>• BB±2σ 反発包み足]
+    RISK -- OK --> SIG
+    SIG -- None --> SCHED
 
-    subgraph Safety & Order
-        D0[7. PostFilters<br>Overshoot, Duplicate…] --> D1
-        D1[8. OrderManager.place_order()<br>OANDA REST] --> D2
+    %% ===== 5. AI GATE & TP TUNE =====
+    subgraph AI[5. AI Decision & TP Tuner]
+        direction TB
+        PAYLOAD[[JSON Payload<br>(pair, mode, signal,<br>M5 + H1/H4 指標, cost,<br>default TP/SL)]]
+        LLM[[OpenAI<br>chat.completions]]
+        RESP[[{decision, tp_mult,<br>sl_mult, rationale}]]
     end
-    D1 -- NG --> A0
-    D2 --> E0
+    SIG -- signalOK --> PAYLOAD --> LLM --> RESP
+    RESP -- decision:PASS --> SCHED
 
-    subgraph Persist & Notify
-        E0[9. DB / Prometheus / LINE]
-    end
-    E0 --> A0
+    %% ===== 6. ORDER =====
+    TPSL[6. TP/SL 計算<br>ATR×{tp,sl}_mult]
+    RESP -- decision:GO --> TPSL
+    ORD[OrderManager.place_order()]
+    TPSL --> ORD
+
+    %% ===== 7. LOG & NOTIFY =====
+    LOG[7. trade_signals DB / Prometheus / LINE]
+    ORD --> LOG --> SCHED
 ```
 
-この手順は `piphawk_ai.tech_arch` モジュールで実装されています。
+---
+
+## ステップ要約
+
+| # | ブロック | 中身 | 出口条件 |
+|---|---|---|---|
+|1|MarketContext / IndicatorEngine|M5×3・Tick・Spread＋主要指標計算|Price/Indicators 準備完了|
+|2|market_classifier.classify_market|ADX14・EMA50乖離・BB 幅 …|mode = "trend" or "range"|
+|3|簡易リスクフィルタ|スプレッド／証拠金／重複／異常ボラ|NG→skip|
+|4|m5_entry.detect_entry|Trend:高値/安値ブレイク Range:包み足反発|None→skip|
+|5|ai_decision.call_llm|JSON で LLM へ Go/PASS と TP チューニング依頼|PASS→skip|
+|6|tpsl_calc → order_manager|ATR×倍率で TP/SL, 発注|注文 ID 取得|
+|7|Logger / Metrics / LINE|DB 保存・Prometheus カウント・通知|ループ完了|
+
+EXIT ロジック（トレイリング SL, 時間切れ, AI exit 等）は既存のままで TP/SL に追随します。
+
+これが最新の最小フィルタ × M5 即エントリー × AI TP チューナー フローです。
