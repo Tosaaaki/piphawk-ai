@@ -145,12 +145,15 @@ from backend.strategy import pattern_scanner
 from backend.strategy.momentum_follow import follow_breakout
 from piphawk_ai.analysis.regime_detector import RegimeDetector
 try:
-    from piphawk_ai.vote_arch.pipeline import run_cycle, PipelineResult
+    from piphawk_ai.vote_arch.pipeline import (
+        run_cycle as vote_run_cycle,
+        PipelineResult,
+    )
     from piphawk_ai.vote_arch.entry_buffer import PlanBuffer
     from piphawk_ai.vote_arch.regime_detector import MarketMetrics
     from piphawk_ai.vote_arch.market_air_sensor import MarketSnapshot
 except Exception:  # pragma: no cover - optional module
-    run_cycle = lambda *_a, **_k: PipelineResult(None, "", "", False)
+    vote_run_cycle = lambda *_a, **_k: PipelineResult(None, "", "", False)
 
     class PlanBuffer:
         def __init__(self) -> None:
@@ -168,6 +171,12 @@ except Exception:  # pragma: no cover - optional module
             self.atr = atr
             self.news_score = news_score
             self.oi_bias = oi_bias
+
+try:
+    from piphawk_ai.tech_arch.pipeline import run_cycle as tech_run_cycle
+except Exception:  # pragma: no cover - optional module
+    def tech_run_cycle(*_a, **_k):
+        return None
 import requests
 
 try:
@@ -464,9 +473,19 @@ class JobRunner:
         # recent M5 candles for peak detection
         self.last_candles_m5: list[dict] | None = None
 
-        # Majority-vote architecture toggle
+        # Majority-vote pipeline selection
         self.use_vote_arch = env_loader.get_env("USE_VOTE_ARCH", "true").lower() == "true"
-        self.plan_buffer = PlanBuffer() if self.use_vote_arch else None
+        self.use_vote_pipeline = (
+            env_loader.get_env("USE_VOTE_PIPELINE", "true").lower() == "true"
+        )
+        self.plan_buffer = (
+            PlanBuffer() if self.use_vote_arch and self.use_vote_pipeline else None
+        )
+        log.info(
+            "USE_VOTE_PIPELINE=%s → %s pipeline active",
+            self.use_vote_pipeline,
+            "vote_arch" if self.use_vote_pipeline else "tech_arch",
+        )
 
         # SCALP_MODE 時に市場判断へ使う時間足
         self.scalp_cond_tf = env_loader.get_env("SCALP_COND_TF", "M1").upper()
@@ -2306,17 +2325,29 @@ class JobRunner:
                                     news_score=float(market_cond.get("news_score", 0.0)),
                                     oi_bias=float(market_cond.get("oi_bias", 0.0)),
                                 )
-                                res = run_cycle(indicators, metrics, snapshot, self.plan_buffer)
-                                if not res or not res.plan:
-                                    log.info("Pipeline declined entry → skipping")
+                                if self.use_vote_pipeline:
+                                    log.info("Using vote pipeline for entry")
+                                    res = vote_run_cycle(
+                                        indicators, metrics, snapshot, self.plan_buffer
+                                    )
+                                    if not res or not res.plan:
+                                        log.info("Pipeline declined entry → skipping")
+                                        self.last_run = now
+                                        update_oanda_trades()
+                                        time.sleep(self.interval_seconds)
+                                        timer.stop()
+                                        continue
+                                    plan = res.plan
+                                    side = plan.side
+                                    lot = plan.lot
+                                else:
+                                    log.info("Using technical pipeline for entry")
+                                    tech_run_cycle()
                                     self.last_run = now
                                     update_oanda_trades()
                                     time.sleep(self.interval_seconds)
                                     timer.stop()
                                     continue
-                                plan = res.plan
-                                side = plan.side
-                                lot = plan.lot
                                 params = {
                                     "instrument": DEFAULT_PAIR,
                                     "side": side,
