@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-"""Bollinger Band utilities for multiple timeframes."""
+"""複数の時間軸に対応したボリンジャーバンドのユーティリティ。"""
 
 
-from typing import Sequence, Mapping, Dict
 import os
 from typing import Dict, Mapping, Sequence
 
+import pandas as pd
 
-from backend.indicators.bollinger import calculate_bollinger_bands
+# backend からのインポートは不要のため削除
 
 
 def _calc_single(prices: Sequence[float], window: int = 20, num_std: float = 2.0) -> Dict[str, float]:
-    """Return latest Bollinger values as a dict."""
+    """最新のボリンジャーバンド値を辞書で返す。"""
     df = calculate_bollinger_bands(prices, window=window, num_std=num_std)
     if df.empty:
         return {"middle": 0.0, "upper": 0.0, "lower": 0.0}
@@ -30,7 +30,7 @@ def multi_bollinger(
     window: int = 20,
     num_std: float = 2.0,
 ) -> Dict[str, Dict[str, float]]:
-    """Calculate Bollinger bands for each timeframe in ``data``."""
+    """各時間軸のボリンジャーバンドを計算する。"""
     result: Dict[str, Dict[str, float]] = {}
     for tf, prices in data.items():
         result[tf] = _calc_single(prices, window=window, num_std=num_std)
@@ -42,7 +42,7 @@ def calculate_bollinger_bands(
     window: int | None = None,
     num_std: float | None = None,
 ) -> pd.DataFrame:
-    """Return Bollinger Bands for ``prices`` as a DataFrame."""
+    """与えられた価格系列のボリンジャーバンドをDataFrameで返す。"""
     if window is None:
         window = int(os.environ.get("BOLLINGER_WINDOW", 20))
     if num_std is None:
@@ -67,13 +67,13 @@ def calculate_bb_width(
     window: int | None = None,
     num_std: float | None = None,
 ) -> pd.Series:
-    """Return Bollinger Band width as a Series."""
+    """ボリンジャーバンドの幅をSeriesで返す。"""
     df = calculate_bollinger_bands(prices, window=window, num_std=num_std)
     return df["upper_band"] - df["lower_band"]
 
 
 def close_breaks_bbands(prices: Sequence[float], level: float, window: int = 20) -> bool:
-    """Return ``True`` if close price breaks the Bollinger band."""
+    """終値がボリンジャーバンドをブレイクしたか判定する。"""
     if len(prices) < window + 1:
         return False
     prev_bands = _calc_single(prices[:-1], window=window, num_std=level)
@@ -86,7 +86,7 @@ def close_breaks_bbands(prices: Sequence[float], level: float, window: int = 20)
 
 
 def high_hits_bbands(price_series, level: float, window: int = 20) -> bool:
-    """Return ``True`` if high or low touches the Bollinger band."""
+    """高値または安値がボリンジャーバンドに到達したか判定する。"""
     df = pd.DataFrame(price_series)
     if df.empty or not {"high", "low", "close"}.issubset(df.columns):
         return False
