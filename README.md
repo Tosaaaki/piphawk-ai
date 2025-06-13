@@ -62,6 +62,7 @@ See [docs/quick_start_ja.md](docs/quick_start_ja.md) for the Japanese guide.
 - Composite trade mode logic switching between **scalp** and **trend_follow**.
 - Local mode detection via `analysis.detect_mode()` without LLM.
 - Multi-timeframe indicators and regime detection.
+- Parameterized `mode_detector` allows tuning without any LLM calls.
 - Optional chart pattern detection via OpenAI or a local scanner.
 - CVaR-based portfolio risk management.
 - Parameters managed via environment variables and YAML with hot reload.
@@ -229,6 +230,19 @@ SCALP_OVERRIDE_RANGE: true
 YAML ファイルの変更は `settings.env` と同様、ジョブランナー起動時に読み込まれ
 ます。値を変えた後はジョブランナーを再起動するか、明示的に
 `params_loader.load_params()` を実行してください。
+
+### Using mode_detector.yml
+
+`analysis/mode_detector.py` では ADX や ATR、EMA のしきい値を `config/mode_detector.yml` から読み込みます。環境変数 `MODE_DETECTOR_CONFIG` を指定すると別パスを参照できます。
+
+```yaml
+adx_trend_min: 25
+adx_range_max: 18
+atr_pct_min: 0.003
+ema_slope_min: 0.1
+```
+
+`mode_detector.load_config()` を呼び出すと上記の辞書が返り、存在しない項目はデフォルト値が適用されます。
 
 ### LLM model settings
 
