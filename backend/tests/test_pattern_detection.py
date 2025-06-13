@@ -1,8 +1,9 @@
+import importlib
 import os
 import sys
 import types
-import importlib
 import unittest
+
 
 class TestPatternDetection(unittest.TestCase):
     def setUp(self):
@@ -12,6 +13,7 @@ class TestPatternDetection(unittest.TestCase):
         os.environ.setdefault("PATTERN_TOLERANCE", "0.001")
         os.environ.setdefault("PATTERN_EXCLUDE_TFS", "")
         import importlib
+
         import backend.strategy.pattern_scanner as ps
         importlib.reload(ps)
         self._added = []

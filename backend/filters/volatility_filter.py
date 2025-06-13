@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Volatility and breakout filter."""
 
-from typing import List, Dict
+from typing import Dict, List
 
 
 def _last_val(series):

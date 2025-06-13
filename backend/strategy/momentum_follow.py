@@ -1,6 +1,6 @@
 """ブレイク後のモメンタムを利用した追随エントリー判定用モジュール."""
 
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 from backend.utils import env_loader
 

@@ -1,14 +1,15 @@
-from typing import Dict, Any
 import importlib
+from typing import Any, Dict
+
 openai_analysis = importlib.import_module("backend.strategy.openai_analysis")
 EXIT_BIAS_FACTOR = getattr(openai_analysis, "EXIT_BIAS_FACTOR", 1.0)
-from backend.orders.order_manager import OrderManager
-from backend.logs.trade_logger import ExitReason, log_trade
-from backend.logs.exit_logger import append_exit_log
-from datetime import datetime, timezone
 import logging
-from backend.utils import env_loader
-from backend.utils import trade_age_seconds
+from datetime import datetime, timezone
+
+from backend.logs.exit_logger import append_exit_log
+from backend.logs.trade_logger import ExitReason, log_trade
+from backend.orders.order_manager import OrderManager
+from backend.utils import env_loader, trade_age_seconds
 
 # Trailing‑stop configuration
 TRAIL_TRIGGER_PIPS = float(
@@ -53,8 +54,9 @@ TRAIL_DISTANCE_MULTIPLIER = float(env_loader.get_env("TRAIL_DISTANCE_MULTIPLIER"
 # カレンダーイベント時の追加距離倍率
 CALENDAR_VOL_THRESHOLD = int(env_loader.get_env("CALENDAR_VOL_THRESHOLD", "3"))
 CALENDAR_TRAIL_MULTIPLIER = float(env_loader.get_env("CALENDAR_TRAIL_MULTIPLIER", "1.5"))
-from backend.orders.position_manager import get_position_details
 import json
+
+from backend.orders.position_manager import get_position_details
 
 order_manager = OrderManager()
 

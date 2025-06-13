@@ -4,8 +4,8 @@
 import os
 import shutil
 import subprocess
-from datetime import datetime
 from argparse import ArgumentParser
+from datetime import datetime
 
 # 日本語でログ出力を行うヘルパー
 

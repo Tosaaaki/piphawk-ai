@@ -1,8 +1,8 @@
+import importlib
 import os
 import sys
-import types
-import importlib
 import tempfile
+import types
 import unittest
 
 

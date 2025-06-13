@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 
 def detect_range_break(candles: List[dict], *, lookback: int = 20, pivot: Optional[float] = None) -> Dict[str, Optional[str]]:

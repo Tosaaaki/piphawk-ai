@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
 import matplotlib.pyplot as plt
 
 from backend.utils import env_loader

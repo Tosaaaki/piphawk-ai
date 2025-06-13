@@ -1,15 +1,17 @@
-import requests
-from backend.utils import env_loader
-from backend.utils.http_client import request_with_retries
 import logging
 import time
 
+import requests
+
+from backend.utils import env_loader
+from backend.utils.http_client import request_with_retries
+
 logger = logging.getLogger(__name__)
 import json
+from typing import Any, Dict, List, Optional
 
 # env_loader automatically loads default env files at import time
 
-from typing import List, Dict, Any, Optional
 
 # Load OANDA API credentials from environment variables
 OANDA_API_KEY = env_loader.get_env("OANDA_API_KEY")

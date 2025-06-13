@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from backend.utils import env_loader
 from backend.indicators.ema import get_ema_gradient
+from backend.utils import env_loader
 
 
 def exit_if_momentum_loss(indicators: dict[str, Any]) -> bool:

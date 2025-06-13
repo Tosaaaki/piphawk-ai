@@ -3,8 +3,9 @@ from __future__ import annotations
 """Utility functions to build context vectors for strategy selection."""
 
 
-from backend.logs.log_manager import get_db_connection, init_db
 import sqlite3
+
+from backend.logs.log_manager import get_db_connection, init_db
 
 
 def recent_strategy_performance(limit: int = 10) -> Dict[str, float]:

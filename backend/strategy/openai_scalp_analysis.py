@@ -1,7 +1,7 @@
 import logging
 
-from backend.utils.openai_client import ask_openai
 from backend.utils import env_loader, parse_json_answer
+from backend.utils.openai_client import ask_openai
 from backend.utils.prompt_loader import load_template
 
 logger = logging.getLogger(__name__)

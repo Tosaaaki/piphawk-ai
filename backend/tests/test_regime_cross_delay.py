@@ -1,4 +1,5 @@
 import unittest
+
 from piphawk_ai.analysis.regime_detector import RegimeDetector
 
 

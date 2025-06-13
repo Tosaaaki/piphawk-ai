@@ -1,7 +1,8 @@
 """スキャルプ用エントリーフィルター."""
 from __future__ import annotations
 
-from typing import List, Dict
+from typing import Dict, List
+
 from backend.utils import env_loader
 
 

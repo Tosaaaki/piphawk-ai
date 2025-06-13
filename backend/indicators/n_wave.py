@@ -1,4 +1,4 @@
-from typing import Sequence, Optional
+from typing import Optional, Sequence
 
 
 def calculate_n_wave_target(

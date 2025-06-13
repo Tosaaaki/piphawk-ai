@@ -1,4 +1,5 @@
 import pytest
+
 from backend.utils.price import format_price
 
 

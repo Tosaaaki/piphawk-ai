@@ -2,10 +2,9 @@ from __future__ import annotations
 
 """Order manager factory."""
 
-from backend.utils import env_loader
-
-from backend.orders.order_manager import OrderManager
 from backend.orders.mock_order_manager import MockOrderManager
+from backend.orders.order_manager import OrderManager
+from backend.utils import env_loader
 
 
 def get_order_manager() -> OrderManager | MockOrderManager:

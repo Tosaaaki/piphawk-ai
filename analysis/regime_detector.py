@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Dict, Any
 from collections import deque
+from typing import Any, Dict
 
 from backend.indicators.rolling import (
-    RollingATR,
     RollingADX,
+    RollingATR,
     RollingBBWidth,
     RollingKeltner,
 )

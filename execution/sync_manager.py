@@ -1,7 +1,7 @@
 import logging
 
-from backend.logs.update_oanda_trades import update_oanda_trades
 from backend.logs.reconcile_trades import reconcile_trades
+from backend.logs.update_oanda_trades import update_oanda_trades
 
 logger = logging.getLogger(__name__)
 

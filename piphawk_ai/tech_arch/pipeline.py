@@ -6,12 +6,12 @@ from backend.orders import get_order_manager
 from backend.utils import env_loader
 from monitoring import metrics_publisher
 
-from .market_context import build as build_context
-from .indicator_engine import compute
-from .market_classifier import classify_market
-from .risk_filters import check_risk
-from .m5_entry import detect_entry
 from .ai_decision import call_llm
+from .indicator_engine import compute
+from .m5_entry import detect_entry
+from .market_classifier import classify_market
+from .market_context import build as build_context
+from .risk_filters import check_risk
 
 ENTRY_USE_AI = env_loader.get_env("ENTRY_USE_AI", "true").lower() == "true"
 

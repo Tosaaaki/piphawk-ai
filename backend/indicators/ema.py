@@ -6,7 +6,9 @@ except ImportError as e:
         " Install it with 'pip install pandas'."
     ) from e
 from typing import List, Union
+
 from backend.utils import env_loader
+
 
 def calculate_ema(
     prices: Union[List[float], pd.Series],

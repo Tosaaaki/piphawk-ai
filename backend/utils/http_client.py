@@ -1,6 +1,7 @@
+import logging
 import os
 import time
-import logging
+
 import requests
 
 # Global HTTP session to leverage connection pooling

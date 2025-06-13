@@ -1,7 +1,9 @@
 import os
 import tempfile
 import unittest
+
 from config import params_loader
+
 
 class TestParamsLoaderStrategy(unittest.TestCase):
     def test_strategy_aliases(self):

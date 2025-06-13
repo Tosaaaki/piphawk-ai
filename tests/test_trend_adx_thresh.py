@@ -1,6 +1,7 @@
 import importlib
 import os
 
+
 def test_trend_adx_default():
     if 'TREND_ADX_THRESH' in os.environ:
         os.environ.pop('TREND_ADX_THRESH')
@@ -13,7 +14,8 @@ def test_trend_adx_env_override():
     os.environ.setdefault('OPENAI_API_KEY', 'dummy')
     import backend.strategy.openai_prompt as prompt
     importlib.reload(prompt)
-    import sys, types
+    import sys
+    import types
     openai_stub = types.ModuleType('openai')
     class DummyClient:
         def __init__(self, *a, **k):

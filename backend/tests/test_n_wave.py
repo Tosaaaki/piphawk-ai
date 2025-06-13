@@ -2,6 +2,7 @@ import sys
 import types
 import unittest
 
+
 class FakeSeries:
     def __init__(self, data):
         self._data = list(data)

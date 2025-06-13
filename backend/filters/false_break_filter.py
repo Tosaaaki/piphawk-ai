@@ -1,6 +1,6 @@
 """False break detection filter."""
 
-from typing import List, Dict
+from typing import Dict, List
 
 
 def _get_val(candle: Dict, key: str) -> float:

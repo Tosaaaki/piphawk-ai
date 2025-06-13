@@ -1,5 +1,6 @@
 import math
 from typing import Iterable, Mapping
+
 from backend.utils import env_loader
 
 CANDLE_KEYS = ('o', 'h', 'l', 'c')

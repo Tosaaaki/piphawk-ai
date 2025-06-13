@@ -1,7 +1,8 @@
+import importlib
 import sys
 import types
-import importlib
 import unittest
+
 
 class FakeSeries:
     def __init__(self, data, *a, **k):

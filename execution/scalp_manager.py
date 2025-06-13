@@ -60,11 +60,9 @@ def get_dynamic_hold_seconds(
     pip_size = pip_size_fn(instrument)
     try:
         if fetch_candles_func is None:
-            from backend.market_data.candle_fetcher import \
-                fetch_candles as fetch_candles_func
+            from backend.market_data.candle_fetcher import fetch_candles as fetch_candles_func
         if calculate_atr_func is None:
-            from backend.indicators.atr import \
-                calculate_atr as calculate_atr_func
+            from backend.indicators.atr import calculate_atr as calculate_atr_func
 
         candles = fetch_candles_func(
             instrument, granularity="M1", count=30, allow_incomplete=True
@@ -104,8 +102,7 @@ def enter_scalp_trade(
     atr_pips = None
     pip_size = get_pip_size(instrument)
     try:
-        from backend.indicators.calculate_indicators import \
-            calculate_indicators
+        from backend.indicators.calculate_indicators import calculate_indicators
         from backend.market_data.candle_fetcher import fetch_candles
         from backend.strategy import openai_scalp_analysis as scalp_ai
 
@@ -250,8 +247,7 @@ def monitor_scalp_positions() -> None:
 
         # ----- momentum loss check ----------------------------------
         try:
-            from backend.indicators.calculate_indicators import \
-                calculate_indicators
+            from backend.indicators.calculate_indicators import calculate_indicators
             from backend.market_data.candle_fetcher import fetch_candles
 
             candles = fetch_candles(

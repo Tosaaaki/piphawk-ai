@@ -2,18 +2,16 @@ from __future__ import annotations
 
 """ADX値に基づくシンプルなストラテジー切換ユーティリティ."""
 
-from typing import Sequence, Optional
 import logging
+from typing import Optional, Sequence
 
 from backend.utils import env_loader
-
 from indicators.bollinger import multi_bollinger
 from signals.scalp_strategy import (
-    analyze_environment_tf,
     analyze_environment_m1,
+    analyze_environment_tf,
     should_enter_trade_s10,
 )
-
 
 ADX_SCALP_MIN = float(env_loader.get_env("ADX_SCALP_MIN", "20"))
 ADX_TREND_MIN = float(env_loader.get_env("ADX_TREND_MIN", "30"))

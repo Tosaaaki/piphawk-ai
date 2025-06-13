@@ -1,16 +1,17 @@
 try:
-    from openai import OpenAI, APIError
+    from openai import APIError, OpenAI
 except ModuleNotFoundError as exc:
     raise RuntimeError(
         "openai package is required. Install via 'pip install openai'."
     ) from exc
-from backend.utils import env_loader
+import asyncio
 import json
 import logging
-import asyncio
 import time
-from typing import Dict, Tuple, Optional
 from collections import OrderedDict
+from typing import Dict, Optional, Tuple
+
+from backend.utils import env_loader
 
 # env_loader はインポート時に既定の .env を読み込む
 

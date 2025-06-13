@@ -14,7 +14,7 @@ Usage:
     price_str = format_price("USD_JPY", 143.25099999999998)  # -> '143.251'
 """
 
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Dict
 
 # Mapping of instrument → maximum number of decimal places allowed by OANDA

@@ -1,8 +1,9 @@
+import importlib
 import os
 import sys
 import types
-import importlib
 import unittest
+
 
 class TestProbValidation(unittest.TestCase):
     def setUp(self):

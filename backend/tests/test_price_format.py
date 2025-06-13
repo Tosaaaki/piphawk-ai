@@ -1,5 +1,7 @@
 import unittest
+
 from backend.utils.price import format_price
+
 
 class TestPriceFormat(unittest.TestCase):
     def test_jpy_pair_rounding(self):

@@ -1,6 +1,7 @@
 import pytest
-from piphawk_ai.vote_arch.ai_strategy_selector import select_strategy
+
 from piphawk_ai.vote_arch.ai_entry_plan import EntryPlan
+from piphawk_ai.vote_arch.ai_strategy_selector import select_strategy
 from piphawk_ai.vote_arch.entry_buffer import PlanBuffer
 from piphawk_ai.vote_arch.regime_detector import MarketMetrics, rule_based_regime
 

@@ -1,6 +1,6 @@
 import json
-from backend.utils import env_loader
-from backend.utils import openai_client
+
+from backend.utils import env_loader, openai_client
 
 # Environment-driven defaults
 AI_PATTERN_MODEL = env_loader.get_env("AI_PATTERN_MODEL", openai_client.AI_MODEL)

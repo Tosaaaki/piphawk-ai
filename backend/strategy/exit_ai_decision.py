@@ -16,8 +16,8 @@ import json
 from dataclasses import dataclass
 from typing import Any, Dict
 
+from backend.utils import env_loader, parse_json_answer
 from backend.utils.openai_client import ask_openai  # existing helper that wraps OpenAI ChatCompletion
-from backend.utils import parse_json_answer, env_loader
 
 __all__ = ["AIDecision", "evaluate"]
 

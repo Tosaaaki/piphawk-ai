@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from strategies.base import Strategy
+from indicators.bollinger import multi_bollinger
 from signals.scalp_strategy import (
     analyze_environment_tf,
     should_enter_trade_s10,
 )
-from indicators.bollinger import multi_bollinger
+from strategies.base import Strategy
 
 
 class ScalpStrategy(Strategy):

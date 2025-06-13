@@ -1,5 +1,4 @@
 import logging
-
 import types
 
 from backend.logs import update_oanda_trades as uot

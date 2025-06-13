@@ -1,7 +1,9 @@
 from typing import Sequence
-from backend.utils import env_loader
 
 import numpy as np
+
+from backend.utils import env_loader
+
 try:
     import pandas as pd
 except ImportError as e:
@@ -10,11 +12,12 @@ except ImportError as e:
         " Install it with 'pip install pandas'."
     ) from e
 
-from backend.indicators.rsi import calculate_rsi
-from backend.indicators.ema import calculate_ema
-from backend.indicators.atr import calculate_atr
-from indicators.bollinger import calculate_bollinger_bands
 from backend.indicators.adx import calculate_adx
+from backend.indicators.atr import calculate_atr
+from backend.indicators.ema import calculate_ema
+from backend.indicators.rsi import calculate_rsi
+from indicators.bollinger import calculate_bollinger_bands
+
 try:
     from backend.indicators.adx import calculate_adx_bb_score
 except Exception:  # pragma: no cover - fallback when stub lacks function
@@ -23,10 +26,10 @@ try:
     from backend.indicators.adx import calculate_di
 except Exception:  # pragma: no cover - fallback for older stubs
     calculate_di = None
-from backend.indicators.pivot import calculate_pivots
-from backend.indicators.n_wave import calculate_n_wave_target
-from backend.indicators.polarity import calculate_polarity
 from backend.indicators.macd import calculate_macd, calculate_macd_histogram
+from backend.indicators.n_wave import calculate_n_wave_target
+from backend.indicators.pivot import calculate_pivots
+from backend.indicators.polarity import calculate_polarity
 from backend.market_data.candle_fetcher import fetch_candles
 
 

@@ -1,13 +1,12 @@
 """OpenAI 互換のローカルモデル呼び出しラッパー"""
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from typing import Any
 
-from backend.utils import env_loader
-from backend.utils import openai_client
-import asyncio
+from backend.utils import env_loader, openai_client
 
 logger = logging.getLogger(__name__)
 

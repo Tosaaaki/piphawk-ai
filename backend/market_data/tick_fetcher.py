@@ -1,5 +1,7 @@
 import logging
+
 import requests
+
 from backend.utils import env_loader
 
 # env_loader automatically loads default env files at import time

@@ -5,14 +5,14 @@ from __future__ import annotations
 import json
 from typing import Any, Dict
 
-from backend.utils.openai_client import ask_openai
 from backend.utils import env_loader, parse_json_answer
+from backend.utils.openai_client import ask_openai
 
 try:
     from backend.logs.log_manager import (
         log_ai_decision,
-        log_prompt_response,
         log_exit_adjust,
+        log_prompt_response,
     )
 except Exception:  # pragma: no cover - during tests
 

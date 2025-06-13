@@ -1,5 +1,7 @@
 import unittest
+
 import signals.signal_manager as sm
+
 
 class TestSignalManager(unittest.TestCase):
     def test_detect_range_reversal_true(self):

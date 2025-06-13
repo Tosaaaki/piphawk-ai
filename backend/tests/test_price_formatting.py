@@ -1,10 +1,11 @@
+import importlib
 import os
 import sys
 import types
-import importlib
 import unittest
 
 from backend.utils import price as price_utils
+
 
 class DummyResponse:
     def __init__(self):

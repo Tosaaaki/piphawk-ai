@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from backend.utils import env_loader
+
 from .ai_entry_plan import EntryPlan
 
 EMA_DIFF_THRESHOLD = float(env_loader.get_env("EMA_DIFF_THRESHOLD", "0.0"))

@@ -1,6 +1,6 @@
-import sys
 import importlib
 import logging
+import sys
 
 orig_pandas = sys.modules.get("pandas")
 try:
@@ -9,7 +9,7 @@ try:
     sys.modules["pandas"] = pd
     if "strategies.selector" in sys.modules:
         importlib.reload(sys.modules["strategies.selector"])
-    from strategies import ScalpStrategy, TrendStrategy, StrategySelector
+    from strategies import ScalpStrategy, StrategySelector, TrendStrategy
 
     def test_selector_dimension_change():
         strategies = {"scalp": ScalpStrategy(), "trend": TrendStrategy()}
