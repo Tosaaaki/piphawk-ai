@@ -1,9 +1,14 @@
 """OpenAIモデルを用いたトレード分析ユーティリティ"""
 
-import logging
 import json
+import logging
+
 from piphawk_ai.ai.local_model import ask_model
+
+# Backward compatibility for tests
+ask_openai = ask_model
 from piphawk_ai.ai.macro_analyzer import MacroAnalyzer
+
 try:
     from backend.logs.log_manager import log_ai_decision, log_prompt_response
 except Exception:  # テストでスタブが残っている場合のフォールバック
@@ -12,35 +17,36 @@ except Exception:  # テストでスタブが残っている場合のフォー�
 
     def log_prompt_response(*_a, **_k) -> None:
         pass
-from backend.utils import env_loader, parse_json_answer
 from backend.strategy.pattern_ai_detection import detect_chart_pattern
 from backend.strategy.pattern_scanner import PATTERN_DIRECTION
+from backend.utils import env_loader, parse_json_answer
+
 try:
     from backend.indicators.ema import get_ema_gradient
 except Exception:  # pragma: no cover - pandas may be unavailable
     def get_ema_gradient(*_a, **_k) -> str:
         return "flat"
-from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
+from backend.indicators import compute_volume_sma, get_candle_features
 from backend.indicators.adx import calculate_adx_slope
-from backend.indicators import get_candle_features, compute_volume_sma
 from backend.risk_manager import (
     calc_min_sl,
     get_recent_swing_diff,
     is_high_vol_session,
 )
-
-from backend.strategy.openai_prompt import build_trade_plan_prompt, TREND_ADX_THRESH
+from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
+from backend.strategy.openai_prompt import TREND_ADX_THRESH, build_trade_plan_prompt
 
 USE_CANDLE_SUMMARY = env_loader.get_env("USE_CANDLE_SUMMARY", "false").lower() == "true"
-from backend.strategy.validators import normalize_probs, risk_autofix
-from backend.config.defaults import MIN_ABS_SL_PIPS
+import time
+from datetime import datetime, timezone
 
+from backend.config.defaults import MIN_ABS_SL_PIPS
 
 # --- Added for AI-based exit decision ---
 # Consolidated exit decision helpers live in exit_ai_decision
-from backend.strategy.exit_ai_decision import AIDecision, evaluate as evaluate_exit
-import time
-from datetime import datetime, timezone
+from backend.strategy.exit_ai_decision import AIDecision
+from backend.strategy.exit_ai_decision import evaluate as evaluate_exit
+from backend.strategy.validators import normalize_probs, risk_autofix
 
 
 def _is_schema_valid(plan: dict) -> bool:
@@ -276,9 +282,9 @@ def _classify_entry_type(market_cond: dict | None, pullback_done: bool) -> str:
 # Market‑regime classification helper (OpenAI direct, enhanced English prompt)
 # ----------------------------------------------------------------------
 from backend.strategy.range_break import (
-    detect_range_break,
     classify_breakout,
     detect_atr_breakout,
+    detect_range_break,
 )
 
 
@@ -632,7 +638,7 @@ def get_market_condition(context: dict, higher_tf: dict | None = None) -> dict:
 
     try:
         # Request JSON‑object response if the client supports it
-        llm_raw = ask_model(
+        llm_raw = ask_openai(
             prompt,
             response_format={"type": "json_object"},
         )
@@ -938,7 +944,7 @@ def get_exit_decision(
         "- Example: {\"action\":\"EXIT\",\"reason\":\"RSI overbought and price stalling at upper Bollinger Band.\"}\n"
     )
     try:
-        response_json = ask_model(prompt)
+        response_json = ask_openai(prompt)
         log_prompt_response(
             "EXIT",
             instrument,
@@ -1264,7 +1270,7 @@ def get_trade_plan(
         summarize_candles=USE_CANDLE_SUMMARY,
     )
     try:
-        raw = ask_model(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano"))
+        raw = ask_openai(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano"))
         log_prompt_response(
             "ENTRY",
             instrument,
@@ -1297,7 +1303,7 @@ def get_trade_plan(
         return {"entry": {"side": "no"}, "raw": raw, "reason": "PARSE_FAIL"}
     if not _is_schema_valid(plan):
         try:
-            raw_retry = ask_model(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano"))
+            raw_retry = ask_openai(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano"))
             plan_retry, _ = parse_json_answer(raw_retry)
             if plan_retry and _is_schema_valid(plan_retry):
                 plan = plan_retry
@@ -1624,7 +1630,7 @@ def should_convert_limit_to_market(context: dict) -> bool:
         "Respond with YES or NO."
     )
     try:
-        result = ask_model(prompt, model=AI_LIMIT_CONVERT_MODEL)
+        result = ask_openai(prompt, model=AI_LIMIT_CONVERT_MODEL)
         log_prompt_response(
             "LIMIT_CONVERT",
             env_loader.get_env("DEFAULT_PAIR", "USD_JPY"),

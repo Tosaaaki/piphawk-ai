@@ -35,8 +35,12 @@ def load_env(paths: Iterable[str | Path], *, override: bool = True) -> None:
 
 def get_env(key: str, default: Optional[str] = None) -> Optional[str]:
     """Return the value of an environment variable."""
-    val = os.getenv(key, default)
+    val = os.getenv(key)
     if isinstance(val, str):
         # 行末のコメントや余分な空白を除去する
         val = val.split("#", 1)[0].strip()
+        if not val:
+            return default
+    if val is None:
+        return default
     return val
