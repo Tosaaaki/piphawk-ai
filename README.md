@@ -21,6 +21,7 @@ indicators, selects a strategy via OpenAI, and averages entry plans. For a
 detailed diagram see [docs/majority_vote_flow.md](docs/majority_vote_flow.md).
 An alternative fully technical pipeline is available under
 `piphawk_ai.tech_arch`; see [docs/technical_pipeline.md](docs/technical_pipeline.md).
+The module exposes `run_cycle()` which implements a simplified M5 entry flow.
 
 ## QuickStart
 
