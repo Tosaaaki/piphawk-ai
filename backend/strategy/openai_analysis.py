@@ -92,6 +92,8 @@ BE_TRIGGER_PIPS: int = int(env_loader.get_env("BE_TRIGGER_PIPS", 10))
 BE_TRIGGER_R: float = float(env_loader.get_env("BE_TRIGGER_R", "0"))
 AI_LIMIT_CONVERT_MODEL: str = env_loader.get_env("AI_LIMIT_CONVERT_MODEL", "gpt-4.1-nano")
 MIN_RRR: float = float(env_loader.get_env("MIN_RRR", "0.8"))
+# Apply entry-type boost only when enabled via environment
+ENTRY_TYPE_BOOST: bool = env_loader.get_env("ENTRY_TYPE_BOOST", "false").lower() == "true"
 # --- Composite score threshold ---
 COMPOSITE_MIN: float = float(env_loader.get_env("COMPOSITE_MIN", "0.2"))
 # --- Exit bias factor ---
@@ -255,6 +257,8 @@ def calc_consistency(
 
 def _apply_entry_type_boost(score: float, entry_type: str) -> float:
     """Return score adjusted by entry type and clipped."""
+    if not ENTRY_TYPE_BOOST:
+        return score
     boost = 0.0
     if entry_type == "breakout":
         boost = 0.05
