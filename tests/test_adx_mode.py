@@ -6,11 +6,13 @@ import types
 
 def _reload_module():
     import signals.adx_strategy as mod
+
     return importlib.reload(mod)
 
 
 def _reload_composite():
     import signals.composite_mode as cm
+
     return importlib.reload(cm)
 
 def _reload_detector():
@@ -61,6 +63,7 @@ def test_entry_signal_trend():
     os.environ["ADX_TREND_MIN"] = "40"
     mod = _reload_module()
     from _pytest.monkeypatch import MonkeyPatch
+
     mp = MonkeyPatch()
     mp.setattr(mod, "analyze_environment_tf", lambda closes, tf: "trend")
     adx = 45
@@ -131,3 +134,21 @@ def test_decide_trade_mode_high_atr_low_adx(monkeypatch):
     assert cm.decide_trade_mode_matrix(1.5, 1.0, 30) == "scalp_momentum"
     assert cm.decide_trade_mode_matrix(0.7, 1.0, 30) == "trend_follow"
     assert cm.decide_trade_mode_matrix(1.0, 1.0, 20) == "flat"
+
+
+def test_detect_mode_direct(monkeypatch):
+    monkeypatch.setenv("HIGH_ATR_PIPS", "3")
+    monkeypatch.setenv("LOW_ADX_THRESH", "20")
+    from analysis.mode_detector import MarketContext, detect_mode
+
+    ctx = MarketContext(
+        price=1.0,
+        indicators={
+            "atr": [0.03],
+            "adx": [10],
+            "ema_fast": [1.1],
+            "ema_mid": [1.0],
+            "ema_slow": [0.9],
+        },
+    )
+    assert detect_mode(ctx) == "scalp_momentum"
