@@ -355,7 +355,7 @@ SCALE_TRIGGER_ATR=0.5
 ## 多数決フロー関連
 
 - **STRAT_TEMP**: Strategy Select で使う temperature。
-- **STRAT_N**: Strategy Select の生成本数。
+- **STRAT_N**: Strategy Select が一度の API 呼び出しで生成する候補本数。
 - **STRAT_VOTE_MIN**: 採用に必要な一致数。
 - **ENTRY_BUFFER_K**: Entry Plan を平均化するバッファ長。
 - **REGIME_ADX_TREND**: Regime 判定でトレンドとみなすADX値。
