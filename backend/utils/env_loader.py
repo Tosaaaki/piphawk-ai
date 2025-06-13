@@ -22,7 +22,7 @@ _DEFAULT_FILES = [
 # Automatically load default env files if they exist
 for _file in _DEFAULT_FILES:
     if _file.exists():
-        load_dotenv(_file, override=True)
+        load_dotenv(_file, override=False)
 
 
 def load_env(paths: Iterable[str | Path], *, override: bool = True) -> None:
