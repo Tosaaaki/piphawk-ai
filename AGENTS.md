@@ -23,3 +23,25 @@
 - OpenAI API（AI戦略分析・決定）
 - Docker（コンテナ運用）
 - GitHub Actions（CI/CD、任意）
+
+## 2. 開発ガイドライン
+
+- 推奨 Python バージョンは **3.11** です。
+- コードは PEP8 に準拠させ、`isort` で import を整列してください。
+- Docstring は `pydocstyle` の基準に合わせます。
+- 静的解析は `ruff`、型チェックは `mypy` を利用します。
+
+### テスト・静的解析手順
+
+```bash
+pip install -r requirements-test.txt
+ruff check .
+isort .
+mypy .
+pytest
+```
+
+### PR 作成ルール
+
+- ブランチ名は `feature/<内容>`、`fix/<内容>`、`docs/<内容>` の形式とします。
+- PR には `## Summary` と `## Testing` セクションを含めてください。
