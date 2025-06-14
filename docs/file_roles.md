@@ -1,6 +1,7 @@
-# File Roles
+# ファイルの役割
 
-このドキュメントでは、リポジトリ直下にある主なファイルやディレクトリの役割を簡単に説明します。
+リポジトリ直下にある主要ファイルとディレクトリの役割を日本語でまとめています。
+目的や利用シーンがひと目で分かるよう、簡潔な説明を添えました。
 
 | パス | 役割 |
 | --- | --- |
@@ -68,114 +69,114 @@
 
 以下はリポジトリに含まれる Python ファイルと、それぞれの簡単な説明です。
 
-| Path | Description |
+| パス | 説明 |
 | --- | --- |
 | `ai/__init__.py` | パッケージ初期化ファイル |
 | `ai/local_model.py` | OpenAI 互換のローカルモデル呼び出しラッパー |
 | `ai/macro_analyzer.py` | FRED と GDELT からニュースを取得して要約するモジュール |
-| `ai/policy_trainer.py` | Offline RL trainer for strategy selection. |
+| `ai/policy_trainer.py` | 戦略選択のためのオフラインRLトレーナー。 |
 | `ai/prompt_templates.py` | プロンプトテンプレート管理モジュール |
 | `analysis/__init__.py` | trade_patterns からスコア計算関数 |
 | `analysis/ai_strategy.py` | AI ストラテジー補助モジュール. |
-| `analysis/backtest_utils.py` | Simple backtest helper. |
+| `analysis/backtest_utils.py` | 単純なバックテストヘルパー。 |
 | `analysis/cluster_regime.py` | 学習済みクラスタリングモデルを用いたレジーム推定ヘルパー. |
-| `analysis/detect_mode.py` | Local trade mode detection utilities. |
+| `analysis/detect_mode.py` | ローカルトレードモード検出ユーティリティ。 |
 | `analysis/filter_statistics.py` | フィルター効果を集計する簡易スクリプト. |
 | `analysis/llm_mode_selector.py` | LLM を用いたモード選択ラッパー. |
-| `analysis/log_analysis.py` | Utility functions for log analysis. |
-| `analysis/mode_detector.py` | Simple trade mode detector without LLM. |
+| `analysis/log_analysis.py` | ログ分析のためのユーティリティ機能。 |
+| `analysis/mode_detector.py` | LLMなしの単純なトレードモード検出器。 |
 | `analysis/mode_preclassifier.py` | 単純なADX/ATRベースの取引レジーム判定モジュール. |
 | `analysis/regime_detector.py` | Range からトレンドへの移行を検知するモジュール. |
-| `analysis/signal_filter.py` | Multi timeframe alignment checks. |
-| `analysis/trade_patterns.py` | Trade pattern scoring utilities. |
+| `analysis/signal_filter.py` | マルチフレームアライメントチェック。 |
+| `analysis/trade_patterns.py` | トレードパターンスコアリングユーティリティ。 |
 | `backend/__init__.py` | プロジェクトルートを PYTHONPATH に追加 |
 | `backend/analysis/__init__.py` | パッケージ初期化ファイル |
-| `backend/analysis/param_performance.py` | Parameter change performance analysis. |
+| `backend/analysis/param_performance.py` | パラメーター変更パフォーマンス分析。 |
 | `backend/api/__init__.py` | パッケージ初期化ファイル |
-| `backend/api/main.py` | Return 200 OK with a tiny JSON payload. |
+| `backend/api/main.py` | 小さなJSONペイロードで200 OKを返します。 |
 | `backend/api/test_control_endpoints.py` | control_endpoints のテスト |
 | `backend/api/test_panic_stop.py` | panic_stop のテスト |
 | `backend/api/test_recent_trades.py` | recent_trades のテスト |
 | `backend/config/__init__.py` | パッケージ初期化ファイル |
-| `backend/config/defaults.py` | Default configuration values for runtime. |
+| `backend/config/defaults.py` | ランタイムのデフォルト構成値。 |
 | `backend/core/__init__.py` | パッケージ初期化ファイル |
-| `backend/core/ai_throttle.py` | AI call cooldown management. |
+| `backend/core/ai_throttle.py` | AIコールクールダウン管理。 |
 | `backend/data/__init__.py` | パッケージ初期化ファイル |
-| `backend/filters/__init__.py` | General entry filter helpers. |
-| `backend/filters/breakout_entry.py` | Breakout entry filter. |
-| `backend/filters/extension_block.py` | Prevent entries when price is extended far from EMA. |
-| `backend/filters/false_break_filter.py` | False break detection filter. |
-| `backend/filters/h1_level_block.py` | H1 support/resistance level block filter. |
+| `backend/filters/__init__.py` | 一般的なエントリフィルターヘルパー。 |
+| `backend/filters/breakout_entry.py` | ブレイクアウトエントリフィルター。 |
+| `backend/filters/extension_block.py` | 価格がEMAから遠く離れて延長されたら、エントリを防止します。 |
+| `backend/filters/false_break_filter.py` | 誤った破損検出フィルター。 |
+| `backend/filters/h1_level_block.py` | H1サポート/抵抗レベルブロックフィルター。 |
 | `backend/filters/scalp_entry.py` | スキャルプ用エントリーフィルター. |
-| `backend/filters/trend_pullback.py` | Trend pullback entry filter. |
-| `backend/filters/volatility_filter.py` | Volatility and breakout filter. |
+| `backend/filters/trend_pullback.py` | トレンドプルバックエントリフィルター。 |
+| `backend/filters/volatility_filter.py` | ボラティリティとブレイクアウトフィルター。 |
 | `backend/indicators/__init__.py` | パッケージ初期化ファイル |
-| `backend/indicators/adx.py` | Average Directional Movement Index (ADX) implementation. |
-| `backend/indicators/atr.py` | Calculate the Average True Range (ATR) for given price data. |
-| `backend/indicators/calculate_indicators.py` | Return percentile rank of ``value`` within ``series`` (0-100). |
-| `backend/indicators/candle_features.py` | Return simple moving average of volumes. |
-| `backend/indicators/ema.py` | Calculate the Exponential Moving Average (EMA) for a given list or Series of prices. |
-| `backend/indicators/keltner.py` | Simple Keltner Channel implementation. |
-| `backend/indicators/macd.py` | Return MACD line and signal line. |
-| `backend/indicators/n_wave.py` | Return projected N-wave target price if detectable. |
-| `backend/indicators/pivot.py` | Return classic floor-trader pivot levels. |
-| `backend/indicators/polarity.py` | Return rolling polarity score between -1 and 1. |
-| `backend/indicators/rolling.py` | Rolling indicator utilities using deque for efficiency. |
+| `backend/indicators/adx.py` | 平均的な方向ムーブメントインデックス（ADX）実装。 |
+| `backend/indicators/atr.py` | 指定された価格データの平均真範囲（ATR）を計算します。 |
+| `backend/indicators/calculate_indicators.py` | 「シリーズ」（0-100）内で「値」のパーセンタイルランクを返します。 |
+| `backend/indicators/candle_features.py` | ボリュームの単純な移動平均を返します。 |
+| `backend/indicators/ema.py` | 特定のリストまたは一連の価格の指数移動平均（EMA）を計算します。 |
+| `backend/indicators/keltner.py` | シンプルなケルトナーチャネルの実装。 |
+| `backend/indicators/macd.py` | MACDラインと信号ラインを返します。 |
+| `backend/indicators/n_wave.py` | 検出可能な場合、投影されたN-Wave目標価格を返します。 |
+| `backend/indicators/pivot.py` | クラシックフロアトレーダーピボットレベルを返します。 |
+| `backend/indicators/polarity.py` | -1から1の間のローリング極性スコアを返します。 |
+| `backend/indicators/rolling.py` | 効率のためにDequeを使用したローリングインジケーターユーティリティ。 |
 | `backend/indicators/rsi.py` | Rsi モジュール |
-| `backend/indicators/vwap_band.py` | Return VWAP for given price and volume series. |
+| `backend/indicators/vwap_band.py` | 指定された価格とボリュームシリーズのVWAPを返します。 |
 | `backend/logs/__init__.py` | パッケージ初期化ファイル |
 | `backend/logs/cleanup.py` | データベースをVACUUMして不要領域を解放する |
-| `backend/logs/daily_summary.py` | SELECT instrument, close_price, tp_price, units, close_time |
-| `backend/logs/exit_logger.py` | append JSON data to exit_log.jsonl |
-| `backend/logs/fetch_oanda_trades.py` | env_loader automatically loads default env files at import time |
-| `backend/logs/info_logger.py` | Log formatted INFO message. |
-| `backend/logs/initial_fetch_oanda_trades.py` | UPDATE oanda_trades |
-| `backend/logs/log_manager.py` | Return the current database path. |
-| `backend/logs/perf_stats_logger.py` | Simple performance logging utility. |
-| `backend/logs/reconcile_trades.py` | Convert ISO string to aware UTC datetime. |
+| `backend/logs/daily_summary.py` | Instrument、close_price、tp_price、units、close_timeを選択します |
+| `backend/logs/exit_logger.py` | exit_log.jsonlにJSONデータを追加します |
+| `backend/logs/fetch_oanda_trades.py` | Env_loaderは、インポート時にデフォルトのenvファイルを自動的にロードします |
+| `backend/logs/info_logger.py` | ログフォーマットされた情報メッセージ。 |
+| `backend/logs/initial_fetch_oanda_trades.py` | oanda_tradesを更新します |
+| `backend/logs/log_manager.py` | 現在のデータベースパスを返します。 |
+| `backend/logs/perf_stats_logger.py` | シンプルなパフォーマンスロギングユーティリティ。 |
+| `backend/logs/reconcile_trades.py` | ISO文字列をUTC DateTimeを認識して変換します。 |
 | `backend/logs/show_param_history.py` | param_changes テーブルから履歴を取得する |
-| `backend/logs/show_tables.py` | Return list of table names. |
-| `backend/logs/trade_logger.py` | Wrapper for log_trade allowing ``ExitReason`` enumeration and RL logging. |
-| `backend/logs/update_oanda_trades.py` | Retry database operations when the database is locked. |
-| `backend/main.py` | Convenience entry point for running Piphawk components. |
+| `backend/logs/show_tables.py` | テーブル名の返品リスト。 |
+| `backend/logs/trade_logger.py` | `` exitreason``の列挙とRLロギングを許可するlog_tradeのラッパー。 |
+| `backend/logs/update_oanda_trades.py` | データベース操作は、データベースがロックされているときに操作を操作します。 |
+| `backend/main.py` | Piphawkコンポーネントを実行するための便利なエントリポイント。 |
 | `backend/market_data/__init__.py` | パッケージ初期化ファイル |
-| `backend/market_data/candle_fetcher.py` | Fetch candlestick data from OANDA API. |
-| `backend/market_data/tick_fetcher.py` | Fetch the latest tick (pricing) data from the OANDA API. |
-| `backend/market_data/tick_metrics.py` | Tick-based metric calculations. |
-| `backend/market_data/tick_stream.py` | OANDA streaming client via HTTP long polling. |
-| `backend/orders/__init__.py` | Order manager factory. |
-| `backend/orders/mock_order_manager.py` | Paper trading mock order manager. |
-| `backend/orders/order_manager.py` | Extract errorCode and errorMessage from a requests.Response. |
-| `backend/orders/position_manager.py` | Return current marginUsed from account summary. |
+| `backend/market_data/candle_fetcher.py` | Oanda APIからCandlestickデータを取得します。 |
+| `backend/market_data/tick_fetcher.py` | Oanda APIから最新のティック（価格）データを取得します。 |
+| `backend/market_data/tick_metrics.py` | ダニベースのメトリック計算。 |
+| `backend/market_data/tick_stream.py` | HTTP Long Pollingを介したOandaストリーミングクライアント。 |
+| `backend/orders/__init__.py` | オーダーマネージャーファクトリー。 |
+| `backend/orders/mock_order_manager.py` | 紙取引模擬注文マネージャー。 |
+| `backend/orders/order_manager.py` | requests.responseからエラーコードと誤差を抽出します。 |
+| `backend/orders/position_manager.py` | アカウントの概要からマージュされた電流を返します。 |
 | `backend/reentry_manager.py` | SL直後の再エントリー判定を行うヘルパー。 |
 | `backend/risk_manager.py` | ATRとの比較に基づきSLが適切か検証する。 |
 | `backend/scheduler/__init__.py` | パッケージ初期化ファイル |
-| `backend/scheduler/job_runner.py` | Run the selected pipeline based on USE_VOTE_PIPELINE. |
-| `backend/scheduler/policy_updater.py` | Background updater for offline policy files. |
-| `backend/scheduler/strategy_selector.py` | Strategy selection using LinUCB with optional offline policy. |
+| `backend/scheduler/job_runner.py` | use_vote_pipelineに基づいて選択したパイプラインを実行します。 |
+| `backend/scheduler/policy_updater.py` | オフラインポリシーファイルのバックグラウンドアップデーター。 |
+| `backend/scheduler/strategy_selector.py` | オプションのオフラインポリシーを備えたLINUCBを使用した戦略選択。 |
 | `backend/strategy/__init__.py` | パッケージ初期化ファイル |
-| `backend/strategy/dynamic_pullback.py` | Dynamic pullback threshold calculation. |
-| `backend/strategy/entry_ai_decision.py` | DEPRECATED MODULE |
-| `backend/strategy/entry_logic.py` | Return limit price offset by given pips in the direction of a pullback. |
-| `backend/strategy/exit_ai_decision.py` | AI‑based exit decision module. |
-| `backend/strategy/exit_logic.py` | Generate a prompt describing the current position, market data, and indicators for AI analysis. |
-| `backend/strategy/false_break_filter.py` | False breakout detection utilities. |
-| `backend/strategy/higher_tf_analysis.py` | higher_tf_analysis.py |
-| `backend/strategy/llm_exit.py` | AI-driven exit adjustment helper. |
+| `backend/strategy/dynamic_pullback.py` | 動的プルバックしきい値計算。 |
+| `backend/strategy/entry_ai_decision.py` | 非推奨モジュール |
+| `backend/strategy/entry_logic.py` | プルバックの方向にある指定されたPIPSによってオフセットされたリミット価格の価格を返します。 |
+| `backend/strategy/exit_ai_decision.py` | AIベースの出口決定モジュール。 |
+| `backend/strategy/exit_logic.py` | AI分析の現在の位置、市場データ、および指標を説明するプロンプトを生成します。 |
+| `backend/strategy/false_break_filter.py` | 誤ったブレイクアウト検出ユーティリティ。 |
+| `backend/strategy/higher_tf_analysis.py` | higher_tf_analysis.py  |
+| `backend/strategy/llm_exit.py` | AI駆動型の出口調整ヘルパー。 |
 | `backend/strategy/momentum_follow.py` | ブレイク後のモメンタムを利用した追随エントリー判定用モジュール. |
 | `backend/strategy/openai_analysis.py` | OpenAIモデルを用いたトレード分析ユーティリティ |
-| `backend/strategy/openai_micro_scalp.py` | Return prompt text for micro-scalp analysis. |
-| `backend/strategy/openai_prompt.py` | Prompt generation utilities for OpenAI analysis. |
-| `backend/strategy/openai_scalp_analysis.py` | Return the last ``n`` values from a pandas Series or list. |
-| `backend/strategy/pattern_ai_detection.py` | Detect chart patterns using OpenAI. |
-| `backend/strategy/pattern_scanner.py` | Convert candle data to a standard list of OHLC dictionaries. |
-| `backend/strategy/range_break.py` | Detect if the latest candle closed outside the recent range. |
-| `backend/strategy/reentry_manager.py` | Manage cooldown after stop-loss exits. |
-| `backend/strategy/risk_manager.py` | Risk management helper functions. |
+| `backend/strategy/openai_micro_scalp.py` | Micro-Scalp分析のためにプロンプ​​トテキストを返します。 |
+| `backend/strategy/openai_prompt.py` | OpenAI分析のための迅速な生成ユーティリティ。 |
+| `backend/strategy/openai_scalp_analysis.py` | パンダシリーズまたはリストから最後の「n``値を返します。 |
+| `backend/strategy/pattern_ai_detection.py` | OpenAIを使用してチャートパターンを検出します。 |
+| `backend/strategy/pattern_scanner.py` | キャンドルデータをOHLC辞書の標準リストに変換します。 |
+| `backend/strategy/range_break.py` | 最新のろうそくが最近の範囲外で閉鎖されているかどうかを検出します。 |
+| `backend/strategy/reentry_manager.py` | ストップロスの出口後にクールダウンを管理します。 |
+| `backend/strategy/risk_manager.py` | リスク管理ヘルパー機能。 |
 | `backend/strategy/selector.py` | RL ポリシーに基づく戦略セレクタ. |
 | `backend/strategy/signal_filter.py` | 軽量シグナル・フィルター |
 | `backend/strategy/strategy_analyzer.py` | .envファイルから戦略パラメータを読み込む |
-| `backend/strategy/validators.py` | Helper functions for validating AI trade plans. |
+| `backend/strategy/validators.py` | ヘルパーは、AI貿易計画を検証するために機能します。 |
 | `backend/tests/__init__.py` | __init__ のテスト |
 | `backend/tests/test_adjust_tp_sl.py` | adjust_tp_sl のテスト |
 | `backend/tests/test_adx_bb_score.py` | adx_bb_score のテスト |
@@ -304,103 +305,103 @@
 | `backend/tests/test_vwap_band.py` | vwap_band のテスト |
 | `backend/tests/test_weight_last.py` | weight_last のテスト |
 | `backend/utils/__init__.py` | パッケージ初期化ファイル |
-| `backend/utils/ai_parse.py` | Safely parse an OpenAI answer that may be a dict or JSON string. |
+| `backend/utils/ai_parse.py` | DICTまたはJSON文字列である可能性のあるOpenaiの回答を安全に解析します。 |
 | `backend/utils/async_helper.py` | 非同期関数を同期的に実行するユーティリティ |
-| `backend/utils/db_helper.py` | Simple SQLite helper utilities. |
-| `backend/utils/env_loader.py` | Utility functions for environment variable management. |
+| `backend/utils/db_helper.py` | シンプルなSQLiteヘルパーユーティリティ。 |
+| `backend/utils/env_loader.py` | 環境変数管理のユーティリティ関数。 |
 | `backend/utils/http_client.py` | HTTPリクエストをリトライ付きで実行するユーティリティ |
-| `backend/utils/notification.py` | Utility module for outbound LINE notifications. |
-| `backend/utils/oanda_client.py` | OANDA helper – pending LIMIT order lookup |
-| `backend/utils/openai_client.py` | Thin wrapper around the OpenAI client with optional lazy import. |
-| `backend/utils/price.py` | Utility helpers for price formatting / rounding before sending orders |
-| `backend/utils/prompt_loader.py` | Prompt template loader utility. |
-| `backend/utils/restart_guard.py` | Restart guard to prevent excessive self-restarts. |
-| `backend/utils/trade_time.py` | Utility helper for trade timestamps. |
+| `backend/utils/notification.py` | アウトバウンドライン通知のユーティリティモジュール。 |
+| `backend/utils/oanda_client.py` | Panda Helper  - 保留中の制限注文検索 |
+| `backend/utils/openai_client.py` | オプションの怠zyなインポートを使用して、Openaiクライアントの周りの薄いラッパー。 |
+| `backend/utils/price.py` | 注文を送信する前に、価格のフォーマット /丸めのためのユーティリティヘルパー |
+| `backend/utils/prompt_loader.py` | プロンプトテンプレートローダーユーティリティ。 |
+| `backend/utils/restart_guard.py` | 過度の自己評価を防ぐためにガードを再起動します。 |
+| `backend/utils/trade_time.py` | 貿易タイムスタンプのユーティリティヘルパー。 |
 | `benchmarks/bench_tick_pipeline.py` | 簡易ティックパイプラインベンチマーク. |
-| `config/__init__.py` | Package initialization for config |
-| `config/params_loader.py` | Load parameters from params.yaml and strategy.yml into environment variables. |
+| `config/__init__.py` | 構成のパッケージ初期化 |
+| `config/params_loader.py` | Params.yamlおよびStrategy.ymlから環境変数へのロードパラメーター。 |
 | `core/__init__.py` | コアユーティリティをまとめたモジュール. |
 | `core/ring_buffer.py` | 固定長リングバッファ. |
 | `diagnostics/__init__.py` | パッケージ初期化ファイル |
-| `diagnostics/diagnostics.py` | CREATE TABLE IF NOT EXISTS diagnostics ( |
+| `diagnostics/diagnostics.py` | 存在しない場合はテーブルを作成します（診断） |
 | `diagnostics/view_logs.py` | View logs モジュール |
 | `execution/__init__.py` | パッケージ初期化ファイル |
-| `execution/scalp_manager.py` | Scalp trade management. |
-| `execution/sync_manager.py` | Update trade exits using OANDA history. |
+| `execution/scalp_manager.py` | 頭皮貿易管理。 |
+| `execution/sync_manager.py` | Oandaの歴史を使用して、取引出口を更新します。 |
 | `fast_metrics.py` | 軽量な指標計算モジュール. |
-| `indicators/__init__.py` | Indicator helpers for trading signals. |
+| `indicators/__init__.py` | 取引信号のインジケータヘルパー。 |
 | `indicators/bollinger.py` | 複数の時間軸に対応したボリンジャーバンドのユーティリティ。 |
-| `indicators/candlestick.py` | Return the upper shadow ratio of a candle. |
-| `indicators/patterns.py` | Detect double-bottom pattern and compute features. |
-| `indicators/volatility.py` | Utility functions for volatility measurements. |
-| `maintenance/__init__.py` | Package initialization for maintenance |
-| `maintenance/disk_guard.py` | Call this from your main loop (or run standalone). |
-| `maintenance/system_cleanup.py` | System maintenance script |
+| `indicators/candlestick.py` | ろうそくの上部影の比率を返します。 |
+| `indicators/patterns.py` | 二重底パターンとコンピューティング機能を検出します。 |
+| `indicators/volatility.py` | ボラティリティ測定のためのユーティリティ関数。 |
+| `maintenance/__init__.py` | メンテナンスのためのパッケージの初期化 |
+| `maintenance/disk_guard.py` | メインループ（またはスタンドアロンを実行）からこれを呼び出します。 |
+| `maintenance/system_cleanup.py` | システムメンテナンススクリプト |
 | `monitoring/__init__.py` | 監視機能を提供するサブモジュール. |
 | `monitoring/metrics_publisher.py` | Kafka と Prometheus へメトリクスを送信するユーティリティ. |
 | `monitoring/safety_trigger.py` | 損失やエラー発生数を監視して安全停止を行うためのモジュール. |
-| `pipelines/walk_forward/eval_kpi.py` | Evaluate KPI and decide retrain flag. |
-| `pipelines/walk_forward/run_walk_forward.py` | Walk-forward optimization main script. |
-| `pipelines/walk_forward/utils.py` | Utility functions for simple walk-forward trading. |
-| `piphawk_ai/__init__.py` | Namespace package for piphawk AI. |
+| `pipelines/walk_forward/eval_kpi.py` | kpiを評価し、再lainフラグを決定します。 |
+| `pipelines/walk_forward/run_walk_forward.py` | ウォークフォワード最適化メインスクリプト。 |
+| `pipelines/walk_forward/utils.py` | 単純なウォークフォワード取引のためのユーティリティ機能。 |
+| `piphawk_ai/__init__.py` | Piphawk AIの名前空間パッケージ。 |
 | `piphawk_ai/main.py` | Main モジュール |
-| `piphawk_ai/policy/offline.py` | Offline reinforcement learning policy loader. |
-| `piphawk_ai/risk/cvar.py` | Wrapper for CVaR calculation utilities. |
-| `piphawk_ai/risk/manager.py` | CVaR-based portfolio risk management. |
-| `piphawk_ai/runner/__init__.py` | Runner package. |
-| `piphawk_ai/runner/core.py` | Compose a minimal context dict for AI exit evaluation. |
-| `piphawk_ai/runner/entry.py` | Entry-related helpers for JobRunner. |
-| `piphawk_ai/runner/exit.py` | Exit-related helpers for JobRunner. |
-| `piphawk_ai/tech_arch/__init__.py` | Technical entry pipeline package. |
-| `piphawk_ai/tech_arch/ai_decision.py` | OpenAI decision helper for the M5 pipeline. |
-| `piphawk_ai/tech_arch/entry_gate.py` | LLM entry gate for the technical pipeline. |
-| `piphawk_ai/tech_arch/indicator_engine.py` | Indicator calculation helpers. |
-| `piphawk_ai/tech_arch/m5_entry.py` | M5 signal detection helpers. |
-| `piphawk_ai/tech_arch/market_classifier.py` | Simple market classification utilities. |
-| `piphawk_ai/tech_arch/market_context.py` | Market snapshot utilities for the technical pipeline. |
-| `piphawk_ai/tech_arch/mode_detector.py` | Wrapper around detect_mode for the technical pipeline. |
-| `piphawk_ai/tech_arch/pipeline.py` | M5 technical entry pipeline orchestrator. |
-| `piphawk_ai/tech_arch/post_filters.py` | Final safety checks for the technical pipeline. |
-| `piphawk_ai/tech_arch/prefilters.py` | Prefilter utilities for the technical pipeline. |
-| `piphawk_ai/tech_arch/risk_filters.py` | Basic risk filters for the technical pipeline. |
-| `piphawk_ai/tech_arch/rule_validator.py` | Simple rule validator for entry plans. |
-| `piphawk_ai/vote_arch/__init__.py` | Majority-vote trading pipeline components. |
-| `piphawk_ai/vote_arch/ai_entry_plan.py` | Deterministic entry plan generation via OpenAI. |
-| `piphawk_ai/vote_arch/ai_strategy_selector.py` | Select trade strategy via OpenAI and majority vote. |
-| `piphawk_ai/vote_arch/entry_buffer.py` | Simple vertical ensemble buffer for entry plans. |
-| `piphawk_ai/vote_arch/market_air_sensor.py` | Calculate market air index used in prompts. |
-| `piphawk_ai/vote_arch/pipeline.py` | Orchestration pipeline for the majority-vote trading architecture. |
-| `piphawk_ai/vote_arch/post_filters.py` | Final safety checks for entry plans. |
-| `piphawk_ai/vote_arch/regime_detector.py` | Simple rule-based regime detection. |
-| `piphawk_ai/vote_arch/trade_mode_selector.py` | Select final trade mode with rule fallback. |
+| `piphawk_ai/policy/offline.py` | オフライン強化学習ポリシーローダー。 |
+| `piphawk_ai/risk/cvar.py` | CVAR計算ユーティリティのラッパー。 |
+| `piphawk_ai/risk/manager.py` | CVARベースのポートフォリオリスク管理。 |
+| `piphawk_ai/runner/__init__.py` | ランナーパッケージ。 |
+| `piphawk_ai/runner/core.py` | AI出口評価のために最小限のコンテキストDICTを作成します。 |
+| `piphawk_ai/runner/entry.py` | Jobrunnerのエントリー関連ヘルパー。 |
+| `piphawk_ai/runner/exit.py` | Jobrunnerの出口関連ヘルパー。 |
+| `piphawk_ai/tech_arch/__init__.py` | 技術的なエントリーパイプラインパッケージ。 |
+| `piphawk_ai/tech_arch/ai_decision.py` | M5パイプラインのOpenAI決定ヘルパー。 |
+| `piphawk_ai/tech_arch/entry_gate.py` | 技術パイプラインのLLMエントリゲート。 |
+| `piphawk_ai/tech_arch/indicator_engine.py` | インジケータ計算ヘルパー。 |
+| `piphawk_ai/tech_arch/m5_entry.py` | M5信号検出ヘルパー。 |
+| `piphawk_ai/tech_arch/market_classifier.py` | シンプルな市場分類ユーティリティ。 |
+| `piphawk_ai/tech_arch/market_context.py` | 技術パイプラインのマーケットスナップショットユーティリティ。 |
+| `piphawk_ai/tech_arch/mode_detector.py` | テクニカルパイプラインのdetect_mode周辺のラッパー。 |
+| `piphawk_ai/tech_arch/pipeline.py` | M5テクニカルエントリパイプラインオーケストレーター。 |
+| `piphawk_ai/tech_arch/post_filters.py` | 技術パイプラインの最終的な安全チェック。 |
+| `piphawk_ai/tech_arch/prefilters.py` | テクニカルパイプライン用のプレフィルターユーティリティ。 |
+| `piphawk_ai/tech_arch/risk_filters.py` | 技術パイプラインの基本的なリスクフィルター。 |
+| `piphawk_ai/tech_arch/rule_validator.py` | エントリープランのシンプルなルールバリデーター。 |
+| `piphawk_ai/vote_arch/__init__.py` | 多数票の取引パイプラインコンポーネント。 |
+| `piphawk_ai/vote_arch/ai_entry_plan.py` | OpenAI経由の決定論的エントリプランの生成。 |
+| `piphawk_ai/vote_arch/ai_strategy_selector.py` | Openaiおよび多数決を介して貿易戦略を選択します。 |
+| `piphawk_ai/vote_arch/entry_buffer.py` | エントリープラン用のシンプルな垂直アンサンブルバッファー。 |
+| `piphawk_ai/vote_arch/market_air_sensor.py` | プロンプトで使用される市場空気インデックスを計算します。 |
+| `piphawk_ai/vote_arch/pipeline.py` | 過半数の投票取引アーキテクチャのオーケストレーションパイプライン。 |
+| `piphawk_ai/vote_arch/post_filters.py` | エントリープランの最終的な安全チェック。 |
+| `piphawk_ai/vote_arch/regime_detector.py` | 単純なルールベースの体制検出。 |
+| `piphawk_ai/vote_arch/trade_mode_selector.py` | ルールフォールバックで最終取引モードを選択します。 |
 | `regime/__init__.py` | パッケージ初期化ファイル |
 | `regime/features.py` | レジーム分類用の特徴量計算ヘルパー. |
 | `regime/gmm_detector.py` | Gaussian Mixture Model によるレジーム認識クラス. |
 | `regime/hdbscan_detector.py` | HDBSCAN によるレジーム認識クラス. |
 | `risk/__init__.py` | パッケージ初期化ファイル |
 | `risk/cvar.py` | CVaR (Expected Shortfall) 計算ユーティリティ. |
-| `risk/manager.py` | CVaR-based portfolio risk management. |
-| `risk/portfolio_risk_manager.py` | Backward compatibility for PortfolioRiskManager import. |
-| `risk/tp_sl_manager.py` | TP/SL ratio adjustment utilities. |
-| `risk/trade_guard.py` | Simple losing streak guard. |
-| `selector_fast.py` | Entry rule selector with LinUCB. |
+| `risk/manager.py` | CVARベースのポートフォリオリスク管理。 |
+| `risk/portfolio_risk_manager.py` | PortfolioriskManagerのインポートの後方互換性。 |
+| `risk/tp_sl_manager.py` | TP/SL比調整ユーティリティ。 |
+| `risk/trade_guard.py` | シンプルな負けストリークガード。 |
+| `selector_fast.py` | Linucbを使用したエントリルールセレクター。 |
 | `signals/__init__.py` | パッケージ初期化ファイル |
 | `signals/adx_strategy.py` | ADX値に基づくシンプルなストラテジー切換ユーティリティ. |
-| `signals/composite_mode.py` | Composite trade mode decision utility. |
+| `signals/composite_mode.py` | 複合トレードモードの決定ユーティリティ。 |
 | `signals/mode_params.py` | weights項目があれば合計1となるよう正規化する |
-| `signals/regime_filter.py` | Regime conflict blocker. |
-| `signals/scalp_momentum.py` | Scalp momentum utilities. |
-| `signals/scalp_strategy.py` | Simple multi timeframe scalp utilities. |
+| `signals/regime_filter.py` | レジーム紛争ブロッカー。 |
+| `signals/scalp_momentum.py` | 頭皮の運動量ユーティリティ。 |
+| `signals/scalp_strategy.py` | シンプルなマルチフレームスクラップユーティリティ。 |
 | `signals/signal_manager.py` | シグナル管理モジュール. |
-| `signals/trend_filter.py` | Multi timeframe EMA trend filter. |
-| `strategies/__init__.py` | Strategy modules. |
-| `strategies/bandit_manager.py` | Bandit based strategy manager. |
-| `strategies/base.py` | Strategy base classes. |
-| `strategies/context_builder.py` | Utility functions to build context vectors for strategy selection. |
-| `strategies/scalp/entry_rules.py` | Scalp entry rules. |
-| `strategies/scalp_strategy.py` | Simple scalp strategy wrapper. |
-| `strategies/selector.py` | Backward compatibility wrapper for StrategySelector. |
-| `strategies/trend_strategy.py` | Simple trend-follow strategy wrapper. |
+| `signals/trend_filter.py` | マルチフレームEMAトレンドフィルター。 |
+| `strategies/__init__.py` | 戦略モジュール。 |
+| `strategies/bandit_manager.py` | Banditベースの戦略マネージャー。 |
+| `strategies/base.py` | 戦略ベースクラス。 |
+| `strategies/context_builder.py` | ユーティリティは、戦略選択のためのコンテキストベクトルを構築するための機能を使用します。 |
+| `strategies/scalp/entry_rules.py` | 頭皮の入力ルール。 |
+| `strategies/scalp_strategy.py` | シンプルな頭皮戦略ラッパー。 |
+| `strategies/selector.py` | StrategySelectorの後方互換性ラッパー。 |
+| `strategies/trend_strategy.py` | シンプルなトレンドフォロー戦略ラッパー。 |
 | `tests/conftest.py` | conftest のテスト |
 | `tests/test_adx_mode.py` | adx_mode のテスト |
 | `tests/test_bollinger_regression.py` | bollinger_regression のテスト |
@@ -459,5 +460,5 @@
 | `tests/test_weighted_scores.py` | weighted_scores のテスト |
 | `tests/test_wick_detection.py` | wick_detection のテスト |
 | `tests/tests_trade_patterns.py` | tests_trade_patterns のテスト |
-| `training/offline_policy_learning.py` | Offline policy learning モジュール |
-| `training/train_regime_model.py` | Train regime model モジュール |
+| `training/offline_policy_learning.py` | オフラインポリシー学習モジュール |
+| `training/train_regime_model.py` | レジームモデルを学習するモジュール |
