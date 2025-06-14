@@ -29,6 +29,9 @@ def _setup_monkeypatch(monkeypatch, transactions):
     monkeypatch.setattr(uot, "log_error", lambda *a, **kw: None)
     monkeypatch.setattr(uot, "init_db", lambda: None)
     monkeypatch.setattr(uot, "get_db_connection", lambda: DummyConn())
+    labels: list[tuple[str, str]] = []
+    monkeypatch.setattr(uot, "add_trade_label", lambda tid, label: labels.append((tid, label)))
+    return labels
 
 
 def test_reject_reason_logging(monkeypatch, caplog):
@@ -61,3 +64,31 @@ def test_reject_reason_logging(monkeypatch, caplog):
     assert any(
         r.levelno == logging.WARNING and "INVALID_PRICE" in r.getMessage() for r in caplog.records
     )
+
+
+def test_trade_labels_logged(monkeypatch):
+    txs = [
+        {
+            "id": "1",
+            "type": "ORDER_FILL",
+            "instrument": "EUR_USD",
+            "units": "1",
+            "price": "1.0",
+            "pl": "0.0",
+            "time": "2023-01-01T00:00:00Z",
+        },
+        {
+            "id": "2",
+            "type": "TAKE_PROFIT_ORDER",
+            "tradeID": "1",
+            "price": "1.1",
+            "time": "2023-01-01T01:00:00Z",
+            "tradesClosed": [{"tradeID": "1", "realizedPL": "0.1"}],
+        },
+    ]
+
+    labels = _setup_monkeypatch(monkeypatch, txs)
+    uot.update_oanda_trades()
+
+    assert ("1", "FILL") in labels
+    assert ("1", "TP") in labels

@@ -8,6 +8,7 @@ from backend.utils import env_loader
 
 try:
     from backend.logs.log_manager import (
+        add_trade_label,
         get_db_connection,
         init_db,
         log_error,
@@ -24,6 +25,9 @@ except Exception:  # テスト環境では簡易版を提供
         pass
 
     def log_error(*_a, **_k):
+        pass
+
+    def add_trade_label(*_a, **_k):
         pass
 
 # env_loader automatically loads default env files at import time
@@ -194,6 +198,7 @@ def update_oanda_trades():
                     realized_pl,
                     conn=conn,
                 )
+                add_trade_label(trade_id, "FILL")
                 logger.debug("Debug AFTER INSERT rowcount: 1")
                 rowcount = 1
                 updated_count += rowcount
@@ -216,6 +221,7 @@ def update_oanda_trades():
                         (close_time, price, price, realized_pl, trade_id),
                     )
                     rowcount = conn.total_changes - before
+                    add_trade_label(trade_id, "TP")
 
                 elif transaction_type == 'STOP_LOSS_ORDER':
                     before = conn.total_changes
@@ -229,6 +235,7 @@ def update_oanda_trades():
                         (close_time, price, price, realized_pl, trade_id),
                     )
                     rowcount = conn.total_changes - before
+                    add_trade_label(trade_id, "SL")
 
                 logger.info(f"{transaction_type} updated for trade_id {trade_id}, rowcount={rowcount}")
 

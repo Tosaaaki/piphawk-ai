@@ -5,9 +5,13 @@ from enum import Enum
 from typing import Any
 
 try:
-    from .log_manager import log_policy_transition
+    from .log_manager import (
+        add_trade_label,
+        log_policy_transition,
+    )
     from .log_manager import log_trade as _log_trade
 except Exception:  # pragma: no cover - log_manager may be stubbed
+    from .log_manager import add_trade_label
     from .log_manager import log_trade as _log_trade
 
     def log_policy_transition(*_a, **_k):
@@ -41,6 +45,11 @@ def log_trade(
         kwargs["is_manual"] = is_manual
     if "score_version" not in kwargs:
         kwargs["score_version"] = int(env_loader.get_env("SCORE_VERSION", "1"))
-    _log_trade(**kwargs)
+    trade_id = _log_trade(**kwargs)
+    if trade_id is not None:
+        if kwargs.get("exit_time") is not None:
+            add_trade_label(trade_id, "EXIT")
+        else:
+            add_trade_label(trade_id, "ENTRY")
     if strategy_name and state is not None and reward is not None:
         log_policy_transition(json.dumps(state), strategy_name, float(reward))
