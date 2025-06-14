@@ -182,3 +182,4 @@ backend/logs/*.db*
 backend/logs/*.jsonl
 *.swp
 .DS_Store
+diagnostics/diagnostics.db
