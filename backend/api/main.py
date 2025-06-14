@@ -73,6 +73,7 @@ from pydantic import BaseModel
 from backend.orders.order_manager import OrderManager
 from backend.utils import env_loader
 from backend.utils.notification import send_line_message
+from maintenance.archive_ticks import archive_old_ticks
 
 app = FastAPI()
 logger = logging.getLogger(__name__)
@@ -240,8 +241,14 @@ def schedule_hourly_summary_job():
     scheduler.add_job(send_hourly_summary, "cron", minute=0)
 
 
+def schedule_weekly_tick_archive_job() -> None:
+    """Register weekly tick archive job with the scheduler."""
+    scheduler.add_job(archive_old_ticks, "cron", day_of_week="mon", hour=0)
+
+
 # Schedule the job to run every hour at minute 0
 schedule_hourly_summary_job()
+schedule_weekly_tick_archive_job()
 
 
 # Test endpoint: Get trade summary for the last hour (no notification)
@@ -347,6 +354,7 @@ def control_scheduler(action: str):
         scheduler.shutdown(wait=False)
     scheduler = BackgroundScheduler()
     schedule_hourly_summary_job()
+    schedule_weekly_tick_archive_job()
     scheduler.start()
     return {"status": "restarted"}
 
