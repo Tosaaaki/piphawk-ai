@@ -85,3 +85,28 @@ CREATE TABLE IF NOT EXISTS trade_labels (
     label TEXT NOT NULL,
     timestamp TEXT NOT NULL
 );
+
+-- Tick data and archive tables
+CREATE TABLE IF NOT EXISTS ticks (
+    timestamp TEXT NOT NULL,
+    instrument TEXT NOT NULL,
+    bid REAL,
+    ask REAL
+);
+CREATE TABLE IF NOT EXISTS ticks_archive (
+    timestamp TEXT NOT NULL,
+    instrument TEXT NOT NULL,
+    bid REAL,
+    ask REAL
+);
+
+-- Weekly summary view of archived ticks
+CREATE VIEW IF NOT EXISTS weekly_tick_summary AS
+SELECT
+    strftime('%Y-%W', timestamp) AS week,
+    instrument,
+    COUNT(*) AS tick_count
+FROM ticks_archive
+WHERE timestamp >= date('now', '-4 weeks')
+GROUP BY week, instrument
+ORDER BY week DESC;
