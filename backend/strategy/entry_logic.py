@@ -258,6 +258,9 @@ def process_entry(
         )
 
     forced_entry = False
+    force_entry_after_ai = (
+        env_loader.get_env("FORCE_ENTRY_AFTER_AI", "false").lower() == "true"
+    )
     use_dynamic_risk = (
         env_loader.get_env("FALLBACK_DYNAMIC_RISK", "false").lower() == "true"
     )
@@ -352,7 +355,8 @@ def process_entry(
                     ai_side = plan.get("side")
                 else:
                     logging.info("Scalp AI returned no tradable side → skip entry")
-                    return False
+                    if not force_entry_after_ai:
+                        return False
 
             if ai_side in ("long", "short"):
                 tp_pips = float(
@@ -371,7 +375,8 @@ def process_entry(
                     mode = "limit"
             else:
                 logging.info("Scalp AI returned no tradable side → skip entry")
-                return False
+                if not force_entry_after_ai:
+                    return False
             price = bid if side == "long" else ask
             tf = env_loader.get_env("SCALP_COND_TF", "M1").upper()
             extra_tp, extra_sl = _calc_scalp_tp_sl(
@@ -438,7 +443,8 @@ def process_entry(
                             bw_ratio,
                             atr_val,
                         )
-                        return False
+                        if not force_entry_after_ai:
+                            return False
             except Exception as exc:
                 logging.debug(f"[process_entry] scalp vol filter failed: {exc}")
 
@@ -449,7 +455,8 @@ def process_entry(
                     min_net = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
                     net = float(tp_pips) - spread_pips
                     logging.info(f"Net TP {net:.1f} < {min_net} \u2192 skip entry")
-                    return False
+                    if not force_entry_after_ai:
+                        return False
 
             params = {
                 "instrument": (
@@ -646,10 +653,14 @@ def process_entry(
                     )
 
     if side not in ("long", "short"):
-        logger.debug("reject: reason=AI_DECISION side=%s", side)
-        logger.debug("reject: reason=%s", plan.get("reason"))
-        logging.info("AI says no trade entry → early exit")
-        return False
+        if force_entry_after_ai:
+            side = (market_cond or {}).get("trend_direction") or "long"
+            entry_info["side"] = side
+        else:
+            logger.debug("reject: reason=AI_DECISION side=%s", side)
+            logger.debug("reject: reason=%s", plan.get("reason"))
+            logging.info("AI says no trade entry → early exit")
+            return False
 
     if spread_pips is not None:
         from backend.risk_manager import cost_guard
@@ -658,7 +669,8 @@ def process_entry(
             min_net = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
             net = float(risk_info.get("tp_pips", 0)) - spread_pips
             logging.info(f"Net TP {net:.1f} < {min_net} → skip entry")
-            return False
+            if not force_entry_after_ai:
+                return False
 
     if PEAK_ENTRY_ENABLED:
         try:
@@ -688,7 +700,8 @@ def process_entry(
                 == "true"
             ):
                 logging.info("Multi‑TF alignment missing → skip entry")
-                return False
+                if not force_entry_after_ai:
+                    return False
         except Exception as exc:
             logging.debug(f"alignment adjust failed: {exc}")
             if (
@@ -698,14 +711,16 @@ def process_entry(
                 == "true"
             ):
                 logging.info("Alignment adjustment failed and strict mode → skip entry")
-                return False
+                if not force_entry_after_ai:
+                    return False
 
     try:
         if getattr(oa, "is_entry_blocked_by_recent_candles", lambda *a, **k: False)(
             side, candles
         ):
             logging.info("Entry blocked by recent candle bias")
-            return False
+            if not force_entry_after_ai:
+                return False
     except Exception as exc:
         logging.debug(f"[process_entry] bias check failed: {exc}")
 
@@ -719,7 +734,8 @@ def process_entry(
             m5 = candles_dict.get("M5", candles)
             if is_extension(m5, float(atr_val)):
                 logging.info("Extension block triggered → skip entry")
-                return False
+                if not force_entry_after_ai:
+                    return False
     except Exception as exc:
         logging.debug(f"[process_entry] extension block failed: {exc}")
 
@@ -734,10 +750,12 @@ def process_entry(
             ob_thresh = float(env_loader.get_env("RSI_OVERBOUGHT_BLOCK", "65"))
             if side == "short" and rsi_val < os_thresh:
                 logging.info(f"RSI {rsi_val:.1f} < {os_thresh} → Sell 禁止")
-                return False
+                if not force_entry_after_ai:
+                    return False
             if side == "long" and rsi_val > ob_thresh:
                 logging.info(f"RSI {rsi_val:.1f} > {ob_thresh} → Buy 禁止")
-                return False
+                if not force_entry_after_ai:
+                    return False
     except Exception as exc:
         logging.debug(f"[process_entry] oversold filter failed: {exc}")
 
@@ -747,7 +765,8 @@ def process_entry(
         m5 = candles_dict.get("M5", candles)
         if false_break_skip(m5, lookback):
             logging.info("False break detected → skip entry")
-            return False
+            if not force_entry_after_ai:
+                return False
     except Exception as exc:
         logging.debug(f"[process_entry] false-break filter failed: {exc}")
 
@@ -843,10 +862,12 @@ def process_entry(
         if rng > 0 and price_chk is not None and ind_h1:
             if side == "short" and is_near_h1_support(ind_h1, price_chk, rng):
                 logging.info("Price near H1 support → skip short entry")
-                return False
+                if not force_entry_after_ai:
+                    return False
             if side == "long" and is_near_h1_resistance(ind_h1, price_chk, rng):
                 logging.info("Price near H1 resistance → skip long entry")
-                return False
+                if not force_entry_after_ai:
+                    return False
     except Exception as exc:
         logging.debug(f"[process_entry] H1 level check failed: {exc}")
 
@@ -950,7 +971,8 @@ def process_entry(
 
     if mode == "wait":
         logging.info("AI suggests WAIT – re‑evaluate next loop.")
-        return False
+        if not force_entry_after_ai:
+            return False
 
     tp_pips = risk_info.get("tp_pips")
     sl_pips = risk_info.get("sl_pips")
@@ -1133,7 +1155,8 @@ def process_entry(
             logging.info(
                 f"RRR after cost {(tp_pips - (spread + slip)) / sl_pips if sl_pips else 0:.2f} < {min_rrr_cost} → skip entry"
             )
-            return False
+            if not force_entry_after_ai:
+                return False
     except Exception as exc:
         logging.debug(f"[process_entry] rrr-after-cost check failed: {exc}")
 
@@ -1142,7 +1165,8 @@ def process_entry(
     if mode == "limit":
         if limit_price is None:
             logging.warning("LIMIT mode but no limit_price → skip entry.")
-            return False
+            if not force_entry_after_ai:
+                return False
 
         # Check if a similar pending order already exists
         open_orders = (
@@ -1152,13 +1176,15 @@ def process_entry(
         )
         if open_orders:
             logging.info("Existing pending order found – skip entry.")
-            return False
+            if not force_entry_after_ai:
+                return False
         existing = get_pending_entry_order(instrument)
         if existing:
             logging.info(
                 "Pending LIMIT order already exists – skip new limit placement."
             )
-            return False
+            if not force_entry_after_ai:
+                return False
 
         entry_uuid = str(uuid.uuid4())[:8]
         params_limit = {
@@ -1207,7 +1233,8 @@ def process_entry(
             instrument, side
         ):
             logging.info("Existing pending order found – skip market entry.")
-            return False
+            if not force_entry_after_ai:
+                return False
         params = {
             **strategy_params,
             "instrument": instrument,

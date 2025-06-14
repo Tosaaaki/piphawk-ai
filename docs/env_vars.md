@@ -387,6 +387,10 @@ vote_arch 全体を無効化したい場合に `false` を指定します。
 AI が `side:"no"` を返しても、現在のトレンド方向へエントリーを強制するかを決め
 ます。デフォルトは `false` です。
 
+### FORCE_ENTRY_AFTER_AI
+
+AI 判断後にフィルタで拒否されても必ず注文を実行するかどうかを決めます。デフォルトは `false` です。
+
 ### FALLBACK_DEFAULT_SL_PIPS
 
 AI が SL 値を返さない場合に利用する予備の幅(pips)。デフォルトは `8` です。
@@ -407,4 +411,5 @@ FALLBACK_FORCE_ON_NO_SIDE=true
 FALLBACK_DEFAULT_SL_PIPS=10
 FALLBACK_DEFAULT_TP_PIPS=15
 FALLBACK_DYNAMIC_RISK=true
+FORCE_ENTRY_AFTER_AI=true
 ```
