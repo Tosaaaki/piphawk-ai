@@ -49,3 +49,17 @@
 | `strategies/` | 取引戦略モジュール |
 | `tests/` | 単体テストコード |
 | `training/` | 学習・検証用スクリプト |
+
+## 主要 Python ファイル
+
+下記はディレクトリ内でも特に重要な Python スクリプトの例です。
+
+| パス | 役割 |
+| --- | --- |
+| `ai/local_model.py` | ローカル LLM を利用するためのインターフェース |
+| `analysis/ai_strategy.py` | AI による取引戦略のエントリーポイント |
+| `backend/api/main.py` | FastAPI サーバーの起動スクリプト |
+| `execution/scalp_manager.py` | スキャルピング実行の管理処理 |
+| `piphawk_ai/main.py` | ジョブランナー全体を起動するメイン処理 |
+| `piphawk_ai/runner/entry.py` | 各戦略のエントリー判断ロジック |
+| `core/ring_buffer.py` | ティックデータを保持するリングバッファ実装 |
