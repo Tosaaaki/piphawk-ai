@@ -71,6 +71,7 @@ include = [
     "runner",
     "models",
     "training",
+    "rl",
 ]
 
 [tool.isort]
