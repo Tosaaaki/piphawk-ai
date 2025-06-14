@@ -844,6 +844,14 @@ Use the helper script to run unit tests:
 For lint and type checks, refer to the commands listed in
 [AGENTS.md](AGENTS.md).
 
+Some tests require optional dependencies such as `httpx` and `apscheduler`.
+These tests call `pytest.importorskip()` to skip when the packages are missing.
+Install all test requirements to ensure they run:
+
+```bash
+pip install -r requirements-test.txt
+```
+
 ## プロンプト変更手順
 
 各 AI 機能の指示文は `prompts/` ディレクトリにテンプレートとして保存されています。
