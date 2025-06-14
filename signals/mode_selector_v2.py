@@ -3,9 +3,11 @@ from __future__ import annotations
 """Mode selection logic v2."""
 
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict
 
 import yaml
+
+from analysis.llm_client import get_mode_scores
 
 _DEFAULT_PATH = Path(__file__).resolve().parents[1] / "config" / "mode_thresholds.yml"
 _THRESHOLDS: dict | None = None
@@ -30,8 +32,8 @@ def _norm(value: float, scale: float) -> float:
     return min(max(v, 0.0), 1.0)
 
 
-def select_mode(ctx: Dict[str, float]) -> str:
-    """Return trading mode from context."""
+def select_mode(ctx: Dict[str, float], snapshot: Any | None = None) -> str:
+    """Return trading mode from context optionally blending LLM scores."""
     cfg = _load_thresholds()
     trend_th = float(cfg.get("TREND_STR_THLD", 0.7))
     range_th = float(cfg.get("RANGE_SCORE_THLD", 0.7))
@@ -48,6 +50,19 @@ def select_mode(ctx: Dict[str, float]) -> str:
     atr = float(ctx.get("atr_15m", 0.0))
     diff_ratio = abs(ema12 - ema26) / atr if atr else 0.0
     range_score = (1 - stddev_pct) * (1 - diff_ratio)
+
+    if snapshot is not None:
+        llm_scores = get_mode_scores(snapshot)
+        numeric = {
+            "TREND": trend_strength,
+            "BASE_SCALP": range_score,
+            "REBOUND_SCALP": 1.0 if overshoot else 0.0,
+        }
+        blended = {
+            k: 0.6 * numeric[k] + 0.4 * float(llm_scores.get(k, 0.0))
+            for k in numeric
+        }
+        return max(blended, key=blended.get)
 
     if overshoot:
         return "REBOUND_SCALP"
