@@ -1,0 +1,6 @@
+volume_filter:
+  MA_period: 5
+  min_values_by_pair:
+    usd_jpy: 25
+    eur_usd: 30
+    gbp_usd: 35

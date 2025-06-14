@@ -672,9 +672,10 @@ def pass_entry_filter(
         threshold = bb_lower.iloc[-1] - atr_series.iloc[-1] * dynamic_mult
         if price is not None and price <= threshold:
             _last_overshoot_ts = datetime.datetime.now(timezone.utc)
-            logger.info("Filter NG: overshoot")
-            logger.debug("EntryFilter blocked: price overshoot below lower BB")
-            return False
+            context["overshoot_flag"] = True
+            logger.info("Overshoot detected: flagging rebound opportunity")
+        else:
+            context.setdefault("overshoot_flag", False)
         dynamic = env_loader.get_env("OVERSHOOT_DYNAMIC", "false").lower() == "true"
         max_pips = float(env_loader.get_env("OVERSHOOT_MAX_PIPS", "0"))
         if dynamic:
@@ -692,12 +693,9 @@ def pass_entry_filter(
             if threshold_pips is not None and price <= threshold_pips:
                 over = True
         if over:
-            if env_loader.get_env("OVERSHOOT_MODE", "block").lower() == "warn":
-                logger.warning("Overshoot detected but mode=warn → allowing entry")
-            else:
-                logger.info("Filter NG: overshoot")
-                logger.debug("EntryFilter blocked: price overshoot below lower BB")
-                return False
+            context["overshoot_flag"] = True
+            if env_loader.get_env("OVERSHOOT_MODE", "block").lower() != "warn":
+                logger.warning("Overshoot detected; entry allowed but flagged")
 
         # Overshoot window range check ----------------------------------
         if _WINDOW_LEN > 1 and len(_recent_highs) >= _WINDOW_LEN:
@@ -714,9 +712,8 @@ def pass_entry_filter(
             atr_limit_pips = atr_series.iloc[-1] * dynamic_mult / pip_size
             if (limit_pips and range_pips > limit_pips) or range_pips > atr_limit_pips:
                 _last_overshoot_ts = datetime.datetime.now(timezone.utc)
-                logger.info("Filter NG: overshoot_range")
-                logger.debug("EntryFilter blocked: high-low range exceeds window limit")
-                return False
+                context["overshoot_flag"] = True
+                logger.info("Overshoot range detected: flag set")
 
     # --- Dynamic ADX threshold based on BB width -----------------------
     adx_base = float(env_loader.get_env("ADX_RANGE_THRESHOLD", "25"))

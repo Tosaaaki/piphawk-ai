@@ -67,10 +67,10 @@ def _flatten(d: object, prefix: str = "") -> dict[str, object]:
 
 def load_params(
     path: str | Path = Path(__file__).resolve().parent / "params.yaml",
-    strategy_path: str | Path | None = Path(__file__).resolve().parent
-    / "strategy.yml",
+    strategy_path: str | Path | None = Path(__file__).resolve().parent / "strategy.yml",
     settings_path: str | Path | None = Path(__file__).resolve().parent / "settings.yaml",
     mode_path: str | Path | None = Path(__file__).resolve().parent / "mode_thresholds.yml",
+    filters_path: str | Path | None = Path(__file__).resolve().parent / "filters.yaml",
 ):
     """Load YAML parameters and export them as environment variables."""
 
@@ -95,6 +95,11 @@ def load_params(
         mp = Path(mode_path)
         if mp.exists():
             env_params.update(_flatten(_parse_yaml_file(mp)))
+
+    if filters_path is not None:
+        fp = Path(filters_path)
+        if fp.exists():
+            env_params.update(_flatten(_parse_yaml_file(fp)))
 
     # キーエイリアスの適用
     for src, target in _KEY_ALIASES.items():

@@ -35,9 +35,12 @@ def test_overshoot_window(monkeypatch):
 
     sf.update_overshoot_window(110, 100)
     sf.update_overshoot_window(111, 109)
-    result = sf.pass_entry_filter(_base_indicators(), price=110.0, mode="trend_follow")
-    assert result is False
+    ctx = {}
+    result = sf.pass_entry_filter(_base_indicators(), price=110.0, mode="trend_follow", context=ctx)
+    assert result is True
+    assert ctx.get("overshoot_flag") is True
 
     sf.update_overshoot_window(111, 109)
-    result = sf.pass_entry_filter(_base_indicators(), price=110.0, mode="trend_follow")
+    ctx2 = {}
+    result = sf.pass_entry_filter(_base_indicators(), price=110.0, mode="trend_follow", context=ctx2)
     assert result is True

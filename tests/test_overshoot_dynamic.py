@@ -29,5 +29,7 @@ def test_dynamic_overshoot(monkeypatch):
         "minus_di": pd.Series([20, 19]),
     }
 
-    result = sf.pass_entry_filter(indicators, price=98.0, mode="trend_follow")
-    assert result is False
+    ctx = {}
+    result = sf.pass_entry_filter(indicators, price=98.0, mode="trend_follow", context=ctx)
+    assert result is True
+    assert ctx.get("overshoot_flag") is True
