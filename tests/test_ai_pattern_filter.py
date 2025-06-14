@@ -1,0 +1,35 @@
+import numpy as np
+
+from ai.cnn_pattern import infer
+from signals.ai_pattern_filter import pass_pattern_filter
+
+
+def _dummy_candles() -> list[dict]:
+    return [
+        {"o": 1.0, "h": 1.1, "l": 0.9, "c": 1.05},
+        {"o": 1.05, "h": 1.15, "l": 0.95, "c": 1.1},
+        {"o": 1.1, "h": 1.2, "l": 1.0, "c": 1.15},
+        {"o": 1.15, "h": 1.25, "l": 1.05, "c": 1.2},
+    ]
+
+
+def test_pattern_filter_false(monkeypatch):
+    def fake(img: np.ndarray) -> dict[str, float]:
+        return {"pattern": 0.1}
+
+    monkeypatch.setattr(infer, "predict", fake)
+    ok, prob = pass_pattern_filter(_dummy_candles())
+    assert not ok
+    assert prob == 0.1
+
+
+def test_pattern_filter_true(monkeypatch):
+    def fake(img: np.ndarray) -> dict[str, float]:
+        return {"pattern": 0.7}
+
+    monkeypatch.setattr(infer, "predict", fake)
+    ok, prob = pass_pattern_filter(_dummy_candles())
+    assert ok
+    assert prob > 0.65
+
+
