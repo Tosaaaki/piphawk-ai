@@ -1,0 +1,262 @@
+interactions:
+- request:
+    body: '{"order": {"timeInForce": "FOK", "type": "MARKET", "positionFill": "DEFAULT",
+      "units": "700", "instrument": "USD_JPY", "clientExtensions": {"tag": "1749915961",
+      "comment": "{\"position_id\": \"9fc705db\"}"}}}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer k
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '208'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.32.4
+    method: POST
+    uri: http://localhost:9999/accounts/acc/orders
+  response:
+    body:
+      string: '{"orderFillTransaction": {"id": "1", "tradeOpened": {"tradeID": "t1"}}}'
+    headers:
+      Content-Type:
+      - application/json
+      Date:
+      - Sat, 14 Jun 2025 15:46:01 GMT
+      Server:
+      - BaseHTTP/0.6 Python/3.12.10
+    status:
+      code: 201
+      message: Created
+- request:
+    body: '{"order": {"type": "TAKE_PROFIT", "tradeID": "t1", "price": "0.010", "timeInForce":
+      "GTC"}}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer k
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '91'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.32.4
+    method: PUT
+    uri: http://localhost:9999/accounts/acc/orders
+  response:
+    body:
+      string: '{"ok": true}'
+    headers:
+      Content-Type:
+      - application/json
+      Date:
+      - Sat, 14 Jun 2025 15:46:01 GMT
+      Server:
+      - BaseHTTP/0.6 Python/3.12.10
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer k
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.32.4
+    method: GET
+    uri: https://proxy:8080/v3/accounts/acc/trades/t1
+  response:
+    body:
+      string: '{"errorMessage":"Invalid value specified for ''accountID''"}'
+    headers:
+      cf-cache-status:
+      - DYNAMIC
+      cf-ray:
+      - 94faf549dbe746d4-DFW
+      content-length:
+      - '58'
+      content-type:
+      - application/json
+      date:
+      - Sat, 14 Jun 2025 15:46:01 GMT
+      requestid:
+      - '0'
+      server:
+      - envoy
+      vary:
+      - Origin, Accept-Encoding
+      x-envoy-upstream-service-time:
+      - '114'
+    status:
+      code: 400
+      message: Bad Request
+- request:
+    body: '{"order": {"timeInForce": "FOK", "type": "MARKET", "positionFill": "DEFAULT",
+      "units": "300", "instrument": "USD_JPY", "clientExtensions": {"tag": "1749915961",
+      "comment": "{\"position_id\": \"9fc705db\"}"}}}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer k
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '208'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.32.4
+    method: POST
+    uri: http://localhost:9999/accounts/acc/orders
+  response:
+    body:
+      string: '{"orderFillTransaction": {"id": "1", "tradeOpened": {"tradeID": "t1"}}}'
+    headers:
+      Content-Type:
+      - application/json
+      Date:
+      - Sat, 14 Jun 2025 15:46:01 GMT
+      Server:
+      - BaseHTTP/0.6 Python/3.12.10
+    status:
+      code: 201
+      message: Created
+- request:
+    body: '{"order": {"type": "TAKE_PROFIT", "tradeID": "t1", "price": "0.010", "timeInForce":
+      "GTC"}}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer k
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '91'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.32.4
+    method: PUT
+    uri: http://localhost:9999/accounts/acc/orders
+  response:
+    body:
+      string: '{"ok": true}'
+    headers:
+      Content-Type:
+      - application/json
+      Date:
+      - Sat, 14 Jun 2025 15:46:01 GMT
+      Server:
+      - BaseHTTP/0.6 Python/3.12.10
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer k
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.32.4
+    method: GET
+    uri: https://proxy:8080/v3/accounts/acc/trades/t1
+  response:
+    body:
+      string: '{"errorMessage":"Invalid value specified for ''accountID''"}'
+    headers:
+      cf-cache-status:
+      - DYNAMIC
+      cf-ray:
+      - 94faf54afe3c466c-DFW
+      content-length:
+      - '58'
+      content-type:
+      - application/json
+      date:
+      - Sat, 14 Jun 2025 15:46:02 GMT
+      requestid:
+      - '0'
+      server:
+      - envoy
+      vary:
+      - Origin, Accept-Encoding
+      x-envoy-upstream-service-time:
+      - '122'
+    status:
+      code: 400
+      message: Bad Request
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Bearer k
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.32.4
+    method: GET
+    uri: https://proxy:8080/v3/accounts/acc/trades/t1
+  response:
+    body:
+      string: '{"errorMessage":"Invalid value specified for ''accountID''"}'
+    headers:
+      cf-cache-status:
+      - DYNAMIC
+      cf-ray:
+      - 94faf54c1dc22cd0-DFW
+      content-length:
+      - '58'
+      content-type:
+      - application/json
+      date:
+      - Sat, 14 Jun 2025 15:46:02 GMT
+      requestid:
+      - '0'
+      server:
+      - envoy
+      vary:
+      - Origin, Accept-Encoding
+      x-envoy-upstream-service-time:
+      - '100'
+    status:
+      code: 400
+      message: Bad Request
+version: 1
