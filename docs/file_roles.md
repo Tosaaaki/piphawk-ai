@@ -4,6 +4,13 @@
 
 | パス | 役割 |
 | --- | --- |
+| `.dockerignore` | Docker ビルドで除外するファイル一覧 |
+| `.env.template` | 環境変数ファイルのテンプレート |
+| `.git/` | Git リポジトリメタデータ |
+| `.github/` | GitHub ワークフロー設定 |
+| `.gitignore` | Git で無視するファイル定義 |
+| `.markdownlint-cli2.yaml` | Markdownlint 設定 |
+| `.markdownlintignore` | Markdownlint 除外設定 |
 | `AGENTS.md` | 開発ルールやテスト手順の説明 |
 | `CHANGELOG.md` | 変更履歴 |
 | `Dockerfile` | バックエンド用 Docker イメージ定義 |
