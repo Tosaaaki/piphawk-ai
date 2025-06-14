@@ -37,3 +37,7 @@ scalp_score_max: -1
 ema_slope:
   mild: 0.05
   strong: 0.15
+
+TREND_STR_THLD: 0.7
+RANGE_SCORE_THLD: 0.7
+
