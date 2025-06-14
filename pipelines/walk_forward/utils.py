@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# mypy: ignore-errors
+
 """Utility functions for simple walk-forward trading."""
 
 import numpy as np

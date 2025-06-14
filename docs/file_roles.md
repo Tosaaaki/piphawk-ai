@@ -340,6 +340,8 @@
 | `monitoring/__init__.py` | 監視機能を提供するサブモジュール. |
 | `monitoring/metrics_publisher.py` | Kafka と Prometheus へメトリクスを送信するユーティリティ. |
 | `monitoring/safety_trigger.py` | 損失やエラー発生数を監視して安全停止を行うためのモジュール. |
+| `monitoring/prom_exporter.py` | Prometheus メトリクスを `/metrics` で公開するエクスポーター. |
+| `monitoring/grafana_import.py` | Grafana ダッシュボードを自動インポートするスクリプト. |
 | `pipelines/walk_forward/eval_kpi.py` | kpiを評価し、再lainフラグを決定します。 |
 | `pipelines/walk_forward/run_walk_forward.py` | ウォークフォワード最適化メインスクリプト。 |
 | `pipelines/walk_forward/utils.py` | 単純なウォークフォワード取引のためのユーティリティ機能。 |

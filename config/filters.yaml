@@ -4,3 +4,10 @@ volume_filter:
     usd_jpy: 25
     eur_usd: 30
     gbp_usd: 35
+
+composite_filter:
+  min_score: 2
+  weights:
+    rsi_edge: 1
+    bb_break: 1
+    ai_pattern: 1

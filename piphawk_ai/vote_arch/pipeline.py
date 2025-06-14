@@ -66,7 +66,10 @@ def run_cycle(
         "atr_15m": _last(indicators.get("atr_15m") or indicators.get("atr")),
         "overshoot_flag": indicators.get("overshoot_flag", False),
     }
-    mode = select_mode(ctx)
+    # LLM提案が高信頼なら優先、そうでなければ数値モード
+    mode_llm = mode_raw if conf_ok else ""
+    mode_calc = select_mode(ctx)
+    mode = mode_llm or mode_calc
 
     plan = generate_plan(f"trade_mode: {mode}")
     if not plan:

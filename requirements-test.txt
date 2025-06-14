@@ -12,3 +12,4 @@ line-bot-sdk
 prometheus-client
 httpx==0.28.1
 vcrpy
+matplotlib==3.9.0
