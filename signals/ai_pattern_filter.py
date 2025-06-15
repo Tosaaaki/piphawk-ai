@@ -12,7 +12,6 @@ import numpy as np
 
 from ai.cnn_pattern import infer
 from backend.utils import env_loader
-
 from monitoring import prom_exporter
 
 PROB_THRESHOLD = float(env_loader.get_env("CNN_PROB_THRESHOLD", "0.65"))

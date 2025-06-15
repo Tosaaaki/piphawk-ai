@@ -44,6 +44,8 @@ position_max_age_seconds = Histogram(
     "position_max_age_seconds",
     "Distribution of max open position age",
     buckets=[0, 60, 300, 900, 3600, 7200],
+    registry=registry,
+)
 
 ai_pattern_model_missing_total = Counter(
     "ai_pattern_model_missing_total",
