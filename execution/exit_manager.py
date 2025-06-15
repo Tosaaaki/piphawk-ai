@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime, timezone
 from typing import Any, Dict
 
+from backend.indicators.atr import calculate_atr
 from backend.indicators.ema import calculate_ema
+from backend.logs.update_oanda_trades import fetch_trade_details
 from backend.orders.order_manager import OrderManager
-from backend.utils import env_loader, parse_json_answer
+from backend.orders.position_manager import get_open_positions
+from backend.utils import env_loader, parse_json_answer, trade_age_seconds
 from backend.utils.openai_client import ask_openai
 
 logger = logging.getLogger(__name__)
@@ -98,3 +102,60 @@ class ExitManager:
                 logger.info("TP1 hit and reversal risk high → closing remaining")
             except Exception as exc:  # pragma: no cover - safety
                 logger.warning("close_position failed: %s", exc)
+
+
+def check_max_hold() -> None:
+    """Close positions exceeding MAX_HOLD_HOURS."""
+    limit_h = float(env_loader.get_env("MAX_HOLD_HOURS", "6"))
+    positions = get_open_positions() or []
+    order_mgr = OrderManager()
+    now = datetime.now(timezone.utc)
+    for pos in positions:
+        entry = pos.get("entry_time") or pos.get("openTime")
+        age = trade_age_seconds({"entry_time": entry}, now=now)
+        if age is None or age < limit_h * 3600:
+            continue
+        inst = pos.get("instrument")
+        if not inst:
+            continue
+        try:
+            pl = float(pos.get("unrealizedPL", 0.0))
+        except Exception:
+            pl = 0.0
+        try:
+            order_mgr.close_position(inst)
+            logger.info(
+                "MAX_HOLD exceeded for %s (%s)", inst, "profit" if pl > 0 else "loss"
+            )
+        except Exception as exc:  # pragma: no cover - safety
+            logger.warning("close_position failed: %s", exc)
+
+
+def check_stagnation(trade_id: str, candles_m5: list[dict]) -> None:
+    """Move SL to break-even when range < ATR*0.2 for 30min."""
+    if len(candles_m5) < 6:
+        return
+    info = fetch_trade_details(trade_id) or {}
+    trade = info.get("trade", {})
+    instrument = trade.get("instrument")
+    if not instrument:
+        return
+    entry_price = float(trade.get("price", 0.0))
+    high = [float(c["mid"]["h"]) for c in candles_m5][-15:]
+    low = [float(c["mid"]["l"]) for c in candles_m5][-15:]
+    close = [float(c["mid"]["c"]) for c in candles_m5][-15:]
+    try:
+        atr = calculate_atr(high, low, close)
+        atr_val = float(atr.iloc[-1]) if hasattr(atr, "iloc") else float(atr[-1])
+    except Exception:
+        return
+    width_ok = all(
+        float(c["mid"]["h"]) - float(c["mid"]["l"]) < atr_val * 0.2
+        for c in candles_m5[-6:]
+    )
+    if width_ok:
+        try:
+            OrderManager().update_trade_sl(trade_id, instrument, entry_price)
+            logger.info("Stagnation detected → SL moved to break-even")
+        except Exception as exc:  # pragma: no cover - safety
+            logger.warning("update_trade_sl failed: %s", exc)
