@@ -33,6 +33,12 @@ rl_override_total = Counter(
     registry=registry,
 )
 
+ai_pattern_model_missing_total = Counter(
+    "ai_pattern_model_missing_total",
+    "Number of times CNN pattern model missing",
+    registry=registry,
+)
+
 app = FastAPI()
 
 
@@ -56,6 +62,11 @@ def record_ai_confidence(value: float) -> None:
 def increment_rl_override() -> None:
     """rl_override_total をインクリメントする."""
     rl_override_total.inc()
+
+
+def increment_pattern_model_missing() -> None:
+    """ai_pattern_model_missing_total をインクリメントする."""
+    ai_pattern_model_missing_total.inc()
 
 
 def start(port: int = 8001) -> None:

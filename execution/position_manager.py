@@ -47,19 +47,44 @@ def create_split_orders(mode: str, plan: EntryPlan) -> List[Order]:
     ratio = _SPLIT_TABLE.get(mode, (0.7, 0.3))
     pos_id = uuid.uuid4().hex[:8]
     order_mgr = OrderManager()
+    atr_tp = None
+    atr_sl = None
+    if mode.lower() in {"trend", "trend_follow"}:
+        try:  # ATR15 from M15 candles
+            from backend.market_data.candle_fetcher import fetch_candles
+
+            candles = fetch_candles(pair, granularity="M15", count=15, allow_incomplete=True)
+            highs = [float(c["mid"]["h"]) for c in candles]
+            lows = [float(c["mid"]["l"]) for c in candles]
+            closes = [float(c["mid"]["c"]) for c in candles]
+            atr = calculate_atr(highs, lows, closes)
+            atr_val = float(atr.iloc[-1]) if hasattr(atr, "iloc") else float(atr[-1])
+            atr_tp = atr_val * 1.6
+            atr_sl = atr_val * 0.7
+        except Exception as exc:  # pragma: no cover - network failure safe
+            logger.debug("ATR fetch failed: %s", exc)
 
     results: list[Order] = []
-    for r in ratio:
+    for idx, r in enumerate(ratio):
         units = int(plan.lot * r * 1000)
         if plan.side == "short":
             units = -units
+        tp = plan.tp
+        sl = plan.sl
+        if idx == 1:
+            if mode.lower() in {"trend", "trend_follow"} and atr_tp is not None:
+                tp = atr_tp
+                sl = atr_sl
+            elif mode.startswith("scalp"):
+                tp = plan.tp * 2
+                sl = plan.sl
         comment = json.dumps({"position_id": pos_id})
         res = order_mgr.place_market_with_tp_sl(
             pair,
             units,
             plan.side,
-            plan.tp,
-            plan.sl,
+            tp,
+            sl,
             comment_json=comment,
         )
         order_id = res.get("orderFillTransaction", {}).get("id", "")
