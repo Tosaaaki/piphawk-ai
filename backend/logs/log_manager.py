@@ -27,7 +27,16 @@ def get_db_connection():
     path = get_db_path()
     if not path.exists():
         init_db()
-    return sqlite3.connect(path, timeout=30)
+    conn = sqlite3.connect(
+        path,
+        timeout=30,
+        isolation_level=None,
+        check_same_thread=False,
+        uri=True,
+    )
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA synchronous=NORMAL;")
+    return conn
 
 def init_db():
     path = get_db_path()

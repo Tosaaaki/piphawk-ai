@@ -2,7 +2,9 @@ from __future__ import annotations
 
 """AI-based pattern filter using CNN."""
 
+import logging
 from io import BytesIO
+from pathlib import Path
 from typing import Iterable, Mapping
 
 import matplotlib.pyplot as plt
@@ -10,9 +12,15 @@ import numpy as np
 
 from ai.cnn_pattern import infer
 from backend.utils import env_loader
+
 from monitoring import prom_exporter
 
 PROB_THRESHOLD = float(env_loader.get_env("CNN_PROB_THRESHOLD", "0.65"))
+
+from monitoring import prom_exporter as pe
+
+logger = logging.getLogger(__name__)
+
 
 
 def _candles_to_image(candles: Iterable[Mapping]) -> np.ndarray:
@@ -37,6 +45,18 @@ def _candles_to_image(candles: Iterable[Mapping]) -> np.ndarray:
 def pass_pattern_filter(candles: Iterable[Mapping]) -> tuple[bool, float]:
     """Return ``(True, prob)`` when CNN predicts chart pattern."""
     img = _candles_to_image(candles)
+
+    allow_fb = env_loader.get_env("ALLOW_FALLBACK_PATTERN", "no").lower() == "yes"
+    model_path = getattr(infer, "_MODEL_PATH", None)
+    if model_path and not Path(model_path).exists():
+        pe.increment_pattern_model_missing()
+        msg = f"CNN weight missing: {model_path}"
+        if allow_fb:
+            logger.warning(msg)
+        else:
+            logger.error(msg)
+            return False, 0.0
+
     res = infer.predict(img)
     prob = res.get("pattern", 0.0)
     passed = prob > PROB_THRESHOLD
