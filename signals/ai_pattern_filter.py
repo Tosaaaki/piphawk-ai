@@ -16,8 +16,6 @@ from monitoring import prom_exporter
 
 PROB_THRESHOLD = float(env_loader.get_env("CNN_PROB_THRESHOLD", "0.65"))
 
-from monitoring import prom_exporter as pe
-
 logger = logging.getLogger(__name__)
 
 
@@ -48,7 +46,7 @@ def pass_pattern_filter(candles: Iterable[Mapping]) -> tuple[bool, float]:
     allow_fb = env_loader.get_env("ALLOW_FALLBACK_PATTERN", "no").lower() == "yes"
     model_path = getattr(infer, "_MODEL_PATH", None)
     if model_path and not Path(model_path).exists():
-        pe.increment_pattern_model_missing()
+        prom_exporter.increment_pattern_model_missing()
         msg = f"CNN weight missing: {model_path}"
         if allow_fb:
             logger.warning(msg)
