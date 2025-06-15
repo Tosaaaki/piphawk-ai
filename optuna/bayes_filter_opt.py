@@ -20,6 +20,7 @@ def objective(trial: optuna.Trial) -> float:
     params = {
         "MIN_VOL_MA": trial.suggest_int("MIN_VOL_MA", 40, 120),
         "VOL_MA_PERIOD": trial.suggest_int("VOL_MA_PERIOD", 3, 10),
+        "CNN_PROB_THRESHOLD": trial.suggest_float("CNN_PROB_THRESHOLD", 0.55, 0.85),
     }
     env = os.environ.copy()
     env.update({k: str(v) for k, v in params.items()})

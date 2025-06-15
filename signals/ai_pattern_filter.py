@@ -12,9 +12,15 @@ import numpy as np
 
 from ai.cnn_pattern import infer
 from backend.utils import env_loader
+
+from monitoring import prom_exporter
+
+PROB_THRESHOLD = float(env_loader.get_env("CNN_PROB_THRESHOLD", "0.65"))
+
 from monitoring import prom_exporter as pe
 
 logger = logging.getLogger(__name__)
+
 
 
 def _candles_to_image(candles: Iterable[Mapping]) -> np.ndarray:
@@ -53,7 +59,13 @@ def pass_pattern_filter(candles: Iterable[Mapping]) -> tuple[bool, float]:
 
     res = infer.predict(img)
     prob = res.get("pattern", 0.0)
-    return prob > 0.65, prob
+    passed = prob > PROB_THRESHOLD
+    if passed:
+        try:
+            prom_exporter.increment_pattern_filter_pass()
+        except Exception:
+            pass
+    return passed, prob
 
 
 __all__ = ["pass_pattern_filter"]

@@ -33,9 +33,22 @@ rl_override_total = Counter(
     registry=registry,
 )
 
+
+pattern_filter_pass_total = Counter(
+    "pattern_filter_pass_total",
+    "Number of pattern filter passes",
+    registry=registry,
+)
+
+position_max_age_seconds = Histogram(
+    "position_max_age_seconds",
+    "Distribution of max open position age",
+    buckets=[0, 60, 300, 900, 3600, 7200],
+
 ai_pattern_model_missing_total = Counter(
     "ai_pattern_model_missing_total",
     "Number of times CNN pattern model missing",
+
     registry=registry,
 )
 
@@ -63,6 +76,15 @@ def increment_rl_override() -> None:
     """rl_override_total をインクリメントする."""
     rl_override_total.inc()
 
+
+def increment_pattern_filter_pass() -> None:
+    """pattern_filter_pass_total をインクリメントする."""
+    pattern_filter_pass_total.inc()
+
+
+def record_position_age(age: float) -> None:
+    """position_max_age_seconds に値を記録する."""
+    position_max_age_seconds.observe(age)
 
 def increment_pattern_model_missing() -> None:
     """ai_pattern_model_missing_total をインクリメントする."""
