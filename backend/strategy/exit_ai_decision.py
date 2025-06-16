@@ -77,6 +77,9 @@ def get_setting(key: str, default: str | None = None) -> str | None:
     return env_loader.get_env(key, default)
 
 
+MAX_SERIES_LEN = int(get_setting("AI_EXIT_MAX_SERIES_LEN", "30"))
+
+
 def to_serializable(obj: Any):
     """Recursively convert pandas Series or numpy arrays to lists."""
     try:
@@ -88,20 +91,21 @@ def to_serializable(obj: Any):
     except Exception:  # pragma: no cover - numpy may be absent
         np = None
 
-    if pd is not None and isinstance(obj, getattr(pd, "Series", ())):
+    if pd is not None and isinstance(obj, getattr(pd, "Series", ())) :
         try:
-            return [to_serializable(x) for x in obj.tolist()]
+            return [to_serializable(x) for x in obj.iloc[-MAX_SERIES_LEN:].tolist()]
         except Exception:
             return []
-    if np is not None and isinstance(obj, getattr(np, "ndarray", ())):
+    if np is not None and isinstance(obj, getattr(np, "ndarray", ())) :
         try:
-            return [to_serializable(x) for x in obj.tolist()]
+            return [to_serializable(x) for x in obj.tolist()[-MAX_SERIES_LEN:]]
         except Exception:
             return []
     if isinstance(obj, dict):
         return {k: to_serializable(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple, set)):
-        return [to_serializable(v) for v in obj]
+        seq = list(obj)[-MAX_SERIES_LEN:]
+        return [to_serializable(v) for v in seq]
     if hasattr(obj, "tolist") and not isinstance(obj, (str, bytes)):
         try:
             return [to_serializable(v) for v in obj.tolist()]
