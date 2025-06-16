@@ -2,6 +2,7 @@ from __future__ import annotations
 
 """Orchestration pipeline for the majority-vote trading architecture."""
 
+import os
 from dataclasses import dataclass
 from typing import Optional
 
@@ -14,6 +15,8 @@ from .entry_buffer import PlanBuffer
 from .market_air_sensor import MarketSnapshot, air_index
 from .post_filters import final_filter
 from .regime_detector import MarketMetrics, rule_based_regime
+
+FORCE_ENTER = os.getenv("FORCE_ENTER", "true").lower() == "true"
 
 
 @dataclass
@@ -82,8 +85,11 @@ def run_cycle(
         if avg_plan:
             plan = avg_plan
 
-    passed = True
-    return PipelineResult(plan, mode=mode, regime=regime, passed=passed)
+    passed = final_filter(plan, indicators)
+    # FORCE_ENTER が true の場合はフィルタ結果を無視して必ず発注
+    if FORCE_ENTER:
+        return PipelineResult(plan, mode=mode, regime=regime, passed=True)
+    return PipelineResult(plan if passed else None, mode=mode, regime=regime, passed=passed)
 
 
 __all__ = ["PipelineResult", "run_cycle"]

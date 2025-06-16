@@ -25,15 +25,7 @@ def net_tp_ok(tp: float, spread: float) -> bool:
 
 
 def final_filter(plan: EntryPlan, indicators: dict) -> bool:
-    """Return True if plan passes all filters."""
-    diff = float(indicators.get("ema_diff", 0))
-    spread = float(indicators.get("spread", 0))
-    return all(
-        [
-            ema_divergence_ok(diff),
-            rrr_ok(plan.tp, plan.sl),
-            net_tp_ok(plan.tp, spread),
-        ]
-    )
+    """Post-filter を全て無効化して必ず True を返す."""
+    return True
 
 __all__ = ["final_filter"]
