@@ -6,7 +6,7 @@ from collections import Counter
 from backend.utils import env_loader
 from backend.utils.openai_client import ask_openai
 
-AI_STRATEGY_MODEL = env_loader.get_env("AI_STRATEGY_MODEL", "gpt-4.1-nano")
+AI_STRATEGY_MODEL = env_loader.get_env("AI_STRATEGY_MODEL", "gpt-3.5-turbo-0125")
 STRAT_TEMP = float(env_loader.get_env("STRAT_TEMP", "0.15"))
 STRAT_N = int(env_loader.get_env("STRAT_N", "3"))
 STRAT_VOTE_MIN = int(env_loader.get_env("STRAT_VOTE_MIN", "2"))

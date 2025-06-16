@@ -31,7 +31,7 @@ def get_mode_scores(snapshot: Any) -> Dict[str, float]:
         raw = ask_openai(
             prompt,
             system_prompt=_SYSTEM_PROMPT,
-            model="gpt-4o",
+            model="gpt-3.5-turbo-0125",
             temperature=0.0,
             response_format={"type": "json_object"},
         )

@@ -90,7 +90,7 @@ MAX_LIMIT_AGE_SEC: int = int(env_loader.get_env("MAX_LIMIT_AGE_SEC", "180"))
 MIN_NET_TP_PIPS: float = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
 BE_TRIGGER_PIPS: int = int(env_loader.get_env("BE_TRIGGER_PIPS", 10))
 BE_TRIGGER_R: float = float(env_loader.get_env("BE_TRIGGER_R", "0"))
-AI_LIMIT_CONVERT_MODEL: str = env_loader.get_env("AI_LIMIT_CONVERT_MODEL", "gpt-4.1-nano")
+AI_LIMIT_CONVERT_MODEL: str = env_loader.get_env("AI_LIMIT_CONVERT_MODEL", "gpt-3.5-turbo-0125")
 MIN_RRR: float = float(env_loader.get_env("MIN_RRR", "0.8"))
 # Apply entry-type boost only when enabled via environment
 ENTRY_TYPE_BOOST: bool = env_loader.get_env("ENTRY_TYPE_BOOST", "false").lower() == "true"
@@ -1275,7 +1275,7 @@ def get_trade_plan(
     )
     try:
         raw = ask_openai(
-            prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano")
+            prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-3.5-turbo-0125")
         )
         log_prompt_response(
             "ENTRY",
@@ -1316,7 +1316,7 @@ def get_trade_plan(
         return {"entry": {"side": "no"}, "raw": raw, "reason": "PARSE_FAIL"}
     if not _is_schema_valid(plan):
         try:
-            raw_retry = ask_openai(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-4.1-nano"))
+            raw_retry = ask_openai(prompt, model=env_loader.get_env("AI_TRADE_MODEL", "gpt-3.5-turbo-0125"))
             plan_retry, _ = parse_json_answer(raw_retry)
             if plan_retry and _is_schema_valid(plan_retry):
                 plan = plan_retry

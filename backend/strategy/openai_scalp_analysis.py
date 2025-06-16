@@ -6,7 +6,7 @@ from backend.utils.prompt_loader import load_template
 
 logger = logging.getLogger(__name__)
 
-AI_SCALP_MODEL = env_loader.get_env("AI_SCALP_MODEL", "gpt-4.1-nano")
+AI_SCALP_MODEL = env_loader.get_env("AI_SCALP_MODEL", "gpt-3.5-turbo-0125")
 SCALP_PROMPT_BIAS = env_loader.get_env("SCALP_PROMPT_BIAS", "normal").lower()
 PROMPT_TEMPLATE = load_template("scalp_analysis.txt")
 
