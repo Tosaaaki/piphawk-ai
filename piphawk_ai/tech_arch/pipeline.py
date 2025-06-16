@@ -31,8 +31,6 @@ def run_cycle() -> dict | None:
 
     if ENTRY_USE_AI:
         decision = call_llm(mode, signal, indicators)
-        if not decision.get("go"):
-            return None
     else:
         decision = {"go": True, "tp_mult": 2.0, "sl_mult": 1.0}
 

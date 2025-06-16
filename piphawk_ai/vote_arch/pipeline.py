@@ -82,8 +82,8 @@ def run_cycle(
         if avg_plan:
             plan = avg_plan
 
-    passed = True if force_enter else final_filter(plan, indicators)
-    return PipelineResult(plan if passed else None, mode=mode, regime=regime, passed=passed)
+    passed = True
+    return PipelineResult(plan, mode=mode, regime=regime, passed=passed)
 
 
 __all__ = ["PipelineResult", "run_cycle"]
