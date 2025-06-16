@@ -2270,6 +2270,30 @@ class JobRunner:
                                 )
 
                             # --- SL hit cooldown check ----------------------
+                            cooldown = int(
+                                env_loader.get_env(
+                                    "SL_COOLDOWN_SEC", str(self.sl_cooldown_sec)
+                                )
+                            )
+                            if (
+                                self.last_sl_time
+                                and (now - self.last_sl_time).total_seconds() < cooldown
+                            ):
+                                log.info(
+                                    f"Entry blocked: recent SL hit on {self.last_sl_side}. Cooldown {(now - self.last_sl_time).total_seconds():.0f}s < {cooldown}s"
+                                )
+                                log_entry_skip(
+                                    DEFAULT_PAIR,
+                                    self.last_sl_side or "",
+                                    "sl_cooldown",
+                                    f"{(now - self.last_sl_time).total_seconds():.0f}s < {cooldown}s",
+                                )
+                                self.last_run = now
+                                update_oanda_trades()
+                                time.sleep(self.interval_seconds)
+                                timer.stop()
+                                continue
+
                             try:
                                 plan_check = get_trade_plan(
                                     tick_data,
@@ -2289,31 +2313,24 @@ class JobRunner:
                                 log.warning(f"get_trade_plan failed for check: {exc}")
                                 side = "no"
 
-                            cooldown = int(
-                                env_loader.get_env(
-                                    "SL_COOLDOWN_SEC", str(self.sl_cooldown_sec)
-                                )
-                            )
-                            if (
-                                side in ("long", "short")
-                                and self.last_sl_time
-                                and (now - self.last_sl_time).total_seconds() < cooldown
-                                and side == self.last_sl_side
-                            ):
-                                log.info(
-                                    f"Entry blocked: recent SL hit on {side}. Cooldown {(now - self.last_sl_time).total_seconds():.0f}s < {cooldown}s"
-                                )
-                                log_entry_skip(
-                                    DEFAULT_PAIR,
-                                    side,
-                                    "sl_cooldown",
-                                    f"{(now - self.last_sl_time).total_seconds():.0f}s < {cooldown}s",
-                                )
-                                self.last_run = now
-                                update_oanda_trades()
-                                time.sleep(self.interval_seconds)
-                                timer.stop()
-                                continue
+                            if side in ("long", "short") and side == self.last_sl_side:
+                                if self.last_sl_time and (
+                                    now - self.last_sl_time
+                                ).total_seconds() < cooldown:
+                                    log.info(
+                                        f"Entry blocked: recent SL hit on {side}. Cooldown {(now - self.last_sl_time).total_seconds():.0f}s < {cooldown}s"
+                                    )
+                                    log_entry_skip(
+                                        DEFAULT_PAIR,
+                                        side,
+                                        "sl_cooldown",
+                                        f"{(now - self.last_sl_time).total_seconds():.0f}s < {cooldown}s",
+                                    )
+                                    self.last_run = now
+                                    update_oanda_trades()
+                                    time.sleep(self.interval_seconds)
+                                    timer.stop()
+                                    continue
 
                             if side == "long" and consecutive_lower_lows(candles_m5):
                                 log.info(
