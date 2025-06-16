@@ -329,6 +329,7 @@ The system derives a dynamic pullback requirement from ATR, ADX and recent price
 `想定ノイズ` is automatically computed from ATR and Bollinger Band width and included in the AI prompt to help choose wider stop-loss levels.
 The indicators module also calculates `adx_bb_score`, a composite value derived from ADX changes and Bollinger Band width. This score is passed to the AI so it can gauge momentum strength from multiple angles.
 `NOISE_SL_MULT` は AI が算出した SL をこの倍率で拡大します (default `1.5`).
+`TP_ONLY_NOISE_MULT` を設定すると、SL が想定ノイズ × この倍率未満の場合 TP のみを設定します。
 `BE_VOL_ADX_MIN` と `BE_VOL_SL_MULT` を設定すると、ブレイクイーブン発動時に ADX
 がこの値以上なら SL を `entry_price ± ATR × BE_VOL_SL_MULT` に調整します。
 `PATTERN_NAMES` lists chart pattern names passed to the AI or local scanner for detection, e.g. `double_bottom,double_top,doji`.

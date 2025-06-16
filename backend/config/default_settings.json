@@ -52,6 +52,8 @@
     "ATR_MULT_TP": 0.8,
     "ATR_MULT_SL": 1.1,
     "NOISE_SL_MULT": 1.2,
+    "TP_ONLY_NOISE_MULT": 0.0,
+    "_TP_ONLY_NOISE_NOTE": "If sl_pips < noise_pips * TP_ONLY_NOISE_MULT omit SL",
     "AI_PROFIT_TRIGGER_RATIO": 0.5,
     "AI_PROFIT_DECISION_ENABLED": true,
     "STAGNANT_EXIT_SEC": 0,
