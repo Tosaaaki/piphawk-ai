@@ -883,26 +883,7 @@ def process_entry(
 
     if mode == "market" and not is_break:
         price_ref = bid if side == "long" else ask
-        offset = 0.0
-        if higher_tf and price_ref is not None:
-            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-            sup_pips = float(env_loader.get_env("PIVOT_SUPPRESSION_PIPS", "15"))
-            base_pullback = float(env_loader.get_env("PULLBACK_PIPS", "3"))
-            pullback = pullback_needed if pullback_needed is not None else base_pullback
-            tfs = [
-                tf.strip().upper()
-                for tf in env_loader.get_env("PIVOT_SUPPRESSION_TFS", "D").split(",")
-                if tf.strip()
-            ]
-            for tf in tfs:
-                pivot = higher_tf.get(f"pivot_{tf.lower()}")
-                if pivot is None:
-                    continue
-                if abs((price_ref - pivot) / pip_size) <= sup_pips:
-                    offset = pullback
-                    break
-        if offset == 0.0:
-            offset = calculate_pullback_offset(indicators, market_cond)
+        offset = calculate_pullback_offset(indicators, market_cond)
         if pullback_needed is not None:
             offset = max(offset, pullback_needed)
         if offset and price_ref is not None:

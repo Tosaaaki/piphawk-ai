@@ -1360,11 +1360,6 @@ def get_trade_plan(
         if (higher_tf_direction == "long" and side_planned == "short") or (higher_tf_direction == "short" and side_planned == "long"):
             entry_conf = max(0.0, entry_conf - 0.3)
 
-    pivot_penalty = None
-    if filter_ctx:
-        pivot_penalty = filter_ctx.get("pivot_penalty")
-    if entry_conf is not None and pivot_penalty is not None:
-        entry_conf = max(0.0, entry_conf - float(pivot_penalty))
     if entry_conf is None:
         entry_conf = 0.5
     entry_type = _classify_entry_type(market_cond, pullback_done)

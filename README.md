@@ -317,7 +317,7 @@ exit is considered.
 `MM_DRAW_MAX_ATR_RATIO` controls how much drawdown from the peak is allowed before the peak exit guard triggers. The value is multiplied by ATR to derive the threshold.
 `PULLBACK_LIMIT_OFFSET_PIPS` is the base distance for a pullback LIMIT order when the AI proposes a market entry. The actual offset is derived from ATR and ADX, and if price runs away while the trend persists the order can be switched to a market order under AI control.
 `AI_LIMIT_CONVERT_MODEL` sets the OpenAI model used when asking whether a pending LIMIT should be switched to a market order. The default is `gpt-3.5-turbo-0125`.
-`PULLBACK_PIPS` defines the offset used specifically when the price is within the pivot suppression range. The defaults are `2` and `3` respectively.
+`PULLBACK_PIPS` defines the base pullback distance used when placing limit orders. The defaults are `2` and `3` respectively.
 `PULLBACK_ATR_RATIO` は ATR に基づくプルバック深度の調整係数で、1.0 なら ATR と同じ値、0.5 なら半分の深さを待ちます。
 `PIP_SIZE` specifies the pip value for the traded pair (e.g. `0.01` for JPY pairs) and is used when calculating the new volatility‑based pullback threshold.
 `TRADE_TIMEFRAMES` allows overriding which candle intervals are fetched for analysis. Specify as `S10:60,M1:20,M5:50,M15:50,H1:120,H4:90,D:90` to cover short to long horizons. `S10` denotes 10‑second candles.

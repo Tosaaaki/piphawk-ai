@@ -465,41 +465,7 @@ def pass_entry_filter(
         )
         return False
 
-    # --- Pivot suppression for specified timeframes --------------------
-    if env_loader.get_env("HIGHER_TF_ENABLED", "true").lower() == "true":
-        pair = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
-        tfs = [
-            tf.strip().upper()
-            for tf in env_loader.get_env("PIVOT_SUPPRESSION_TFS", "D").split(",")
-            if tf.strip()
-        ]
-        higher = analyze_higher_tf(pair)
-        tick = fetch_tick_data(pair)
-        current_price = float(tick["prices"][0]["bids"][0]["price"])
-        pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-        sup_pips = float(env_loader.get_env("PIVOT_SUPPRESSION_PIPS", "15"))
-        for tf in tfs:
-            pivot = higher.get(f"pivot_{tf.lower()}")
-            if pivot is None:
-                continue
-            dist_pips = abs((current_price - pivot) / pip_size)
-            if dist_pips <= sup_pips:
-                threshold_pct = float(
-                    env_loader.get_env("PIVOT_DISTANCE_THRESHOLD", "0")
-                )
-                penalty = None
-                if threshold_pct > 0 and pivot != 0:
-                    pct = abs(current_price - pivot) / pivot * 100
-                    if pct <= threshold_pct:
-                        penalty = (threshold_pct - pct) / threshold_pct
-                if context is not None and penalty is not None:
-                    context["pivot_penalty"] = max(
-                        context.get("pivot_penalty", 0), penalty
-                    )
-                logger.info("Filter WARN: pivot proximity")
-                logger.debug(
-                    f"Within {sup_pips} pips of {tf} pivot → penalty {penalty}"
-                )
+
 
     # --- Range / Volatility metrics ------------------------------------
     rsi_series = indicators["rsi"]
