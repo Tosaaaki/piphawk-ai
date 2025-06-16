@@ -33,6 +33,7 @@ def run_cycle(
     buffer: PlanBuffer | None = None,
     *,
     price: float | None = None,
+    force_enter: bool = False,
 ) -> PipelineResult:
     """Run the full majority-vote pipeline and return result."""
 
@@ -81,7 +82,7 @@ def run_cycle(
         if avg_plan:
             plan = avg_plan
 
-    passed = final_filter(plan, indicators)
+    passed = True if force_enter else final_filter(plan, indicators)
     return PipelineResult(plan if passed else None, mode=mode, regime=regime, passed=passed)
 
 

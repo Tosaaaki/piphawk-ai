@@ -2427,7 +2427,11 @@ class JobRunner:
                                 if self.use_vote_pipeline:
                                     log.info("Using vote pipeline for entry")
                                     res = vote_run_cycle(
-                                        indicators, metrics, snapshot, self.plan_buffer
+                                        indicators,
+                                        metrics,
+                                        snapshot,
+                                        self.plan_buffer,
+                                        force_enter=True,
                                     )
                                     if not res or not res.plan:
                                         log.info("Pipeline declined entry → skipping")
