@@ -3,6 +3,7 @@ import importlib
 from backend.filters.false_break_filter import should_skip as false_break_skip
 from backend.logs.trade_logger import log_trade
 from backend.orders.order_manager import OrderManager
+from backend.risk_manager import tp_only_condition
 from backend.strategy.dynamic_pullback import calculate_dynamic_pullback
 from backend.strategy.risk_manager import calc_lot_size
 from risk.tp_sl_manager import adjust_sl_for_rr
@@ -471,6 +472,14 @@ def process_entry(
                 "ai_response": "scalp",
                 "market_cond": market_cond,
             }
+            with_oco = True
+            try:
+                from backend.risk_manager import tp_only_condition
+
+                if tp_only_condition(sl_pips, noise_pips):
+                    with_oco = False
+            except Exception:
+                pass
             if trade_mode == "scalp_reversion":
                 params["time_limit_sec"] = float(
                     env_loader.get_env("SCALP_REV_TIME_LIMIT_SEC", "120")
@@ -490,6 +499,7 @@ def process_entry(
                 market_data=market_data,
                 strategy_params=params,
                 force_limit_only=False,
+                with_oco=with_oco,
             )
             return bool(result)
         except Exception as exc:
@@ -1216,6 +1226,7 @@ def process_entry(
             market_data=market_data,
             strategy_params=params_limit,
             force_limit_only=False,
+            with_oco=not tp_only_condition(sl_pips, noise_pips),
         )
         if result:
             _pending_limits[entry_uuid] = {
@@ -1264,6 +1275,7 @@ def process_entry(
         market_data=market_data,
         strategy_params=params,
         force_limit_only=False,
+        with_oco=not tp_only_condition(sl_pips, noise_pips),
     )
 
     if trade_result and mode == "market":

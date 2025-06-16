@@ -105,6 +105,8 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
   以上なら早期決済を検討
 - NOISE_SL_MULT:
   AIが算出したSLをこの倍率で拡大
+- TP_ONLY_NOISE_MULT:
+  SLが想定ノイズ×この倍率より小さい場合は TP のみを設定
 
 ### トレーリングストップ設定
 
@@ -211,6 +213,7 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - TP_BB_RATIO: ボリンジャーバンド幅からTP候補を算出するときの倍率
 - RANGE_ENTRY_OFFSET_PIPS: BB 中心からこのpips以内なら LIMIT へ切替
 - NOISE_SL_MULT: AI計算のSLを拡大する倍率
+- TP_ONLY_NOISE_MULT: SL がノイズより小さい場合に TP のみを設定する倍率
 - PATTERN_NAMES: 検出対象とするチャートパターン名一覧
 - LOCAL_WEIGHT_THRESHOLD: ローカル検出とAI判定の重み付け閾値
 - PATTERN_MIN_BARS / PATTERN_TOLERANCE: パターン成立条件の細かい調整
