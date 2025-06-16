@@ -15,7 +15,7 @@ except Exception:  # pragma: no cover - optional dependency or test stub
 
 
 from backend.utils import env_loader, trade_age_seconds
-from backend.utils.openai_client import set_call_limit
+from backend.utils.openai_client import reset_call_counter, set_call_limit
 from backend.utils.restart_guard import can_restart
 
 try:
@@ -939,6 +939,7 @@ class JobRunner:
         logger.info("Job Runner started.")
         while not self._stop:
             try:
+                reset_call_counter()
                 timer = PerfTimer("job_loop")
                 now = datetime.now(timezone.utc)
                 # ---- Market‑hours guard ---------------------------------

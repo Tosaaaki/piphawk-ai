@@ -145,3 +145,18 @@ def calc_fallback_tp_sl(indicators: dict, pip_size: float) -> tuple[float | None
 
     return tp, sl
 
+
+def tp_only_condition(sl_pips: float | None, noise_pips: float | None) -> bool:
+    """Return True if SL is below noise threshold and should be omitted."""
+    try:
+        coeff = float(env_loader.get_env("TP_ONLY_NOISE_MULT", "0"))
+        return (
+            coeff > 0
+            and sl_pips is not None
+            and noise_pips is not None
+            and float(sl_pips) < float(noise_pips) * coeff
+        )
+    except Exception:
+        return False
+
+

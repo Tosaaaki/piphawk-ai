@@ -17,7 +17,7 @@ except Exception:  # pragma: no cover - optional dependency or test stub
 
 from backend.core.ai_throttle import get_cooldown
 from backend.utils import env_loader, trade_age_seconds
-from backend.utils.openai_client import set_call_limit
+from backend.utils.openai_client import reset_call_counter, set_call_limit
 from backend.utils.restart_guard import can_restart
 from maintenance.disk_guard import maybe_cleanup
 
@@ -1268,6 +1268,7 @@ class JobRunner:
         log.info("Job Runner started.")
         while not self._stop:
             try:
+                reset_call_counter()
                 maybe_cleanup()
                 timer = PerfTimer("job_loop")
                 now = datetime.now(timezone.utc)
