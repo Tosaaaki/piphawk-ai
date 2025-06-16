@@ -2143,41 +2143,6 @@ class JobRunner:
                             time.sleep(self.interval_seconds)
                             timer.stop()
                             continue
-
-                        # 2) Pivot-based suppression: avoid entries near specified pivots
-                        if self.higher_tf_enabled:
-                            current_price = float(
-                                tick_data["prices"][0]["bids"][0]["price"]
-                            )
-                            pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-                            sup_pips = float(
-                                env_loader.get_env("PIVOT_SUPPRESSION_PIPS", "15")
-                            )
-                            tfs = [
-                                tf.strip().upper()
-                                for tf in env_loader.get_env(
-                                    "PIVOT_SUPPRESSION_TFS", "D"
-                                ).split(",")
-                                if tf.strip()
-                            ]
-                            suppress = False
-                            for tf in tfs:
-                                pivot = higher_tf.get(f"pivot_{tf.lower()}")
-                                if pivot is None:
-                                    continue
-                                if abs((current_price - pivot) / pip_size) <= sup_pips:
-                                    log.info(
-                                        f"Pivot suppression: price {current_price} within {sup_pips} pips of {tf} pivot {pivot}. Skipping entry."
-                                    )
-                                    suppress = True
-                                    break
-                            if suppress:
-                                self.last_run = now
-                                update_oanda_trades()
-                                time.sleep(self.interval_seconds)
-                                timer.stop()
-                                continue
-
                         # ── Entry side ───────────────────────────────
                         current_price = float(
                             tick_data["prices"][0]["bids"][0]["price"]

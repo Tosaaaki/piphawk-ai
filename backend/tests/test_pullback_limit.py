@@ -63,8 +63,6 @@ class TestPullbackLimit(unittest.TestCase):
         import backend.strategy.entry_logic as el
         importlib.reload(el)
         self.el = el
-        os.environ["PIVOT_SUPPRESSION_PIPS"] = "15"
-        os.environ["PIVOT_SUPPRESSION_TFS"] = "D"
         os.environ["PULLBACK_PIPS"] = "3"
         os.environ["PULLBACK_LIMIT_OFFSET_PIPS"] = "0"
         os.environ["PIP_SIZE"] = "0.01"
