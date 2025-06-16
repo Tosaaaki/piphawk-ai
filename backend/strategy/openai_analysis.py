@@ -1576,6 +1576,26 @@ def get_trade_plan(
                     plan.setdefault("entry", {})["mode"] = "market"
     except Exception:
         pass
+
+    # --- Ensure side is long or short ---------------------------------
+    side_val = plan.get("entry", {}).get("side")
+    if side_val not in ("long", "short"):
+        probs = plan.get("probs", {}) or {}
+        try:
+            long_p = float(probs.get("long", 0))
+            short_p = float(probs.get("short", 0))
+        except Exception:
+            long_p = short_p = 0.0
+        if long_p > short_p:
+            forced = "long"
+        elif short_p > long_p:
+            forced = "short"
+        elif higher_tf_direction in ("long", "short"):
+            forced = higher_tf_direction
+        else:
+            forced = "long"
+        plan.setdefault("entry", {})["side"] = forced
+
     return plan
 
 
