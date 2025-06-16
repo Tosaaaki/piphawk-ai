@@ -13,7 +13,12 @@ import json
 import logging
 import time
 from collections import OrderedDict
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
+
+try:
+    import tiktoken  # type: ignore
+except Exception:  # pragma: no cover - optional dependency
+    tiktoken = None
 
 from backend.utils import env_loader
 
@@ -69,7 +74,7 @@ def reset_call_counter() -> None:
     _calls_this_loop = 0
 
 def ask_openai(
-    prompt: str,
+    prompt: str | None = None,
     system_prompt: str = "You are a helpful assistant.",
     model: str | None = None,
     *,
@@ -77,16 +82,19 @@ def ask_openai(
     temperature: float = 0.7,
     response_format: dict | None = None,
     n: int = 1,
+    messages: List[Dict[str, str]] | None = None,
 ) -> dict | list[dict]:
     """
-    Send a prompt to OpenAI's API and return the response text.
+    Send a prompt or prepared message list to OpenAI's API and return the response.
     Args:
-        prompt (str): The user prompt/question.
-        system_prompt (str): The system message (instructions for the assistant).
+        prompt (str | None): The user prompt/question when ``messages`` is not used.
+        system_prompt (str): The system message (ignored when ``messages`` is given).
         model (str): The OpenAI model to use.
         response_format (dict | None): Optional response_format passed directly
             to the OpenAI client's ``chat.completions.create`` method.
             Defaults to requesting a JSON object when not provided.
+        messages (list[dict] | None): Pre-composed message list overriding
+            ``prompt`` and ``system_prompt``.
     Returns:
         dict or list[dict]: Parsed JSON object(s) returned by the assistant.
     Raises:
@@ -103,7 +111,12 @@ def ask_openai(
         raise RuntimeError("OpenAI call limit exceeded")
     _calls_this_loop += 1
 
-    key = (model, system_prompt, prompt)
+    if messages is not None:
+        cache_prompt = json.dumps(messages, ensure_ascii=False, sort_keys=True)
+        key = (model, "messages", cache_prompt)
+    else:
+        cache_prompt = prompt or ""
+        key = (model, system_prompt, cache_prompt)
     now = time.time()
     cached = _cache.get(key)
     if cached:
@@ -118,12 +131,14 @@ def ask_openai(
             response_format = {"type": "json_object"}
 
         openai_client = _get_client()
+        if messages is None:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt or ""},
+            ]
         response = openai_client.chat.completions.create(
             model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt},
-            ],
+            messages=messages,
             max_tokens=max_tokens,
             temperature=temperature,
             response_format=response_format,
@@ -170,9 +185,57 @@ async def ask_openai_async(
     )
 
 
+def num_tokens(messages: List[Dict[str, str]], model: str | None = None) -> int:
+    """Return token count for message list."""
+
+    if model is None:
+        model = AI_MODEL
+
+    if tiktoken is None:
+        return sum(len(m.get("content", "")) // 4 for m in messages)
+
+    try:
+        enc = tiktoken.encoding_for_model(model)
+    except Exception:  # pragma: no cover - unknown model
+        enc = tiktoken.get_encoding("cl100k_base")
+
+    tokens_per_message = 4 if model.startswith("gpt-3.5") else 3
+    tokens_per_name = -1 if model.startswith("gpt-3.5") else 1
+
+    count = 0
+    for msg in messages:
+        count += tokens_per_message
+        for k, v in msg.items():
+            count += len(enc.encode(v))
+            if k == "name":
+                count += tokens_per_name
+    return count + 3
+
+
+def trim_tokens(
+    messages: List[Dict[str, str]],
+    limit: int,
+    *,
+    model: str | None = None,
+) -> List[Dict[str, str]]:
+    """Trim messages so total tokens do not exceed *limit*."""
+
+    trimmed = list(messages)
+    while len(trimmed) > 1 and num_tokens(trimmed, model=model) > limit:
+        for i, msg in enumerate(trimmed):
+            if msg.get("role") != "system":
+                trimmed.pop(i)
+                break
+        else:
+            break
+    return trimmed
+
+
 __all__ = [
     "ask_openai",
     "ask_openai_async",
+    "num_tokens",
+    "trim_tokens",
     "AI_MODEL",
     "set_call_limit",
     "reset_call_counter",
