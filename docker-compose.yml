@@ -15,6 +15,7 @@ services:
       - KAFKA_SERVERS=kafka:9092
       - KAFKA_BROKERS=kafka:9092
       - TRADES_DB_PATH=/app/backend/logs/trades.db
+      - FORCE_ENTER=true
     depends_on:
       kafka:
         condition: service_healthy

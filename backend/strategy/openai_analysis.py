@@ -1491,18 +1491,7 @@ def get_trade_plan(
             plan["entry"]["side"] = "no"
             plan.setdefault("reason", "PROB_TOO_LOW")
 
-    # Composite score check
-    try:
-        if comp_val is not None and comp_val < COMPOSITE_MIN:
-            plan["entry"]["side"] = "no"
-            plan.setdefault("reason", "COMPOSITE_TOO_LOW")
-            logger.info(
-                "Composite score %.2f < %.2f → entry blocked",
-                comp_val,
-                COMPOSITE_MIN,
-            )
-    except Exception:
-        pass
+    # Composite score 判定を完全にスキップ
 
     if plan.get("entry", {}).get("side") == "no":
         plan["risk"] = {}
