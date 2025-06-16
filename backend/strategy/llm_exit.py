@@ -37,7 +37,7 @@ _SYSTEM_PROMPT = (
 def propose_exit_adjustment(context: Dict[str, Any]) -> Dict[str, Any]:
     """Ask the LLM for TP/SL adjustment proposals."""
     prompt = "CONTEXT:\n" + json.dumps(context, ensure_ascii=False)
-    model = env_loader.get_env("AI_EXIT_MODEL", "gpt-4.1-nano")
+    model = env_loader.get_env("AI_EXIT_MODEL", "gpt-3.5-turbo-0125")
     temperature = float(env_loader.get_env("AI_EXIT_TEMPERATURE", "0.0"))
     max_tokens = int(env_loader.get_env("AI_EXIT_MAX_TOKENS", "64"))
     try:

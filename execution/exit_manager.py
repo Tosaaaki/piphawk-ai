@@ -40,7 +40,7 @@ class ExitManager:
             "Predict whether price will reverse beyond stop-loss. "
             'Reply with JSON {"reverse_gt_sl":bool,"suggest_tp":float}.'
         )
-        model = env_loader.get_env("AI_EXIT_MODEL", "gpt-4.1-nano")
+        model = env_loader.get_env("AI_EXIT_MODEL", "gpt-3.5-turbo-0125")
         temperature = float(env_loader.get_env("AI_EXIT_TEMPERATURE", "0.0"))
         try:
             raw = ask_openai(
