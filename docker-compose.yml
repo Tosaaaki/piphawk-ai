@@ -6,7 +6,6 @@ services:
     container_name: piphawk-app
     volumes:
       - ./models:/app/models
-      - ./trades.db:/app/trades.db
       - ./backend/logs:/app/backend/logs
     env_file:
       - .env
@@ -15,6 +14,7 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - KAFKA_SERVERS=kafka:9092
       - KAFKA_BROKERS=kafka:9092
+      - TRADES_DB_PATH=/app/backend/logs/trades.db
     depends_on:
       kafka:
         condition: service_healthy
@@ -24,7 +24,7 @@ services:
     ports:
       - "8080:8080"
     command: >
-      sh -c "test -f /app/.db_initialized || (sqlite3 /app/trades.db < /app/sql/schema.sql && touch /app/.db_initialized); python -m piphawk_ai.main job"
+      sh -c "test -f /app/.db_initialized || (sqlite3 /app/backend/logs/trades.db < /app/sql/schema.sql && touch /app/.db_initialized); python -m piphawk_ai.main job"
 
   kafka:
     image: bitnami/kafka:3.7
