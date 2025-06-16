@@ -334,6 +334,7 @@ RUNNER_INSTANCE = None
 
 DEFAULT_PAIR = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
 ENTRY_USE_AI = env_loader.get_env("ENTRY_USE_AI", "true").lower() == "true"
+USE_LLM_REGIME = env_loader.get_env("USE_LLM_REGIME", "true").lower() == "true"
 
 # Comma-separated chart pattern names used for AI analysis
 PATTERN_NAMES = [
@@ -648,6 +649,8 @@ class JobRunner:
         higher_tf: dict,
     ) -> dict:
         """Return market condition using precomputed indicators."""
+        if not USE_LLM_REGIME:
+            return {}
         cond_ind = self._get_cond_indicators()
         ctx = {
             "indicators": {
@@ -1484,6 +1487,25 @@ class JobRunner:
                             timer.stop()
                             continue
 
+                    current_price = float(
+                        tick_data["prices"][0]["bids"][0]["price"]
+                    )
+                    if not pass_entry_filter(
+                        indicators,
+                        current_price,
+                        self.indicators_M1,
+                        self.indicators_M15,
+                        self.indicators_H1,
+                        mode=self.trade_mode,
+                    ):
+                        log.info("Entry blocked by filter → skip any AI calls.")
+                        self.last_position_review_ts = None
+                        self.last_run = now
+                        update_oanda_trades()
+                        time.sleep(self.interval_seconds)
+                        timer.stop()
+                        continue
+
                     # 市場コンディションを一度だけ評価し再利用する
                     market_cond = self._evaluate_market_condition(
                         candles_m1,
@@ -2147,59 +2169,49 @@ class JobRunner:
                         current_price = float(
                             tick_data["prices"][0]["bids"][0]["price"]
                         )
-                        if pass_entry_filter(
-                            indicators,
-                            current_price,
-                            self.indicators_M1,
-                            self.indicators_M15,
-                            self.indicators_H1,
-                            mode=self.trade_mode,
-                        ):
-                            log.info("Filter OK → Processing entry decision with AI.")
-                            self.last_ai_call = datetime.now()  # record AI call time *before* the call
-                            log.debug(f"Market condition (post‑filter): {market_cond}")
+                        self.last_ai_call = datetime.now()  # record AI call time *before* the call
 
-                            climax_side = detect_climax_reversal(candles_m5, indicators)
-                            if climax_side and not has_position:
-                                log.info(
-                                    f"Climax reversal detected → {climax_side} entry"
-                                )
-                                params = {
-                                    "instrument": DEFAULT_PAIR,
-                                    "side": climax_side,
-                                    "tp_pips": float(
-                                        env_loader.get_env("CLIMAX_TP_PIPS", "7")
-                                    ),
-                                    "sl_pips": float(
-                                        env_loader.get_env("CLIMAX_SL_PIPS", "10")
-                                    ),
-                                    "mode": "market",
-                                    "market_cond": market_cond,
-                                }
-                                risk_pct = float(
-                                    env_loader.get_env("ENTRY_RISK_PCT", "0.01")
-                                )
-                                pip_val = float(
-                                    env_loader.get_env("PIP_VALUE_JPY", "100")
-                                )
-                                lot = calc_lot_size(
-                                    self.account_balance,
-                                    risk_pct,
-                                    float(params["sl_pips"]),
-                                    pip_val,
-                                    risk_engine=self.risk_mgr,
-                                )
-                                order_mgr.enter_trade(
-                                    side=climax_side,
-                                    lot_size=lot if lot > 0 else 0.0,
-                                    market_data=tick_data,
-                                    strategy_params=params,
-                                )
-                                self.last_run = now
-                                update_oanda_trades()
-                                time.sleep(self.interval_seconds)
-                                timer.stop()
-                                continue
+                        climax_side = detect_climax_reversal(candles_m5, indicators)
+                        if climax_side and not has_position:
+                            log.info(
+                                f"Climax reversal detected → {climax_side} entry"
+                            )
+                            params = {
+                                "instrument": DEFAULT_PAIR,
+                                "side": climax_side,
+                                "tp_pips": float(
+                                    env_loader.get_env("CLIMAX_TP_PIPS", "7")
+                                ),
+                                "sl_pips": float(
+                                    env_loader.get_env("CLIMAX_SL_PIPS", "10")
+                                ),
+                                "mode": "market",
+                                "market_cond": market_cond,
+                            }
+                            risk_pct = float(
+                                env_loader.get_env("ENTRY_RISK_PCT", "0.01")
+                            )
+                            pip_val = float(
+                                env_loader.get_env("PIP_VALUE_JPY", "100")
+                            )
+                            lot = calc_lot_size(
+                                self.account_balance,
+                                risk_pct,
+                                float(params["sl_pips"]),
+                                pip_val,
+                                risk_engine=self.risk_mgr,
+                            )
+                            order_mgr.enter_trade(
+                                side=climax_side,
+                                lot_size=lot if lot > 0 else 0.0,
+                                market_data=tick_data,
+                                strategy_params=params,
+                            )
+                            self.last_run = now
+                            update_oanda_trades()
+                            time.sleep(self.interval_seconds)
+                            timer.stop()
+                            continue
 
                             if filter_pre_ai(candles_m5, indicators, market_cond):
                                 log.info("Pre-AI filter triggered → skipping entry.")
