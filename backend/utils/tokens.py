@@ -4,11 +4,18 @@ from __future__ import annotations
 import json
 from typing import Dict, List
 
-import tiktoken
+try:
+    import tiktoken  # type: ignore
+except Exception:  # pragma: no cover - optional dependency
+    tiktoken = None
 
 
 def num_tokens(messages: List[Dict[str, str]], model: str = "gpt-3.5-turbo-0125") -> int:
     """Return token count for chat messages."""
+
+    if tiktoken is None:
+        return sum(len(m.get("content", "")) // 4 for m in messages)
+
     enc = tiktoken.encoding_for_model(model)
     tokens_per_msg = 4
     tokens_per_name = -1
