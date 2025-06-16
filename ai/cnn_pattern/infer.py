@@ -5,8 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
-import torch
 from PIL import Image
+
+import torch
 
 from .model import PatternCNN
 
