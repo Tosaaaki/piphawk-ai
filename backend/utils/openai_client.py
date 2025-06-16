@@ -16,6 +16,7 @@ from collections import OrderedDict
 from typing import Dict, Optional, Tuple
 
 from backend.utils import env_loader
+from backend.utils.rate_limiter import TokenBucket
 
 # env_loader はインポート時に既定の .env を読み込む
 
@@ -54,6 +55,7 @@ _CACHE_MAX = int(env_loader.get_env("OPENAI_CACHE_MAX", "100"))
 # --- AI 呼び出し制御 ----------------------------
 _CALL_LIMIT_PER_LOOP = int(env_loader.get_env("MAX_AI_CALLS_PER_LOOP", "4"))
 _calls_this_loop = 0
+_bucket = TokenBucket(rate=120)
 
 
 def set_call_limit(_limit: int) -> None:
@@ -102,6 +104,7 @@ def ask_openai(
     if _calls_this_loop >= _CALL_LIMIT_PER_LOOP:
         raise RuntimeError("OpenAI call limit exceeded")
     _calls_this_loop += 1
+    _bucket.acquire()
 
     key = (model, system_prompt, prompt)
     now = time.time()
