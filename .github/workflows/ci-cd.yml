@@ -73,5 +73,5 @@ jobs:
               --name piphawk-app \
               --restart unless-stopped \
               -v /opt/piphawk/backend/logs:/app/backend/logs \
-              -v /opt/piphawk/data/trades.db:/app/trades.db \
+              -v /opt/piphawk/data/trades.db:/app/backend/logs/trades.db \
               ghcr.io/${{ github.repository_owner }}/piphawk:latest

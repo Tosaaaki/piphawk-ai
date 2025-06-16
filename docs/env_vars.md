@@ -7,7 +7,7 @@
 ### TRADES_DB_PATH
 
 取引履歴を保存するSQLiteファイルのパス。デフォルトではプロジェクトルートの
-`trades.db` を利用し、Docker環境では `/app/trades.db` が使用されます。
+`trades.db` を利用し、Docker環境では `/app/backend/logs/trades.db` が使用されます。
 環境変数 `TRADES_DB_PATH` で別のパスを指定できます。
 
 ### INITIAL_TP_PIPS / INITIAL_SL_PIPS
