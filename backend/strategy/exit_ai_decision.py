@@ -17,7 +17,11 @@ from dataclasses import dataclass
 from typing import Any, Dict
 
 from backend.utils import env_loader, parse_json_answer
-from backend.utils.openai_client import ask_openai  # existing helper that wraps OpenAI ChatCompletion
+from backend.utils.openai_client import (
+    ask_openai,
+    num_tokens,
+    trim_tokens,
+)
 
 __all__ = ["AIDecision", "evaluate"]
 
@@ -165,17 +169,29 @@ def evaluate(context: Dict[str, Any], bias_factor: float = 1.0) -> AIDecision:
         Parsed decision from the language model.
     """
 
-    prompt = _build_prompt(context, bias_factor)
+    user_json = json.dumps(
+        to_serializable(context), separators=(",", ":"), ensure_ascii=False
+    )
+    bias_line = f"BIAS_FACTOR={bias_factor} (>1 favors EXIT, <1 favors HOLD)."
+    messages = [
+        {"role": "system", "content": _SYSTEM_PROMPT},
+        {"role": "user", "content": f"{bias_line}\nUSER_CONTEXT:\n{user_json}"},
+    ]
 
     model = get_setting("AI_EXIT_MODEL", default="gpt-3.5-turbo-0125")
     temperature = float(get_setting("AI_EXIT_TEMPERATURE", default="0.0"))
     max_tokens = int(get_setting("AI_EXIT_MAX_TOKENS", default="128"))
 
+    if num_tokens(messages, model=model) > 12000:
+        messages = trim_tokens(messages, limit=12000, model=model)
+    messages = trim_tokens(messages, limit=12000, model=model)
+
     raw = ask_openai(
-        prompt,
+        None,
         model=model,
         temperature=temperature,
         max_tokens=max_tokens,
+        messages=messages,
     )
 
     decision = _parse_answer(raw)
