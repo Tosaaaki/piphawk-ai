@@ -32,3 +32,5 @@ LLM:
 
 GRAY_ADX_BAND: [25, 30]
 SCALP_THRESHOLD: 0.30
+
+entry_threshold: -1.0

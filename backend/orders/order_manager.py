@@ -3,8 +3,10 @@ import logging
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import requests
+import yaml
 
 from backend.logs.info_logger import info
 from backend.logs.log_manager import log_error
@@ -74,6 +76,15 @@ PIP_SIZES: dict[str, float] = {
 }
 
 
+RISK_CONF = Path(__file__).resolve().parents[2] / "config" / "risk.yml"
+try:
+    with RISK_CONF.open("r", encoding="utf-8") as f:
+        _risk = yaml.safe_load(f) or {}
+except Exception:
+    _risk = {}
+MIN_SL_PIPS = float(_risk.get("min_sl_pips", 2.0))
+
+
 def get_pip_size(instrument: str) -> float:
     """Return pip size (JPY pairs use 0.01, others 0.0001)."""
     return 0.01 if instrument.endswith("_JPY") else 0.0001
@@ -113,12 +124,14 @@ class OrderManager:
         pip = get_pip_size(instrument)
         tp_price = sl_price = None
         if tp_pips and sl_pips:
+            if sl_pips < MIN_SL_PIPS:
+                sl_pips = None
             if side == "long":
                 tp_price = limit_price + tp_pips * pip
-                sl_price = limit_price - sl_pips * pip
+                sl_price = limit_price - sl_pips * pip if sl_pips else None
             else:
                 tp_price = limit_price - tp_pips * pip
-                sl_price = limit_price + sl_pips * pip
+                sl_price = limit_price + sl_pips * pip if sl_pips else None
 
         comment_dict = {
             "entry_uuid": entry_uuid,
@@ -302,11 +315,13 @@ class OrderManager:
         )
         sl_price = (
             price - sl_pips * pip if side == "long" else price + sl_pips * pip
-        )
+        ) if sl_pips >= MIN_SL_PIPS else None
         logger.debug(
             f"\u25b6\u25b6\u25b6 PLACE_MARKET_WITH_TPSL trade_id={trade_id} tp={tp_price} sl={sl_price}"
         )
-        self.adjust_tp_sl(instrument, trade_id, new_tp=tp_price, new_sl=sl_price)
+        self.adjust_tp_sl(
+            instrument, trade_id, new_tp=tp_price, new_sl=sl_price
+        )
         return res
 
     def adjust_tp_sl(
@@ -582,19 +597,28 @@ class OrderManager:
         if with_oco and tp_pips and sl_pips:
             if side == "long":
                 tp_price = entry_price + float(tp_pips) * pip
-                sl_price = entry_price - float(sl_pips) * pip
+                sl_price = (
+                    entry_price - float(sl_pips) * pip
+                    if float(sl_pips) >= MIN_SL_PIPS
+                    else None
+                )
             else:
                 tp_price = entry_price - float(tp_pips) * pip
-                sl_price = entry_price + float(sl_pips) * pip
+                sl_price = (
+                    entry_price + float(sl_pips) * pip
+                    if float(sl_pips) >= MIN_SL_PIPS
+                    else None
+                )
 
             order_body["order"]["takeProfitOnFill"] = {
                 "price": format_price(instrument, tp_price),
                 "timeInForce": "GTC",
             }
-            order_body["order"]["stopLossOnFill"] = {
-                "price": format_price(instrument, sl_price),
-                "timeInForce": "GTC",
-            }
+            if sl_price is not None:
+                order_body["order"]["stopLossOnFill"] = {
+                    "price": format_price(instrument, sl_price),
+                    "timeInForce": "GTC",
+                }
 
         response = self._request_with_retries("post", url, json=order_body)
 
@@ -655,7 +679,7 @@ class OrderManager:
                         entry_price - float(sl_pips) * pip
                         if side == "long"
                         else entry_price + float(sl_pips) * pip
-                    )
+                    ) if float(sl_pips) >= MIN_SL_PIPS else None
                     try:
                         self.adjust_tp_sl(
                             instrument,
