@@ -81,6 +81,11 @@ For detailed instructions, refer to [Setup](#setup).
 - API provides runtime control, Prometheus metrics and LINE notifications.
 - React dashboard for monitoring and configuration.
 - Dockerfiles for containerized deployment.
+- Offline analysis scripts for regime classification and clustering under
+  `analysis/`.
+- Reinforcement learning and feature generation utilities in
+  `offline_training/`.
+- Simple backtest helpers are available via `analysis/backtest_utils.py`.
 
 ### Planned
 
