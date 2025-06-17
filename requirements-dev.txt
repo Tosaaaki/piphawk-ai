@@ -15,6 +15,7 @@ prometheus-client
 openai
 httpx
 tiktoken
+tenacity
 numpy
 pandas
 requests
