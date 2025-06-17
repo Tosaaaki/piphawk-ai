@@ -10,7 +10,9 @@ def handle(ticket: str, features: dict) -> dict:
     probs = recheck(features)
     if probs["prob_long"] > 0.6:
         return {"action": "keep"}
+    if probs["prob_long"] <= 0.6 and probs["prob_short"] <= 0.6:
+        return {"action": "market"}
     if probs["prob_short"] > 0.6:
         return {"action": "cancel"}
-    return {"action": "market"}
+    return {"action": "keep"}
 

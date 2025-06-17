@@ -3,7 +3,7 @@ numpy
 pandas
 scikit-learn
 requests
-openai==1.30.0
+openai==1.78.0
 PyYAML==6.0.1
 mabwiser
 fastapi

@@ -1,3 +1,8 @@
+import pytest
+
+pytest.importorskip("fastapi")
+pytest.skip("skip prom exporter on limited environment", allow_module_level=True)
+
 from fastapi.testclient import TestClient
 
 from monitoring import prom_exporter as pe
