@@ -11,6 +11,7 @@ from .indicator_engine import compute
 from .m5_entry import detect_entry
 from .market_classifier import classify_market
 from .market_context import build as build_context
+from .prefilters import generic_prefilters
 from .risk_filters import check_risk
 
 ENTRY_USE_AI = env_loader.get_env("ENTRY_USE_AI", "true").lower() == "true"
@@ -20,10 +21,14 @@ def run_cycle() -> dict | None:
     """Run one iteration of the simplified M5 pipeline."""
     ctx = build_context()
     indicators = compute(ctx.candles)
-    mode = classify_market(indicators)
 
     if not check_risk(ctx, indicators):
         return None
+
+    if not generic_prefilters(indicators, ctx.spread):
+        return None
+
+    mode = classify_market(indicators)
 
     signal = detect_entry(mode, ctx.candles, indicators)
     if not signal:
@@ -32,7 +37,7 @@ def run_cycle() -> dict | None:
     if ENTRY_USE_AI:
         decision = call_llm(mode, signal, indicators)
     else:
-        decision = {"go": True, "tp_mult": 2.0, "sl_mult": 1.0}
+        decision = {"tp_mult": 2.0, "sl_mult": 1.0}
 
     atr = indicators.get("atr")
     pip_size = 0.01 if env_loader.get_env("DEFAULT_PAIR", "USD_JPY").endswith("_JPY") else 0.0001
