@@ -87,6 +87,8 @@ For detailed instructions, refer to [Setup](#setup).
 
 - Offline reinforcement policy integration for strategy selection.
 - See [docs/training_guide.md](docs/training_guide.md) for training scripts.
+- Usage of the new atmosphere signal is documented in
+  [docs/atmosphere_signal.md](docs/atmosphere_signal.md).
 
 ## Setup
 
