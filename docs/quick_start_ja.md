@@ -57,3 +57,5 @@ fallback:
 ```
 
 `force_on_no_side` を `true` にすると AI が "no" と答えてもトレンド方向へエントリーを強制します。`default_sl_pips` と `default_tp_pips` は AI から数値が得られないときのデフォルト幅です。`dynamic_risk` が `true` の場合、指標を基に自動で SL/TP を計算します。これらは `FALLBACK_FORCE_ON_NO_SIDE` などの環境変数からも設定可能です。
+
+Atmosphere モジュールの概要は [atmosphere_module.md](atmosphere_module.md) を参照してください。

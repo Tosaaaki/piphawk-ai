@@ -33,3 +33,5 @@
 Past performance does not guarantee future results. Use at your own risk.
 
 When the AI returns `side: "no"`, the plan includes a `why` field briefly stating the reason. When it responds with `side: "yes"`, the `risk` object must contain `tp_pips`, `sl_pips`, `tp_prob` and `sl_prob`; `tp_prob` should be at least 0.70.
+
+For the new Atmosphere module see [atmosphere_module.md](atmosphere_module.md).

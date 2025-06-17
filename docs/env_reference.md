@@ -29,5 +29,8 @@
 | LINE_USER_ID | (なし) | LINE通知先ユーザーID | `LINE_USER_ID=yyyy` |
 | CORS_ALLOW_ORIGINS | (なし) | APIで許可するオリジン | `CORS_ALLOW_ORIGINS=http://localhost:3000` |
 | LOG_LEVEL | INFO | ログ出力レベル | `LOG_LEVEL=DEBUG` |
+| ATMOS_EMA_WEIGHT | 0.4 | AtmosphereモジュールでEMA傾きを評価する重み | `ATMOS_EMA_WEIGHT=0.5` |
+| ATMOS_RSI_WEIGHT | 0.3 | AtmosphereモジュールのRSI重み | `ATMOS_RSI_WEIGHT=0.2` |
+| ATMOS_THRESHOLD | 0.5 | Atmosphereスコアがこの値以上ならエントリー | `ATMOS_THRESHOLD=0.6` |
 
 より詳細な変数や追加の設定は [docs/env_vars.md](env_vars.md) を参照してください。

@@ -74,6 +74,8 @@ For detailed instructions, refer to [Setup](#setup).
 - Multi-timeframe indicators and regime detection.
 - Parameterized `mode_detector` allows tuning without any LLM calls.
 - Optional chart pattern detection via OpenAI or a local scanner.
+- Atmosphere module adjusts strategy weights using EMA slope and RSI bias.
+  See [docs/atmosphere_module.md](docs/atmosphere_module.md) for details.
 - CVaR-based portfolio risk management.
 - Parameters managed via environment variables and YAML with hot reload.
 - Trade and parameter history stored in SQLite.
@@ -154,6 +156,19 @@ Ticks → openai_micro_scalp.py → enter: true → submit order
 ```
 
 設定変更後はコンテナを再起動して反映します。
+
+### Atmosphere module
+
+The Atmosphere module adjusts strategy weights based on EMA slope and RSI bias.
+Add the following variables to `.env` and tune as needed.
+
+```bash
+ATMOS_EMA_WEIGHT=0.4
+ATMOS_RSI_WEIGHT=0.3
+ATMOS_THRESHOLD=0.5
+```
+
+See [docs/atmosphere_module.md](docs/atmosphere_module.md) for usage details.
 
 ### Directory Structure
 
