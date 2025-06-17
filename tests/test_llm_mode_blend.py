@@ -2,7 +2,7 @@ import importlib
 
 import analysis.llm_client as lc
 import signals.mode_selector_v2 as ms
-from piphawk_ai.vote_arch.market_air_sensor import MarketSnapshot
+from analysis.atmosphere.market_air_sensor import MarketSnapshot
 
 
 def test_llm_blend_base_overrides(monkeypatch):

@@ -161,8 +161,8 @@ from piphawk_ai.analysis.regime_detector import RegimeDetector
 from piphawk_ai.tech_arch.pipeline import run_cycle as tech_run_cycle
 
 try:
+    from analysis.atmosphere.market_air_sensor import MarketSnapshot
     from piphawk_ai.vote_arch.entry_buffer import PlanBuffer
-    from piphawk_ai.vote_arch.market_air_sensor import MarketSnapshot
     from piphawk_ai.vote_arch.pipeline import (
         PipelineResult,
     )
