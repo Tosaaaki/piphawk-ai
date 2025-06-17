@@ -234,6 +234,7 @@ def process_entry(
     indicators_multi: dict[str, dict] | None = None,
     allow_delayed_entry: bool | None = None,
     risk_engine=None,
+    return_side: bool | None = False,
 ):
     """
     Ask OpenAI whether to enter a trade.
@@ -245,9 +246,13 @@ def process_entry(
         market_cond: output of get_market_condition()  e.g. {"market_condition":"trend","trend_direction":"long"}
         strategy_params: optional dict to pass extra parameters / overrides
         indicators_multi: multi-timeframe indicators for alignment adjustment
+        return_side   : if True, return only the AI-determined side without
+                        placing any order
 
     Returns:
-        True if an entry was placed, False otherwise.
+        True if an entry was placed, False otherwise. When ``return_side`` is
+        True, return the side string ("long"/"short") determined by the AI
+        without executing an order.
     """
     # If the caller did not pass a dict (JobRunner passes candles), fall back to an empty dict
     if not isinstance(strategy_params, dict):
@@ -671,6 +676,9 @@ def process_entry(
             logger.debug("reject: reason=%s", plan.get("reason"))
             logging.info("AI says no trade entry → early exit")
             return False
+
+    if return_side:
+        return side if side in ("long", "short") else None
 
     if spread_pips is not None:
         from backend.risk_manager import cost_guard

@@ -59,3 +59,30 @@ def test_process_entry_returns_false(monkeypatch):
         indicators, candles, market_data, candles_dict={"M5": candles}, tf_align=None
     )
     assert result is False
+
+
+def test_process_entry_return_side(monkeypatch):
+    monkeypatch.setattr(entry_logic, "decide_trade_mode", lambda *_a, **_k: "trend")
+    monkeypatch.setattr(entry_logic, "decide_trade_mode_detail", lambda *_a, **_k: ("trend", 0.0, {}))
+    monkeypatch.setattr(
+        "backend.strategy.openai_analysis.get_trade_plan",
+        lambda *a, **k: {"entry": {"side": "short", "mode": "market"}, "risk": {}}
+    )
+    monkeypatch.setenv("PIP_SIZE", "0.01")
+
+    indicators = {"atr": FakeSeries([0.1])}
+    candles = []
+    market_data = {
+        "prices": [
+            {"instrument": "USD_JPY", "bids": [{"price": "1.0"}], "asks": [{"price": "1.01"}]}
+        ]
+    }
+    side = entry_logic.process_entry(
+        indicators,
+        candles,
+        market_data,
+        candles_dict={"M5": candles},
+        tf_align=None,
+        return_side=True,
+    )
+    assert side == "short"
