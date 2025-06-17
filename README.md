@@ -68,27 +68,23 @@ For detailed instructions, refer to [Setup](#setup).
 
 ### Implemented
 
-- Automated entry and exit decisions using OpenAI models with technical indicator context.
-- Composite trade mode logic switching between **scalp** and **trend_follow**.
-- Local mode detection via `analysis.detect_mode_simple()` without LLM.
-- Multi-timeframe indicators and regime detection.
-- Parameterized `mode_detector` allows tuning without any LLM calls.
-- Optional chart pattern detection via OpenAI or a local scanner.
+- Automated entry and exit using OpenAI models with technical and macro context.
+- Majority-vote pipeline with plan buffering or a simplified technical pipeline.
+- StrategySelector employs LinUCB and optional offline policies for mode choice.
+- Multi-timeframe indicators, regime detection and dynamic trailing-stop logic.
+- Chart pattern detection via OpenAI or local scanner.
 - Atmosphere module adjusts strategy weights using EMA slope and RSI bias.
-  See [docs/atmosphere_module.md](docs/atmosphere_module.md) for details.
-- CVaR-based portfolio risk management.
-- Parameters managed via environment variables and YAML with hot reload.
-- Trade and parameter history stored in SQLite.
-- LINE notifications via the API.
-- React dashboard and API endpoints for runtime control.
-- Prometheus metrics from both API and job runner.
+- Tick-level micro scalp entries via `openai_micro_scalp.py`.
+- CVaR-based portfolio risk management and dynamic lot sizing.
+- Parameters loaded from environment variables or YAML files with hot reload.
+- Trade, parameter and prompt history stored in SQLite.
+- API provides runtime control, Prometheus metrics and LINE notifications.
+- React dashboard for monitoring and configuration.
 - Dockerfiles for containerized deployment.
-- `openai_micro_scalp.py` for tick-level micro structure scalping.
 
 ### Planned
 
-- Offline reinforcement policy integration for strategy selection.
-- See [docs/training_guide.md](docs/training_guide.md) for training scripts.
+- Further reinforcement learning tooling. See [docs/training_guide.md](docs/training_guide.md).
 - Usage of the new atmosphere signal is documented in
   [docs/atmosphere_signal.md](docs/atmosphere_signal.md).
 
@@ -560,6 +556,7 @@ or create a fresh one using the helper in `backend.logs.log_manager`:
 ```bash
 python3 - <<'EOF'
 from backend.logs.log_manager import init_db
+
 init_db()
 EOF
 ```
