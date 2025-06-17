@@ -879,3 +879,9 @@ pip install -r requirements-test.txt
 できます。
 `PROMPT_TAIL_LEN` と `PROMPT_CANDLE_LEN` を設定すると、指標やローソク足の履歴本数
 を変更できます。
+
+## Signal Error Handling
+
+Some signal functions return ``None`` on invalid input while others propagate
+exceptions directly.  Use ``make_signal`` or ``recheck`` with caution and
+validate input data beforehand.

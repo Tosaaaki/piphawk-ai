@@ -8,6 +8,8 @@ import os
 import openai
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 
+from monitoring.gpt_usage import add_usage
+
 openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 _SYSTEM_PROMPT = """\
@@ -34,7 +36,20 @@ def _ask_gpt(messages: list[dict]) -> dict:
         messages=messages,
         timeout=8,
     )
-    return json.loads(resp.choices[0].message.content)
+    usage = resp.usage
+    add_usage(1, usage.total_tokens, usage.total_tokens * 0.000002)
+    try:
+        return json.loads(resp.choices[0].message.content)
+    except json.JSONDecodeError as exc:
+        raise exc
+
+
+def _validate_probs(d: dict) -> dict:
+    """必須キーを確認する."""
+    for k in ("prob_long", "prob_short", "prob_flat"):
+        if k not in d:
+            raise KeyError(f"Missing key {k} in GPT response")
+    return d
 
 
 class GPTPredictor:
@@ -50,4 +65,4 @@ class GPTPredictor:
             {"role": "system", "content": _SYSTEM_PROMPT},
             {"role": "user", "content": user_msg},
         ]
-        return _ask_gpt(msgs)
+        return _validate_probs(_ask_gpt(msgs))
