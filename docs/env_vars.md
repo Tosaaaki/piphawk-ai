@@ -416,3 +416,9 @@ FALLBACK_DEFAULT_TP_PIPS=15
 FALLBACK_DYNAMIC_RISK=true
 FORCE_ENTRY_AFTER_AI=true
 ```
+
+### Atmosphere module
+
+- `ATMOS_EMA_WEIGHT`: EMA傾きの重み付け。デフォルトは `0.4`。
+- `ATMOS_RSI_WEIGHT`: RSIバイアスの重み付け。デフォルトは `0.3`。
+- `ATMOS_THRESHOLD`: Atmosphereスコアがこの値以上でエントリーを許可。デフォルト `0.5`。
