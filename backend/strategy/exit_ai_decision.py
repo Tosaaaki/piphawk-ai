@@ -16,6 +16,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, Dict
 
+from backend.analysis.atmosphere import evaluate as atmos_eval
 from backend.utils import env_loader, parse_json_answer
 from backend.utils.openai_client import (
     ask_openai,
@@ -118,13 +119,28 @@ def to_serializable(obj: Any):
 
 
 def _build_prompt(context: Dict[str, Any], bias_factor: float = 1.0) -> str:
-    """Compose the prompt including the bias factor."""
+    """Compose the prompt including the bias factor and atmosphere info."""
 
     user_json = json.dumps(
         to_serializable(context), separators=(",", ":"), ensure_ascii=False
     )
+    score, bias = atmos_eval(context)
+    if bias > 0.2:
+        bias_label = "Up"
+    elif bias < -0.2:
+        bias_label = "Down"
+    else:
+        bias_label = "Neutral"
     bias_line = f"BIAS_FACTOR={bias_factor} (>1 favors EXIT, <1 favors HOLD)."
-    return f"{_SYSTEM_PROMPT}\n{bias_line}\nUSER_CONTEXT:\n{user_json}"
+    lines = [
+        _SYSTEM_PROMPT,
+        bias_line,
+        f"### ATMOSPHERE SCORE\n{score:.2f}",
+        f"### ATMOSPHERE BIAS\n{bias_label}",
+        "USER_CONTEXT:",
+        user_json,
+    ]
+    return "\n".join(lines)
 
 
 def _parse_answer(raw: str | dict) -> AIDecision:
@@ -172,10 +188,23 @@ def evaluate(context: Dict[str, Any], bias_factor: float = 1.0) -> AIDecision:
     user_json = json.dumps(
         to_serializable(context), separators=(",", ":"), ensure_ascii=False
     )
+    score, bias = atmos_eval(context)
+    if bias > 0.2:
+        bias_label = "Up"
+    elif bias < -0.2:
+        bias_label = "Down"
+    else:
+        bias_label = "Neutral"
     bias_line = f"BIAS_FACTOR={bias_factor} (>1 favors EXIT, <1 favors HOLD)."
+    user_content = (
+        f"{bias_line}\n"
+        f"### ATMOSPHERE SCORE\n{score:.2f}\n"
+        f"### ATMOSPHERE BIAS\n{bias_label}\n"
+        f"USER_CONTEXT:\n{user_json}"
+    )
     messages = [
         {"role": "system", "content": _SYSTEM_PROMPT},
-        {"role": "user", "content": f"{bias_line}\nUSER_CONTEXT:\n{user_json}"},
+        {"role": "user", "content": user_content},
     ]
 
     model = get_setting("AI_EXIT_MODEL", default="gpt-3.5-turbo-0125")

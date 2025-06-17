@@ -26,6 +26,7 @@ try:
 except Exception:  # pragma: no cover - pandas may be unavailable
     def get_ema_gradient(*_a, **_k) -> str:
         return "flat"
+from backend.analysis.atmosphere import evaluate as atmos_eval
 from backend.indicators import compute_volume_sma, get_candle_features
 from backend.indicators.adx import calculate_adx_slope
 from backend.risk_manager import (
@@ -907,9 +908,30 @@ def get_exit_decision(
     elif pattern_name:
         pattern_line = pattern_name
             
+    atmosphere_score, atmosphere_bias = atmos_eval(
+        {
+            "market_data": market_data,
+            "indicators": indicators,
+            "indicators_m1": indicators_m1,
+            "position": current_position,
+            "entry_regime": entry_regime,
+            "market_cond": market_cond,
+            "candles": candles,
+            "higher_tf": higher_tf,
+        }
+    )
+    if atmosphere_bias > 0.2:
+        bias_label = "Up"
+    elif atmosphere_bias < -0.2:
+        bias_label = "Down"
+    else:
+        bias_label = "Neutral"
+
     prompt = (
         "You are an expert FX trader AI. Your job is to decide, with clear and concise reasoning, whether to HOLD or EXIT an open position based on the latest market context and indicators.\n"
         f"EXIT_BIAS_FACTOR={EXIT_BIAS_FACTOR} (>1 favors EXIT, <1 favors HOLD).\n\n"
+        f"### ATMOSPHERE SCORE\n{atmosphere_score:.2f}\n"
+        f"### ATMOSPHERE BIAS\n{bias_label}\n\n"
         f"### Position Details\n"
         f"- Side: {side}\n"
         f"- Time Since Entry: {secs_since_entry if secs_since_entry is not None else 'N/A'} sec\n"
