@@ -1,3 +1,5 @@
+"""簡易 Q 学習を用いたオフラインポリシー学習スクリプト."""
+
 import json
 import sqlite3
 from collections import defaultdict
