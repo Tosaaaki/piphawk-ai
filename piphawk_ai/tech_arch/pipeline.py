@@ -11,6 +11,7 @@ from .indicator_engine import compute
 from .m5_entry import detect_entry
 from .market_classifier import classify_market
 from .market_context import build as build_context
+from .prefilters import generic_prefilters, trend_filters
 from .risk_filters import check_risk
 
 ENTRY_USE_AI = env_loader.get_env("ENTRY_USE_AI", "true").lower() == "true"
@@ -20,7 +21,12 @@ def run_cycle() -> dict | None:
     """Run one iteration of the simplified M5 pipeline."""
     ctx = build_context()
     indicators = compute(ctx.candles)
+    if not generic_prefilters(indicators, ctx.spread):
+        return None
+
     mode = classify_market(indicators)
+    if mode == "trend" and not trend_filters(indicators):
+        return None
 
     if not check_risk(ctx, indicators):
         return None

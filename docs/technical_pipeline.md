@@ -21,25 +21,34 @@ flowchart TD
     MCL[2. Range / Trend 分類<br>(ADX & EMA 乖離)]
     IND --> MCL
 
-    %% ===== 3. RISK FILTERS =====
-    subgraph RISK[3. 簡易リスクフィルタ]
+    %% ===== 3. PREFILTER =====
+    subgraph PREF[3. プレフィルタ]
+        direction TB
+        PF1[generic_prefilters]
+        PF2[trend_filters]
+    end
+    MCL --> PREF
+    PREF -- NG --> SCHED
+
+    %% ===== 4. RISK FILTERS =====
+    subgraph RISK[4. 簡易リスクフィルタ]
         direction TB
         F1[spread ≤ ATR×0.15]
         F2[marginAvailable > 5 %]
         F3[duplicateGuard]
         F4[volSpikeGuard]
     end
-    MCL --> RISK
+    PREF -- OK --> RISK
     RISK -- NG --> SCHED
 
-    %% ===== 4. M5 SIGNAL =====
-    SIG[4. M5 シグナル検出<br>• 高値/安値ブレイク<br>• BB±2σ 反発包み足]
+    %% ===== 5. M5 SIGNAL =====
+    SIG[5. M5 シグナル検出<br>• 高値/安値ブレイク<br>• BB±2σ 反発包み足]
     RISK -- OK --> SIG
     SIG -- None --> SCHED
 
-    %% ===== 5. ENTRY DECISION =====
+    %% ===== 6. ENTRY DECISION =====
     AI_ON{ENTRY_USE_AI?}
-    subgraph AI[5a. AI Decision & TP Tuner]
+    subgraph AI[6a. AI Decision & TP Tuner]
         direction TB
         PAYLOAD[[JSON Payload<br>(pair, mode, signal,<br>M5 + H1/H4 指標, cost,<br>default TP/SL)]]
         LLM[[OpenAI<br>chat.completions]]
@@ -50,14 +59,14 @@ flowchart TD
     AI_ON -- "true" --> PAYLOAD --> LLM --> RESP
     RESP -- decision:PASS --> SCHED
 
-    %% ===== 6. ORDER =====
-    TPSL[6. TP/SL 計算<br>ATR×{tp,sl}_mult]
+    %% ===== 7. ORDER =====
+    TPSL[7. TP/SL 計算<br>ATR×{tp,sl}_mult]
     RESP -- decision:GO --> TPSL
     ORD[OrderManager.place_order()]
     TPSL --> ORD
 
-    %% ===== 7. LOG & NOTIFY =====
-    LOG[7. trade_signals DB / Prometheus / LINE]
+    %% ===== 8. LOG & NOTIFY =====
+    LOG[8. trade_signals DB / Prometheus / LINE]
     ORD --> LOG --> SCHED
 ```
 
@@ -69,11 +78,12 @@ flowchart TD
 |---|---|---|---|
 |1|MarketContext / IndicatorEngine|M5×3・Tick・Spread＋主要指標計算|Price/Indicators 準備完了|
 |2|market_classifier.classify_market|ADX14・EMA50乖離・BB 幅 …|mode = "trend" or "range"|
-|3|簡易リスクフィルタ|スプレッド／証拠金／重複／異常ボラ|NG→skip|
-|4|m5_entry.detect_entry|Trend:高値/安値ブレイク Range:包み足反発|None→skip|
-|5|ai_decision.call_llm (optional)|ENTRY_USE_AI=true なら LLM へ TP 調整を依頼|PASS→skip|
-|6|tpsl_calc → order_manager|ATR×倍率で TP/SL, 発注 (ENTRY_USE_AI=false 時は既定倍率)|注文 ID 取得|
-|7|Logger / Metrics / LINE|DB 保存・Prometheus カウント・通知|ループ完了|
+|3|prefilters.generic_prefilters / trend_filters|Spread・EMA 乖離チェック|NG→skip|
+|4|簡易リスクフィルタ|スプレッド／証拠金／重複／異常ボラ|NG→skip|
+|5|m5_entry.detect_entry|Trend:高値/安値ブレイク Range:包み足反発|None→skip|
+|6|ai_decision.call_llm (optional)|ENTRY_USE_AI=true なら LLM へ TP 調整を依頼|PASS→skip|
+|7|tpsl_calc → order_manager|ATR×倍率で TP/SL, 発注 (ENTRY_USE_AI=false 時は既定倍率)|注文 ID 取得|
+|8|Logger / Metrics / LINE|DB 保存・Prometheus カウント・通知|ループ完了|
 
 EXIT ロジック（トレイリング SL, 時間切れ, AI exit 等）は既存のままで TP/SL に追随します。
 
