@@ -14,9 +14,9 @@ pandas_stub.Series = object
 pandas_stub.DataFrame = object
 sys.modules.setdefault("pandas", pandas_stub)
 
+from analysis.atmosphere.market_air_sensor import MarketSnapshot
 from piphawk_ai.vote_arch.ai_entry_plan import EntryPlan
 from piphawk_ai.vote_arch.entry_buffer import PlanBuffer
-from piphawk_ai.vote_arch.market_air_sensor import MarketSnapshot
 from piphawk_ai.vote_arch.pipeline import PipelineResult, run_cycle
 from piphawk_ai.vote_arch.regime_detector import MarketMetrics
 

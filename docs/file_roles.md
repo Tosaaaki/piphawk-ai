@@ -371,7 +371,7 @@
 | `piphawk_ai/vote_arch/ai_entry_plan.py` | OpenAI経由の決定論的エントリプランの生成。 |
 | `piphawk_ai/vote_arch/ai_strategy_selector.py` | Openaiおよび多数決を介して貿易戦略を選択します。 |
 | `piphawk_ai/vote_arch/entry_buffer.py` | エントリープラン用のシンプルな垂直アンサンブルバッファー。 |
-| `piphawk_ai/vote_arch/market_air_sensor.py` | プロンプトで使用される市場空気インデックスを計算します。 |
+| `analysis/atmosphere/market_air_sensor.py` | プロンプトで使用される市場空気インデックスを計算します。 |
 | `piphawk_ai/vote_arch/pipeline.py` | 過半数の投票取引アーキテクチャのオーケストレーションパイプライン。 |
 | `piphawk_ai/vote_arch/post_filters.py` | エントリープランの最終的な安全チェック。 |
 | `piphawk_ai/vote_arch/regime_detector.py` | 単純なルールベースの体制検出。 |
