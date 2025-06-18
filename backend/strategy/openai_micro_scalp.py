@@ -23,8 +23,13 @@ def load_prompt() -> str:
 
 
 def get_plan(features: dict) -> dict:
-    """Return micro-scalp trade plan based on predefined prompt."""
-    prompt = load_prompt()
+    """Return micro-scalp trade plan using tick features."""
+    template = load_prompt()
+    prompt = template.format(
+        of_imbalance=features.get("of_imbalance"),
+        vol_burst=features.get("vol_burst"),
+        spd_avg=features.get("spd_avg"),
+    )
     try:
         raw = ask_openai(prompt, model=MICRO_SCALP_MODEL)
     except Exception as exc:  # pragma: no cover - network failure
