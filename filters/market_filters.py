@@ -17,13 +17,20 @@ def _in_trade_hours(ts: datetime | None = None) -> bool:
     return ts.hour >= start or ts.hour < end
 
 
-def is_tradeable(pair: str, timeframe: str, spread: float) -> bool:
-    """スプレッドと時間帯が条件を満たすか確認する.
+def is_tradeable(pair: str, timeframe: str, spread: float, atr: float | None = None) -> bool:
+    """Check if market conditions allow trading."""
 
-    pair と timeframe は現段階では未使用.
-    """
-    max_spread = float(env_loader.get_env("MAX_SPREAD", "0.0002"))
-    if spread > max_spread:
+    # 日本語コメント: スプレッドとボラティリティをピップスで比較する
+
+    pip_size = 0.01 if pair.endswith("_JPY") else 0.0001
+    max_spread = float(env_loader.get_env("MAX_SPREAD_PIPS", "2"))
+    if spread / pip_size > max_spread:
         return False
+
+    if atr is not None:
+        min_atr = float(env_loader.get_env("MIN_ATR_PIPS", "2"))
+        if atr / pip_size < min_atr:
+            return False
+
     return _in_trade_hours()
 
