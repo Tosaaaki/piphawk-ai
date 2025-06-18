@@ -308,6 +308,9 @@ SCALE_TRIGGER_ATR=0.5
   移行・維持する際のしきい値。推奨 `0.20` / `0.15`。
 - RANGE_ADX_MIN: ADX がこの値を下回るとカウンターを加算し、連続
   `RANGE_ADX_COUNT` 回でスキャルプモードへ切替。推奨 `15`。
+- QUICK_TP_MODE: true で2pips利確を高速に繰り返す専用モードを起動
+- QUICK_TP_INTERVAL_SEC: Quick TP モードでのエントリー間隔秒数
+- QUICK_TP_UNITS: Quick TP モードで使う発注ユニット数
 
 ### OANDA_MATCH_SEC
 
