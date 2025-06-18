@@ -32,12 +32,6 @@ def test_run_cycle_returns_valid_mode(monkeypatch, mode_raw, conf_ok):
         lambda _p: EntryPlan(side="long", tp=10, sl=5, lot=1),
     )
 
-    monkeypatch.setattr(
-        "piphawk_ai.vote_arch.post_filters.final_filter", lambda p, i: True
-    )
-    monkeypatch.setattr(
-        "piphawk_ai.vote_arch.pipeline.final_filter", lambda p, i: True
-    )
 
     metrics = MarketMetrics(adx_m5=30, ema_fast=1.1, ema_slow=1.0, bb_width_m5=0.1)
     snapshot = MarketSnapshot(atr=0.05, news_score=0.0, oi_bias=0.0)
