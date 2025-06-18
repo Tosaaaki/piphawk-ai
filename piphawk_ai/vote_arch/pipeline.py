@@ -85,7 +85,8 @@ def run_cycle(
         if avg_plan:
             plan = avg_plan
 
-    passed = final_filter(plan, indicators)
+    # Post-filter は廃止されたため常に True とする
+    passed = True
     # FORCE_ENTER が true の場合はフィルタ結果を無視して必ず発注
     if FORCE_ENTER:
         return PipelineResult(plan, mode=mode, regime=regime, passed=True)
