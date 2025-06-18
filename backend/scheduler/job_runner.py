@@ -1431,6 +1431,25 @@ class JobRunner:
 
                     log.info("Indicators calculation successful.")
 
+                    current_price = float(
+                        tick_data["prices"][0]["bids"][0]["price"]
+                    )
+                    if not pass_entry_filter(
+                        indicators,
+                        current_price,
+                        self.indicators_M1,
+                        self.indicators_M15,
+                        self.indicators_H1,
+                        mode=self.trade_mode,
+                    ):
+                        log.info("Entry blocked by filter → skip any AI calls.")
+                        self.last_position_review_ts = None
+                        self.last_run = now
+                        update_oanda_trades()
+                        time.sleep(self.interval_seconds)
+                        timer.stop()
+                        continue
+
                     # 指標からトレードモードを判定
                     new_mode, _score, reasons = decide_trade_mode_detail(
                         indicators, candles_m5
@@ -1487,24 +1506,6 @@ class JobRunner:
                             timer.stop()
                             continue
 
-                    current_price = float(
-                        tick_data["prices"][0]["bids"][0]["price"]
-                    )
-                    if not pass_entry_filter(
-                        indicators,
-                        current_price,
-                        self.indicators_M1,
-                        self.indicators_M15,
-                        self.indicators_H1,
-                        mode=self.trade_mode,
-                    ):
-                        log.info("Entry blocked by filter → skip any AI calls.")
-                        self.last_position_review_ts = None
-                        self.last_run = now
-                        update_oanda_trades()
-                        time.sleep(self.interval_seconds)
-                        timer.stop()
-                        continue
 
                     # 市場コンディションを一度だけ評価し再利用する
                     market_cond = self._evaluate_market_condition(
