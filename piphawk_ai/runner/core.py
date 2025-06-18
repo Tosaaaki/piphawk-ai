@@ -1909,7 +1909,7 @@ class JobRunner:
                             tick_data["prices"][0]["bids"][0]["price"]
                         )
                         filter_ctx = {}
-                        if pass_entry_filter(
+                        filter_ok = pass_entry_filter(
                             indicators,
                             current_price,
                             self.indicators_M1,
@@ -1917,7 +1917,15 @@ class JobRunner:
                             self.indicators_H1,
                             mode=self.trade_mode,
                             context=filter_ctx,
-                        ):
+                        )
+                        force_ai = (
+                            env_loader.get_env("FORCE_ENTRY_AFTER_AI", "true").lower() == "true"
+                        )
+                        if filter_ok or force_ai:
+                            if not filter_ok:
+                                logger.info(
+                                    "Filter NG but FORCE_ENTRY_AFTER_AI → processing entry with AI."
+                                )
                             self.ai_cooldown = 0
                             adx_min_val = float(env_loader.get_env("ADX_MIN", "0"))
                             adx_series = indicators.get("adx")
