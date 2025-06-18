@@ -8,7 +8,7 @@ import time
 
 from backend.market_data.tick_fetcher import fetch_tick_data
 from backend.market_data.tick_metrics import calc_tick_features
-from backend.orders.order_manager import OrderManager
+from backend.orders.order_manager import OrderManager, get_pip_size
 from backend.orders.position_manager import get_open_positions
 from backend.strategy.openai_micro_scalp import get_plan
 from backend.utils import env_loader
@@ -42,7 +42,7 @@ def run_loop() -> None:
                 continue
 
             units_signed = units if side == "long" else -units
-            om.place_market_with_tp_sl(
+            res = om.place_market_with_tp_sl(
                 instrument,
                 units_signed,
                 side,
@@ -50,6 +50,21 @@ def run_loop() -> None:
                 sl_pips=0.0,
                 comment_json=json.dumps({"mode": "quick_tp"}),
             )
+
+            trade_id = (
+                res.get("orderFillTransaction", {})
+                .get("tradeOpened", {})
+                .get("tradeID")
+            )
+            if trade_id:
+                time.sleep(1)
+                current_tp = om.get_current_tp(trade_id)
+                if current_tp is None:
+                    price = float(res.get("orderFillTransaction", {}).get("price", 0.0))
+                    pip = get_pip_size(instrument)
+                    tp_price = price + 2.0 * pip if side == "long" else price - 2.0 * pip
+                    om.adjust_tp_sl(instrument, trade_id, new_tp=tp_price)
+                    logger.info("Reattached TP for trade %s", trade_id)
             logger.info("Entered %s %s for 2 pips TP", side, instrument)
         except Exception as exc:  # pragma: no cover - network or API error
             logger.warning("quick_tp iteration failed: %s", exc)
