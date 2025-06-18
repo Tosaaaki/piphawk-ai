@@ -16,7 +16,8 @@ from .entry_buffer import PlanBuffer
 from .post_filters import final_filter
 from .regime_detector import MarketMetrics, rule_based_regime
 
-FORCE_ENTER = os.getenv("FORCE_ENTER", "true").lower() == "true"
+# 常にエントリーを実行する
+FORCE_ENTER = True
 
 
 @dataclass
