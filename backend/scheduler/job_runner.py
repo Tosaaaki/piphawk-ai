@@ -2499,36 +2499,7 @@ class JobRunner:
                                     },
                                     risk_engine=self.risk_mgr,
                                 )
-                            if not self.use_vote_arch and not result:
-                                pend = get_pending_entry_order(DEFAULT_PAIR)
-                                if pend and pend.get("order_id"):
-                                    age = time.time() - pend.get("ts", 0)
-                                    if age >= self.pending_grace_sec:
-                                        try:
-                                            order_mgr.cancel_order(pend["order_id"])
-                                            log.info(
-                                                f"AI declined entry; canceled pending LIMIT {pend['order_id']}"
-                                            )
-                                        except Exception as exc:
-                                            log.warning(
-                                                f"Failed to cancel pending LIMIT {pend['order_id']}: {exc}"
-                                            )
-                                        for key, rec in list(_pending_limits.items()):
-                                            if rec.get("order_id") == pend["order_id"]:
-                                                _pending_limits.pop(key, None)
-                                                break
-                                    else:
-                                        log.info(
-                                            f"Pending LIMIT age {age:.0f}s < grace period; keeping order"
-                                        )
-                                log.info(
-                                    "process_entry returned False → aborting entry and continuing loop"
-                                )
-                                self.last_run = now
-                                update_oanda_trades()
-                                time.sleep(self.interval_seconds)
-                                timer.stop()
-                                continue
+                            # process_entry 結果に関わらず必ず進める
                             # Send LINE notification on entry
                             price = float(tick_data["prices"][0]["bids"][0]["price"])
                             send_line_message(
