@@ -31,8 +31,13 @@ def main() -> None:
         port = int(env_loader.get_env("API_PORT", "8080"))
         uvicorn.run("backend.api.main:app", host="0.0.0.0", port=port)
     else:
-        runner = JobRunner()
-        runner.run()
+        if env_loader.get_env("QUICK_TP_MODE", "false").lower() == "true":
+            from execution.quick_tp_mode import run_loop
+
+            run_loop()
+        else:
+            runner = JobRunner()
+            runner.run()
 
 
 if __name__ == "__main__":

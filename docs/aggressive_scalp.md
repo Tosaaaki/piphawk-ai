@@ -34,6 +34,18 @@ MICRO_SCALP_MIN_PIPS=1
 
 設定後にジョブランナーを再起動するとマイクロ構造モードが有効になります。
 
+## Quick TP モード
+
+AI で方向を判断し 2pips で利確する超短期売買を繰り返す場合は以下を設定します。
+
+```bash
+QUICK_TP_MODE=true
+QUICK_TP_INTERVAL_SEC=360
+QUICK_TP_UNITS=1000
+```
+
+有効化すると通常のジョブランナー処理は実行されず、このモードのみが動作します。
+
 ## 反映手順
 
 1. `backend/config/settings.env` に上記を追記または変更します。
