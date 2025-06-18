@@ -265,7 +265,7 @@ def process_entry(
 
     forced_entry = False
     force_entry_after_ai = (
-        env_loader.get_env("FORCE_ENTRY_AFTER_AI", "false").lower() == "true"
+        env_loader.get_env("FORCE_ENTRY_AFTER_AI", "true").lower() == "true"
     )
     use_dynamic_risk = (
         env_loader.get_env("FALLBACK_DYNAMIC_RISK", "false").lower() == "true"
