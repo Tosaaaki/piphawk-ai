@@ -13,7 +13,7 @@ class DummyPredictor:
 
 def test_scalping_signal(monkeypatch):
     monkeypatch.setattr(scalping_signal, "_predictor", DummyPredictor())
-    res = scalping_signal.make_signal({"pair": "USD_JPY", "spread": 0.0001})
+    res = scalping_signal.make_signal({"pair": "USD_JPY", "spread": 0.0001, "atr": 0.03})
     assert res in ("BUY", "SELL")
 
 
