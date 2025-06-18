@@ -153,7 +153,6 @@ import requests
 from backend.strategy import pattern_scanner
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from backend.strategy.momentum_follow import follow_breakout
-from piphawk_ai.analysis.regime_detector import RegimeDetector
 
 try:
     from signals.composite_mode import decide_trade_mode, decide_trade_mode_detail
@@ -389,22 +388,7 @@ class JobRunner:
         self.last_position_review_ts = None  # datetime of last position review
         # Epoch timestamp of last AI call (seconds)
         self.last_ai_call = datetime.min
-        self.regime_detector = RegimeDetector()
-        model_file = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            "models",
-            "regime_gmm.pkl",
-        )
-        if os.path.exists(model_file):
-            try:
-                from piphawk_ai.analysis.cluster_regime import ClusterRegime
-
-                self.cluster_regime = ClusterRegime(model_file)
-            except Exception as exc:  # pragma: no cover - optional model
-                logger.warning(f"ClusterRegime load failed: {exc}")
-                self.cluster_regime = None
-        else:
-            self.cluster_regime = None
+        self.cluster_regime = None
         # Entry cooldown settings
         self.entry_cooldown_sec = int(env_loader.get_env("ENTRY_COOLDOWN_SEC", "30"))
         self.last_close_ts: datetime | None = None
@@ -985,15 +969,12 @@ class JobRunner:
                             "close": price,
                             "volume": bid_liq + ask_liq,
                         }
-                        rd_res = self.regime_detector.update(tick)
-                        if rd_res.get("transition"):
-                            self.last_ai_call = datetime.min
                         if self.cluster_regime:
                             cr_res = self.cluster_regime.update(tick)
                             if cr_res.get("transition"):
                                 self.last_ai_call = datetime.min
                     except Exception as exc:
-                        logger.debug(f"RegimeDetector update failed: {exc}")
+                        logger.debug(f"ClusterRegime update failed: {exc}")
 
                     # ---- Market closed guard (price feed says non‑tradeable) ----
                     try:
@@ -1106,7 +1087,7 @@ class JobRunner:
                     )
                     perf = recent_strategy_performance()
                     self.current_context = build_context(
-                        self.regime_detector.state, indicators, perf
+                        indicators, perf
                     )
                     selected = self.strategy_selector.select(self.current_context)
                     self.current_strategy_name = selected.name

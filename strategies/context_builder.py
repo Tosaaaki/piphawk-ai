@@ -36,11 +36,9 @@ def recent_strategy_performance(limit: int = 10) -> Dict[str, float]:
     return {k: sum(v) / len(v) for k, v in perf.items() if v}
 
 
-def build_context(regime: str, indicators: Dict[str, Any], perf: Dict[str, float] | None = None) -> Dict[str, float]:
+def build_context(indicators: Dict[str, Any], perf: Dict[str, float] | None = None) -> Dict[str, float]:
     """Assemble context dictionary for StrategySelector."""
-    ctx: Dict[str, float] = {
-        "regime_trend": 1.0 if regime == "TREND" else 0.0,
-    }
+    ctx: Dict[str, float] = {}
     try:
         adx_series = indicators.get("adx")
         if adx_series is not None:

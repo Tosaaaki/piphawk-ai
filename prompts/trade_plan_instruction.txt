@@ -1,10 +1,5 @@
-⚠️【Market Regime Classification – Flexible Criteria】
-Classify as "TREND" if ANY TWO of the following conditions are met:
-- ADX ≥ {TREND_ADX_THRESH} maintained over at least the last 3 candles.
-- EMA consistently sloping upwards or downwards without major reversals within the last 3 candles.
-- Price consistently outside the Bollinger Band midline (above for bullish, below for bearish).
-
-If these conditions are not clearly met, classify the market as "RANGE".
+⚠️【Strategy Selection – Flexible Criteria】
+Use ADX, EMA slope and Bollinger Band width to judge whether a trend-follow or scalp approach is more suitable. If the metrics are mixed, favor quick scalp trades.
 {RANGE_ENTRY_NOTE}
 
 🚫【Counter-trend Trade Prohibition】
