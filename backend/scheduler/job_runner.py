@@ -1431,6 +1431,25 @@ class JobRunner:
 
                     log.info("Indicators calculation successful.")
 
+                    current_price = float(
+                        tick_data["prices"][0]["bids"][0]["price"]
+                    )
+                    if not pass_entry_filter(
+                        indicators,
+                        current_price,
+                        self.indicators_M1,
+                        self.indicators_M15,
+                        self.indicators_H1,
+                        mode=self.trade_mode,
+                    ):
+                        log.info("Entry blocked by filter → skip any AI calls.")
+                        self.last_position_review_ts = None
+                        self.last_run = now
+                        update_oanda_trades()
+                        time.sleep(self.interval_seconds)
+                        timer.stop()
+                        continue
+
                     # 指標からトレードモードを判定
                     new_mode, _score, reasons = decide_trade_mode_detail(
                         indicators, candles_m5
@@ -1487,24 +1506,6 @@ class JobRunner:
                             timer.stop()
                             continue
 
-                    current_price = float(
-                        tick_data["prices"][0]["bids"][0]["price"]
-                    )
-                    if not pass_entry_filter(
-                        indicators,
-                        current_price,
-                        self.indicators_M1,
-                        self.indicators_M15,
-                        self.indicators_H1,
-                        mode=self.trade_mode,
-                    ):
-                        log.info("Entry blocked by filter → skip any AI calls.")
-                        self.last_position_review_ts = None
-                        self.last_run = now
-                        update_oanda_trades()
-                        time.sleep(self.interval_seconds)
-                        timer.stop()
-                        continue
 
                     # 市場コンディションを一度だけ評価し再利用する
                     market_cond = self._evaluate_market_condition(
@@ -2498,36 +2499,7 @@ class JobRunner:
                                     },
                                     risk_engine=self.risk_mgr,
                                 )
-                            if not self.use_vote_arch and not result:
-                                pend = get_pending_entry_order(DEFAULT_PAIR)
-                                if pend and pend.get("order_id"):
-                                    age = time.time() - pend.get("ts", 0)
-                                    if age >= self.pending_grace_sec:
-                                        try:
-                                            order_mgr.cancel_order(pend["order_id"])
-                                            log.info(
-                                                f"AI declined entry; canceled pending LIMIT {pend['order_id']}"
-                                            )
-                                        except Exception as exc:
-                                            log.warning(
-                                                f"Failed to cancel pending LIMIT {pend['order_id']}: {exc}"
-                                            )
-                                        for key, rec in list(_pending_limits.items()):
-                                            if rec.get("order_id") == pend["order_id"]:
-                                                _pending_limits.pop(key, None)
-                                                break
-                                    else:
-                                        log.info(
-                                            f"Pending LIMIT age {age:.0f}s < grace period; keeping order"
-                                        )
-                                log.info(
-                                    "process_entry returned False → aborting entry and continuing loop"
-                                )
-                                self.last_run = now
-                                update_oanda_trades()
-                                time.sleep(self.interval_seconds)
-                                timer.stop()
-                                continue
+                            # process_entry 結果に関わらず必ず進める
                             # Send LINE notification on entry
                             price = float(tick_data["prices"][0]["bids"][0]["price"])
                             send_line_message(
