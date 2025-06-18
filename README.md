@@ -663,6 +663,8 @@ check to succeed by using `depends_on` with `condition: service_healthy`.
 Kafka to become ready before connecting. This avoids `ECONNREFUSED` errors
 during startup races.
 
+コンテナが137エラーで終了する場合はメモリ不足の可能性があります。`docker-compose.yml`の`mem_limit`を増やしてメモリ割当を見直してください。
+
 ## React UI
 
 The active React application lives in `piphawk-ui/` and was bootstrapped with Create React App. Run it locally with:
