@@ -1514,11 +1514,6 @@ class JobRunner:
                     self.mode_reason = "\n".join(f"- {r}" for r in reasons)
                     log.info("Current trade mode: %s", self.trade_mode)
 
-                    # チェック：保留LIMIT注文の更新
-                    self._manage_pending_limits(
-                        DEFAULT_PAIR, indicators, candles_m5, tick_data
-                    )
-
                     pend_info = get_pending_entry_order(DEFAULT_PAIR)
                     if pend_info:
                         age = time.time() - pend_info.get("ts", 0)
@@ -1572,6 +1567,11 @@ class JobRunner:
                         time.sleep(self.interval_seconds)
                         timer.stop()
                         continue
+
+                    # --- manage pending LIMIT orders *after* all entry filters pass
+                    self._manage_pending_limits(
+                        DEFAULT_PAIR, indicators, candles_m5, tick_data
+                    )
 
                     market_cond = self._evaluate_market_condition(
                         candles_m1,
