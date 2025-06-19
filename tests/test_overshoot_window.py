@@ -1,6 +1,14 @@
 import importlib
+import sys
+import types
 
-import pandas as pd
+try:
+    import pandas as pd
+except Exception:  # pragma: no cover - pandas may be missing
+    stub = types.ModuleType("pandas")
+    stub.Series = list
+    sys.modules["pandas"] = stub
+    pd = stub
 
 
 def _base_indicators():
@@ -28,6 +36,8 @@ def test_overshoot_window(monkeypatch):
     monkeypatch.setenv("PIP_SIZE", "1.0")
     monkeypatch.setenv("BAND_WIDTH_THRESH_PIPS", "0")
     monkeypatch.setenv("HIGHER_TF_ENABLED", "false")
+    sys.modules.setdefault("requests", types.ModuleType("requests"))
+    sys.modules.setdefault("numpy", types.ModuleType("numpy"))
 
     import backend.strategy.signal_filter as sf
 

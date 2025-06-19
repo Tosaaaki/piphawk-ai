@@ -20,6 +20,7 @@ from backend.indicators.adx import calculate_adx_slope
 from backend.market_data.tick_fetcher import fetch_tick_data
 from backend.strategy.higher_tf_analysis import analyze_higher_tf
 from backend.utils import env_loader
+from filters.market_filters import _in_trade_hours
 
 logger = logging.getLogger(__name__)
 
@@ -395,51 +396,27 @@ def pass_entry_filter(
     mode: str | None = None,
     context: dict | None = None,
 ) -> bool:
-    """
-    Pure rule‑based entry filter.
-    Returns True when market conditions warrant querying the AI entry decision.
+    """Simplified entry filter.
 
-    Parameters
-    ----------
-    indicators : dict
-        Indicator dictionary returned by ``calculate_indicators``.
-    price : float | None
-        Latest market price used for Bollinger band deviation checks.
-    indicators_m1 : dict | None
-        Optional M1 timeframe indicator dictionary. If not provided, the
-        function attempts to fetch M1 candles and compute indicators.
-    indicators_m15 : dict | None
-        Optional M15 timeframe indicator dictionary used for rapid reversal
-        checks. If omitted, the function fetches M15 candles as needed.
-    indicators_h1 : dict | None
-        Optional H1 timeframe indicators used for counter-trend blocking.
-    mode : str | None, default None
-        Trade mode such as ``"scalp"`` or ``"trend_follow"``. When specified
-        the filter adjusts certain thresholds accordingly.
-    context : dict | None, optional
-        Mutable context dictionary to store penalty metrics for downstream AI
-        evaluation.
+    Filters only when the market is closed or during the configured quiet hours.
+    The overshoot check is preserved to update ``context`` but never blocks the
+    entry.
     """
+
     global _last_overshoot_ts
+
     if context is None:
         context = {}
-    # DISABLE_ENTRY_FILTER が true ならチェックをスキップ
+
     if env_loader.get_env("DISABLE_ENTRY_FILTER", "false").lower() == "true":
         return True
 
-    # --- Time‑of‑day block (JST decimal hours) --------------------------
-    quiet_start = float(
-        env_loader.get_env("QUIET_START_HOUR_JST", "3")
-    )  # default 03:00
-    quiet_end = float(env_loader.get_env("QUIET_END_HOUR_JST", "7"))  # default 07:00
+    quiet_start = float(env_loader.get_env("QUIET_START_HOUR_JST", "3"))
+    quiet_end = float(env_loader.get_env("QUIET_END_HOUR_JST", "7"))
     quiet2_enabled = env_loader.get_env("QUIET2_ENABLED", "false").lower() == "true"
     if quiet2_enabled:
-        quiet2_start = float(
-            env_loader.get_env("QUIET2_START_HOUR_JST", "23")
-        )  # default 23:00
-        quiet2_end = float(
-            env_loader.get_env("QUIET2_END_HOUR_JST", "1")
-        )  # default 01:00
+        quiet2_start = float(env_loader.get_env("QUIET2_START_HOUR_JST", "23"))
+        quiet2_end = float(env_loader.get_env("QUIET2_END_HOUR_JST", "1"))
     else:
         quiet2_start = quiet2_end = None
 
@@ -455,187 +432,39 @@ def pass_entry_filter(
             or (start == end)
         )
 
-    in_quiet_hours = _in_range(quiet_start, quiet_end) or _in_range(
-        quiet2_start, quiet2_end
-    )
-    if in_quiet_hours:
+    if _in_range(quiet_start, quiet_end) or _in_range(quiet2_start, quiet2_end):
         logger.info("Filter NG: session")
         q2_msg = f" or {quiet2_start}-{quiet2_end}" if quiet2_enabled else ""
         logger.debug(
             f"EntryFilter blocked by quiet hours ({quiet_start}-{quiet_end}{q2_msg})"
         )
-        if context is not None:
-            context["reason"] = "session"
+        context["reason"] = "session"
         return False
 
-
-
-    # --- Range / Volatility metrics ------------------------------------
-    rsi_series = indicators["rsi"]
-    atr_series = indicators["atr"]
-    adx_series = indicators.get("adx")
-    latest_adx = (
-        adx_series.iloc[-1] if adx_series is not None and len(adx_series) else None
-    )
-
-    adx_thresh = float(env_loader.get_env("ADX_RANGE_THRESHOLD", "25"))
-    range_mode = latest_adx is not None and latest_adx < adx_thresh
-    lookback = int(env_loader.get_env("ADX_SLOPE_LOOKBACK", "3"))
-    adx_slope = (
-        calculate_adx_slope(adx_series, lookback) if adx_series is not None else 0.0
-    )
-    if adx_slope < 0:
-        range_mode = True
-
-    # --- Volume check ---------------------------------------------------
-    vol_series = indicators.get("volume")
-    vol_ok = True
-    ma_period = int(env_loader.get_env("VOL_MA_PERIOD", "5"))
-    if vol_series is not None and len(vol_series) >= ma_period:
-        sma_vol = vol_series.rolling(window=ma_period).mean().iloc[-1]
-        min_vol = float(
-            env_loader.get_env("MIN_VOL_MA", env_loader.get_env("MIN_VOL_M1", "60"))
-        )
-        vol_ok = sma_vol >= min_vol
-        if not vol_ok:
-            logger.info("Filter NG: volume")
-            logger.debug("EntryFilter blocked: volume below threshold")
-            if context is not None:
-                context["reason"] = "volume"
-            return False
-
-    # --- M1 RSI cross-up/down check ----------------------------------
-    strict = env_loader.get_env("STRICT_ENTRY_FILTER", "true").lower() == "true"
-    if mode == "scalp":
-        strict = SCALP_STRICT_FILTER
-    if strict:
-        if indicators_m1 is None:
-            try:
-                from backend.indicators.calculate_indicators import calculate_indicators
-                from backend.market_data.candle_fetcher import fetch_candles
-
-                pair = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
-                candles_m1 = fetch_candles(
-                    pair,
-                    granularity="M1",
-                    count=10,
-                    allow_incomplete=True,
-                )
-                indicators_m1 = calculate_indicators(candles_m1, pair=pair)
-            except Exception as exc:
-                logger.warning("Failed to fetch M1 indicators: %s", exc)
-                indicators_m1 = None
-
-        if indicators_m1 and indicators_m1.get("rsi") is not None:
-            lookback = int(env_loader.get_env("RSI_CROSS_LOOKBACK", "1"))
-            if not _rsi_cross_up_or_down(indicators_m1["rsi"], lookback=lookback):
-                logger.info("Filter NG: m1_rsi")
-                logger.debug(
-                    "EntryFilter blocked: M1 RSI did not show cross up/down signal"
-                )
-                if context is not None:
-                    context["reason"] = "m1_rsi"
-                return False
-
-    # --- Rapid reversal block ---------------------------------------
-    if indicators_m15 is None:
-        try:
-            from backend.indicators.calculate_indicators import calculate_indicators
-            from backend.market_data.candle_fetcher import fetch_candles
-
-            pair = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
-            candles_m15 = fetch_candles(
-                pair,
-                granularity="M15",
-                count=20,
-                allow_incomplete=True,
-            )
-            indicators_m15 = calculate_indicators(candles_m15, pair=pair)
-        except Exception as exc:
-            logger.warning("Failed to fetch M15 indicators: %s", exc)
-            indicators_m15 = None
-
-    if (
-        indicators_m15
-        and indicators_m15.get("rsi") is not None
-        and indicators.get("macd_hist") is not None
-        and rapid_reversal_block(
-            indicators["rsi"], indicators_m15["rsi"], indicators["macd_hist"]
-        )
-    ):
-        logger.info("Filter NG: rapid_reversal")
-        logger.debug("EntryFilter blocked: rapid reversal detected")
-        if context is not None:
-            context["reason"] = "rapid_reversal"
+    if not _in_trade_hours():
+        logger.info("Filter NG: market_closed")
+        context["reason"] = "market_closed"
         return False
 
-    ema_fast = indicators["ema_fast"]
-    ema_slow = indicators["ema_slow"]
-
-    latest_rsi = rsi_series.iloc[-1] if len(rsi_series) else None
-    latest_atr = atr_series.iloc[-1] if len(atr_series) else None
-    latest_ema_fast = ema_fast.iloc[-1] if len(ema_fast) else None
-    latest_ema_slow = ema_slow.iloc[-1] if len(ema_slow) else None
-    prev_ema_fast = ema_fast.iloc[-2] if len(ema_fast) > 1 else None
-    prev_ema_slow = ema_slow.iloc[-2] if len(ema_slow) > 1 else None
-    ema_flat_thresh = float(env_loader.get_env("EMA_FLAT_PIPS", "0.05")) * float(
-        env_loader.get_env("PIP_SIZE", "0.01")
-    )
-
-    if len(ema_fast) >= 3 and len(ema_slow) >= 2:
-        prev_slope = prev_ema_fast - ema_fast.iloc[-3]
-        curr_slope = latest_ema_fast - prev_ema_fast
-        diff_prev = prev_ema_fast - prev_ema_slow
-        diff_curr = latest_ema_fast - latest_ema_slow
-        narrowing = abs(diff_curr) < abs(diff_prev)
-        rev_or_flat = (curr_slope * prev_slope < 0) or abs(
-            curr_slope
-        ) <= ema_flat_thresh
-        if narrowing and rev_or_flat:
-            logger.info("Filter NG: ema_convergence")
-            logger.debug(
-                "EntryFilter blocked: EMA convergence with slope reversal/flat"
-            )
-            if context is not None:
-                context["reason"] = "ema_convergence"
-            return False
-
-    # --- Bollinger Band width check ------------------------------------
     bb_upper = indicators.get("bb_upper")
     bb_lower = indicators.get("bb_lower")
-    bb_middle = indicators.get("bb_middle")
-    band_width_ok = False
-    bw_pips = None
-    width_ratio = 0.0
-    bw_thresh = float(env_loader.get_env("BAND_WIDTH_THRESH_PIPS", "4"))
-    # ボリンジャーバンドデータが無い場合はデフォルトで0.0を使用する
+    atr_series = indicators.get("atr")
     width_ratio = 0.0
     if (
         bb_upper is not None
         and bb_lower is not None
         and len(bb_upper)
         and len(bb_lower)
+        and atr_series is not None
+        and len(atr_series)
     ):
         pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+        bw_thresh = float(env_loader.get_env("BAND_WIDTH_THRESH_PIPS", "4"))
         bw_pips = (bb_upper.iloc[-1] - bb_lower.iloc[-1]) / pip_size
-        band_width_ok = bw_pips >= bw_thresh
-        if bw_pips <= bw_thresh:
-            # バンド幅が閾値以下ならレンジモード扱い
-            range_mode = True
-
-        width_ratio = (
-            (bw_pips - bw_thresh) / bw_thresh
-            if bw_pips is not None and bw_thresh != 0
-            else 0.0
-        )
-
-        # Overshoot check --------------------------------------------------
+        width_ratio = (bw_pips - bw_thresh) / bw_thresh if bw_thresh != 0 else 0.0
         overshoot_mult = float(env_loader.get_env("OVERSHOOT_ATR_MULT", "1.0"))
         dyn_coeff = float(env_loader.get_env("OVERSHOOT_DYNAMIC_COEFF", "0"))
-
-        base_mult = float(
-            env_loader.get_env("OVERSHOOT_BASE_MULT", str(overshoot_mult))
-        )
+        base_mult = float(env_loader.get_env("OVERSHOOT_BASE_MULT", str(overshoot_mult)))
         max_mult = float(env_loader.get_env("OVERSHOOT_MAX_MULT", "0.7"))
         recover_rate = float(env_loader.get_env("OVERSHOOT_RECOVERY_RATE", "0.05"))
         elapsed_min = 0.0
@@ -644,7 +473,6 @@ def pass_entry_filter(
                 datetime.datetime.now(timezone.utc) - _last_overshoot_ts
             ).total_seconds() / 60.0
         dynamic_base = min(max_mult, base_mult + recover_rate * elapsed_min)
-
         dynamic_mult = dynamic_base * (1 + dyn_coeff * width_ratio)
         threshold = bb_lower.iloc[-1] - atr_series.iloc[-1] * dynamic_mult
         if price is not None and price <= threshold:
@@ -673,8 +501,6 @@ def pass_entry_filter(
             context["overshoot_flag"] = True
             if env_loader.get_env("OVERSHOOT_MODE", "block").lower() != "warn":
                 logger.warning("Overshoot detected; entry allowed but flagged")
-
-        # Overshoot window range check ----------------------------------
         if _WINDOW_LEN > 1 and len(_recent_highs) >= _WINDOW_LEN:
             high = max(_recent_highs)
             low = min(_recent_lows)
@@ -691,142 +517,6 @@ def pass_entry_filter(
                 _last_overshoot_ts = datetime.datetime.now(timezone.utc)
                 context["overshoot_flag"] = True
                 logger.info("Overshoot range detected: flag set")
-
-    # --- Dynamic ADX threshold based on BB width -----------------------
-    adx_base = float(env_loader.get_env("ADX_RANGE_THRESHOLD", "25"))
-    coeff = float(env_loader.get_env("ADX_DYNAMIC_COEFF", "0"))
-    adx_thresh = adx_base * (1 + coeff * width_ratio)
-    range_mode = latest_adx is not None and latest_adx < adx_thresh
-
-    # DI cross overrides trend judgement
-    plus_di = indicators.get("plus_di")
-    minus_di = indicators.get("minus_di")
-    di_cross = False
-    if plus_di is not None and minus_di is not None and len(plus_di) >= 2:
-        try:
-            p_prev = (
-                float(plus_di.iloc[-2])
-                if hasattr(plus_di, "iloc")
-                else float(plus_di[-2])
-            )
-            p_cur = (
-                float(plus_di.iloc[-1])
-                if hasattr(plus_di, "iloc")
-                else float(plus_di[-1])
-            )
-            m_prev = (
-                float(minus_di.iloc[-2])
-                if hasattr(minus_di, "iloc")
-                else float(minus_di[-2])
-            )
-            m_cur = (
-                float(minus_di.iloc[-1])
-                if hasattr(minus_di, "iloc")
-                else float(minus_di[-1])
-            )
-            di_cross = (p_prev > m_prev and p_cur < m_cur) or (
-                p_prev < m_prev and p_cur > m_cur
-            )
-        except Exception:
-            di_cross = False
-    if di_cross:
-        range_mode = True
-
-    # --- Range center block --------------------------------------------
-    block_pct = float(env_loader.get_env("RANGE_CENTER_BLOCK_PCT", "0.3"))
-    if (
-        range_mode
-        and price is not None
-        and bb_upper is not None
-        and bb_lower is not None
-        and bb_middle is not None
-        and len(bb_upper)
-        and len(bb_lower)
-        and len(bb_middle)
-    ):
-        band_span = bb_upper.iloc[-1] - bb_lower.iloc[-1]
-        if band_span != 0:
-            deviation = abs(price - bb_middle.iloc[-1]) / band_span
-            if deviation < block_pct:
-                logger.info("Filter NG: range_center")
-                logger.debug("EntryFilter blocked: price near BB center in range mode")
-                if context is not None:
-                    context["reason"] = "range_center"
-                return False
-
-    def _is_nan(v):
-        try:
-            return v != v
-        except Exception:
-            return False
-
-    if _is_nan(latest_atr) or _is_nan(latest_adx):
-        logger.debug("EntryFilter bypassed: ATR/ADX history insufficient")
-        return True
-
-    if None in [
-        latest_rsi,
-        latest_ema_fast,
-        latest_ema_slow,
-        prev_ema_fast,
-        prev_ema_slow,
-    ]:
-        logger.info("Filter NG: data_insufficient")
-        logger.debug("EntryFilter blocked: insufficient indicator history")
-        if context is not None:
-            context["reason"] = "data_insufficient"
-        return False  # insufficient data
-
-    # --- Composite conditions ------------------------------------------
-    lower = float(env_loader.get_env("RSI_ENTRY_LOWER", "30"))
-    upper = float(env_loader.get_env("RSI_ENTRY_UPPER", "70"))
-
-    pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-    atr_th = float(env_loader.get_env("ATR_ENTRY_THRESHOLD", "0.09"))
-
-    if range_mode:
-        atr_condition = True  # ignore ATR in range market
-    else:
-        atr_condition = (latest_atr / pip_size) >= (atr_th / pip_size)
-
-    if mode in ("scalp", "scalp_momentum"):
-        atr_condition = True
-        required = 1
-    elif mode == "trend_follow":
-        required = 1
-    else:
-        required = 1
-
-    rsi_condition = latest_rsi < lower or latest_rsi > upper
-
-    ema_cross_up = prev_ema_fast < prev_ema_slow and latest_ema_fast > latest_ema_slow
-    ema_cross_down = prev_ema_fast > prev_ema_slow and latest_ema_fast < latest_ema_slow
-    ema_condition = ema_cross_up or ema_cross_down
-
-    score = sum([rsi_condition, atr_condition, ema_condition])
-
-    if not band_width_ok:
-        logger.info("Filter NG: volatility")
-        logger.debug(
-            f"EntryFilter blocked: Bollinger band width {bw_pips:.2f} pips < {bw_thresh}"
-        )
-        if context is not None:
-            context["reason"] = "volatility"
-        return False
-
-    if score < required:
-        logger.info("Filter NG: composite")
-        if not atr_condition:
-            logger.debug(f"EntryFilter blocked: ATR {latest_atr:.4f} below {atr_th}")
-        if not rsi_condition:
-            logger.debug(
-                f"EntryFilter blocked: RSI {latest_rsi:.2f} between {lower} and {upper}"
-            )
-        if not ema_condition:
-            logger.debug("EntryFilter blocked: EMA cross condition not met")
-        if context is not None:
-            context["reason"] = "composite"
-        return False
 
     return True
 
