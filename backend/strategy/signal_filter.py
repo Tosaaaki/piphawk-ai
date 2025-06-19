@@ -250,46 +250,11 @@ def consecutive_lower_highs(candles: list[dict], count: int = 3) -> bool:
 def filter_pre_ai(
     candles: list[dict], indicators: dict, market_cond: dict | None = None
 ) -> bool:
-    """Return True when the last candle is a large trend bar.
+    """AI前フィルターを無効化する。"""
 
-    The function checks the body length of the most recent candle and
-    compares it with the current ATR value. When the candle body exceeds
-    ``1.5 × ATR`` and its direction matches ``market_cond['trend_direction']``
-    we skip the AI entry decision.
-    """
-
-    try:
-        if not candles:
-            return False
-        last = candles[-1]
-        if "mid" in last:
-            o_val = float(last["mid"].get("o", 0))
-            c_val = float(last["mid"].get("c", 0))
-        else:
-            o_val = float(last.get("o", 0))
-            c_val = float(last.get("c", 0))
-        body_len = c_val - o_val
-
-        atr_series = indicators.get("atr")
-        if atr_series is None or len(atr_series) == 0:
-            return False
-        atr = (
-            float(atr_series.iloc[-1])
-            if hasattr(atr_series, "iloc")
-            else float(atr_series[-1])
-        )
-
-        follow_trend = None
-        if market_cond is not None:
-            follow_trend = market_cond.get("trend_direction")
-
-        side = "long" if body_len > 0 else "short"
-
-        skip_entry = abs(body_len) > 1.5 * atr and side == follow_trend
-        return bool(skip_entry)
-    except Exception as exc:  # pragma: no cover - defensive
-        logger.debug(f"filter_pre_ai failed: {exc}")
-        return False
+    # 以前は大陽線・大陰線でエントリーを抑制していたが、
+    # AI 利用時は必ずエントリーする方針とするため常に False を返す。
+    return False
 
 
 # ────────────────────────────────────────────────

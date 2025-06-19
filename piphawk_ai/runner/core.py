@@ -1637,7 +1637,11 @@ class JobRunner:
                     elapsed_seconds = (
                         datetime.now() - self.last_ai_call
                     ).total_seconds()
-                    if (not due_for_review) and elapsed_seconds < self.ai_cooldown:
+                    if (
+                        has_position
+                        and (not due_for_review)
+                        and elapsed_seconds < self.ai_cooldown
+                    ):
                         logger.info(
                             f"AI cooldown active ({elapsed_seconds:.1f}s < {self.ai_cooldown}s). Skipping AI call."
                         )
