@@ -160,6 +160,13 @@ from backend.strategy.momentum_follow import follow_breakout
 from piphawk_ai.tech_arch.pipeline import run_cycle as tech_run_cycle
 
 try:
+    from piphawk_ai.analysis.signal_filter import is_multi_tf_aligned
+except Exception:  # pragma: no cover - optional during tests
+
+    def is_multi_tf_aligned(*_a, **_k):
+        return None
+
+try:
     from analysis.atmosphere.market_air_sensor import MarketSnapshot
     from piphawk_ai.vote_arch.entry_buffer import PlanBuffer
     from piphawk_ai.vote_arch.pipeline import (
