@@ -133,6 +133,34 @@ def _always_allow(*_a, **_k):
 pass_entry_filter = _always_true
 pass_exit_filter = _always_true
 apply_filters = _always_allow
+
+# --- ensure other modules use the same patched filters -----------------
+import backend.strategy.signal_filter as _sf
+_sf.pass_entry_filter = _always_true
+_sf.pass_exit_filter = _always_true
+_sf.filter_pre_ai = _always_false
+
+try:
+    import backend.strategy.entry_logic as _el
+    _el.pass_entry_filter = _always_true
+    _el.filter_pre_ai = _always_false
+except Exception:
+    # entry_logic may be stubbed during tests – ignore if missing
+    pass
+
+try:
+    import filters.session_filter as _fsf
+    _fsf.apply_filters = _always_allow
+except Exception:
+    pass
+
+def _always_false(*_a, **_k):
+    # filter_pre_ai expects a boolean; always return False so it never blocks
+    return False
+
+# Disable the pre‑AI filter as well
+filter_pre_ai = _always_false
+
 from backend.utils.ai_parse import parse_trade_plan
 from monitoring import metrics_publisher
 from monitoring.safety_trigger import SafetyTrigger
@@ -1488,11 +1516,6 @@ class JobRunner:
                     self.mode_reason = "\n".join(f"- {r}" for r in reasons)
                     log.info("Current trade mode: %s", self.trade_mode)
 
-                    # チェック：保留LIMIT注文の更新
-                    self._manage_pending_limits(
-                        DEFAULT_PAIR, indicators, candles_m5, tick_data
-                    )
-
                     pend_info = get_pending_entry_order(DEFAULT_PAIR)
                     if pend_info:
                         age = time.time() - pend_info.get("ts", 0)
@@ -1547,7 +1570,6 @@ class JobRunner:
                         timer.stop()
                         continue
 
-
                     due_for_review = False
                     elapsed_review = None
                     if has_position and self.review_enabled:
@@ -1589,6 +1611,11 @@ class JobRunner:
                         time.sleep(self.interval_seconds)
                         timer.stop()
                         continue
+                        
+                    # --- manage pending LIMIT orders *after* all entry filters pass
+                    self._manage_pending_limits(
+                        DEFAULT_PAIR, indicators, candles_m5, tick_data
+                    )
 
                     market_cond = self._evaluate_market_condition(
                         candles_m1,
