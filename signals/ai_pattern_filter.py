@@ -79,7 +79,17 @@ def pass_pattern_filter(candles: Iterable[Mapping]) -> tuple[bool, float]:
         prom_exporter.increment_pattern_filter_pass()
     except Exception:
         pass
+
     return True, prob
+
+    side = _decide_side(prob)
+    return side, prob
+
+
+def pass_pattern_filter(candles: Iterable[Mapping]) -> tuple[bool, float]:
+    """Return ``(True, prob)`` when CNN probability exceeds ``PROB_THRESHOLD``."""
+    side, prob = decide_entry_side(candles)
+    return side is not None, prob
 
 
 __all__ = ["decide_entry_side", "pass_pattern_filter"]
