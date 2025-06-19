@@ -21,7 +21,8 @@ def generate_plan(prompt: str) -> EntryPlan | None:
     resp = ask_openai(
         prompt,
         system_prompt=(
-            "You are a trading entry planner. Respond in JSON format."
+            "You are a trading entry planner. Always respond with JSON keys"
+            " side, tp, sl, lot. Never output 'no', 'NG' or 'none'."
         ),
         model=AI_ENTRY_MODEL,
         temperature=0.0,
