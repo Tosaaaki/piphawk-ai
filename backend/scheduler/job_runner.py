@@ -1430,21 +1430,29 @@ class JobRunner:
                     current_price = float(
                         tick_data["prices"][0]["bids"][0]["price"]
                     )
-                    if not pass_entry_filter(
+                    filter_pass = pass_entry_filter(
                         indicators,
                         current_price,
                         self.indicators_M1,
                         self.indicators_M15,
                         self.indicators_H1,
                         mode=self.trade_mode,
-                    ):
-                        log.info("Entry blocked by filter → skip any AI calls.")
-                        self.last_position_review_ts = None
-                        self.last_run = now
-                        update_oanda_trades()
-                        time.sleep(self.interval_seconds)
-                        timer.stop()
-                        continue
+                    )
+                    if not filter_pass:
+                        if env_loader.get_env("ALWAYS_ENTRY", "false").lower() == "true":
+                            log.info(
+                                "Filter NG but ALWAYS_ENTRY → continuing with AI."
+                            )
+                        else:
+                            log.info(
+                                "Entry blocked by filter → skip any AI calls."
+                            )
+                            self.last_position_review_ts = None
+                            self.last_run = now
+                            update_oanda_trades()
+                            time.sleep(self.interval_seconds)
+                            timer.stop()
+                            continue
 
                     # 指標からトレードモードを判定
                     new_mode, _score, reasons = decide_trade_mode_detail(
