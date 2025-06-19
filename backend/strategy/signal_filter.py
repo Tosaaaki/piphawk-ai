@@ -398,7 +398,7 @@ def pass_entry_filter(
         )
 
     if _in_range(quiet_start, quiet_end) or _in_range(quiet2_start, quiet2_end):
-        logger.info("Filter NG: session")
+        logger.info("Filter blocked: session")
         q2_msg = f" or {quiet2_start}-{quiet2_end}" if quiet2_enabled else ""
         logger.debug(
             f"EntryFilter blocked by quiet hours ({quiet_start}-{quiet_end}{q2_msg})"
@@ -407,7 +407,7 @@ def pass_entry_filter(
         return False
 
     if not _in_trade_hours():
-        logger.info("Filter NG: market_closed")
+        logger.info("Filter blocked: market_closed")
         context["reason"] = "market_closed"
         return False
 

@@ -1608,7 +1608,7 @@ class JobRunner:
                                             "AI decision was HOLD → No exit executed."
                                         )
                                 else:
-                                    logger.info("Filter NG → AI exit decision skipped.")
+                                    logger.info("Filter blocked → AI exit decision skipped.")
 
                     # ---- Position‑review timing -----------------------------
                     due_for_review = False
@@ -1865,7 +1865,7 @@ class JobRunner:
                             else:
                                 logger.info("AI decision was HOLD → No exit executed.")
                         else:
-                            logger.info("Filter NG → AI exit decision skipped.")
+                            logger.info("Filter blocked → AI exit decision skipped.")
 
                     # AIによるエントリー/エグジット判断
                     if not has_position:
@@ -1902,7 +1902,7 @@ class JobRunner:
                         if filter_ok or force_ai:
                             if not filter_ok:
                                 logger.info(
-                                    "Filter NG but FORCE_ENTRY_AFTER_AI → processing entry with AI."
+                                    "Filter blocked but FORCE_ENTRY_AFTER_AI → processing entry with AI."
                                 )
                             self.ai_cooldown = 0
                             adx_min_val = float(env_loader.get_env("ADX_MIN", "0"))
@@ -2270,7 +2270,7 @@ class JobRunner:
                         else:
                             reason = filter_ctx.get("reason", "unknown")
                             logger.info(
-                                f"Filter NG ({reason}) → AI entry decision skipped."
+                                f"Filter blocked ({reason}) → AI entry decision skipped."
                             )
                             self.last_position_review_ts = None
                     # (removed: periodic exit check block)

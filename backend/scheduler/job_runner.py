@@ -1430,6 +1430,34 @@ class JobRunner:
                     current_price = float(
                         tick_data["prices"][0]["bids"][0]["price"]
                     )
+
+                    filter_ctx: dict[str, str] = {}
+                    filter_pass = pass_entry_filter(
+                        indicators,
+                        current_price,
+                        self.indicators_M1,
+                        self.indicators_M15,
+                        self.indicators_H1,
+                        mode=self.trade_mode,
+                        context=filter_ctx,
+                    )
+                    if not filter_pass:
+                        if env_loader.get_env("ALWAYS_ENTRY", "false").lower() == "true":
+                            log.info(
+                                "Filter blocked but ALWAYS_ENTRY → continuing with AI."
+                            )
+                        else:
+                            reason = filter_ctx.get("reason", "unknown")
+                            log.info(
+                                f"Entry blocked by filter ({reason}) → skip any AI calls."
+                            )
+                            self.last_position_review_ts = None
+                            self.last_run = now
+                            update_oanda_trades()
+                            time.sleep(self.interval_seconds)
+                            timer.stop()
+                            continue
+
                     skip_filter = env_loader.get_env("ALWAYS_ENTRY", "false").lower() == "true"
                     if skip_filter:
                         log.info("ALWAYS_ENTRY true → skipping entry filter.")
@@ -2001,7 +2029,7 @@ class JobRunner:
                                             "AI decision was HOLD → No exit executed."
                                         )
                                 else:
-                                    log.info("Filter NG → AI exit decision skipped.")
+                                    log.info("Filter blocked → AI exit decision skipped.")
 
                     # ---- Position‑review timing -----------------------------
 
@@ -2178,7 +2206,7 @@ class JobRunner:
                             else:
                                 log.info("AI decision was HOLD → No exit executed.")
                         else:
-                            log.info("Filter NG → AI exit decision skipped.")
+                            log.info("Filter blocked → AI exit decision skipped.")
 
                     # AIによるエントリー/エグジット判断
                     if not has_position:
@@ -2526,6 +2554,8 @@ class JobRunner:
                             self.last_entry_context = self.current_context
                             self.last_entry_strategy = self.current_strategy_name
                         else:
+
+                            log.info("Filter blocked → AI entry decision skipped.")
                             log.info("Filter NG → forcing entry after AI.")
                             result = process_entry(
                                 indicators,
