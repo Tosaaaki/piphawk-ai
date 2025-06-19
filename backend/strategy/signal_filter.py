@@ -251,6 +251,8 @@ def filter_pre_ai(
     candles: list[dict], indicators: dict, market_cond: dict | None = None
 ) -> bool:
     """AI前フィルターを無効化する。"""
+    if env_loader.get_env("ALWAYS_ENTRY", "false").lower() == "true":
+        return False
 
     # 以前は大陽線・大陰線でエントリーを抑制していたが、
     # AI 利用時は必ずエントリーする方針とするため常に False を返す。
@@ -373,7 +375,10 @@ def pass_entry_filter(
     if context is None:
         context = {}
 
-    if env_loader.get_env("DISABLE_ENTRY_FILTER", "false").lower() == "true":
+    if (
+        env_loader.get_env("DISABLE_ENTRY_FILTER", "false").lower() == "true"
+        or env_loader.get_env("ALWAYS_ENTRY", "false").lower() == "true"
+    ):
         return True
 
     quiet_start = float(env_loader.get_env("QUIET_START_HOUR_JST", "3"))
