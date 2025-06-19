@@ -470,8 +470,6 @@ def process_entry(
             }
             with_oco = True
             try:
-                from backend.risk_manager import tp_only_condition
-
                 if tp_only_condition(sl_pips, noise_pips):
                     with_oco = False
             except Exception:
