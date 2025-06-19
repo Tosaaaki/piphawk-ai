@@ -131,15 +131,11 @@ def decide_trade_mode_matrix(
 ) -> str:
     """Return mode based on volatility and trend strength."""
     if atr_base <= 0:
-        return "flat"
-    atr_ratio = atr / atr_base
-    if atr_ratio >= atr_high_thr and adx <= adx_flat_thr:
-        return "scalp_range"
-    if atr_ratio >= atr_high_thr and adx >= adx_trend_thr:
         return "scalp_momentum"
+    atr_ratio = atr / atr_base
     if atr_ratio <= atr_low_thr and adx >= adx_trend_thr:
         return "trend_follow"
-    return "flat"
+    return "scalp_momentum"
 
 
 def _quantile(data: Iterable, q: float) -> float | None:
@@ -323,42 +319,9 @@ def decide_trade_mode_detail(
     elif score >= TREND_ENTER_SCORE:
         mode = "trend_follow"
     elif score >= SCALP_ENTER_SCORE:
-        if (
-            _LAST_MODE is None
-            and atr_val is not None
-            and atr_val < HIGH_ATR_PIPS / 100
-            and adx_val is not None
-            and adx_val < MODE_ADX_MIN
-        ):
-            mode = "flat"
-        else:
-            mode = "scalp_momentum"
+        mode = "scalp_momentum"
     else:
-        mode = _LAST_MODE or "flat"
-
-    if mode == "flat":
-        try:
-            rsi_val = _last(m5.get("rsi"))
-            bb_u = _last(m5.get("bb_upper"))
-            bb_l = _last(m5.get("bb_lower"))
-            price = None
-            if candles:
-                c = candles[-1]
-                price = float(c.get("mid", {}).get("c", c.get("c")))
-            if (
-                adx_val is not None
-                and adx_val <= SCALP_REV_ADX_MAX
-                and rsi_val is not None
-                and bb_u is not None
-                and bb_l is not None
-                and price is not None
-            ):
-                if price > bb_u and rsi_val >= SCALP_REV_RSI_HIGH:
-                    mode = "scalp_reversion"
-                elif price < bb_l and rsi_val <= SCALP_REV_RSI_LOW:
-                    mode = "scalp_reversion"
-        except Exception:
-            pass
+        mode = _LAST_MODE or "scalp_momentum"
 
     if _RANGE_ADX_COUNTER >= RANGE_ADX_COUNT:
         mode = "scalp_momentum"

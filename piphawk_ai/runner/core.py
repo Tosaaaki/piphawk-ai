@@ -159,10 +159,10 @@ try:
 except Exception:  # pragma: no cover - test stubs may remove module
 
     def decide_trade_mode(*_a, **_k):
-        return "flat"
+        return "scalp_momentum"
 
     def decide_trade_mode_detail(*_a, **_k):
-        return "flat", 0.0, []
+        return "scalp_momentum", 0.0, []
 
 
 from backend.logs.trade_logger import ExitReason, log_trade
@@ -555,11 +555,9 @@ class JobRunner:
             config_file = "config/scalp_params.yml"
         elif mode in ("trend", "trend_follow"):
             config_file = "config/trend.yml"
-        elif mode == "flat":
-            config_file = "config/strategy.yml"
         else:
-            # 想定外のモードは戦略デフォルト
-            config_file = "config/strategy.yml"
+            # 想定外のモードはスキャル設定
+            config_file = "config/scalp_params.yml"
         # デバッグ: マッピング結果を記録
         logger.debug("[DEBUG] mapped mode %r → config_file=%s", mode, config_file)
         try:

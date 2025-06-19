@@ -115,7 +115,7 @@ def test_decide_trade_mode_scalp(monkeypatch):
         "volume": [20, 30, 40, 50, 60],
     }
     ctx = md.MarketContext(price=0.0, indicators=inds)
-    assert md.detect_mode(ctx) == "flat"
+    assert md.detect_mode(ctx) == "scalp_momentum"
 
 
 def test_decide_trade_mode_high_atr_low_adx(monkeypatch):
@@ -134,10 +134,10 @@ def test_decide_trade_mode_high_atr_low_adx(monkeypatch):
     }
     ctx = md.MarketContext(price=0.0, indicators=inds)
     assert md.detect_mode(ctx) == "scalp_momentum"
-    assert cm.decide_trade_mode_matrix(1.5, 1.0, 10) == "scalp_range"
+    assert cm.decide_trade_mode_matrix(1.5, 1.0, 10) == "scalp_momentum"
     assert cm.decide_trade_mode_matrix(1.5, 1.0, 30) == "scalp_momentum"
     assert cm.decide_trade_mode_matrix(0.7, 1.0, 30) == "trend_follow"
-    assert cm.decide_trade_mode_matrix(1.0, 1.0, 20) == "flat"
+    assert cm.decide_trade_mode_matrix(1.0, 1.0, 20) == "scalp_momentum"
 
 
 def test_detect_mode_direct(monkeypatch):
