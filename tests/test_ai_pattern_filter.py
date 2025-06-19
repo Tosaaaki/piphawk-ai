@@ -48,12 +48,24 @@ def test_decide_entry_side_long(monkeypatch):
     assert prob == 0.8
 
 
-def test_decide_entry_side_none(monkeypatch):
+def test_decide_entry_side_short(monkeypatch):
+    def fake(img: np.ndarray) -> dict[str, float]:
+        return {"pattern": 0.2}
+
+    monkeypatch.setattr(infer, "predict", fake)
+    side, prob = decide_entry_side(_dummy_candles())
+    assert side == "short"
+    assert prob == 0.2
+
+
+def test_decide_entry_side_low_prob(monkeypatch):
+
     def fake(img: np.ndarray) -> dict[str, float]:
         return {"pattern": 0.55}
 
     monkeypatch.setattr(infer, "predict", fake)
     side, prob = decide_entry_side(_dummy_candles())
-    assert side is None
+
+    assert side == "long"
 
 
