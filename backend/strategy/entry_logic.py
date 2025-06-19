@@ -1180,6 +1180,8 @@ def process_entry(
             ai_reason=ai_raw,
             ai_response=ai_raw,
             entry_regime=entry_type,
+            regime=strategy_params.get("regime"),
+            forced=forced_entry,
             tp_pips=tp_pips,
             sl_pips=sl_pips,
             rrr=rrr,

@@ -112,8 +112,10 @@ def init_db():
                 ai_reason TEXT,
                 ai_response TEXT,
                 entry_regime TEXT,
+                regime TEXT,
                 exit_reason TEXT,
                 is_manual INTEGER,
+                forced INTEGER,
                 score_version INTEGER DEFAULT 1
             )
         ''')
@@ -144,6 +146,10 @@ def init_db():
                 'ALTER TABLE trades ADD COLUMN score_version INTEGER DEFAULT 1'
             )
             cursor.execute('UPDATE trades SET score_version = 1')
+        if 'regime' not in columns:
+            cursor.execute('ALTER TABLE trades ADD COLUMN regime TEXT')
+        if 'forced' not in columns:
+            cursor.execute('ALTER TABLE trades ADD COLUMN forced INTEGER')
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS ai_decisions (
@@ -257,6 +263,7 @@ def log_trade(
     ai_reason,
     ai_response=None,
     entry_regime=None,
+    regime=None,
     exit_time=None,
     exit_price=None,
     profit_loss=None,
@@ -268,6 +275,7 @@ def log_trade(
     final_side=None,
     exit_reason=None,
     is_manual: bool | None = None,
+    forced: bool | None = None,
     score_version: int | None = None,
 ):
     if isinstance(exit_reason, Enum):
@@ -281,8 +289,9 @@ def log_trade(
                 exit_time, exit_price, profit_loss,
                 tp_pips, sl_pips, rrr,
                 ai_dir, local_dir, final_side,
-                exit_reason, is_manual, score_version
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                exit_reason, is_manual, score_version,
+                regime, forced
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             instrument,
             entry_time,
@@ -303,6 +312,8 @@ def log_trade(
             exit_reason,
             is_manual,
             int(score_version if score_version is not None else env_loader.get_env("SCORE_VERSION", "1")),
+            regime,
+            int(forced) if forced is not None else None,
         ))
         trade_id = cursor.lastrowid
         conn.commit()
