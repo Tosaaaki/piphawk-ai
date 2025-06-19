@@ -20,7 +20,6 @@
 | `ai/` | AI 関連モジュール群 |
 | `analysis/` | 市場分析スクリプトとユーティリティ |
 | `backend/` | FastAPI サーバーとジョブランナー |
-| `benchmarks/` | ベンチマーク用コード |
 | `config/` | YAML 設定ファイル |
 | `core/` | エントリー・エグジットの基盤ロジック |
 | `deploy.sh` | デプロイ補助スクリプト |
@@ -317,7 +316,6 @@
 | `backend/utils/prompt_loader.py` | プロンプトテンプレートローダーユーティリティ。 |
 | `backend/utils/restart_guard.py` | 過度の自己評価を防ぐためにガードを再起動します。 |
 | `backend/utils/trade_time.py` | 貿易タイムスタンプのユーティリティヘルパー。 |
-| `benchmarks/bench_tick_pipeline.py` | 簡易ティックパイプラインベンチマーク. |
 | `config/__init__.py` | 構成のパッケージ初期化 |
 | `config/params_loader.py` | Params.yamlおよびStrategy.ymlから環境変数へのロードパラメーター。 |
 | `core/__init__.py` | コアユーティリティをまとめたモジュール. |
