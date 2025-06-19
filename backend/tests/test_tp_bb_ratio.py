@@ -62,6 +62,8 @@ class TestTpBbRatio(unittest.TestCase):
 
         log_mod = types.ModuleType("backend.logs.log_manager")
         log_mod.log_trade = lambda *a, **k: None
+        log_mod.add_trade_label = lambda *a, **k: None
+        log_mod.log_policy_transition = lambda *a, **k: None
         add("backend.logs.log_manager", log_mod)
 
         os.environ["PIP_SIZE"] = "0.01"

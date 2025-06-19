@@ -123,25 +123,33 @@ def calc_fallback_tp_sl(indicators: dict, pip_size: float) -> tuple[float | None
         except Exception:
             atr_pips = None
 
-    tp = sl = None
+    atr_tp = bb_tp = None
+    sl = None
     try:
         mult_tp = float(env_loader.get_env("ATR_MULT_TP", "0.8"))
         mult_sl = float(env_loader.get_env("ATR_MULT_SL", "1.1"))
         if atr_pips is not None:
-            tp = atr_pips * mult_tp
+            atr_tp = atr_pips * mult_tp
             sl = atr_pips * mult_sl
     except Exception:
         pass
 
-    if tp is None and bb_upper is not None and bb_lower is not None:
+    if bb_upper is not None and bb_lower is not None:
         try:
             up = bb_upper.iloc[-1] if hasattr(bb_upper, "iloc") else bb_upper[-1]
             low = bb_lower.iloc[-1] if hasattr(bb_lower, "iloc") else bb_lower[-1]
             width = float(up) - float(low)
             ratio = float(env_loader.get_env("TP_BB_RATIO", "0.6"))
-            tp = width / pip_size * ratio
+            bb_tp = width / pip_size * ratio
         except Exception:
             pass
+
+    if atr_tp is not None and bb_tp is not None:
+        tp = min(atr_tp, bb_tp)
+    elif atr_tp is not None:
+        tp = atr_tp
+    else:
+        tp = bb_tp
 
     return tp, sl
 
