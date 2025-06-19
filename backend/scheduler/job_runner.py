@@ -1560,8 +1560,9 @@ class JobRunner:
                     except Exception:
                         bb_pct = 0.0
 
+                    tradeable = instrument_is_tradeable(DEFAULT_PAIR)
                     allow_trade, filter_ctx, reason = apply_filters(
-                        atr_pips, bb_pct, tradeable=True
+                        atr_pips, bb_pct, tradeable=tradeable
                     )
                     if not allow_trade:
                         log_entry_skip(DEFAULT_PAIR, None, reason)

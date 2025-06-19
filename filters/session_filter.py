@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from backend.utils import env_loader
+from filters.market_filters import _in_trade_hours
 
 
 def is_quiet_hours(now: datetime | None = None) -> bool:
@@ -18,7 +19,8 @@ def apply_filters(atr: float, bb_width_pct: float, *, tradeable: bool = True) ->
     """禁止3条件を評価し、regime_hint を返す."""
     if is_quiet_hours():
         return False, None, "session"
-    if not tradeable:
+    # 市場が開いているか、取引可能かを判定
+    if not _in_trade_hours() or not tradeable:
         return False, None, "market_closed"
     scalp_min = float(env_loader.get_env("SCALP_ATR_MIN", "0.03"))
     trend_min = float(env_loader.get_env("TREND_ATR_MIN", "0.1"))
