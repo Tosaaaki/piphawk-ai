@@ -6,6 +6,7 @@ import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from logging import getLogger
+from typing import Any
 
 try:
     from prometheus_client import start_http_server
@@ -2213,6 +2214,7 @@ class JobRunner:
                         self.tp_extended = False
                         self.tp_reduced = False
                         self.max_profit_pips = 0.0
+                        entry_params: dict[str, Any] = {}
                         # 1) Entry cooldown check
                         if (
                             self.last_close_ts
