@@ -93,6 +93,7 @@ except Exception:  # pragma: no cover - test stubs may remove module
 
 
 from backend.logs.perf_stats_logger import PerfTimer
+
 try:
     from ai.scalp_trend_classifier import MarketRegimeClassifier
     from ai.tp_sl_calculator import calc_tp_sl

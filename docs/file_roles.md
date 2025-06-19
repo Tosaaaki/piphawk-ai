@@ -57,7 +57,7 @@
 | パス | 役割 |
 | --- | --- |
 | `ai/local_model.py` | ローカル LLM を利用するためのインターフェース |
-| `analysis/ai_strategy.py` | AI による取引戦略のエントリーポイント |
+| `analysis/strategy_utils.py` | AI による取引戦略のエントリーポイント |
 | `backend/api/main.py` | FastAPI サーバーの起動スクリプト |
 | `execution/scalp_manager.py` | スキャルピング実行の管理処理 |
 | `piphawk_ai/main.py` | ジョブランナー全体を起動するメイン処理 |
@@ -76,7 +76,7 @@
 | `ai/policy_trainer.py` | 戦略選択のためのオフラインRLトレーナー。 |
 | `ai/prompt_templates.py` | プロンプトテンプレート管理モジュール |
 | `analysis/__init__.py` | trade_patterns からスコア計算関数 |
-| `analysis/ai_strategy.py` | AI ストラテジー補助モジュール. |
+| `analysis/strategy_utils.py` | AI ストラテジー補助モジュール. |
 | `analysis/backtest_utils.py` | 単純なバックテストヘルパー。 |
 | `analysis/cluster_regime.py` | 学習済みクラスタリングモデルを用いたレジーム推定ヘルパー. |
 | `analysis/detect_mode.py` | ローカルトレードモード検出ユーティリティ。 |

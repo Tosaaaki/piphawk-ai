@@ -1,9 +1,5 @@
-"""Stub macro analyzer."""
+"""Compatibility wrapper for :mod:`ai.macro_analyzer`."""
 
-class MacroAnalyzer:
-    def update(self, *_a, **_k):
-        return {"transition": False}
+from ai.macro_analyzer import MacroAnalyzer
 
-    @property
-    def state(self):
-        return {}
+__all__ = ["MacroAnalyzer"]
