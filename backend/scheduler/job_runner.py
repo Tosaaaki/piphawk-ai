@@ -1500,11 +1500,14 @@ class JobRunner:
 
 
                     pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+                    # ATR を SCALP_COND_TF で指定された足から取得する
+                    tf = env_loader.get_env("SCALP_COND_TF", self.scalp_cond_tf).upper()
+                    src = getattr(self, f"indicators_{tf}", None) or self.indicators_M1
                     try:
                         atr_val = (
-                            self.indicators_M5.get("atr").iloc[-1]
-                            if hasattr(self.indicators_M5.get("atr"), "iloc")
-                            else self.indicators_M5.get("atr", [0])[-1]
+                            src.get("atr").iloc[-1]
+                            if hasattr(src.get("atr"), "iloc")
+                            else src.get("atr", [0])[-1]
                         )
                         atr_pips = float(atr_val) / pip_size
                     except Exception:
