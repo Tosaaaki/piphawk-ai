@@ -2402,6 +2402,9 @@ class JobRunner:
                                     news_score=float(market_cond.get("news_score", 0.0)),
                                     oi_bias=float(market_cond.get("oi_bias", 0.0)),
                                 )
+                                spread = float(tick_data["prices"][0]["asks"][0]["price"]) - float(
+                                    tick_data["prices"][0]["bids"][0]["price"]
+                                )
                                 if self.use_vote_pipeline:
                                     log.info("Using vote pipeline for entry")
                                     res = vote_run_cycle(
@@ -2409,6 +2412,10 @@ class JobRunner:
                                         metrics,
                                         snapshot,
                                         self.plan_buffer,
+                                        pair=DEFAULT_PAIR,
+                                        timeframe="M5",
+                                        spread=spread,
+                                        atr=atr_val,
                                         force_enter=True,
                                     )
                                     if not res or not res.plan:
