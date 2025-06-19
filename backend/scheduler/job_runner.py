@@ -20,6 +20,8 @@ from backend.utils import env_loader, trade_age_seconds
 from backend.utils.openai_client import reset_call_counter, set_call_limit
 from backend.utils.restart_guard import can_restart
 from maintenance.disk_guard import maybe_cleanup
+from monitoring import metrics_publisher
+from monitoring.safety_trigger import SafetyTrigger
 
 try:
     from config import params_loader
