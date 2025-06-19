@@ -39,8 +39,14 @@ def _candles_to_image(candles: Iterable[Mapping]) -> np.ndarray:
     return (img[:, :, :3] * 255).astype(np.uint8)
 
 
-def pass_pattern_filter(candles: Iterable[Mapping]) -> tuple[bool, float]:
-    """Return ``(True, prob)`` when CNN predicts chart pattern."""
+def _decide_side(prob: float) -> str:
+    """Return ``"long"`` when probability favors long otherwise ``"short"``."""
+
+    return "long" if prob >= 0.5 else "short"
+
+
+def decide_entry_side(candles: Iterable[Mapping]) -> tuple[str | None, float]:
+    """Return side ``"long"`` or ``"short"`` based on CNN probability."""
     img = _candles_to_image(candles)
 
     allow_fb = env_loader.get_env("ALLOW_FALLBACK_PATTERN", "no").lower() == "yes"
@@ -52,17 +58,26 @@ def pass_pattern_filter(candles: Iterable[Mapping]) -> tuple[bool, float]:
             logger.warning(msg)
         else:
             logger.error(msg)
-            return False, 0.0
+            return None, 0.0
 
     res = infer.predict(img)
     prob = res.get("pattern", 0.0)
-    passed = prob > PROB_THRESHOLD
-    if passed:
-        try:
-            prom_exporter.increment_pattern_filter_pass()
-        except Exception:
-            pass
-    return passed, prob
+    side_prob = max(prob, 1.0 - prob)
+    if side_prob < PROB_THRESHOLD:
+        return None, prob
+
+    try:
+        prom_exporter.increment_pattern_filter_pass()
+    except Exception:
+        pass
+    side = _decide_side(prob)
+    return side, prob
 
 
-__all__ = ["pass_pattern_filter"]
+def pass_pattern_filter(candles: Iterable[Mapping]) -> tuple[bool, float]:
+    """Return ``(True, prob)`` when CNN probability exceeds ``PROB_THRESHOLD``."""
+    side, prob = decide_entry_side(candles)
+    return side is not None, prob
+
+
+__all__ = ["decide_entry_side", "pass_pattern_filter"]
