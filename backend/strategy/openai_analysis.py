@@ -1354,6 +1354,9 @@ def get_trade_plan(
         why = plan.get("why") or plan.get("entry", {}).get("why")
         if isinstance(why, str) and why:
             plan["reason"] = why
+        plan["entry"]["side"] = (
+            market_cond.get("trend_direction") if market_cond else "long"
+        )
 
     entry_conf = plan.get("entry_confidence")
     try:
