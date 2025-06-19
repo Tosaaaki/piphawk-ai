@@ -1947,17 +1947,38 @@ class JobRunner:
                             logger.info(
                                 "Filter OK → Processing entry decision with AI."
                             )
-                            self.last_ai_call = (
-                                datetime.now()
-                            )  # record AI call time *before* the call
                             cond_ind = self._get_cond_indicators()
+                            ema_trend = None
+                            ema_series = cond_ind.get("ema_slope")
+                            if ema_series is not None:
+                                try:
+                                    val = (
+                                        ema_series.iloc[-1]
+                                        if hasattr(ema_series, "iloc")
+                                        else ema_series[-1]
+                                    )
+                                    ema_trend = "long" if float(val) >= 0 else "short"
+                                except Exception:
+                                    ema_trend = None
+
+                            if filter_pre_ai(
+                                candles_m5, indicators, {"trend_direction": ema_trend}
+                            ):
+                                logger.info("Pre-AI filter triggered → skipping entry.")
+                                self.last_run = now
+                                update_oanda_trades()
+                                time.sleep(self.interval_seconds)
+                                timer.stop()
+                                continue
+
+                            self.last_ai_call = datetime.now()  # record AI call time *before* the call
+
                             market_cond = get_market_condition(
                                 {
                                     "indicators": {
                                         key: (
                                             float(val.iloc[-1])
-                                            if hasattr(val, "iloc")
-                                            and val.iloc[-1] is not None
+                                            if hasattr(val, "iloc") and val.iloc[-1] is not None
                                             else float(val) if val is not None else None
                                         )
                                         for key, val in cond_ind.items()
@@ -1965,8 +1986,7 @@ class JobRunner:
                                     "indicators_h1": {
                                         key: (
                                             float(v.iloc[-1])
-                                            if hasattr(v, "iloc")
-                                            and v.iloc[-1] is not None
+                                            if hasattr(v, "iloc") and v.iloc[-1] is not None
                                             else float(v) if v is not None else None
                                         )
                                         for key, v in (self.indicators_H1 or {}).items()
@@ -1974,8 +1994,7 @@ class JobRunner:
                                     "indicators_h4": {
                                         key: (
                                             float(v.iloc[-1])
-                                            if hasattr(v, "iloc")
-                                            and v.iloc[-1] is not None
+                                            if hasattr(v, "iloc") and v.iloc[-1] is not None
                                             else float(v) if v is not None else None
                                         )
                                         for key, v in (self.indicators_H4 or {}).items()
@@ -2026,14 +2045,6 @@ class JobRunner:
                                     market_data=tick_data,
                                     strategy_params=params,
                                 )
-                                self.last_run = now
-                                update_oanda_trades()
-                                time.sleep(self.interval_seconds)
-                                timer.stop()
-                                continue
-
-                            if filter_pre_ai(candles_m5, indicators, market_cond):
-                                logger.info("Pre-AI filter triggered → skipping entry.")
                                 self.last_run = now
                                 update_oanda_trades()
                                 time.sleep(self.interval_seconds)
