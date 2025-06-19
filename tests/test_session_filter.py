@@ -1,0 +1,15 @@
+from filters import session_filter
+
+
+def test_apply_filters_market_closed(monkeypatch):
+    monkeypatch.setattr(session_filter, "_in_trade_hours", lambda: False)
+    ok, ctx, reason = session_filter.apply_filters(0.1, 0.2, tradeable=True)
+    assert not ok
+    assert reason == "market_closed"
+
+
+def test_apply_filters_quiet_hours(monkeypatch):
+    monkeypatch.setattr(session_filter, "is_quiet_hours", lambda *a, **k: True)
+    ok, ctx, reason = session_filter.apply_filters(0.1, 0.2, tradeable=True)
+    assert not ok
+    assert reason == "session"
