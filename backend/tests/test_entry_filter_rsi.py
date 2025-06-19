@@ -179,6 +179,14 @@ class TestEntryFilterRSICross(unittest.TestCase):
         result = pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_h1=None, context={})
         self.assertFalse(result)
 
+    def test_disable_entry_filter_env_skips_all_checks(self):
+        os.environ["DISABLE_ENTRY_FILTER"] = "true"
+        ind = self._base_indicators()
+        m1 = {"rsi": FakeSeries([31, 33])}
+        result = pass_entry_filter(ind, price=1.2, indicators_m1=m1, indicators_h1=None, context={})
+        self.assertTrue(result)
+        os.environ["DISABLE_ENTRY_FILTER"] = "false"
+
 
 if __name__ == "__main__":
     unittest.main()
