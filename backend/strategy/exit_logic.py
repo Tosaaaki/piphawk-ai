@@ -43,6 +43,11 @@ LOW_ADX_THRESH = float(env_loader.get_env("LOW_ADX_THRESH", "20"))
 # polarity-based exit threshold
 POLARITY_EXIT_THRESHOLD = float(env_loader.get_env("POLARITY_EXIT_THRESHOLD", "0.4"))
 
+# DIクロスによる早期決済を行う際のADX下限
+DI_CROSS_EXIT_ADX_MIN = float(
+    env_loader.get_env("DI_CROSS_EXIT_ADX_MIN", "25")
+)
+
 # 早期撤退を行う際の最低利益幅（pips）
 MIN_EARLY_EXIT_PROFIT_PIPS = float(
     env_loader.get_env("MIN_EARLY_EXIT_PROFIT_PIPS", "5")
@@ -342,6 +347,36 @@ def process_exit(
                     or (position_side == "short" and polarity >= POLARITY_EXIT_THRESHOLD)
                 ):
                     early_exit = True
+
+        # DIクロス判定
+        if not early_exit:
+            di_plus = indicators.get("plus_di")
+            di_minus = indicators.get("minus_di")
+            adx_val = indicators.get("adx")
+            if hasattr(adx_val, "iloc"):
+                adx_val = float(adx_val.iloc[-1])
+            elif isinstance(adx_val, (list, tuple)):
+                adx_val = float(adx_val[-1])
+            try:
+                if (
+                    di_plus is not None
+                    and di_minus is not None
+                    and len(di_plus) >= 2
+                    and len(di_minus) >= 2
+                ):
+                    p_prev = di_plus.iloc[-2] if hasattr(di_plus, "iloc") else di_plus[-2]
+                    p_cur = di_plus.iloc[-1] if hasattr(di_plus, "iloc") else di_plus[-1]
+                    m_prev = di_minus.iloc[-2] if hasattr(di_minus, "iloc") else di_minus[-2]
+                    m_cur = di_minus.iloc[-1] if hasattr(di_minus, "iloc") else di_minus[-1]
+                    crossed = False
+                    if position_side == "long" and p_prev > m_prev and p_cur < m_cur:
+                        crossed = True
+                    elif position_side == "short" and m_prev > p_prev and m_cur < p_cur:
+                        crossed = True
+                    if crossed and adx_val is not None and adx_val >= DI_CROSS_EXIT_ADX_MIN:
+                        early_exit = True
+            except Exception:
+                pass
 
         if early_exit:
             logging.info("Early‑exit criteria met — consulting AI before action.")

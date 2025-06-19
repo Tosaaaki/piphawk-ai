@@ -48,6 +48,7 @@
     "MIN_EARLY_EXIT_PROFIT_PIPS": 5,
     "HIGH_ATR_PIPS": 10,
     "LOW_ADX_THRESH": 20,
+    "DI_CROSS_EXIT_ADX_MIN": 25,
     "ATR_SL_MULTIPLIER": 2.0,
     "_ATR_SL_NOTE": "If AI omits sl_pips, use ATR(M5) * ATR_SL_MULTIPLIER",
     "ATR_MULT_TP": 0.8,
