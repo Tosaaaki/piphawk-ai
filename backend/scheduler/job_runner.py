@@ -1430,6 +1430,7 @@ class JobRunner:
                     current_price = float(
                         tick_data["prices"][0]["bids"][0]["price"]
                     )
+
                     filter_ctx: dict[str, str] = {}
                     filter_pass = pass_entry_filter(
                         indicators,
@@ -1456,6 +1457,32 @@ class JobRunner:
                             time.sleep(self.interval_seconds)
                             timer.stop()
                             continue
+
+                    skip_filter = env_loader.get_env("ALWAYS_ENTRY", "false").lower() == "true"
+                    if skip_filter:
+                        log.info("ALWAYS_ENTRY true → skipping entry filter.")
+                        filter_pass = True
+                    else:
+                        filter_pass = pass_entry_filter(
+                            indicators,
+                            current_price,
+                            self.indicators_M1,
+                            self.indicators_M15,
+                            self.indicators_H1,
+                            mode=self.trade_mode,
+                        )
+
+                    if not filter_pass:
+                        log.info(
+                            "Entry blocked by filter → skip any AI calls."
+                        )
+                        self.last_ai_call = datetime.min
+                        self.last_position_review_ts = None
+                        self.last_run = now
+                        update_oanda_trades()
+                        time.sleep(self.interval_seconds)
+                        timer.stop()
+                        continue
 
                     # 指標からトレードモードを判定
                     new_mode, _score, reasons = decide_trade_mode_detail(
@@ -1537,6 +1564,7 @@ class JobRunner:
                     )
                     if not allow_trade:
                         log_entry_skip(DEFAULT_PAIR, None, reason)
+                        self.last_ai_call = datetime.min
                         self.last_run = now
                         update_oanda_trades()
                         time.sleep(self.interval_seconds)
@@ -2526,7 +2554,42 @@ class JobRunner:
                             self.last_entry_context = self.current_context
                             self.last_entry_strategy = self.current_strategy_name
                         else:
+
                             log.info("Filter blocked → AI entry decision skipped.")
+                            log.info("Filter NG → forcing entry after AI.")
+                            result = process_entry(
+                                indicators,
+                                candles_m5,
+                                tick_data,
+                                market_cond,
+                                entry_params,
+                                higher_tf=higher_tf,
+                                patterns=PATTERN_NAMES,
+                                candles_dict={"M1": candles_m1, "M5": candles_m5},
+                                pattern_names=self.patterns_by_tf,
+                                tf_align=align,
+                                indicators_multi={
+                                    "M1": self.indicators_M1 or {},
+                                    "M5": self.indicators_M5 or {},
+                                    "H1": self.indicators_H1 or {},
+                                },
+                                risk_engine=self.risk_mgr,
+                            )
+                            price = float(tick_data["prices"][0]["bids"][0]["price"])
+                            send_line_message(
+                                f"【ENTRY】{DEFAULT_PAIR} {price} でエントリーしました。"
+                            )
+                            info(
+                                "entry",
+                                pair=DEFAULT_PAIR,
+                                side=side,
+                                price=price,
+                                lot=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
+                                regime=self.trade_mode,
+                            )
+                            self.scale_count = 0
+                            self.last_entry_context = self.current_context
+                            self.last_entry_strategy = self.current_strategy_name
                             self.last_position_review_ts = None
                     # (removed: periodic exit check block)
                 # Update OANDA trade history every second
