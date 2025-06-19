@@ -1494,15 +1494,6 @@ class JobRunner:
                             continue
 
 
-                    # 市場コンディションを一度だけ評価し再利用する
-                    market_cond = self._evaluate_market_condition(
-                        candles_m1,
-                        candles_m5,
-                        candles_d1,
-                        higher_tf,
-                    )
-                    log.debug(f"Market condition: {market_cond}")
-
                     pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
                     try:
                         atr_val = (
@@ -1533,6 +1524,13 @@ class JobRunner:
                         time.sleep(self.interval_seconds)
                         timer.stop()
                         continue
+                    market_cond = self._evaluate_market_condition(
+                        candles_m1,
+                        candles_m5,
+                        candles_d1,
+                        higher_tf,
+                    )
+                    log.debug(f"Market condition: {market_cond}")
                     regime_hint = (filter_ctx or {}).get("regime_hint")
 
                     # ポジション確認
