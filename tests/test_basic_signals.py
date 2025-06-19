@@ -19,6 +19,8 @@ def test_scalping_signal(monkeypatch):
 
 def test_trend_signal(monkeypatch):
     monkeypatch.setattr(trend_signal, "_predictor", DummyPredictor())
-    res = trend_signal.recheck({"mode": "trend"})
+    res = trend_signal.recheck(
+        {"pair": "USD_JPY", "spread": 0.0001, "atr": 0.03, "mode": "trend"}
+    )
     assert set(res.keys()) == {"prob_long", "prob_short", "prob_flat"}
 
