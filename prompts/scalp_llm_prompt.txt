@@ -3,4 +3,4 @@ Analyze the latest tick indicators and decide whether to open a short-term posit
 Order flow imbalance: {of_imbalance}
 Volume burst ratio: {vol_burst}
 Average spread (pips): {spd_avg}
-Respond only with JSON as {"enter":true|false,"side":"long|short","tp_pips":float,"sl_pips":float}.
+Respond only with JSON as {{"enter":true|false,"side":"long|short","tp_pips":float,"sl_pips":float}}.
