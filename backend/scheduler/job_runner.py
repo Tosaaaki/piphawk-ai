@@ -104,6 +104,7 @@ try:
         detect_climax_reversal,
         filter_pre_ai,
         pass_entry_filter,
+        pass_exit_filter,
     )
     from filters.session_filter import apply_filters
 except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
@@ -117,57 +118,6 @@ except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
 
     def counter_trend_block(*_a, **_k):
         return False
-
-from backend.strategy.signal_filter import pass_exit_filter
-
-
-# ---- OVERRIDE FILTER FUNCTIONS (all filters disabled) ----
-def _always_true(*_a, **_k):
-    return True
-
-def _always_allow(*_a, **_k):
-    # apply_filters expects a tuple (allow_trade, ctx, reason)
-    return (True, None, None)
-
-# Disable filters by monkey‑patching
-pass_entry_filter = _always_true
-pass_exit_filter = _always_true
-apply_filters = _always_allow
-
-# --- ensure other modules use the same patched filters -----------------
-import backend.strategy.signal_filter as _sf
-
-
-def _always_false(*_a, **_k):
-    # filter_pre_ai expects a boolean; always return False so it never blocks
-    return False
-
-
-_sf.pass_entry_filter = _always_true
-_sf.pass_exit_filter = _always_true
-_sf.filter_pre_ai = _always_false
-
-try:
-    import backend.strategy.entry_logic as _el
-    _el.pass_entry_filter = _always_true
-    _el.filter_pre_ai = _always_false
-except Exception:
-    # entry_logic may be stubbed during tests – ignore if missing
-    pass
-
-try:
-    import filters.session_filter as _fsf
-    _fsf.apply_filters = _always_allow
-except Exception:
-    pass
-
-# Disable the pre‑AI filter as well
-filter_pre_ai = _always_false
-
-from backend.utils.ai_parse import parse_trade_plan
-from monitoring import metrics_publisher
-from monitoring.safety_trigger import SafetyTrigger
-from piphawk_ai.analysis.signal_filter import is_multi_tf_aligned
 
 try:
     from backend.strategy.llm_exit import propose_exit_adjustment
