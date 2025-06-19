@@ -143,6 +143,8 @@ class OrderManager:
             "entry_uuid": entry_uuid,
             "order_type": "limit",
             "mode": exec_mode,
+            "vol": strategy_params.get("entry_vol_pips"),
+            "stance": strategy_params.get("entry_stance"),
         }
         if risk_info:
             comment_dict.update(
@@ -555,6 +557,8 @@ class OrderManager:
                 "order_type": mode,
                 "mode": strategy_params.get("exec_mode", "auto"),
                 "entry_uuid": entry_uuid,
+                "vol": strategy_params.get("entry_vol_pips"),
+                "stance": strategy_params.get("entry_stance"),
             }
             # ---- embed AI risk info (tp/sl & probabilities) if present ----
             risk_info = strategy_params.get("risk", {})

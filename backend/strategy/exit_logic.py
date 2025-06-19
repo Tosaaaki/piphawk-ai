@@ -135,6 +135,8 @@ def decide_exit(
         "indicators": indicators,
         "entry_regime": entry_regime,
         "market_cond": market_cond,
+        "entry_vol_pips": None if not entry_regime else entry_regime.get("vol"),
+        "entry_stance": None if not entry_regime else entry_regime.get("stance"),
     }
     oa = importlib.import_module("backend.strategy.openai_analysis")
     exit_eval = getattr(oa, "evaluate_exit", None)

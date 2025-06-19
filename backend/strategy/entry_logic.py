@@ -1077,6 +1077,8 @@ def process_entry(
             "valid_for_sec": valid_sec,
             "ai_response": ai_raw,
             "market_cond": market_cond,
+            "entry_vol_pips": noise_pips,
+            "entry_stance": trade_mode,
         }
         risk_pct = float(env_loader.get_env("ENTRY_RISK_PCT", "0.01"))
         if entry_type == "breakout":
@@ -1125,6 +1127,8 @@ def process_entry(
             "limit_price": limit_price,
             "ai_response": ai_raw,
             "market_cond": market_cond,
+            "entry_vol_pips": noise_pips,
+            "entry_stance": trade_mode,
         }
 
     risk_pct = float(env_loader.get_env("ENTRY_RISK_PCT", "0.01"))
