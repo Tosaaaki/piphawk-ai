@@ -48,7 +48,7 @@ def _get_client() -> OpenAI:
 logger = logging.getLogger(__name__)
 
 # Default model can be overridden via settings.env → AI_MODEL
-AI_MODEL = env_loader.get_env("AI_MODEL", "gpt-3.5-turbo-0125")
+AI_MODEL = env_loader.get_env("AI_MODEL", "gpt-4.1-nano")
 
 # ──────────────────────────────────
 #   Lightweight in-memory cache

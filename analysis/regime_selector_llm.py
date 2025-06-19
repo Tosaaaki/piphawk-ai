@@ -38,7 +38,7 @@ def select_mode(snapshot: Any) -> Tuple[str, Dict[str, float]]:
         raw = ask_openai(
             prompt,
             system_prompt=_SYSTEM_PROMPT,
-            model="gpt-3.5-turbo-0125",
+            model="gpt-4.1-nano",
             temperature=0.0,
             response_format={"type": "json_object"},
         )

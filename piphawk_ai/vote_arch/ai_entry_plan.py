@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from backend.utils import env_loader
 from backend.utils.openai_client import ask_openai
 
-AI_ENTRY_MODEL = env_loader.get_env("AI_ENTRY_MODEL", "gpt-3.5-turbo-0125")
+AI_ENTRY_MODEL = env_loader.get_env("AI_ENTRY_MODEL", "gpt-4.1-nano")
 
 @dataclass
 class EntryPlan:

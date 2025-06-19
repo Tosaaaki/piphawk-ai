@@ -17,7 +17,7 @@
 
 ### AI_MODEL
 
-利用するOpenAIモデル名（gpt-3.5-turbo-0125 など）
+利用するOpenAIモデル名（gpt-4.1-nano など）
 
 ### GPT model variants
 
