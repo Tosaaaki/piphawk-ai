@@ -2526,7 +2526,40 @@ class JobRunner:
                             self.last_entry_context = self.current_context
                             self.last_entry_strategy = self.current_strategy_name
                         else:
-                            log.info("Filter NG → AI entry decision skipped.")
+                            log.info("Filter NG → forcing entry after AI.")
+                            result = process_entry(
+                                indicators,
+                                candles_m5,
+                                tick_data,
+                                market_cond,
+                                entry_params,
+                                higher_tf=higher_tf,
+                                patterns=PATTERN_NAMES,
+                                candles_dict={"M1": candles_m1, "M5": candles_m5},
+                                pattern_names=self.patterns_by_tf,
+                                tf_align=align,
+                                indicators_multi={
+                                    "M1": self.indicators_M1 or {},
+                                    "M5": self.indicators_M5 or {},
+                                    "H1": self.indicators_H1 or {},
+                                },
+                                risk_engine=self.risk_mgr,
+                            )
+                            price = float(tick_data["prices"][0]["bids"][0]["price"])
+                            send_line_message(
+                                f"【ENTRY】{DEFAULT_PAIR} {price} でエントリーしました。"
+                            )
+                            info(
+                                "entry",
+                                pair=DEFAULT_PAIR,
+                                side=side,
+                                price=price,
+                                lot=float(env_loader.get_env("TRADE_LOT_SIZE", "1.0")),
+                                regime=self.trade_mode,
+                            )
+                            self.scale_count = 0
+                            self.last_entry_context = self.current_context
+                            self.last_entry_strategy = self.current_strategy_name
                             self.last_position_review_ts = None
                     # (removed: periodic exit check block)
                 # Update OANDA trade history every second
