@@ -6,7 +6,7 @@
 - 5分足ボリンジャーバンド幅 ÷ ATR が `COOL_BBWIDTH_PCT` 未満
 - ATR 自体が `COOL_ATR_PCT` を下回る
 
-どちらかを満たすと AI には `side: "no"` を返させ、エントリーしません。
+どちらかを満たすとエントリーフィルターでブロックします。
 各値は環境変数 `COOL_BBWIDTH_PCT` と `COOL_ATR_PCT` で調整できます。
 0 を指定すると判定を無効化できます。デフォルトではスキャルプ用に
 `COOL_ATR_PCT=0.06`, `COOL_BBWIDTH_PCT=0.08` が設定されています。
