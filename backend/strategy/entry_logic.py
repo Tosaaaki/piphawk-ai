@@ -264,8 +264,9 @@ def process_entry(
         )
 
     forced_entry = False
-    # フィルター通過後は必ずエントリーするため常に True
-    force_entry_after_ai = True
+    force_entry_after_ai = (
+        env_loader.get_env("FORCE_ENTRY_AFTER_AI", "false").lower() == "true"
+    )
     use_dynamic_risk = (
         env_loader.get_env("FALLBACK_DYNAMIC_RISK", "false").lower() == "true"
     )

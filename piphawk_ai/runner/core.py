@@ -1894,11 +1894,28 @@ class JobRunner:
                             tick_data["prices"][0]["bids"][0]["price"]
                         )
                         filter_ctx = {}
-                        # Skip all entry filters
-                        filter_ok = True
-                        force_ai = (
-                            env_loader.get_env("FORCE_ENTRY_AFTER_AI", "true").lower() == "true"
+                        filter_ok = pass_entry_filter(
+                            indicators,
+                            current_price,
+                            self.indicators_M1,
+                            self.indicators_M15,
+                            self.indicators_H1,
+                            mode=self.trade_mode,
+                            context=filter_ctx,
                         )
+                        force_ai = (
+                            env_loader.get_env("FORCE_ENTRY_AFTER_AI", "false").lower() == "true"
+                        )
+                        if not filter_ok:
+                            reason = filter_ctx.get("reason", "unknown")
+                            logger.info(f"Entry filter blocked: {reason}")
+                            if not force_ai:
+                                self.last_position_review_ts = None
+                                self.last_run = now
+                                update_oanda_trades()
+                                time.sleep(self.interval_seconds)
+                                timer.stop()
+                                continue
                         if filter_ok or force_ai:
                             if not filter_ok:
                                 logger.info(

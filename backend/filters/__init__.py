@@ -52,7 +52,19 @@ def session_ok(context: dict) -> bool:
 
 def entry_filter(context: dict) -> bool:
     """Run basic entry filters and log the failing one."""
-    # すべてのフィルターを無効化するため常に True を返す
+
+    if not volatility_ok(context):
+        logger.info("Entry blocked: volatility")
+        context["reason"] = "volatility"
+        return False
+    if not spread_ok(context):
+        logger.info("Entry blocked: spread")
+        context["reason"] = "spread"
+        return False
+    if not session_ok(context):
+        logger.info("Entry blocked: session")
+        context["reason"] = "session"
+        return False
     return True
 
 
@@ -67,8 +79,26 @@ def pre_check(
     context: dict | None = None,
 ) -> tuple[bool, str]:
     """Run basic and advanced entry filters."""
-    # すべてのフィルターを無効化して常に通過させる
-    return True, ""
+    if context is None:
+        context = {}
+
+    atr = indicators.get("atr")
+    spread = indicators.get("spread")
+    hour = indicators.get("hour")
+    try:
+        atr_val = (
+            float(atr.iloc[-1]) if hasattr(atr, "iloc") else float(atr[-1])
+        )
+    except Exception:
+        atr_val = None
+    ctx = {
+        "atr": atr_val,
+        "spread": spread,
+        "hour": hour,
+    }
+    ok = entry_filter(ctx)
+    reason = context.get("reason", ctx.get("reason", "")) if not ok else ""
+    return ok, reason
 
 
 __all__ = [
