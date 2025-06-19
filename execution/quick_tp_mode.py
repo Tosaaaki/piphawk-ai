@@ -67,6 +67,6 @@ def run_loop() -> None:
                     logger.info("Reattached TP for trade %s", trade_id)
             logger.info("Entered %s %s for 2 pips TP", side, instrument)
         except Exception as exc:  # pragma: no cover - network or API error
-            logger.warning("quick_tp iteration failed: %s", exc)
+            logger.warning("quick_tp iteration failed: %s", exc, exc_info=True)
         time.sleep(interval)
 
