@@ -92,7 +92,10 @@ except Exception:  # pragma: no cover - test stubs may remove module
             return _noop
 
 
+from backend.logs.perf_stats_logger import PerfTimer
 try:
+    from ai.scalp_trend_classifier import MarketRegimeClassifier
+    from ai.tp_sl_calculator import calc_tp_sl
     from backend.strategy.signal_filter import (
         consecutive_higher_highs,
         consecutive_lower_lows,
@@ -101,6 +104,7 @@ try:
         filter_pre_ai,
         pass_entry_filter,
     )
+    from filters.session_filter import apply_filters
 except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
     from backend.strategy.signal_filter import pass_entry_filter
 
@@ -113,8 +117,6 @@ except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
     def counter_trend_block(*_a, **_k):
         return False
 
-
-from backend.logs.perf_stats_logger import PerfTimer
 from backend.strategy.signal_filter import pass_exit_filter
 from backend.utils.ai_parse import parse_trade_plan
 from monitoring import metrics_publisher
@@ -425,6 +427,7 @@ class JobRunner:
         self.risk_mgr = (
             PortfolioRiskManager(max_cvar=max_cvar) if max_cvar > 0 else None
         )
+        self.classifier = MarketRegimeClassifier()
         # --- AI cooldown values ---------------------------------------
         #   * AI_COOLDOWN_SEC_OPEN : エントリー用クールダウン時間
         #   * AI_COOLDOWN_SEC_FLAT : エグジット用クールダウン時間
@@ -1499,6 +1502,38 @@ class JobRunner:
                     )
                     log.debug(f"Market condition: {market_cond}")
 
+                    pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+                    try:
+                        atr_val = (
+                            self.indicators_M5.get("atr").iloc[-1]
+                            if hasattr(self.indicators_M5.get("atr"), "iloc")
+                            else self.indicators_M5.get("atr", [0])[-1]
+                        )
+                        atr_pips = float(atr_val) / pip_size
+                    except Exception:
+                        atr_pips = 0.0
+                    try:
+                        bw = (
+                            self.indicators_M1["bb_upper"].iloc[-1]
+                            - self.indicators_M1["bb_lower"].iloc[-1]
+                        )
+                        price = float(tick_data["prices"][0]["bids"][0]["price"])
+                        bb_pct = float(bw) / price * 100
+                    except Exception:
+                        bb_pct = 0.0
+
+                    allow_trade, filter_ctx, reason = apply_filters(
+                        atr_pips, bb_pct, tradeable=True
+                    )
+                    if not allow_trade:
+                        log_entry_skip(DEFAULT_PAIR, None, reason)
+                        self.last_run = now
+                        update_oanda_trades()
+                        time.sleep(self.interval_seconds)
+                        timer.stop()
+                        continue
+                    regime_hint = (filter_ctx or {}).get("regime_hint")
+
                     # ポジション確認
                     has_position = check_current_position(DEFAULT_PAIR)
                     log.info(f"Current position status: {has_position}")
@@ -2265,6 +2300,51 @@ class JobRunner:
                                 )
 
                             entry_params = {"tp_ratio": tp_ratio} if tp_ratio else None
+
+                            metrics = {}
+                            metrics["atr"] = atr_pips
+                            try:
+                                metrics["adx"] = float(
+                                    self.indicators_M5.get("adx").iloc[-1]
+                                    if hasattr(self.indicators_M5.get("adx"), "iloc")
+                                    else self.indicators_M5.get("adx", [0])[-1]
+                                )
+                            except Exception:
+                                metrics["adx"] = 0.0
+                            try:
+                                metrics["ma_angle_m1"] = float(
+                                    self.indicators_M1.get("ema_slope").iloc[-1]
+                                    if hasattr(self.indicators_M1.get("ema_slope"), "iloc")
+                                    else self.indicators_M1.get("ema_slope", [0])[-1]
+                                )
+                            except Exception:
+                                metrics["ma_angle_m1"] = 0.0
+                            try:
+                                metrics["ma_angle_m5"] = float(
+                                    self.indicators_M5.get("ema_slope").iloc[-1]
+                                    if hasattr(self.indicators_M5.get("ema_slope"), "iloc")
+                                    else self.indicators_M5.get("ema_slope", [0])[-1]
+                                )
+                            except Exception:
+                                metrics["ma_angle_m5"] = 0.0
+                            try:
+                                width = (
+                                    self.indicators_M5["bb_upper"].iloc[-1]
+                                    - self.indicators_M5["bb_lower"].iloc[-1]
+                                )
+                                metrics["bb_atr_ratio"] = (
+                                    float(width) / pip_size / atr_pips if atr_pips else 0.0
+                                )
+                            except Exception:
+                                metrics["bb_atr_ratio"] = 0.0
+
+                            regime = regime_hint or self.classifier.classify(metrics)
+                            tp_pips, sl_pips = calc_tp_sl(regime, atr_pips)
+                            if entry_params is None:
+                                entry_params = {}
+                            entry_params.update(
+                                {"tp_pips": tp_pips, "sl_pips": sl_pips, "regime": regime}
+                            )
 
                             if not ENTRY_USE_AI:
                                 res = tech_run_cycle()

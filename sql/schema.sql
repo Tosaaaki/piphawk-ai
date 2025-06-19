@@ -31,8 +31,10 @@ CREATE TABLE IF NOT EXISTS trades (
     ai_reason TEXT,
     ai_response TEXT,
     entry_regime TEXT,
+    regime TEXT,
     exit_reason TEXT,
     is_manual INTEGER,
+    forced INTEGER,
     score_version INTEGER DEFAULT 1
 );
 CREATE TABLE IF NOT EXISTS ai_decisions (

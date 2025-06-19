@@ -102,6 +102,12 @@ class OrderManager:
             **kwargs,
         )
 
+    def fallback_tp_sl(self, atr_pips: float) -> tuple[int, int]:
+        """ATR からフォールバック TP/SL を計算する."""
+        tp = max(3, int(atr_pips * 0.6))
+        sl = max(6, int(tp * 1.5))
+        return tp, sl
+
     # ------------------------------------------------------------------
     # LIMIT order helpers
     # ------------------------------------------------------------------
@@ -462,6 +468,7 @@ class OrderManager:
         force_limit_only: bool = False,
         *,
         with_oco: bool = True,
+        forced: bool | None = None,
     ):
         min_lot = float(env_loader.get_env("MIN_TRADE_LOT", "0.01"))
         max_lot = float(env_loader.get_env("MAX_TRADE_LOT", "0.1"))
@@ -644,6 +651,8 @@ class OrderManager:
             tp_pips=tp_pips,
             sl_pips=sl_pips,
             rrr=rrr,
+            regime=strategy_params.get("regime"),
+            forced=forced,
             is_manual=False,
         )
         info(
@@ -968,6 +977,8 @@ class OrderManager:
             units=0,
             ai_reason="SL dynamically updated",
             ai_response=json.dumps(result),
+            regime=None,
+            forced=False,
             is_manual=False,
         )
         logger.debug(f"SL update response: {result}")
