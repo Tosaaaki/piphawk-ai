@@ -1559,6 +1559,43 @@ class JobRunner:
                     else:
                         self.ai_cooldown = self.ai_cooldown_open
 
+                    # -------------------------------------------------
+                    # flat モードでも少額でエントリー判断を実施
+                    # -------------------------------------------------
+                    if self.trade_mode == "flat" and not has_position:
+                        min_risk = float(env_loader.get_env("MIN_TRADE_LOT", "0.01"))
+                        strategy_params = {"risk_pct": min_risk, "forced": True}
+                        allow, ctx, reason = apply_filters(atr_pips, bb_pct)
+                        if allow:
+                            try:
+                                process_entry(
+                                    indicators,
+                                    candles_m5,
+                                    tick_data,
+                                    ctx,
+                                    strategy_params,
+                                    higher_tf=higher_tf,
+                                    patterns=PATTERN_NAMES,
+                                    candles_dict={"M1": candles_m1, "M5": candles_m5},
+                                    pattern_names=self.patterns_by_tf,
+                                    tf_align=align,
+                                    indicators_multi={
+                                        "M1": self.indicators_M1 or {},
+                                        "M5": self.indicators_M5 or {},
+                                        "H1": self.indicators_H1 or {},
+                                    },
+                                    risk_engine=self.risk_mgr,
+                                )
+                            except Exception as exc:
+                                log.warning(f"forced entry failed: {exc}")
+                        else:
+                            log_entry_skip(DEFAULT_PAIR, None, reason)
+                        self.last_run = now
+                        update_oanda_trades()
+                        time.sleep(self.interval_seconds)
+                        timer.stop()
+                        continue
+
                     # Determine position_side for further logic
                     if (
                         has_position
