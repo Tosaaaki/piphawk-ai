@@ -408,8 +408,11 @@ def pass_entry_filter(
     if context is None:
         context = {}
 
+    # DISABLE_ENTRY_FILTER が true ならフィルターを無効化
     if env_loader.get_env("DISABLE_ENTRY_FILTER", "false").lower() == "true":
         return True
+
+    # エントリーフィルターは市場休場中や禁止時間のみブロックする
 
     quiet_start = float(env_loader.get_env("QUIET_START_HOUR_JST", "3"))
     quiet_end = float(env_loader.get_env("QUIET_END_HOUR_JST", "7"))
