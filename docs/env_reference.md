@@ -17,7 +17,7 @@
 | MIN_RRR | 0.9 | 最低リスクリワード比 | `MIN_RRR=1.2` |
 | ENFORCE_RRR | false | RRRを強制するか | `ENFORCE_RRR=true` |
 | AI_COOLDOWN_SEC_OPEN | 60 | ポジション保有時のAI待機秒 | `AI_COOLDOWN_SEC_OPEN=30` |
-| AI_COOLDOWN_SEC_FLAT | 15 | ノーポジ時のAI待機秒 | `AI_COOLDOWN_SEC_FLAT=30` |
+| AI_COOLDOWN_SEC_FLAT | 60 | ノーポジ時のAI待機秒 | `AI_COOLDOWN_SEC_FLAT=30` |
 | MIN_TRADE_LOT | 30.0 | 最小ロット数 | `MIN_TRADE_LOT=10` |
 | MAX_TRADE_LOT | 40.0 | 最大ロット数 | `MAX_TRADE_LOT=100` |
 | SCALE_LOT_SIZE | 0.5 | 追加エントリー時のロット | `SCALE_LOT_SIZE=0.3` |

@@ -358,7 +358,7 @@ class JobRunner:
         # --- AI cooldown values ---------------------------------------
         #   * AI_COOLDOWN_SEC_OPEN : エントリー用クールダウン時間
         #   * AI_COOLDOWN_SEC_FLAT : エグジット用クールダウン時間
-        self.ai_cooldown_open = int(env_loader.get_env("AI_COOLDOWN_SEC_OPEN", "30"))
+        self.ai_cooldown_open = int(env_loader.get_env("AI_COOLDOWN_SEC_OPEN", "60"))
         self.ai_cooldown_flat = int(env_loader.get_env("AI_COOLDOWN_SEC_FLAT", "60"))
         # 現在のクールダウン（ループ毎に更新）
         self.ai_cooldown = self.ai_cooldown_open
