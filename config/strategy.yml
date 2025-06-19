@@ -25,10 +25,10 @@ order:
   price_bound_pips: 3.0
 
 LLM:
-  mode_selector: gpt-3.5-turbo-0125
+  mode_selector: gpt-4.1-nano
 
-  entry_logic: gpt-3.5-turbo-0125
-  exit_logic: gpt-3.5-turbo-0125
+  entry_logic: gpt-4.1-nano
+  exit_logic: gpt-4.1-nano
 
 GRAY_ADX_BAND: [25, 30]
 SCALP_THRESHOLD: 0.30

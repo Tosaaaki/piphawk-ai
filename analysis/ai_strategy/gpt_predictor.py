@@ -30,7 +30,7 @@ Rules:
 def _ask_gpt(messages: list[dict]) -> dict:
     """内部用: GPT へ問い合わせる."""
     resp = openai_client.chat.completions.create(
-        model="gpt-3.5-turbo-1106",
+        model="gpt-4.1-nano",
         temperature=0,
         response_format={"type": "json_object"},
         messages=messages,

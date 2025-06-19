@@ -10,7 +10,7 @@ except Exception:  # pragma: no cover - optional dependency
     tiktoken = None
 
 
-def num_tokens(messages: List[Dict[str, str]], model: str = "gpt-3.5-turbo-0125") -> int:
+def num_tokens(messages: List[Dict[str, str]], model: str = "gpt-4.1-nano") -> int:
     """Return token count for chat messages."""
 
     if tiktoken is None:

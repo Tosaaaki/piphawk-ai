@@ -11,9 +11,9 @@
 | OANDA_ACCOUNT_ID | (なし) | OANDA 取引口座ID | `OANDA_ACCOUNT_ID=001-1234567-001` |
 | DEFAULT_PAIR | USD_JPY | 取引する通貨ペア | `DEFAULT_PAIR=EUR_USD` |
 | TRADES_DB_PATH | /app/backend/logs/trades.db | 取引履歴DBの保存先 | `TRADES_DB_PATH=trades.db` |
-| AI_MODEL | gpt-3.5-turbo-0125 | 汎用OpenAIモデル | `AI_MODEL=gpt-3.5-turbo-0125` |
-| AI_ENTRY_MODEL | gpt-3.5-turbo-0125 | エントリー判断モデル | `AI_ENTRY_MODEL=gpt-3.5-turbo-0125` |
-| AI_EXIT_MODEL | gpt-3.5-turbo-0125 | エグジット判断モデル | `AI_EXIT_MODEL=gpt-3.5-turbo-0125` |
+| AI_MODEL | gpt-4.1-nano | 汎用OpenAIモデル | `AI_MODEL=gpt-4.1-nano` |
+| AI_ENTRY_MODEL | gpt-4.1-nano | エントリー判断モデル | `AI_ENTRY_MODEL=gpt-4.1-nano` |
+| AI_EXIT_MODEL | gpt-4.1-nano | エグジット判断モデル | `AI_EXIT_MODEL=gpt-4.1-nano` |
 | MIN_RRR | 0.9 | 最低リスクリワード比 | `MIN_RRR=1.2` |
 | ENFORCE_RRR | false | RRRを強制するか | `ENFORCE_RRR=true` |
 | AI_COOLDOWN_SEC_OPEN | 60 | ポジション保有時のAI待機秒 | `AI_COOLDOWN_SEC_OPEN=30` |

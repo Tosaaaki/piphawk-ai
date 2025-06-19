@@ -7,7 +7,7 @@ from backend.utils.openai_client import ask_openai
 
 logger = logging.getLogger(__name__)
 
-MICRO_SCALP_MODEL = env_loader.get_env("MICRO_SCALP_MODEL", "gpt-3.5-turbo-0125")
+MICRO_SCALP_MODEL = env_loader.get_env("MICRO_SCALP_MODEL", "gpt-4.1-nano")
 
 PROMPT_PATH = Path(__file__).resolve().parents[2] / "prompts" / "scalp_llm_prompt.txt"
 
