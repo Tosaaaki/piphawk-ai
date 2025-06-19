@@ -50,7 +50,9 @@ def run_cycle(
 
     ok, _ = pre_check(indicators, price)
     if not ok:
-    # 取引不可ならAI呼び出しを行わず即終了する
+        # 取引不可ならAI呼び出しを行わず即終了する
+        return PipelineResult(None, mode="", regime="", passed=False)
+
     pair = pair or env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
     if atr is None:
         atr = snapshot.atr

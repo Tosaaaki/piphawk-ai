@@ -2262,7 +2262,10 @@ class JobRunner:
                             self.last_entry_context = self.current_context
                             self.last_entry_strategy = self.current_strategy_name
                         else:
-                            logger.info("Filter NG → AI entry decision skipped.")
+                            reason = filter_ctx.get("reason", "unknown")
+                            logger.info(
+                                f"Filter NG ({reason}) → AI entry decision skipped."
+                            )
                             self.last_position_review_ts = None
                     # (removed: periodic exit check block)
                 # Update OANDA trade history every second
