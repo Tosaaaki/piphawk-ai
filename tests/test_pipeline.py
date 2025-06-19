@@ -55,7 +55,16 @@ def test_run_cycle(monkeypatch):
 
     metrics = MarketMetrics(adx_m5=30, ema_fast=1.1, ema_slow=1.0, bb_width_m5=0.1)
     snapshot = MarketSnapshot(atr=0.05, news_score=0.0, oi_bias=0.0)
-    result = run_cycle({}, metrics, snapshot, PlanBuffer())
+    result = run_cycle(
+        {},
+        metrics,
+        snapshot,
+        PlanBuffer(),
+        pair="USD_JPY",
+        timeframe="M5",
+        spread=0.01,
+        atr=0.05,
+    )
 
     assert isinstance(result, PipelineResult)
     assert result.passed is True
@@ -73,7 +82,15 @@ def test_run_cycle_filter_block(monkeypatch):
     )
     metrics = MarketMetrics(0, 0, 0, 0)
     snapshot = MarketSnapshot(0, 0, 0)
-    result = run_cycle({}, metrics, snapshot)
+    result = run_cycle(
+        {},
+        metrics,
+        snapshot,
+        pair="USD_JPY",
+        timeframe="M5",
+        spread=0.01,
+        atr=0.05,
+    )
     assert result.passed is False
     assert result.plan is None
 

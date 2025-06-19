@@ -8,6 +8,8 @@ from typing import Optional
 
 from analysis.atmosphere.market_air_sensor import MarketSnapshot, air_index
 from backend.strategy.signal_filter import pass_entry_filter
+from backend.utils import env_loader
+from filters.market_filters import is_tradeable
 from signals.mode_selector_v2 import select_mode
 
 from .ai_entry_plan import EntryPlan, generate_plan
@@ -37,9 +39,20 @@ def run_cycle(
     buffer: PlanBuffer | None = None,
     *,
     price: float | None = None,
+    pair: str | None = None,
+    timeframe: str = "M5",
+    spread: float = 0.0,
+    atr: float | None = None,
     force_enter: bool = False,
 ) -> PipelineResult:
     """Run the full majority-vote pipeline and return result."""
+
+    # 取引不可ならAI呼び出しを行わず即終了する
+    pair = pair or env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
+    if atr is None:
+        atr = snapshot.atr
+    if not is_tradeable(pair, timeframe, spread, atr):
+        return PipelineResult(None, mode="", regime="", passed=False)
 
     if not pass_entry_filter(indicators, price):
         return PipelineResult(None, mode="", regime="", passed=False)
