@@ -119,6 +119,8 @@ except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
         return False
 
 from backend.strategy.signal_filter import pass_exit_filter
+
+
 # ---- OVERRIDE FILTER FUNCTIONS (all filters disabled) ----
 def _always_true(*_a, **_k):
     return True
@@ -134,6 +136,13 @@ apply_filters = _always_allow
 
 # --- ensure other modules use the same patched filters -----------------
 import backend.strategy.signal_filter as _sf
+
+
+def _always_false(*_a, **_k):
+    # filter_pre_ai expects a boolean; always return False so it never blocks
+    return False
+
+
 _sf.pass_entry_filter = _always_true
 _sf.pass_exit_filter = _always_true
 _sf.filter_pre_ai = _always_false
@@ -151,10 +160,6 @@ try:
     _fsf.apply_filters = _always_allow
 except Exception:
     pass
-
-def _always_false(*_a, **_k):
-    # filter_pre_ai expects a boolean; always return False so it never blocks
-    return False
 
 # Disable the pre‑AI filter as well
 filter_pre_ai = _always_false
