@@ -5,8 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Sequence
 
-from signals.composite_mode import decide_trade_mode_detail
-
 
 @dataclass
 class MarketContext:
@@ -32,6 +30,7 @@ def detect_mode(indicators: dict, candles: Sequence[dict] | None = None) -> Mark
     MarketContext
         Detected mode, score and reasons.
     """
+    from signals.composite_mode import decide_trade_mode_detail
     mode, score, reasons = decide_trade_mode_detail(indicators, candles)
     return MarketContext(mode=mode, score=score, reasons=reasons)
 
