@@ -10,11 +10,12 @@ from backend.utils import env_loader
 def _in_trade_hours(ts: datetime | None = None) -> bool:
     """取引可能時間かを判定する."""
     ts = (ts or datetime.utcnow()).astimezone(timezone(timedelta(hours=9)))
-    start = int(env_loader.get_env("TRADE_START_H", "7"))
-    end = int(env_loader.get_env("TRADE_END_H", "23"))
+    start = float(env_loader.get_env("TRADE_START_H", "7"))
+    end = float(env_loader.get_env("TRADE_END_H", "23"))
+    current = ts.hour + ts.minute / 60.0
     if start < end:
-        return start <= ts.hour < end
-    return ts.hour >= start or ts.hour < end
+        return start <= current < end
+    return current >= start or current < end
 
 
 def is_tradeable(pair: str, timeframe: str, spread: float, atr: float | None = None) -> bool:
