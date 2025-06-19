@@ -18,6 +18,7 @@ from .regime_detector import MarketMetrics, rule_based_regime
 FORCE_ENTER = True
 
 
+
 @dataclass
 class PipelineResult:
     """Simple result object for one trading cycle."""

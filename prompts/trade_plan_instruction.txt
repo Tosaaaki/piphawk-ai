@@ -2,7 +2,7 @@
 Use ADX, EMA slope and Bollinger Band width to judge whether a trend-follow or scalp approach is more suitable. If the metrics are mixed, favor quick scalp trades.
 {RANGE_ENTRY_NOTE}
 
-Always return an entry with side "long" or "short". Never output "no".
+Always return an entry with side "long" or "short". Never output "no", "NG" or "none".
 
 🚫【Counter-trend Trade Prohibition】
 Under clearly identified TREND conditions, avoid counter-trend trades and never rely solely on RSI extremes. Treat pullbacks as trend continuation. However, if a strong reversal pattern such as a double top/bottom or head-and-shoulders is detected and ADX is turning down, a small counter-trend position is acceptable.
