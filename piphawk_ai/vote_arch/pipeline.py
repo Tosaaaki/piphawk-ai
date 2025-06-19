@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from analysis.atmosphere.market_air_sensor import MarketSnapshot, air_index
-from backend.strategy.signal_filter import pass_entry_filter
+from backend.filters import pre_check
 from signals.mode_selector_v2 import select_mode
 
 from .ai_entry_plan import EntryPlan, generate_plan
@@ -41,7 +41,8 @@ def run_cycle(
 ) -> PipelineResult:
     """Run the full majority-vote pipeline and return result."""
 
-    if not pass_entry_filter(indicators, price):
+    ok, _ = pre_check(indicators, price)
+    if not ok:
         return PipelineResult(None, mode="", regime="", passed=False)
 
     regime = rule_based_regime(metrics)

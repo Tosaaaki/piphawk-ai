@@ -60,12 +60,48 @@ def entry_filter(context: dict) -> bool:
     for name, ok in checks.items():
         if not ok:
             logger.info(f"Filter NG: {name}")
+            if context is not None:
+                context["reason"] = name
             return False
     return True
 
 
+def pre_check(
+    indicators: dict,
+    price: float | None = None,
+    *,
+    indicators_m1: dict | None = None,
+    indicators_m15: dict | None = None,
+    indicators_h1: dict | None = None,
+    mode: str | None = None,
+    context: dict | None = None,
+) -> tuple[bool, str]:
+    """Run basic and advanced entry filters."""
+    if context is None:
+        context = {}
+
+    if not entry_filter(context):
+        return False, context.get("reason", "basic")
+
+    from backend.strategy.signal_filter import pass_entry_filter
+
+    ok = pass_entry_filter(
+        indicators,
+        price,
+        indicators_m1,
+        indicators_m15,
+        indicators_h1,
+        mode=mode,
+        context=context,
+    )
+    if not ok:
+        return False, context.get("reason", "advanced")
+    return True, ""
+
+
 __all__ = [
     "entry_filter",
+    "pre_check",
     "volatility_ok",
     "spread_ok",
     "session_ok",

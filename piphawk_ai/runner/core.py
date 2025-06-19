@@ -102,6 +102,7 @@ except Exception:  # pragma: no cover - test stubs may remove module
 
 
 try:
+    from backend.filters import pre_check
     from backend.strategy.signal_filter import (
         consecutive_higher_highs,
         consecutive_lower_lows,
@@ -111,6 +112,7 @@ try:
         pass_entry_filter,
     )
 except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
+    from backend.filters import pre_check
     from backend.strategy.signal_filter import pass_entry_filter
 
     def filter_pre_ai(*_args, **_kwargs):
@@ -1890,12 +1892,12 @@ class JobRunner:
                             tick_data["prices"][0]["bids"][0]["price"]
                         )
                         filter_ctx = {}
-                        filter_ok = pass_entry_filter(
+                        filter_ok, _ = pre_check(
                             indicators,
                             current_price,
-                            self.indicators_M1,
-                            self.indicators_M15,
-                            self.indicators_H1,
+                            indicators_m1=self.indicators_M1,
+                            indicators_m15=self.indicators_M15,
+                            indicators_h1=self.indicators_H1,
                             mode=self.trade_mode,
                             context=filter_ctx,
                         )

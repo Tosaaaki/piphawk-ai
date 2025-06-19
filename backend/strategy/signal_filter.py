@@ -463,6 +463,8 @@ def pass_entry_filter(
         logger.debug(
             f"EntryFilter blocked by quiet hours ({quiet_start}-{quiet_end}{q2_msg})"
         )
+        if context is not None:
+            context["reason"] = "session"
         return False
 
 
@@ -497,6 +499,8 @@ def pass_entry_filter(
         if not vol_ok:
             logger.info("Filter NG: volume")
             logger.debug("EntryFilter blocked: volume below threshold")
+            if context is not None:
+                context["reason"] = "volume"
             return False
 
     # --- M1 RSI cross-up/down check ----------------------------------
@@ -528,6 +532,8 @@ def pass_entry_filter(
                 logger.debug(
                     "EntryFilter blocked: M1 RSI did not show cross up/down signal"
                 )
+                if context is not None:
+                    context["reason"] = "m1_rsi"
                 return False
 
     # --- Rapid reversal block ---------------------------------------
@@ -558,6 +564,8 @@ def pass_entry_filter(
     ):
         logger.info("Filter NG: rapid_reversal")
         logger.debug("EntryFilter blocked: rapid reversal detected")
+        if context is not None:
+            context["reason"] = "rapid_reversal"
         return False
 
     ema_fast = indicators["ema_fast"]
@@ -587,6 +595,8 @@ def pass_entry_filter(
             logger.debug(
                 "EntryFilter blocked: EMA convergence with slope reversal/flat"
             )
+            if context is not None:
+                context["reason"] = "ema_convergence"
             return False
 
     # --- Bollinger Band width check ------------------------------------
@@ -739,6 +749,8 @@ def pass_entry_filter(
             if deviation < block_pct:
                 logger.info("Filter NG: range_center")
                 logger.debug("EntryFilter blocked: price near BB center in range mode")
+                if context is not None:
+                    context["reason"] = "range_center"
                 return False
 
     def _is_nan(v):
@@ -760,6 +772,8 @@ def pass_entry_filter(
     ]:
         logger.info("Filter NG: data_insufficient")
         logger.debug("EntryFilter blocked: insufficient indicator history")
+        if context is not None:
+            context["reason"] = "data_insufficient"
         return False  # insufficient data
 
     # --- Composite conditions ------------------------------------------
@@ -795,6 +809,8 @@ def pass_entry_filter(
         logger.debug(
             f"EntryFilter blocked: Bollinger band width {bw_pips:.2f} pips < {bw_thresh}"
         )
+        if context is not None:
+            context["reason"] = "volatility"
         return False
 
     if score < required:
@@ -807,6 +823,8 @@ def pass_entry_filter(
             )
         if not ema_condition:
             logger.debug("EntryFilter blocked: EMA cross condition not met")
+        if context is not None:
+            context["reason"] = "composite"
         return False
 
     return True
