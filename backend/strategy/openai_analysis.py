@@ -73,7 +73,12 @@ macro_analyzer = MacroAnalyzer()
 AI_COOLDOWN_SEC_FLAT: int = int(env_loader.get_env("AI_COOLDOWN_SEC_FLAT", 60))
 AI_COOLDOWN_SEC_OPEN: int = int(env_loader.get_env("AI_COOLDOWN_SEC_OPEN", 60))
 # Regime‑classification specific cooldown (defaults to flat cooldown)
-AI_REGIME_COOLDOWN_SEC: int = int(env_loader.get_env("AI_REGIME_COOLDOWN_SEC", AI_COOLDOWN_SEC_FLAT))
+AI_REGIME_COOLDOWN_SEC: int = int(
+    env_loader.get_env("AI_REGIME_COOLDOWN_SEC", AI_COOLDOWN_SEC_FLAT)
+)
+AI_COOLDOWN_HIGH_VOL_MULT: float = float(
+    env_loader.get_env("AI_COOLDOWN_HIGH_VOL_MULT", "0.5")
+)
 
 # --- Threshold for AI‑proposed TP probability ---
 MIN_TP_PROB: float = float(env_loader.get_env("MIN_TP_PROB", "0.75"))
@@ -200,10 +205,8 @@ def _series_tail_list(series, n: int = 20) -> list:
         return []
 
 def get_ai_cooldown_sec(current_position: dict | None) -> int:
-    """
-    現在ポジションがある場合は ``AI_COOLDOWN_SEC_FLAT``、
-    ポジションが無い場合は ``AI_COOLDOWN_SEC_OPEN`` を返す。
-    """
+    """Return AI cooldown seconds adjusted for volatility."""
+    base = AI_COOLDOWN_SEC_OPEN
     if current_position:
         try:
             units_val = float(current_position.get("units", 0))
@@ -220,8 +223,10 @@ def get_ai_cooldown_sec(current_position: dict | None) -> int:
                 except (TypeError, ValueError):
                     units_val = 0.0
         if abs(units_val) > 0:
-            return AI_COOLDOWN_SEC_FLAT
-    return AI_COOLDOWN_SEC_OPEN
+            base = AI_COOLDOWN_SEC_FLAT
+    if is_high_vol_session():
+        base = max(1, int(base * AI_COOLDOWN_HIGH_VOL_MULT))
+    return base
 
 logger = logging.getLogger(__name__)
 

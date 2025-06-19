@@ -62,6 +62,10 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 
  AI呼び出しの最小間隔（秒）を個別に設定する。OPENはポジション保有時、FLATはノーポジ時、REGIMEはトレンド判定用。デフォルトは OPEN=60、FLAT=60、REGIME=60。
 
+### AI_COOLDOWN_HIGH_VOL_MULT
+
+ `is_high_vol_session()` が `true` を返す時間帯は、上記クールダウン秒数にこの倍率を掛ける。デフォルトは `0.5` で半分に短縮される。
+
 ### フィルター設定（AI呼び出し制御用）
 
 - RSI_ENTRY_LOWER / RSI_ENTRY_UPPER:

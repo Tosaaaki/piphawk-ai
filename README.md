@@ -313,6 +313,7 @@ position. Each call uses about 150 tokens so two calls cost roughly $0.001.
 `AI_COOLDOWN_SEC_OPEN` sets the minimum interval in seconds between AI calls while a position is open.
 `AI_COOLDOWN_SEC_FLAT` defines the cooldown when no position is held.
 `AI_REGIME_COOLDOWN_SEC` controls how often the AI checks market regime. Default is `15` seconds.
+`AI_COOLDOWN_HIGH_VOL_MULT` shortens the cooldown during high-volatility sessions. A value of `0.5` halves the wait time.
 `MIN_RRR` sets the minimum reward-to-risk ratio allowed when selecting a
 take-profit. The TP level is now chosen to maximise expected value while
 keeping the ratio at or above this threshold.
