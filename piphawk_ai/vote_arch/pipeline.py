@@ -2,21 +2,16 @@ from __future__ import annotations
 
 """Orchestration pipeline for the majority-vote trading architecture."""
 
-import os
 from dataclasses import dataclass
 from typing import Optional
 
 from analysis.atmosphere.market_air_sensor import MarketSnapshot, air_index
-from backend.filters import pre_check
-from backend.strategy.signal_filter import pass_entry_filter
 from backend.utils import env_loader
-from filters.market_filters import is_tradeable
 from signals.mode_selector_v2 import select_mode
 
 from .ai_entry_plan import EntryPlan, generate_plan
 from .ai_strategy_selector import select_strategy
 from .entry_buffer import PlanBuffer
-from .post_filters import final_filter
 from .regime_detector import MarketMetrics, rule_based_regime
 
 # 常にエントリーを実行する
@@ -48,20 +43,7 @@ def run_cycle(
 ) -> PipelineResult:
     """Run the full majority-vote pipeline and return result."""
 
-    ok, _ = pre_check(indicators, price)
-    if not ok:
-        # 取引不可ならAI呼び出しを行わず即終了する
-        return PipelineResult(None, mode="", regime="", passed=False)
-
     pair = pair or env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
-    if atr is None:
-        atr = snapshot.atr
-    if not is_tradeable(pair, timeframe, spread, atr):
-        return PipelineResult(None, mode="", regime="", passed=False)
-
-    if not pass_entry_filter(indicators, price):
-
-        return PipelineResult(None, mode="", regime="", passed=False)
 
     regime = rule_based_regime(metrics)
     air = air_index(snapshot)

@@ -7,10 +7,7 @@ from backend.utils import env_loader
 
 def generic_prefilters(indicators: dict, spread: float) -> bool:
     """Return True when generic conditions pass."""
-    max_spread = float(env_loader.get_env("MAX_SPREAD_PIPS", "2"))
-    pip_size = 0.01 if env_loader.get_env("DEFAULT_PAIR", "USD_JPY").endswith("_JPY") else 0.0001
-    if spread / pip_size > max_spread:
-        return False
+    # フィルター無効化のため常に True
     return True
 
 
