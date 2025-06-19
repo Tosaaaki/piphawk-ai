@@ -159,10 +159,10 @@ try:
 except Exception:  # pragma: no cover - test stubs may remove module
 
     def decide_trade_mode(*_a, **_k):
-        return "flat"
+        return "scalp_momentum"
 
     def decide_trade_mode_detail(*_a, **_k):
-        return "flat", 0.0, []
+        return "scalp_momentum", 0.0, []
 
 
 from backend.logs.trade_logger import ExitReason, log_trade

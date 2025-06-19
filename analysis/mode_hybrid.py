@@ -103,7 +103,7 @@ def detect_mode(ctx: MarketContext) -> str:
     if adx is not None and adx >= adx_min / 2:
         return "scalp_momentum"
 
-    return "flat"
+    return "scalp_momentum"
 
 
 def _norm(value: float, scale: float) -> float:
