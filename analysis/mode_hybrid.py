@@ -84,9 +84,21 @@ def detect_mode(ctx: MarketContext) -> str:
     low_adx_thr = float(env_loader.get_env("ADX_RANGE_MAX", str(cfg["adx_range_max"])))
     atr_min = float(env_loader.get_env("ATR_PCT_MIN", str(cfg["atr_pct_min"])))
 
-    ema_fast = _last_val(ind.get("ema_fast") or ind.get("ema14"))
-    ema_mid = _last_val(ind.get("ema_mid") or ind.get("ema50"))
-    ema_slow = _last_val(ind.get("ema_slow") or ind.get("ema200"))
+    # pandas.Series をそのまま bool 評価すると例外が発生するため明示的に取得
+    ema_fast_series = ind.get("ema_fast")
+    if ema_fast_series is None:
+        ema_fast_series = ind.get("ema14")
+    ema_fast = _last_val(ema_fast_series)
+
+    ema_mid_series = ind.get("ema_mid")
+    if ema_mid_series is None:
+        ema_mid_series = ind.get("ema50")
+    ema_mid = _last_val(ema_mid_series)
+
+    ema_slow_series = ind.get("ema_slow")
+    if ema_slow_series is None:
+        ema_slow_series = ind.get("ema200")
+    ema_slow = _last_val(ema_slow_series)
 
     perfect_order = False
     if None not in (ema_fast, ema_mid, ema_slow):
