@@ -1,4 +1,5 @@
-"""Stub local model used in tests."""
+"""Compatibility wrapper for :mod:`ai.local_model`."""
 
-def ask_model(*_args, **_kwargs):
-    return {"side": "long", "tp": 5, "sl": 3, "lot": 1}
+from ai.local_model import USE_LOCAL_MODEL, ask_model, ask_model_async
+
+__all__ = ["ask_model", "ask_model_async", "USE_LOCAL_MODEL"]
