@@ -1251,8 +1251,10 @@ class JobRunner:
         cross_up = prev_fast <= prev_slow and latest_fast > latest_slow
         return (side == "long" and cross_down) or (side == "short" and cross_up)
 
-    def run(self):
+    def run(self, *, max_loops: int | None = None) -> None:
+        """Run the job loop until ``stop`` is called or ``max_loops`` reached."""
         log.info("Job Runner started.")
+        loops = 0
         while not self._stop:
             try:
                 reset_call_counter()
@@ -2512,6 +2514,9 @@ class JobRunner:
                 )
                 time.sleep(self.interval_seconds)
                 timer.stop()
+                loops += 1
+                if max_loops is not None and loops >= max_loops:
+                    self._stop = True
 
             except Exception as e:
                 log.error(f"Error occurred during job execution: {e}", exc_info=True)
