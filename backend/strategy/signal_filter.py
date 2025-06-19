@@ -423,8 +423,8 @@ def pass_entry_filter(
     global _last_overshoot_ts
     if context is None:
         context = {}
-    if env_loader.get_env("DISABLE_ENTRY_FILTER", "false").lower() == "true":
-        return True
+    # フィルターを完全に無効化する
+    return True
 
     # --- Time‑of‑day block (JST decimal hours) --------------------------
     quiet_start = float(

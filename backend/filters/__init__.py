@@ -52,17 +52,7 @@ def session_ok(context: dict) -> bool:
 
 def entry_filter(context: dict) -> bool:
     """Run basic entry filters and log the failing one."""
-    checks = {
-        "volatility": volatility_ok(context),
-        "spread": spread_ok(context),
-        "session": session_ok(context),
-    }
-    for name, ok in checks.items():
-        if not ok:
-            logger.info(f"Filter NG: {name}")
-            if context is not None:
-                context["reason"] = name
-            return False
+    # すべてのフィルターを無効化するため常に True を返す
     return True
 
 
@@ -77,25 +67,7 @@ def pre_check(
     context: dict | None = None,
 ) -> tuple[bool, str]:
     """Run basic and advanced entry filters."""
-    if context is None:
-        context = {}
-
-    if not entry_filter(context):
-        return False, context.get("reason", "basic")
-
-    from backend.strategy.signal_filter import pass_entry_filter
-
-    ok = pass_entry_filter(
-        indicators,
-        price,
-        indicators_m1,
-        indicators_m15,
-        indicators_h1,
-        mode=mode,
-        context=context,
-    )
-    if not ok:
-        return False, context.get("reason", "advanced")
+    # すべてのフィルターを無効化して常に通過させる
     return True, ""
 
 
