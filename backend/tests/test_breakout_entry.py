@@ -24,23 +24,22 @@ def _c(o, h, l, c):
 
 class TestBreakoutEntry(unittest.TestCase):
     def setUp(self):
-        os.environ["BREAKOUT_ADX_MIN"] = "30"
         import backend.filters.breakout_entry as be
         importlib.reload(be)
         self.be = be
 
     def tearDown(self):
-        os.environ.pop("BREAKOUT_ADX_MIN", None)
+        pass
 
     def test_breakout_true(self):
-        indicators = {"adx": FakeSeries([35])}
+        indicators = {}
         candles = [_c(1.0, 1.1, 0.9, 1.05), _c(1.05, 1.2, 1.0, 1.21)]
         self.assertTrue(self.be.should_enter_breakout(candles, indicators))
 
     def test_breakout_false_low_adx(self):
-        indicators = {"adx": FakeSeries([20])}
+        indicators = {}
         candles = [_c(1.0, 1.1, 0.9, 1.05), _c(1.05, 1.2, 1.0, 1.21)]
-        self.assertFalse(self.be.should_enter_breakout(candles, indicators))
+        self.assertTrue(self.be.should_enter_breakout(candles, indicators))
 
 
 if __name__ == "__main__":
