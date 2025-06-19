@@ -8,6 +8,8 @@ PyYAML==6.0.1
 mabwiser
 fastapi
 apscheduler
+onnx==1.18.0
+skl2onnx==1.16.0
 line-bot-sdk
 prometheus-client
 httpx==0.28.1

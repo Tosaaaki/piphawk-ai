@@ -8,6 +8,8 @@ torch==2.3.0+cpu
 pytest
 mabwiser
 scikit-learn
+onnx==1.18.0
+skl2onnx==1.16.0
 fastapi
 apscheduler
 line-bot-sdk
