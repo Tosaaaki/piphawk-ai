@@ -50,16 +50,15 @@ def run_cycle(
 
     ok, _ = pre_check(indicators, price)
     if not ok:
-    # 取引不可ならAI呼び出しを行わず即終了する
-    pair = pair or env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
-    if atr is None:
-        atr = snapshot.atr
-    if not is_tradeable(pair, timeframe, spread, atr):
-        return PipelineResult(None, mode="", regime="", passed=False)
+        # 取引不可ならAI呼び出しを行わず即終了する
+        pair = pair or env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
+        if atr is None:
+            atr = snapshot.atr
+        if not is_tradeable(pair, timeframe, spread, atr):
+            return PipelineResult(None, mode="", regime="", passed=False)
 
-    if not pass_entry_filter(indicators, price):
-
-        return PipelineResult(None, mode="", regime="", passed=False)
+        if not pass_entry_filter(indicators, price):
+            return PipelineResult(None, mode="", regime="", passed=False)
 
     regime = rule_based_regime(metrics)
     air = air_index(snapshot)
