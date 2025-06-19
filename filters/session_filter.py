@@ -20,9 +20,9 @@ def apply_filters(atr: float, bb_width_pct: float, *, tradeable: bool = True) ->
         return False, None, "session"
     if not tradeable:
         return False, None, "market_closed"
-    scalp_min = float(env_loader.get_env("SCALP_ATR_MIN", "0.05"))
-    trend_min = float(env_loader.get_env("TREND_ATR_MIN", "0.2"))
-    if atr < scalp_min and bb_width_pct < 0.05:
+    scalp_min = float(env_loader.get_env("SCALP_ATR_MIN", "0.03"))
+    trend_min = float(env_loader.get_env("TREND_ATR_MIN", "0.1"))
+    if atr < scalp_min and bb_width_pct < 0.10:
         return False, None, "ultra_low_vol"
     ctx = {"regime_hint": "scalp" if atr < trend_min else "trend"}
     return True, ctx, None
