@@ -1538,6 +1538,9 @@ class JobRunner:
 
 
                     pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+                    ask = float(tick_data["prices"][0]["asks"][0]["price"])
+                    bid = float(tick_data["prices"][0]["bids"][0]["price"])
+                    spread_pips = (ask - bid) / pip_size
                     # ATR を SCALP_COND_TF で指定された足から取得する
                     tf = env_loader.get_env("SCALP_COND_TF", self.scalp_cond_tf).upper()
                     src = getattr(self, f"indicators_{tf}", None) or self.indicators_M1
@@ -1562,7 +1565,10 @@ class JobRunner:
 
                     tradeable = instrument_is_tradeable(DEFAULT_PAIR)
                     allow_trade, filter_ctx, reason = apply_filters(
-                        atr_pips, bb_pct, tradeable=tradeable
+                        atr_pips,
+                        bb_pct,
+                        spread_pips,
+                        tradeable=tradeable,
                     )
                     if not allow_trade:
                         log_entry_skip(DEFAULT_PAIR, None, reason)
