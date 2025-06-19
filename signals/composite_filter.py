@@ -91,12 +91,11 @@ class CompositeFilter:
 DEFAULT_FILTER = CompositeFilter()
 DEFAULT_FILTER.register("rsi_edge", rsi_edge)
 DEFAULT_FILTER.register("bb_break", bb_break)
-DEFAULT_FILTER.register("ai_pattern", ai_pattern)
+# ai_pattern はフィルター後に AI で評価するため除外する
 
 __all__ = [
     "CompositeFilter",
     "rsi_edge",
     "bb_break",
-    "ai_pattern",
     "DEFAULT_FILTER",
 ]
