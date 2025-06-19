@@ -139,7 +139,7 @@ def get_error_logs():
 # In-memory settings store
 current_settings = {
     "ai_cooldown_flat": int(env_loader.get_env("AI_COOLDOWN_SEC_FLAT", "60")),
-    "ai_cooldown_open": int(env_loader.get_env("AI_COOLDOWN_SEC_OPEN", "30")),
+    "ai_cooldown_open": int(env_loader.get_env("AI_COOLDOWN_SEC_OPEN", "60")),
     "review_sec": int(env_loader.get_env("POSITION_REVIEW_SEC", "60")),
 }
 
