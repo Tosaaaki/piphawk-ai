@@ -119,6 +119,8 @@ except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
         return False
 
 from backend.strategy.signal_filter import pass_exit_filter
+
+
 # ---- OVERRIDE FILTER FUNCTIONS (all filters disabled) ----
 def _always_true(*_a, **_k):
     return True
@@ -1568,6 +1570,48 @@ class JobRunner:
                         timer.stop()
                         continue
 
+                    due_for_review = False
+                    elapsed_review = None
+                    if has_position and self.review_enabled:
+                        if self.last_position_review_ts is None:
+                            due_for_review = True
+                        else:
+                            elapsed_review = (
+                                now - self.last_position_review_ts
+                            ).total_seconds()
+                            due_for_review = elapsed_review >= self.review_sec
+                        log.debug(
+                            "review check: ts=%s elapsed=%s review_sec=%s due=%s",
+                            self.last_position_review_ts,
+                            (
+                                f"{elapsed_review:.1f}"
+                                if elapsed_review is not None
+                                else "N/A"
+                            ),
+                            self.review_sec,
+                            due_for_review,
+                        )
+
+                    if has_position:
+                        self.ai_cooldown = self.ai_cooldown_flat
+                    else:
+                        self.ai_cooldown = self.ai_cooldown_open
+
+                    elapsed_seconds = (
+                        datetime.now() - self.last_ai_call
+                    ).total_seconds()
+                    mode_cd = get_cooldown(self.trade_mode or "")
+                    cooldown = min(self.ai_cooldown, mode_cd)
+                    if (not due_for_review) and elapsed_seconds < cooldown:
+                        log.info(
+                            f"AI cooldown active ({elapsed_seconds:.1f}s < {cooldown}s). Skipping AI call."
+                        )
+                        self.last_run = now
+                        update_oanda_trades()
+                        time.sleep(self.interval_seconds)
+                        timer.stop()
+                        continue
+                        
                     # --- manage pending LIMIT orders *after* all entry filters pass
                     self._manage_pending_limits(
                         DEFAULT_PAIR, indicators, candles_m5, tick_data
@@ -1581,12 +1625,6 @@ class JobRunner:
                     )
                     log.debug(f"Market condition: {market_cond}")
                     regime_hint = (filter_ctx or {}).get("regime_hint")
-
-                    # ポジション確認
-                    has_position = check_current_position(DEFAULT_PAIR)
-                    log.info(f"Current position status: {has_position}")
-                    log.info(f"Has open position for {DEFAULT_PAIR}: {has_position}")
-
                     MIN_HOLD_SECONDS = int(env_loader.get_env("MIN_HOLD_SECONDS", "0"))
 
                     secs_since_entry = (
@@ -1601,12 +1639,6 @@ class JobRunner:
                         self.max_profit_pips = 0.0
                         self.scale_count = 0
 
-                    # ---- Dynamic cooldown (OPEN / FLAT) ---------------
-                    # ポジション保有時はエグジット用、未保有時はエントリー用
-                    if has_position:
-                        self.ai_cooldown = self.ai_cooldown_flat
-                    else:
-                        self.ai_cooldown = self.ai_cooldown_open
 
                     # Determine position_side for further logic
                     if (
@@ -1997,44 +2029,6 @@ class JobRunner:
                                     log.info("Filter NG → AI exit decision skipped.")
 
                     # ---- Position‑review timing -----------------------------
-                    due_for_review = False
-                    elapsed_review = None
-                    if has_position and self.review_enabled:
-                        if self.last_position_review_ts is None:
-                            due_for_review = True
-                        else:
-                            elapsed_review = (
-                                now - self.last_position_review_ts
-                            ).total_seconds()
-                            due_for_review = elapsed_review >= self.review_sec
-                        log.debug(
-                            "review check: ts=%s elapsed=%s review_sec=%s due=%s",
-                            self.last_position_review_ts,
-                            (
-                                f"{elapsed_review:.1f}"
-                                if elapsed_review is not None
-                                else "N/A"
-                            ),
-                            self.review_sec,
-                            due_for_review,
-                        )
-
-                    # --- Cool‑down check ------------------------------------
-                    elapsed_seconds = (
-                        datetime.now() - self.last_ai_call
-                    ).total_seconds()
-                    mode_cd = get_cooldown(self.trade_mode or "")
-                    cooldown = min(self.ai_cooldown, mode_cd)
-                    if (not due_for_review) and elapsed_seconds < cooldown:
-                        log.info(
-                            f"AI cooldown active ({elapsed_seconds:.1f}s < {cooldown}s). Skipping AI call."
-                        )
-                        self.last_run = now
-                        # Update OANDA trade history every second
-                        update_oanda_trades()
-                        time.sleep(self.interval_seconds)
-                        timer.stop()
-                        continue
 
                     # Periodic exit review
                     if has_position and due_for_review:
