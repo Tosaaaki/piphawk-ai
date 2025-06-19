@@ -7,9 +7,9 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
+from backend.filters import pre_check
 from backend.strategy.openai_analysis import get_market_condition, get_trade_plan, should_convert_limit_to_market
 from backend.strategy.risk_manager import calc_lot_size
-from backend.strategy.signal_filter import pass_entry_filter
 from backend.utils import env_loader
 from backend.utils.ai_parse import parse_trade_plan
 from backend.utils.oanda_client import get_pending_entry_order
@@ -34,12 +34,12 @@ def manage_pending_limits(
 
     # Run entry filter before performing any AI-intensive checks
     current_price = float(tick_data["prices"][0]["bids"][0]["price"])
-    filter_ok = pass_entry_filter(
+    filter_ok, _ = pre_check(
         indicators,
         current_price,
-        runner.indicators_M1,
-        runner.indicators_M15,
-        runner.indicators_H1,
+        indicators_m1=runner.indicators_M1,
+        indicators_m15=runner.indicators_M15,
+        indicators_h1=runner.indicators_H1,
         mode=runner.trade_mode,
         context={},
     )

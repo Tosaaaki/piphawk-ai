@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from analysis.atmosphere.market_air_sensor import MarketSnapshot, air_index
+from backend.filters import pre_check
 from backend.strategy.signal_filter import pass_entry_filter
 from backend.utils import env_loader
 from filters.market_filters import is_tradeable
@@ -47,6 +48,8 @@ def run_cycle(
 ) -> PipelineResult:
     """Run the full majority-vote pipeline and return result."""
 
+    ok, _ = pre_check(indicators, price)
+    if not ok:
     # 取引不可ならAI呼び出しを行わず即終了する
     pair = pair or env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
     if atr is None:
@@ -55,6 +58,7 @@ def run_cycle(
         return PipelineResult(None, mode="", regime="", passed=False)
 
     if not pass_entry_filter(indicators, price):
+
         return PipelineResult(None, mode="", regime="", passed=False)
 
     regime = rule_based_regime(metrics)
