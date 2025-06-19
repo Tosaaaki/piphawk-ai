@@ -2,6 +2,8 @@ from __future__ import annotations
 
 """M5 technical entry pipeline orchestrator."""
 
+import logging
+
 from backend.orders import get_order_manager
 from backend.utils import env_loader
 from monitoring import metrics_publisher
@@ -35,7 +37,11 @@ def run_cycle() -> dict | None:
         return None
 
     if ENTRY_USE_AI:
-        decision = call_llm(mode, signal, indicators)
+        try:
+            decision = call_llm(mode, signal, indicators)
+        except Exception as exc:  # pragma: no cover - unexpected errors
+            logging.getLogger(__name__).warning("call_llm failed: %s", exc)
+            return None
     else:
         decision = {"tp_mult": 2.0, "sl_mult": 1.0}
 

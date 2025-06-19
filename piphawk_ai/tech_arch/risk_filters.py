@@ -84,8 +84,13 @@ def vol_spike_guard(indicators: dict) -> bool:
 
 
 def check_risk(ctx, indicators: dict) -> bool:
-    # すべてのリスクフィルターを無効化して常に True を返す
-    return True
+    """Evaluate core risk filters and return ``True`` when all pass."""
+
+    return (
+        margin_filter(getattr(ctx, "account", None))
+        and spread_filter(indicators, getattr(ctx, "spread", 0.0))
+        and vol_spike_guard(indicators)
+    )
 
 
 __all__ = ["check_risk", "spread_filter", "margin_filter", "duplicate_guard", "vol_spike_guard"]
