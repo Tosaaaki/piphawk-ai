@@ -7,7 +7,6 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from backend.filters import pre_check
 from backend.strategy.openai_analysis import get_market_condition, get_trade_plan, should_convert_limit_to_market
 from backend.strategy.risk_manager import calc_lot_size
 from backend.utils import env_loader
@@ -32,20 +31,7 @@ def manage_pending_limits(
                 runner._pending_limits.pop(key, None)
         return
 
-    # Run entry filter before performing any AI-intensive checks
-    current_price = float(tick_data["prices"][0]["bids"][0]["price"])
-    filter_ok, _ = pre_check(
-        indicators,
-        current_price,
-        indicators_m1=runner.indicators_M1,
-        indicators_m15=runner.indicators_M15,
-        indicators_h1=runner.indicators_H1,
-        mode=runner.trade_mode,
-        context={},
-    )
-    if not filter_ok:
-        runner.logger.info("Filter NG -> skipping pending limit AI checks.")
-        return
+    # Skip entry filter when managing pending LIMIT orders
 
     local_info = None
     for key, info in runner._pending_limits.items():
