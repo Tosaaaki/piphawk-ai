@@ -205,6 +205,7 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
 - REVERSAL_RSI_DIFF: M5 と M15 の RSI 差分がこの値以上で MACD ヒストグラムが同じ方向ならエントリーをブロック
 - POLARITY_EXIT_THRESHOLD: ポラリティによる早期決済を行う閾値
 - HIGH_ATR_PIPS / LOW_ADX_THRESH: ATRがHIGH_ATR_PIPS以上でADXがLOW_ADX_THRESH未満の場合に早期撤退
+- DI_CROSS_EXIT_ADX_MIN: DIクロス決済を行う際のADX下限
 - PULLBACK_LIMIT_OFFSET_PIPS: 指値エントリーへ切り替える際の基本オフセット
 - AI_LIMIT_CONVERT_MODEL: 指値を成行に変換するか判断する AI モデル
 - PULLBACK_PIPS: ピボット抑制中に使用するオフセット
