@@ -1,12 +1,12 @@
-# Piphawk AI
+# PiphawkGenie
 
-Piphawk AI is an automated trading system that uses the OANDA REST API for order management and integrates OpenAI models for market analysis. The project provides a REST API for monitoring and runtime configuration as well as a job runner that executes the trading logic at a fixed interval.
+PiphawkGenie is an automated trading system that uses the OANDA REST API for order management and integrates OpenAI models for market analysis. The project provides a REST API for monitoring and runtime configuration as well as a job runner that executes the trading logic at a fixed interval.
 
 For details on the role of each file and directory, see [docs/file_roles.md](docs/file_roles.md).
 
 ## System Overview
 
-Piphawk AI consists of the following components:
+PiphawkGenie consists of the following components:
 
 - **Job Runner** – periodically fetches market data, calculates indicators and
   places orders based on AI analysis.
