@@ -1,12 +1,12 @@
 import importlib
 
-import analysis.llm_client as lc
+import analysis.regime_selector_llm as rsl
 import signals.mode_selector_v2 as ms
 from analysis.atmosphere.market_air_sensor import MarketSnapshot
 
 
 def test_llm_blend_base_overrides(monkeypatch):
-    monkeypatch.setattr(lc, "ask_openai", lambda *a, **k: {"TREND": 0.1, "BASE_SCALP": 0.9, "REBOUND_SCALP": 0.0})
+    monkeypatch.setattr(rsl, "select_mode", lambda *_a, **_k: ("no_trade", {"TREND": 0.1, "BASE_SCALP": 0.9, "REBOUND_SCALP": 0.0}))
     importlib.reload(ms)
     ctx = {
         "ema_slope_15m": 0.3,
@@ -22,7 +22,7 @@ def test_llm_blend_base_overrides(monkeypatch):
 
 
 def test_llm_blend_respects_overshoot(monkeypatch):
-    monkeypatch.setattr(lc, "ask_openai", lambda *a, **k: {"TREND": 1.0, "BASE_SCALP": 0.0, "REBOUND_SCALP": 0.0})
+    monkeypatch.setattr(rsl, "select_mode", lambda *_a, **_k: ("no_trade", {"TREND": 1.0, "BASE_SCALP": 0.0, "REBOUND_SCALP": 0.0}))
     importlib.reload(ms)
     ctx = {
         "ema_slope_15m": 0.0,

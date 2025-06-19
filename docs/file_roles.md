@@ -81,7 +81,7 @@
 | `analysis/cluster_regime.py` | 学習済みクラスタリングモデルを用いたレジーム推定ヘルパー. |
 | `analysis/detect_mode.py` | ローカルトレードモード検出ユーティリティ。 |
 | `analysis/filter_statistics.py` | フィルター効果を集計する簡易スクリプト. |
-| `analysis/llm_mode_selector.py` | LLM を用いたモード選択ラッパー. |
+| `analysis/regime_selector_llm.py` | LLM を用いたレジーム選択ユーティリティ. |
 | `analysis/log_analysis.py` | ログ分析のためのユーティリティ機能。 |
 | `analysis/mode_detector.py` | LLMなしの単純なトレードモード検出器。 |
 | `analysis/mode_preclassifier.py` | 単純なADX/ATRベースの取引レジーム判定モジュール. |
