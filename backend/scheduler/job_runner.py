@@ -212,7 +212,7 @@ try:
 except Exception:  # pragma: no cover - test stubs may remove module
 
     def decide_trade_mode_detail(*_a, **_k):
-        return "flat", 0.0, []
+        return "scalp_momentum", 0.0, []
 
 
 from backend.strategy.risk_manager import calc_lot_size
@@ -2427,7 +2427,6 @@ class JobRunner:
                                         timeframe="M5",
                                         spread=spread,
                                         atr=atr_val,
-                                        force_enter=True,
                                     )
                                     if not res or not res.plan:
                                         log.info("Pipeline declined entry → skipping")

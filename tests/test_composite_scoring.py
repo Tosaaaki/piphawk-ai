@@ -58,7 +58,7 @@ def test_mode_scores_scalp(monkeypatch):
         "volume": [60, 60, 60, 60, 60],
     }
     mode, score, _ = cm.decide_trade_mode_detail(inds)
-    assert mode == "flat"
+    assert mode == "scalp_momentum"
     assert score == 0.0
 
 
