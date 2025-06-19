@@ -401,6 +401,10 @@ AI が `side:"no"` を返しても、現在のトレンド方向へエントリ�
 
 AI 判断後にフィルタで拒否されても必ず注文を実行するかどうかを決めます。デフォルトは `true` です。
 
+### ALWAYS_ENTRY
+
+フィルタに阻まれても毎回エントリー処理を行うかどうか。デフォルトは `false` です。
+
 ### FALLBACK_DEFAULT_SL_PIPS
 
 AI が SL 値を返さない場合に利用する予備の幅(pips)。デフォルトは `8` です。
@@ -422,6 +426,7 @@ FALLBACK_DEFAULT_SL_PIPS=10
 FALLBACK_DEFAULT_TP_PIPS=15
 FALLBACK_DYNAMIC_RISK=true
 FORCE_ENTRY_AFTER_AI=true
+ALWAYS_ENTRY=true
 ```
 
 ### Atmosphere module
