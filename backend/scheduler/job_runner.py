@@ -1393,6 +1393,76 @@ class JobRunner:
                     if self.indicators_S10:
                         indicators["S10"] = self.indicators_S10
 
+                    pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
+                    ask = float(tick_data["prices"][0]["asks"][0]["price"])
+                    bid = float(tick_data["prices"][0]["bids"][0]["price"])
+                    spread_pips = (ask - bid) / pip_size
+                    tf = env_loader.get_env("SCALP_COND_TF", self.scalp_cond_tf).upper()
+                    src = getattr(self, f"indicators_{tf}", None) or self.indicators_M1
+                    try:
+                        atr_val = (
+                            src.get("atr").iloc[-1]
+                            if hasattr(src.get("atr"), "iloc")
+                            else src.get("atr", [0])[-1]
+                        )
+                        atr_pips = float(atr_val) / pip_size
+                    except Exception:
+                        atr_pips = 0.0
+                    try:
+                        bw = (
+                            self.indicators_M1["bb_upper"].iloc[-1]
+                            - self.indicators_M1["bb_lower"].iloc[-1]
+                        )
+                        price = float(tick_data["prices"][0]["bids"][0]["price"])
+                        bb_pct = float(bw) / price * 100
+                    except Exception:
+                        bb_pct = 0.0
+
+                    tradeable = instrument_is_tradeable(DEFAULT_PAIR)
+                    allow_trade, filter_ctx, reason = apply_filters(
+                        atr_pips,
+                        bb_pct,
+                        spread_pips,
+                        tradeable=tradeable,
+                    )
+                    if not allow_trade:
+                        log_entry_skip(DEFAULT_PAIR, None, reason)
+                        self.last_ai_call = datetime.min
+                        self.last_run = now
+                        update_oanda_trades()
+                        time.sleep(self.interval_seconds)
+                        timer.stop()
+                        continue
+
+                    current_price = bid
+
+                    entry_ctx: dict[str, str] = {}
+                    if env_loader.get_env("ALWAYS_ENTRY", "false").lower() == "true":
+                        filter_pass = True
+                    else:
+                        filter_pass = pass_entry_filter(
+                            indicators,
+                            current_price,
+                            self.indicators_M1,
+                            self.indicators_M15,
+                            self.indicators_H1,
+                            mode=self.trade_mode,
+                            context=entry_ctx,
+                        )
+
+                    if not filter_pass:
+                        reason = entry_ctx.get("reason", "unknown")
+                        log.info(
+                            f"Entry blocked by filter ({reason}) → skip any AI calls."
+                        )
+                        self.last_ai_call = datetime.min
+                        self.last_position_review_ts = None
+                        self.last_run = now
+                        update_oanda_trades()
+                        time.sleep(self.interval_seconds)
+                        timer.stop()
+                        continue
+
                     skip_align = self.trade_mode in (
                         "scalp",
                         "scalp_momentum",
@@ -1427,63 +1497,6 @@ class JobRunner:
                         log.info(f"Multi‑TF alignment: {align}")
 
                     log.info("Indicators calculation successful.")
-
-                    current_price = float(
-                        tick_data["prices"][0]["bids"][0]["price"]
-                    )
-
-                    filter_ctx: dict[str, str] = {}
-                    filter_pass = pass_entry_filter(
-                        indicators,
-                        current_price,
-                        self.indicators_M1,
-                        self.indicators_M15,
-                        self.indicators_H1,
-                        mode=self.trade_mode,
-                        context=filter_ctx,
-                    )
-                    if not filter_pass:
-                        if env_loader.get_env("ALWAYS_ENTRY", "false").lower() == "true":
-                            log.info(
-                                "Filter blocked but ALWAYS_ENTRY → continuing with AI."
-                            )
-                        else:
-                            reason = filter_ctx.get("reason", "unknown")
-                            log.info(
-                                f"Entry blocked by filter ({reason}) → skip any AI calls."
-                            )
-                            self.last_position_review_ts = None
-                            self.last_run = now
-                            update_oanda_trades()
-                            time.sleep(self.interval_seconds)
-                            timer.stop()
-                            continue
-
-                    skip_filter = env_loader.get_env("ALWAYS_ENTRY", "false").lower() == "true"
-                    if skip_filter:
-                        log.info("ALWAYS_ENTRY true → skipping entry filter.")
-                        filter_pass = True
-                    else:
-                        filter_pass = pass_entry_filter(
-                            indicators,
-                            current_price,
-                            self.indicators_M1,
-                            self.indicators_M15,
-                            self.indicators_H1,
-                            mode=self.trade_mode,
-                        )
-
-                    if not filter_pass:
-                        log.info(
-                            "Entry blocked by filter → skip any AI calls."
-                        )
-                        self.last_ai_call = datetime.min
-                        self.last_position_review_ts = None
-                        self.last_run = now
-                        update_oanda_trades()
-                        time.sleep(self.interval_seconds)
-                        timer.stop()
-                        continue
 
                     # 指標からトレードモードを判定
                     new_mode, _score, reasons = decide_trade_mode_detail(
@@ -1536,48 +1549,6 @@ class JobRunner:
                             timer.stop()
                             continue
 
-
-                    pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-                    ask = float(tick_data["prices"][0]["asks"][0]["price"])
-                    bid = float(tick_data["prices"][0]["bids"][0]["price"])
-                    spread_pips = (ask - bid) / pip_size
-                    # ATR を SCALP_COND_TF で指定された足から取得する
-                    tf = env_loader.get_env("SCALP_COND_TF", self.scalp_cond_tf).upper()
-                    src = getattr(self, f"indicators_{tf}", None) or self.indicators_M1
-                    try:
-                        atr_val = (
-                            src.get("atr").iloc[-1]
-                            if hasattr(src.get("atr"), "iloc")
-                            else src.get("atr", [0])[-1]
-                        )
-                        atr_pips = float(atr_val) / pip_size
-                    except Exception:
-                        atr_pips = 0.0
-                    try:
-                        bw = (
-                            self.indicators_M1["bb_upper"].iloc[-1]
-                            - self.indicators_M1["bb_lower"].iloc[-1]
-                        )
-                        price = float(tick_data["prices"][0]["bids"][0]["price"])
-                        bb_pct = float(bw) / price * 100
-                    except Exception:
-                        bb_pct = 0.0
-
-                    tradeable = instrument_is_tradeable(DEFAULT_PAIR)
-                    allow_trade, filter_ctx, reason = apply_filters(
-                        atr_pips,
-                        bb_pct,
-                        spread_pips,
-                        tradeable=tradeable,
-                    )
-                    if not allow_trade:
-                        log_entry_skip(DEFAULT_PAIR, None, reason)
-                        self.last_ai_call = datetime.min
-                        self.last_run = now
-                        update_oanda_trades()
-                        time.sleep(self.interval_seconds)
-                        timer.stop()
-                        continue
 
                     has_position = check_current_position(DEFAULT_PAIR)
 
