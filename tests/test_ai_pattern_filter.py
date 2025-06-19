@@ -6,7 +6,7 @@ from ai.cnn_pattern import infer
 pytest.importorskip("fastapi")
 pytest.skip("skip pattern filter on limited environment", allow_module_level=True)
 
-from signals.ai_pattern_filter import pass_pattern_filter
+from signals.ai_pattern_filter import decide_entry_side, pass_pattern_filter
 
 
 def _dummy_candles() -> list[dict]:
@@ -36,5 +36,24 @@ def test_pattern_filter_true(monkeypatch):
     ok, prob = pass_pattern_filter(_dummy_candles())
     assert ok
     assert prob > 0.65
+
+
+def test_decide_entry_side_long(monkeypatch):
+    def fake(img: np.ndarray) -> dict[str, float]:
+        return {"pattern": 0.8}
+
+    monkeypatch.setattr(infer, "predict", fake)
+    side, prob = decide_entry_side(_dummy_candles())
+    assert side == "long"
+    assert prob == 0.8
+
+
+def test_decide_entry_side_none(monkeypatch):
+    def fake(img: np.ndarray) -> dict[str, float]:
+        return {"pattern": 0.55}
+
+    monkeypatch.setattr(infer, "predict", fake)
+    side, prob = decide_entry_side(_dummy_candles())
+    assert side is None
 
 
