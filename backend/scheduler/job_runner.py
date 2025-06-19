@@ -337,6 +337,9 @@ RUNNER_INSTANCE = None
 DEFAULT_PAIR = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
 ENTRY_USE_AI = env_loader.get_env("ENTRY_USE_AI", "true").lower() == "true"
 USE_LLM_REGIME = env_loader.get_env("USE_LLM_REGIME", "true").lower() == "true"
+USE_LLM_MARKET_COND = (
+    env_loader.get_env("USE_LLM_MARKET_COND", "true").lower() == "true"
+)
 
 # Comma-separated chart pattern names used for AI analysis
 PATTERN_NAMES = [
@@ -637,6 +640,8 @@ class JobRunner:
         higher_tf: dict,
     ) -> dict:
         """Return market condition using precomputed indicators."""
+        if not USE_LLM_MARKET_COND:
+            return {"summary": "", "market_condition": "unknown"}
         if not USE_LLM_REGIME:
             return {}
         cond_ind = self._get_cond_indicators()
@@ -1494,15 +1499,6 @@ class JobRunner:
                             continue
 
 
-                    # 市場コンディションを一度だけ評価し再利用する
-                    market_cond = self._evaluate_market_condition(
-                        candles_m1,
-                        candles_m5,
-                        candles_d1,
-                        higher_tf,
-                    )
-                    log.debug(f"Market condition: {market_cond}")
-
                     pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
                     try:
                         atr_val = (
@@ -1533,6 +1529,14 @@ class JobRunner:
                         time.sleep(self.interval_seconds)
                         timer.stop()
                         continue
+
+                    market_cond = self._evaluate_market_condition(
+                        candles_m1,
+                        candles_m5,
+                        candles_d1,
+                        higher_tf,
+                    )
+                    log.debug(f"Market condition: {market_cond}")
                     regime_hint = (filter_ctx or {}).get("regime_hint")
 
                     # ポジション確認
