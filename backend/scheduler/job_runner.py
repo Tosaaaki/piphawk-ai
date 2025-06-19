@@ -1573,6 +1573,8 @@ class JobRunner:
                         timer.stop()
                         continue
 
+                    has_position = check_current_position(DEFAULT_PAIR)
+
                     due_for_review = False
                     elapsed_review = None
                     if has_position and self.review_enabled:
