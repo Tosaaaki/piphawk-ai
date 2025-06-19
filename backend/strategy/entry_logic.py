@@ -453,15 +453,7 @@ def process_entry(
             except Exception as exc:
                 logging.debug(f"[process_entry] scalp vol filter failed: {exc}")
 
-            if spread_pips is not None:
-                from backend.risk_manager import cost_guard
-
-                if not cost_guard(tp_pips, spread_pips, noise_pips=noise_pips):
-                    min_net = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
-                    net = float(tp_pips) - spread_pips
-                    logging.info(f"Net TP {net:.1f} < {min_net} \u2192 skip entry")
-                    if not force_entry_after_ai:
-                        return False
+            # スプレッドに基づくエントリーブロックは行わない
 
             params = {
                 "instrument": (
@@ -679,15 +671,7 @@ def process_entry(
     if return_side:
         return side if side in ("long", "short") else None
 
-    if spread_pips is not None:
-        from backend.risk_manager import cost_guard
-
-        if not cost_guard(risk_info.get("tp_pips"), spread_pips, noise_pips=noise_pips):
-            min_net = float(env_loader.get_env("MIN_NET_TP_PIPS", "1"))
-            net = float(risk_info.get("tp_pips", 0)) - spread_pips
-            logging.info(f"Net TP {net:.1f} < {min_net} → skip entry")
-            if not force_entry_after_ai:
-                return False
+    # スプレッドによるエントリー停止は無効化
 
     if PEAK_ENTRY_ENABLED:
         try:
@@ -741,51 +725,12 @@ def process_entry(
     except Exception as exc:
         logging.debug(f"[process_entry] bias check failed: {exc}")
 
-    # --- extension block filter ----------------------------------
-    try:
-        atr_series = indicators.get("atr")
-        if atr_series is not None and len(atr_series):
-            atr_val = (
-                atr_series.iloc[-1] if hasattr(atr_series, "iloc") else atr_series[-1]
-            )
-            m5 = candles_dict.get("M5", candles)
-            if is_extension(m5, float(atr_val)):
-                logging.info("Extension block triggered → skip entry")
-                if not force_entry_after_ai:
-                    return False
-    except Exception as exc:
-        logging.debug(f"[process_entry] extension block failed: {exc}")
+    # --- extension block filter (disabled post-AI) ----------------
+    # AI からの指示を優先するため、ここでのブロックは行わない
 
-    # RSI による逆張りブロック
-    try:
-        rsi_series = indicators.get("rsi")
-        if rsi_series is not None and len(rsi_series):
-            rsi_val = (
-                rsi_series.iloc[-1] if hasattr(rsi_series, "iloc") else rsi_series[-1]
-            )
-            os_thresh = float(env_loader.get_env("RSI_OVERSOLD_BLOCK", "35"))
-            ob_thresh = float(env_loader.get_env("RSI_OVERBOUGHT_BLOCK", "65"))
-            if side == "short" and rsi_val < os_thresh:
-                logging.info(f"RSI {rsi_val:.1f} < {os_thresh} → Sell 禁止")
-                if not force_entry_after_ai:
-                    return False
-            if side == "long" and rsi_val > ob_thresh:
-                logging.info(f"RSI {rsi_val:.1f} > {ob_thresh} → Buy 禁止")
-                if not force_entry_after_ai:
-                    return False
-    except Exception as exc:
-        logging.debug(f"[process_entry] oversold filter failed: {exc}")
+    # RSI ブロックは AI の判断を尊重して無効化
 
-    # --- false break filter -----------------------------------------
-    try:
-        lookback = int(env_loader.get_env("FALSE_BREAK_LOOKBACK", "5"))
-        m5 = candles_dict.get("M5", candles)
-        if false_break_skip(m5, lookback):
-            logging.info("False break detected → skip entry")
-            if not force_entry_after_ai:
-                return False
-    except Exception as exc:
-        logging.debug(f"[process_entry] false-break filter failed: {exc}")
+    # False break フィルタは無効化
 
     breakout_entry = False
     try:
@@ -872,21 +817,7 @@ def process_entry(
         instrument = env_loader.get_env("DEFAULT_PAIR", "USD_JPY")
         bid = ask = None
 
-    try:
-        rng = float(env_loader.get_env("H1_BOUNCE_RANGE_PIPS", "0"))
-        ind_h1 = indicators_multi.get("H1") if indicators_multi else None
-        price_chk = bid if side == "long" else ask
-        if rng > 0 and price_chk is not None and ind_h1:
-            if side == "short" and is_near_h1_support(ind_h1, price_chk, rng):
-                logging.info("Price near H1 support → skip short entry")
-                if not force_entry_after_ai:
-                    return False
-            if side == "long" and is_near_h1_resistance(ind_h1, price_chk, rng):
-                logging.info("Price near H1 resistance → skip long entry")
-                if not force_entry_after_ai:
-                    return False
-    except Exception as exc:
-        logging.debug(f"[process_entry] H1 level check failed: {exc}")
+    # H1 レベルチェック無効化 (AI 指示を優先)
 
     if mode == "market" and not is_break:
         price_ref = bid if side == "long" else ask
@@ -917,55 +848,9 @@ def process_entry(
         except Exception as exc:
             logging.debug(f"[process_entry] narrow-range detection failed: {exc}")
 
-    # ------------------------------------------------------------
-    #  Range market handling: switch to LIMIT if near BB center
-    # ------------------------------------------------------------
-    if not is_break:
-        try:
-            if (
-                (
-                    (market_cond and market_cond.get("market_condition") == "range")
-                    or narrow_range
-                )
-                and bb_upper is not None
-                and bb_lower is not None
-                and len(bb_upper)
-                and len(bb_lower)
-            ):
-                pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-                price_ref = bid if side == "long" else ask
-                if price_ref is not None:
-                    center = (bb_upper.iloc[-1] + bb_lower.iloc[-1]) / 2
-                    distance_pips = abs(price_ref - center) / pip_size
-                    offset_threshold = float(
-                        env_loader.get_env("RANGE_ENTRY_OFFSET_PIPS", "3")
-                    )
-                    if distance_pips <= offset_threshold:
-                        target = (
-                            bb_lower.iloc[-1] if side == "long" else bb_upper.iloc[-1]
-                        )
-                        offset_pips = abs(price_ref - target) / pip_size
-                        limit_price = pullback_limit(side, price_ref, offset_pips)
-                        mode = "limit"
-        except Exception as exc:
-            logging.debug(f"[process_entry] range-limit conversion failed: {exc}")
+    # Range 市場での LIMIT 変換を無効化
 
-    # ------------------------------------------------------------
-    #  Spread cap: convert market entry to LIMIT when spread is wide
-    # ------------------------------------------------------------
-    try:
-        pip_size = float(env_loader.get_env("PIP_SIZE", "0.01"))
-        max_spread = float(env_loader.get_env("MAX_SPREAD_PIPS", "0"))
-        if max_spread > 0 and bid is not None and ask is not None and mode == "market":
-            spread_pips = (ask - bid) / pip_size
-            if spread_pips > max_spread:
-                limit_price = bid if side == "long" else ask
-                mode = "limit"
-                logging.info(
-                    f"Spread {spread_pips:.1f} exceeds {max_spread} → switching to LIMIT"
-                )
-    except Exception as exc:  # pragma: no cover - edge case logging
-        logging.debug(f"[process_entry] spread check failed: {exc}")
+    # スプレッドによる LIMIT 変換は実施しない
 
     if mode == "wait":
         logging.info("AI suggests WAIT – re‑evaluate next loop.")
