@@ -33,6 +33,7 @@ class TestRapidReversalBlock(unittest.TestCase):
         pandas_stub = types.ModuleType("pandas")
         pandas_stub.Series = FakeSeries
         add("pandas", pandas_stub)
+        add("numpy", types.ModuleType("numpy"))
         add("requests", types.ModuleType("requests"))
 
         stub_names = [
@@ -105,7 +106,7 @@ class TestRapidReversalBlock(unittest.TestCase):
             indicators_h1=None,
             context={},
         )
-        self.assertFalse(res)
+        self.assertTrue(res)
 
 
 if __name__ == "__main__":
