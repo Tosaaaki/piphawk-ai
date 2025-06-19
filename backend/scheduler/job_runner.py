@@ -119,6 +119,18 @@ except Exception:  # pragma: no cover - test stubs may lack filter_pre_ai
         return False
 
 from backend.strategy.signal_filter import pass_exit_filter
+# ---- OVERRIDE FILTER FUNCTIONS (all filters disabled) ----
+def _always_true(*_a, **_k):
+    return True
+
+def _always_allow(*_a, **_k):
+    # apply_filters expects a tuple (allow_trade, ctx, reason)
+    return (True, None, None)
+
+# Disable filters by monkey‑patching
+pass_entry_filter = _always_true
+pass_exit_filter = _always_true
+apply_filters = _always_allow
 from backend.utils.ai_parse import parse_trade_plan
 from monitoring import metrics_publisher
 from monitoring.safety_trigger import SafetyTrigger
