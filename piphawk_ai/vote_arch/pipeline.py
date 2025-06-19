@@ -14,8 +14,7 @@ from .ai_strategy_selector import select_strategy
 from .entry_buffer import PlanBuffer
 from .regime_detector import MarketMetrics, rule_based_regime
 
-# 常にエントリーを実行する
-FORCE_ENTER = True
+FORCE_ENTER = env_loader.get_env("FORCE_ENTER", "false").lower() == "true"
 
 
 

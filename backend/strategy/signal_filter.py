@@ -488,6 +488,11 @@ def pass_entry_filter(
                 context["overshoot_flag"] = True
                 logger.info("Overshoot range detected: flag set")
 
+    if context.get("overshoot_flag") and env_loader.get_env("OVERSHOOT_MODE", "block").lower() != "warn":
+        context["reason"] = "overshoot"
+        logger.info("Filter blocked: overshoot")
+        return False
+
     return True
 
 

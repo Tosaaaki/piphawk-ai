@@ -52,7 +52,19 @@ def should_enter_short(candles: List[Dict], indicators: dict) -> bool:
 
 
 def should_skip(candles: List[Dict], ema_period: int = 20) -> bool:
-    """常に False を返してフィルターを無効化する."""
+    """Return True when price is overextended from EMA."""
+
+    if len(candles) < ema_period + 1:
+        return False
+
+    closes = [_get_val(c, "c") for c in candles[-(ema_period + 1) : -1]]
+    ema = sum(closes) / len(closes)
+    last = _get_val(candles[-1], "c")
+    prev = _get_val(candles[-2], "c")
+    if last > ema and prev > ema:
+        return True
+    if last < ema and prev < ema:
+        return True
     return False
 
 
