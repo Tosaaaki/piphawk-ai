@@ -1516,30 +1516,6 @@ def get_trade_plan(
     if plan.get("entry", {}).get("side") == "no":
         plan["risk"] = {}
 
-    # Over-cool filter using Bollinger Band width and ATR
-    try:
-        bb_upper = ind_m5.get("bb_upper")
-        bb_lower = ind_m5.get("bb_lower")
-        atr_series = ind_m5.get("atr")
-        if hasattr(bb_upper, "iloc"):
-            bb_upper = bb_upper.iloc[-1]
-        else:
-            bb_upper = bb_upper[-1]
-        if hasattr(bb_lower, "iloc"):
-            bb_lower = bb_lower.iloc[-1]
-        else:
-            bb_lower = bb_lower[-1]
-        if hasattr(atr_series, "iloc"):
-            atr_val = float(atr_series.iloc[-1])
-        else:
-            atr_val = float(atr_series[-1])
-        bw = float(bb_upper) - float(bb_lower)
-        if (bw / atr_val) < COOL_BBWIDTH_PCT or atr_val < COOL_ATR_PCT:
-            plan["entry"]["side"] = "no"
-            plan.setdefault("reason", "OVERCOOL")
-    except (TypeError, ValueError, IndexError, ZeroDivisionError):
-        pass
-
     # ADX no-trade zone enforcement (skipped when ENABLE_RANGE_ENTRY is true)
     try:
         adx_series = ind_m5.get("adx")
