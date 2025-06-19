@@ -131,6 +131,14 @@ def _always_allow(*_a, **_k):
 pass_entry_filter = _always_true
 pass_exit_filter = _always_true
 apply_filters = _always_allow
+
+def _always_false(*_a, **_k):
+    # filter_pre_ai expects a boolean; always return False so it never blocks
+    return False
+
+# Disable the pre‑AI filter as well
+filter_pre_ai = _always_false
+
 from backend.utils.ai_parse import parse_trade_plan
 from monitoring import metrics_publisher
 from monitoring.safety_trigger import SafetyTrigger
