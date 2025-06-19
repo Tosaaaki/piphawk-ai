@@ -36,9 +36,10 @@ def get_plan(features: dict) -> dict:
         logger.warning("get_plan failed: %s", exc)
         return {"enter": False}
     plan, _ = parse_json_answer(raw)
-    if plan is None:
+    if not isinstance(plan, dict):
+        logger.warning("plan not dict: %s", plan)
         return {"enter": False}
-    return plan
+    return plan or {"enter": False}
 
 
 __all__ = ["get_plan", "MICRO_SCALP_MODEL", "load_prompt", "PROMPT_PATH"]
