@@ -8,8 +8,8 @@ from typing import Any, Dict
 
 import yaml
 
-from analysis.llm_client import get_mode_scores
 from analysis.mode_preclassifier import classify_regime
+from analysis.regime_selector_llm import select_mode
 from backend.utils import env_loader
 
 
@@ -133,7 +133,7 @@ def select_mode(ctx: Dict[str, float], snapshot: Any | None = None) -> str:
     range_score = (1 - stddev_pct) * (1 - diff_ratio)
 
     if snapshot is not None:
-        llm_scores = get_mode_scores(snapshot)
+        _mode, llm_scores = select_mode(snapshot)
         numeric = {
             "TREND": trend_strength,
             "BASE_SCALP": range_score,
