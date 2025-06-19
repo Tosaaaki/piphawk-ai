@@ -462,3 +462,4 @@
 | `tests/tests_trade_patterns.py` | tests_trade_patterns のテスト |
 | `training/offline_policy_learning.py` | オフラインポリシー学習モジュール |
 | `training/train_regime_model.py` | レジームモデルを学習するモジュール |
+| `training/libsvm_to_onnx.py` | LIBSVM モデルを ONNX へ変換するスクリプト |

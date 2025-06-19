@@ -31,3 +31,13 @@ python training/train_regime_model.py training/examples/sample_rates.csv
 ```
 
 指定がない場合は `tests/data/range_sample.csv` が使用されます。学習後、`models/regime_gmm.pkl` にモデルが保存されます。
+
+## libsvm_to_onnx.py の使い方
+
+LIBSVM 形式で保存された SVM モデルを ONNX ファイルへ変換します。
+
+```bash
+python training/libsvm_to_onnx.py model.pkl --n-features 4 --output model.onnx
+```
+
+`--n-features` にはモデルの入力次元数を指定します。
