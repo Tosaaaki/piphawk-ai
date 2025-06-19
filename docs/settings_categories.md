@@ -1,0 +1,132 @@
+# `settings.env` カテゴリ一覧
+
+`backend/config/settings.env` では多数の環境変数をカテゴリごとに定義しています。
+ここでは各カテゴリの概要と代表的な変数をまとめます。
+
+## 基本設定
+- `DEFAULT_PAIR` / `PIP_SIZE`
+- `TRADES_DB_PATH`
+
+## モード切り替え設定
+- `SCALP_MODE` / `ENTRY_USE_AI`
+- `USE_VOTE_ARCH` / `USE_VOTE_PIPELINE`
+- `PAPER_MODE` / `USE_OFFLINE_POLICY`
+
+## テクニカル指標期間
+- `RSI_PERIOD` / `EMA_PERIOD`
+- `ATR_PERIOD` / `BOLLINGER_WINDOW` / `BOLLINGER_STD`
+
+## エントリーフィルタ
+- `RSI_ENTRY_LOWER` / `RSI_ENTRY_UPPER`
+- `ATR_ENTRY_THRESHOLD` / `ATR_MIN_PIPS`
+- `BAND_WIDTH_THRESH_PIPS` / `EMA_DIFF_THRESHOLD`
+- `BB_POSITION_THRESHOLD`
+
+## TP/SL初期値
+- `INIT_TP_PIPS` / `INIT_SL_PIPS`
+- `MIN_SL_PIPS`
+- `SHORT_TP_ATR_RATIO` / `TP_BB_RATIO`
+
+## AIクールダウンとロット制限
+- `AI_COOLDOWN_SEC_FLAT` / `AI_COOLDOWN_SEC_OPEN`
+- `MAX_AI_CALLS_PER_LOOP`
+- `MIN_TRADE_LOT` ～ `SCALE_MAX_POS`
+- `SCALE_TRIGGER_ATR` / `SL_COOLDOWN_SEC`
+
+## ローソク足設定
+- `CANDLE_GRANULARITY`
+- `TRADE_TIMEFRAMES`
+- `USE_CANDLE_SUMMARY`
+
+## Exitフィルタ
+- `RSI_EXIT_LOWER` / `RSI_EXIT_UPPER`
+- `ATR_EXIT_THRESHOLD`
+- `DISABLE_ENTRY_FILTER` / `DISABLE_EXIT_FILTER`
+
+## EMA設定
+- `EMA_FAST_PERIOD` / `EMA_SLOW_PERIOD`
+
+## トレーリングストップ
+- `TRAIL_ENABLED` ～ `TRAIL_AFTER_TP`
+
+## 部分決済・レビュー
+- `PARTIAL_CLOSE_PIPS` / `PARTIAL_CLOSE_RATIO`
+- `POSITION_REVIEW_ENABLED` / `POSITION_REVIEW_SEC`
+
+## ブレイクイーブン・早期撤退
+- `BE_TRIGGER_PIPS` ～ `LOW_ADX_THRESH`
+
+## ATR・TP/SL関連
+- `ATR_SL_MULTIPLIER` ～ `OVERSHOOT_RECOVERY_RATE`
+
+## 利確・停滞判定
+- `AI_PROFIT_TRIGGER_RATIO` ～ `POLARITY_EXIT_THRESHOLD`
+
+## TP拡張／縮小
+- `TP_EXTENSION_ENABLED` ～ `TP_REDUCTION_ATR_MULT`
+
+## AIモデル設定
+- `AI_REGIME_MODEL` ～ `AI_PATTERN_MAX_TOKENS`
+- `AI_REGIME_COOLDOWN_SEC`
+
+## チャートパターン検出
+- `PATTERN_NAMES` など各種パターン関連設定
+
+## ボリューム関連
+- `VOL_MA_PERIOD` ～ `BREAKOUT_ADX_MIN`
+
+## 時間帯フィルター
+- `QUIET_START_HOUR_JST` ～ `QUIET2_ENABLED`
+
+## AIエグジット上書き
+- `ALLOW_AI_EXIT_OVERRIDE` / `AI_EXIT_CONF_THRESH`
+- `EXIT_BIAS_FACTOR`
+
+## 高位足設定とクールダウン
+- `HIGHER_TF_ENABLED` ～ `MM_DRAW_MAX_ATR_RATIO`
+
+## TP/SL確率フィルター
+- `MIN_TP_PROB` ～ `MIN_EXPECTED_VALUE`
+
+## 指値エントリー設定
+- `LIMIT_THRESHOLD_ATR_RATIO` ～ `ALLOW_NO_PULLBACK_WHEN_ADX`
+
+## クールダウン・ADXレンジ
+- `COOL_BBWIDTH_PCT` ～ `FOLLOW_PULLBACK_ATR_RATIO`
+
+## 逆張り・クライマックス
+- `BLOCK_COUNTER_TREND` ～ `CLIMAX_SL_PIPS`
+
+## マルチTF整合
+- `TF_EMA_WEIGHTS` ～ `MIN_ALIGN_ADX`
+
+## その他パラメータ
+- `ATR_RATIO` ～ `H1_BOUNCE_RANGE_PIPS`
+
+## スキャルピング設定
+- `ADX_SCALP_MIN` ～ `HOLD_TIME_MAX`
+
+## Micro scalp mode
+- `MICRO_SCALP_ENABLED` ～ `MICRO_SCALP_MIN_PIPS`
+
+## Quick TP mode
+- `QUICK_TP_MODE` ～ `RESTART_MIN_INTERVAL`
+
+## Trade mode matrix
+- `ATR_HIGH_RATIO` ～ `ADX_FLAT_THR`
+
+## Portfolio risk management
+- `ACCOUNT_BALANCE` ～ `FORCE_CLOSE_ON_RISK`
+
+## Strategy ensembles
+- `STRAT_TEMP` ～ `STRAT_VOTE_MIN`
+
+## Entry vertical ensemble
+- `ENTRY_BUFFER_K`
+
+## Regime detection
+- `REGIME_ADX_TREND` / `REGIME_BB_NARROW`
+
+## Optional configurations
+- `RISK_PER_TRADE` ～ `FALLBACK_FORCE_ON_NO_SIDE`
+
