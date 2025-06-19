@@ -264,10 +264,8 @@ def process_entry(
         )
 
     forced_entry = False
-    # FORCE_ENTRY_AFTER_AI 環境変数でフィルタを無視するかを制御
-    force_entry_after_ai = (
-        env_loader.get_env("FORCE_ENTRY_AFTER_AI", "true").lower() == "true"
-    )
+    # フィルター通過後は必ずエントリーするため常に True
+    force_entry_after_ai = True
     use_dynamic_risk = (
         env_loader.get_env("FALLBACK_DYNAMIC_RISK", "false").lower() == "true"
     )
@@ -855,9 +853,7 @@ def process_entry(
     # スプレッドによる LIMIT 変換は実施しない
 
     if mode == "wait":
-        logging.info("AI suggests WAIT – re‑evaluate next loop.")
-        if not force_entry_after_ai:
-            return False
+        logging.info("AI suggests WAIT – proceeding with entry.")
 
     tp_pips = risk_info.get("tp_pips")
     sl_pips = risk_info.get("sl_pips")

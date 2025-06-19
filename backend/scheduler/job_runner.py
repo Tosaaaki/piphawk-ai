@@ -2197,13 +2197,8 @@ class JobRunner:
                             timer.stop()
                             continue
 
-                            if filter_pre_ai(candles_m5, indicators, market_cond):
-                                log.info("Pre-AI filter triggered → skipping entry.")
-                                self.last_run = now
-                                update_oanda_trades()
-                                time.sleep(self.interval_seconds)
-                                timer.stop()
-                                continue
+                            # AI を呼び出す前のフィルター処理は廃止
+                            # フィルター通過後は必ず AI 判定を実行する
 
                             if (
                                 not has_position
@@ -2231,29 +2226,7 @@ class JobRunner:
                                 )
 
                             # --- SL hit cooldown check ----------------------
-                            cooldown = int(
-                                env_loader.get_env(
-                                    "SL_COOLDOWN_SEC", str(self.sl_cooldown_sec)
-                                )
-                            )
-                            if (
-                                self.last_sl_time
-                                and (now - self.last_sl_time).total_seconds() < cooldown
-                            ):
-                                log.info(
-                                    f"Entry blocked: recent SL hit on {self.last_sl_side}. Cooldown {(now - self.last_sl_time).total_seconds():.0f}s < {cooldown}s"
-                                )
-                                log_entry_skip(
-                                    DEFAULT_PAIR,
-                                    self.last_sl_side or "",
-                                    "sl_cooldown",
-                                    f"{(now - self.last_sl_time).total_seconds():.0f}s < {cooldown}s",
-                                )
-                                self.last_run = now
-                                update_oanda_trades()
-                                time.sleep(self.interval_seconds)
-                                timer.stop()
-                                continue
+                            # SL 直後のクールダウンによるスキップは行わない
 
                             try:
                                 plan_check = get_trade_plan(
@@ -2274,46 +2247,9 @@ class JobRunner:
                                 log.warning(f"get_trade_plan failed for check: {exc}")
                                 side = "no"
 
-                            if side in ("long", "short") and side == self.last_sl_side:
-                                if self.last_sl_time and (
-                                    now - self.last_sl_time
-                                ).total_seconds() < cooldown:
-                                    log.info(
-                                        f"Entry blocked: recent SL hit on {side}. Cooldown {(now - self.last_sl_time).total_seconds():.0f}s < {cooldown}s"
-                                    )
-                                    log_entry_skip(
-                                        DEFAULT_PAIR,
-                                        side,
-                                        "sl_cooldown",
-                                        f"{(now - self.last_sl_time).total_seconds():.0f}s < {cooldown}s",
-                                    )
-                                    self.last_run = now
-                                    update_oanda_trades()
-                                    time.sleep(self.interval_seconds)
-                                    timer.stop()
-                                    continue
+                            # 直前の SL 側と同方向でもエントリーを継続
 
-                            if side == "long" and consecutive_lower_lows(candles_m5):
-                                log.info(
-                                    "Entry blocked: consecutive lower lows detected"
-                                )
-                                log_entry_skip(DEFAULT_PAIR, side, "lower_lows")
-                                self.last_run = now
-                                update_oanda_trades()
-                                time.sleep(self.interval_seconds)
-                                timer.stop()
-                                continue
-
-                            if side == "short" and consecutive_higher_highs(candles_m5):
-                                log.info(
-                                    "Entry blocked: consecutive higher highs detected"
-                                )
-                                log_entry_skip(DEFAULT_PAIR, side, "higher_highs")
-                                self.last_run = now
-                                update_oanda_trades()
-                                time.sleep(self.interval_seconds)
-                                timer.stop()
-                                continue
+                            # 連続高値安値によるエントリーブロックを廃止
 
                             tp_ratio = None
                             is_counter = counter_trend_block(
@@ -2323,19 +2259,6 @@ class JobRunner:
                                 self.indicators_H1,
                             )
                             if is_counter:
-                                if (
-                                    env_loader.get_env(
-                                        "BLOCK_COUNTER_TREND", "true"
-                                    ).lower()
-                                    == "true"
-                                ):
-                                    log.info("Entry blocked: counter-trend condition")
-                                    log_entry_skip(DEFAULT_PAIR, side, "counter_trend")
-                                    self.last_run = now
-                                    update_oanda_trades()
-                                    time.sleep(self.interval_seconds)
-                                    timer.stop()
-                                    continue
                                 log.info("Counter-trend detected → TP reduced")
                                 tp_ratio = float(
                                     env_loader.get_env("COUNTER_TREND_TP_RATIO", "0.5")
