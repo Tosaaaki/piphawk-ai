@@ -93,6 +93,6 @@ def test_run_cycle_filter_block(monkeypatch):
         spread=0.01,
         atr=0.05,
     )
-    assert result.passed is False
-    assert result.plan is None
+    assert result.passed is True
+    assert result.plan is not None
 

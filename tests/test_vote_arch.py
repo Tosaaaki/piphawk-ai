@@ -7,13 +7,34 @@ from piphawk_ai.vote_arch.regime_detector import MarketMetrics, rule_based_regim
 
 
 def test_select_strategy_majority(monkeypatch):
-    calls = ["scalp_momentum", "trend_follow", "trend_follow"]
+    calls = [
+        {"trade_mode": "scalp_momentum", "prob": 0.4},
+        {"trade_mode": "trend_follow", "prob": 0.6},
+        {"trade_mode": "trend_follow", "prob": 0.7},
+    ]
+
     def fake_ask(prompt: str, system_prompt: str, model: str, temperature: float, response_format: dict, n: int):
-        return [{"trade_mode": calls.pop(0)} for _ in range(n)]
+        return [calls.pop(0) for _ in range(n)]
     monkeypatch.setattr("piphawk_ai.vote_arch.ai_strategy_selector.ask_openai", fake_ask)
     mode, ok = select_strategy("foo")
     assert mode == "trend_follow"
     assert ok is True
+
+
+def test_select_strategy_prob_fallback(monkeypatch):
+    calls = [
+        {"trade_mode": "scalp_momentum", "prob": 0.4},
+        {"trade_mode": "trend_follow", "prob": 0.3},
+        {"trade_mode": "scalp_reversion", "prob": 0.8},
+    ]
+
+    def fake_ask(prompt: str, system_prompt: str, model: str, temperature: float, response_format: dict, n: int):
+        return [calls.pop(0) for _ in range(n)]
+
+    monkeypatch.setattr("piphawk_ai.vote_arch.ai_strategy_selector.ask_openai", fake_ask)
+    mode, ok = select_strategy("foo")
+    assert ok is False
+    assert mode == "scalp_reversion"
 
 
 def test_plan_buffer_average():
