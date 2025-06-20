@@ -1429,6 +1429,7 @@ class JobRunner:
                         tradeable=tradeable,
                     )
                     if not allow_trade:
+                        log.info(f"Entry blocked by session filter ({reason})")
                         log_entry_skip(DEFAULT_PAIR, None, reason)
                         self.last_ai_call = datetime.min
                         self.last_run = now
