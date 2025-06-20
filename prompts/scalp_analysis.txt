@@ -7,4 +7,5 @@ BB_lower:{bb_lower}
 Candles:{candles}
 Higher direction:{higher_tf_direction}
 {bias_note}
+10-minute volatility is about 10 pips ±2. When configuring TP/SL, target quick 1-2 pip gains.
 Respond with JSON as {{"side":"long|short|no","tp_pips":float,"sl_pips":float,"wait_pips":float}}
