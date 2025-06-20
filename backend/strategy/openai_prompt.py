@@ -325,8 +325,8 @@ def build_trade_plan_prompt(
         macro_summary_formatted=macro_summary if macro_summary else "N/A",
         macro_sentiment_formatted=macro_sentiment if macro_sentiment else "N/A",
     ) + _instruction_text()
-    # scalp_momentum モードでは常に積極的バイアスを使用
-    if trade_mode == "scalp_momentum":
+    # scalp_momentum/micro_scalp モードでは常に積極的バイアスを使用
+    if trade_mode in ("scalp_momentum", "micro_scalp"):
         bias = "aggressive"
     else:
         bias = trend_prompt_bias or TREND_PROMPT_BIAS

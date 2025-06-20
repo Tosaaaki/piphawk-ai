@@ -8,6 +8,7 @@ def _load_with_weights(tmp_path, yml_text, monkeypatch):
     cfg = tmp_path / "mode.yml"
     cfg.write_text(textwrap.dedent(yml_text))
     monkeypatch.setenv("MODE_CONFIG", str(cfg))
+    monkeypatch.setenv("TRADE_MODE_RATIO", "0:0:0")
     import signals.composite_mode as cm
     import signals.mode_params as mp
     importlib.reload(mp)
