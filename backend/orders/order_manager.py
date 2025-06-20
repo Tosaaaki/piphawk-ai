@@ -29,6 +29,18 @@ def _sanitize_comment(comment: str, max_bytes: int = 240) -> str:
         sanitized = sanitized.encode("utf-8")[:max_bytes].decode("utf-8", "ignore")
     return sanitized
 
+
+def _build_simple_comment(regime: str | None, stance: str | None, entry_uuid: str) -> str:
+    """Create safe short comment string for OANDA."""
+    text = f"{regime or 'na'}_{stance or 'na'}_{entry_uuid[:8]}"
+    safe = "".join(c if c.isalnum() or c == "_" else "_" for c in text)
+    return _sanitize_comment(safe, max_bytes=120)
+
+
+def _build_limit_comment(entry_uuid: str) -> str:
+    """Create safe comment string for LIMIT order."""
+    return _sanitize_comment(f"limit_{entry_uuid[:8]}", max_bytes=120)
+
 from risk.tp_sl_manager import adjust_sl_for_rr
 
 logger = logging.getLogger(__name__)
@@ -148,21 +160,7 @@ class OrderManager:
                 tp_price = limit_price - tp_pips * pip
                 sl_price = limit_price + sl_pips * pip if sl_pips else None
 
-        comment_dict = {
-            "entry_uuid": entry_uuid,
-            "order_type": "limit",
-            "mode": exec_mode,
-            "vol": strategy_params.get("entry_vol_pips"),
-            "stance": strategy_params.get("entry_stance"),
-        }
-        if risk_info:
-            comment_dict.update(
-                tp=risk_info.get("tp_pips"),
-                sl=risk_info.get("sl_pips"),
-                pp=risk_info.get("tp_prob"),
-                qp=risk_info.get("sl_prob"),
-            )
-        comment_json = _sanitize_comment(json.dumps(comment_dict, separators=(",", ":")))
+        comment_json = _build_limit_comment(entry_uuid or str(uuid.uuid4())[:8])
 
         tag = str(int(time.time()))
 
@@ -554,33 +552,17 @@ class OrderManager:
                 exec_mode=strategy_params.get("exec_mode", "auto"),
             )
 
-        # ---- embed entry‑regime JSON into clientExtensions.comment (≤255 bytes) ----
+        # ---- build short comment for MARKET orders --------------------------
         comment_json = None
         try:
             regime_info = strategy_params.get("market_cond", {}) or {}
-            comment_dict = {
-                "regime": regime_info.get("market_condition"),
-                "dir": regime_info.get("trend_direction"),
-                "order_type": mode,
-                "mode": strategy_params.get("exec_mode", "auto"),
-                "entry_uuid": entry_uuid,
-                "vol": strategy_params.get("entry_vol_pips"),
-                "stance": strategy_params.get("entry_stance"),
-            }
-            # ---- embed AI risk info (tp/sl & probabilities) if present ----
-            risk_info = strategy_params.get("risk", {})
-            if risk_info:
-                comment_dict.update(
-                    tp=risk_info.get("tp_pips"),
-                    sl=risk_info.get("sl_pips"),
-                    pp=risk_info.get("tp_prob"),  # TP probability
-                    qp=risk_info.get("sl_prob"),  # SL probability
-                )
-            comment_json = _sanitize_comment(
-                json.dumps(comment_dict, separators=(",", ":"))
+            comment_json = _build_simple_comment(
+                regime_info.get("market_condition"),
+                strategy_params.get("entry_stance"),
+                entry_uuid,
             )
         except Exception as exc:
-            logger.debug(f"[enter_trade] building comment JSON failed: {exc}")
+            logger.debug(f"[enter_trade] building comment failed: {exc}")
 
         url = f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/orders"
         tag = str(int(time.time()))

@@ -117,7 +117,15 @@ def get_position_details(instrument: str) -> Optional[Dict[str, Any]]:
                     sl_pips = entry_regime.get("sl")
                     tp_pips = entry_regime.get("tp")
                 except json.JSONDecodeError:
-                    entry_regime = {"regime": "unknown"}
+                    parts = comment.split("_")
+                    if len(parts) >= 3:
+                        entry_regime = {
+                            "regime": parts[0],
+                            "stance": parts[1],
+                            "entry_uuid": parts[2],
+                        }
+                    else:
+                        entry_regime = {"entry_uuid": comment}
                 break
         for tr in trades:
             tp_comment = (
