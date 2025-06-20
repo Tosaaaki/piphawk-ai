@@ -99,5 +99,13 @@ class TestAdjustTpSl(unittest.TestCase):
         self.assertIn("stopLoss", body)
         self.assertEqual(body["stopLoss"]["price"], "149.000")
 
+    def test_put_when_tp_exists(self):
+        self.om.get_current_tp = lambda *_a, **_k: 150.0
+        res = self.om.adjust_tp_sl("USD_JPY", "t1", new_tp=151.0)
+        self.assertEqual(res, {"tp": {"ok": True}})
+        body = self.sent[0]
+        self.assertIn("takeProfit", body)
+        self.assertEqual(body["takeProfit"]["price"], "151.000")
+
 if __name__ == '__main__':
     unittest.main()
