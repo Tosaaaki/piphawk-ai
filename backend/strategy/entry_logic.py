@@ -332,37 +332,54 @@ def process_entry(
         try:
             import importlib
 
-            scalp_ai = importlib.import_module(
-                "backend.strategy.openai_scalp_analysis"
-            )
-            plan = scalp_ai.get_scalp_plan(
-                indicators,
-                candles,
-                higher_tf_direction=(market_cond or {}).get("trend_direction"),
-            )
+            if trade_mode == "micro_scalp":
+                from backend.market_data import calc_tick_features
 
-            ai_side = plan.get("side")
-            if ai_side not in ("long", "short"):
-                micro_plan = None
-                if env_loader.get_env("MICRO_SCALP_ENABLED", "false").lower() == "true":
-                    from backend.market_data import calc_tick_features
-
-                    ticks = []
-                    if isinstance(strategy_params, dict):
-                        ticks = strategy_params.get("ticks") or []
-                    mscalp = importlib.import_module(
-                        "backend.strategy.openai_micro_scalp"
-                    )
-                    feats = calc_tick_features(ticks)
-                    micro_plan = mscalp.get_plan(feats)
-
-                if micro_plan and micro_plan.get("enter"):
-                    plan = micro_plan
-                    ai_side = plan.get("side")
-                else:
-                    logging.info("Scalp AI returned no tradable side → skip entry")
+                ticks = []
+                if isinstance(strategy_params, dict):
+                    ticks = strategy_params.get("ticks") or []
+                mscalp = importlib.import_module(
+                    "backend.strategy.openai_micro_scalp"
+                )
+                feats = calc_tick_features(ticks)
+                plan = mscalp.get_plan(feats)
+                ai_side = plan.get("side")
+                if ai_side not in ("long", "short"):
+                    logging.info("Micro scalp returned no tradable side → skip entry")
                     if not force_entry_after_ai:
                         return False
+            else:
+                scalp_ai = importlib.import_module(
+                    "backend.strategy.openai_scalp_analysis"
+                )
+                plan = scalp_ai.get_scalp_plan(
+                    indicators,
+                    candles,
+                    higher_tf_direction=(market_cond or {}).get("trend_direction"),
+                )
+
+                ai_side = plan.get("side")
+                if ai_side not in ("long", "short"):
+                    micro_plan = None
+                    if env_loader.get_env("MICRO_SCALP_ENABLED", "false").lower() == "true":
+                        from backend.market_data import calc_tick_features
+
+                        ticks = []
+                        if isinstance(strategy_params, dict):
+                            ticks = strategy_params.get("ticks") or []
+                        mscalp = importlib.import_module(
+                            "backend.strategy.openai_micro_scalp"
+                        )
+                        feats = calc_tick_features(ticks)
+                        micro_plan = mscalp.get_plan(feats)
+
+                    if micro_plan and micro_plan.get("enter"):
+                        plan = micro_plan
+                        ai_side = plan.get("side")
+                    else:
+                        logging.info("Scalp AI returned no tradable side → skip entry")
+                        if not force_entry_after_ai:
+                            return False
 
             if ai_side in ("long", "short"):
                 tp_pips = float(
