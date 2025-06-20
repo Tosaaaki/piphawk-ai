@@ -1,4 +1,5 @@
 Your task:
+This vote pipeline always requires a trading plan. Never respond with "no".
 1. Always open a trade now using both technical indicators and market atmosphere. Pick the more likely side and return JSON key "entry" with: {{ "side":"long"|"short", "rationale":"…" }}. Also include numeric key "entry_confidence" between 0 and 1 representing your confidence. Additionally return key "probs" as {{"long":float,"short":float,"no":float}} where all values sum to 1 ("no" probability should be near zero).
 2. Propose TP/SL distances **in pips** along with their {TP_PROB_HOURS}-hour hit probabilities: {{ "tp_pips":int, "sl_pips":int, "tp_prob":float, "sl_prob":float }}. Output this at JSON key "risk". These four keys must always be included. Use decimals for all probability values. When you output side "long" or "short", the risk object must contain both "tp_pips" and "sl_pips" or the trade will be skipped.
    - Constraints:
