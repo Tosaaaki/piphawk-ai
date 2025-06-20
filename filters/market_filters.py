@@ -29,7 +29,7 @@ def is_tradeable(pair: str, timeframe: str, spread: float, atr: float | None = N
         return False
 
     if atr is not None:
-        min_atr = float(env_loader.get_env("MIN_ATR_PIPS", "2"))
+        min_atr = float(env_loader.get_env("MIN_ATR_PIPS", "1"))
         if atr / pip_size < min_atr:
             return False
 

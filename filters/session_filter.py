@@ -28,8 +28,8 @@ def apply_filters(
     # 市場が開いているか、取引可能かを判定
     if not _in_trade_hours() or not tradeable:
         return False, None, "market_closed"
-    scalp_min = float(env_loader.get_env("SCALP_ATR_MIN", "0.03"))
-    trend_min = float(env_loader.get_env("TREND_ATR_MIN", "0.1"))
+    scalp_min = float(env_loader.get_env("SCALP_ATR_MIN", "0.02"))
+    trend_min = float(env_loader.get_env("TREND_ATR_MIN", "0.05"))
     max_spread = float(env_loader.get_env("MAX_SPREAD_PIPS", "0"))
     if spread_pips is not None and max_spread > 0 and spread_pips > max_spread:
         return False, None, "wide_spread"

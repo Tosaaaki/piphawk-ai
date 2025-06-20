@@ -13,8 +13,8 @@ from signals.scalp_strategy import (
     should_enter_trade_s10,
 )
 
-ADX_SCALP_MIN = float(env_loader.get_env("ADX_SCALP_MIN", "20"))
-ADX_TREND_MIN = float(env_loader.get_env("ADX_TREND_MIN", "30"))
+ADX_SCALP_MIN = float(env_loader.get_env("ADX_SCALP_MIN", "10"))
+ADX_TREND_MIN = float(env_loader.get_env("ADX_TREND_MIN", "20"))
 SCALP_COND_TF = env_loader.get_env("SCALP_COND_TF", "M1").upper()
 TREND_COND_TF = env_loader.get_env("TREND_COND_TF", "M5").upper()
 
