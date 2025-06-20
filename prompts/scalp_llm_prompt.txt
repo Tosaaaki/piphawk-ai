@@ -3,5 +3,6 @@ Analyze the latest tick indicators and decide whether to open a short-term posit
 Order flow imbalance: {of_imbalance}
 Volume burst ratio: {vol_burst}
 Average spread (pips): {spd_avg}
-Always select a trade that can capture at least 2 pips and do not refuse entry.
+10-minute volatility is about 10 pips ±2. When configuring TP/SL, aim for quick 1-2 pip gains.
+Always select a trade that can capture at least 1 pip and do not refuse entry.
 Respond only with JSON as {{"enter":true,"side":"long|short","tp_pips":float,"sl_pips":float}}.
