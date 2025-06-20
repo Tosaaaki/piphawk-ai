@@ -77,7 +77,7 @@ def vol_spike_guard(indicators: dict) -> bool:
         if prev <= 0:
             return True
         ratio = last / prev
-        threshold = float(env_loader.get_env("VOL_SPIKE_RATIO", "2.0"))
+        threshold = float(env_loader.get_env("VOL_SPIKE_RATIO", "8.0"))
         return ratio < threshold
     except Exception:
         return True
