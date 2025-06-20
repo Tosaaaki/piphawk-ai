@@ -29,7 +29,7 @@ try:
 
     last_mode = getattr(params_loader, "load_last_mode", lambda: None)()
     force_scalp = env_loader.get_env("SCALP_MODE", "").lower() == "true"
-    if force_scalp or last_mode in ("scalp", "scalp_momentum"):
+    if force_scalp or last_mode in ("scalp", "scalp_momentum", "micro_scalp"):
         params_loader.load_params(path="config/scalp_params.yml")
     elif last_mode == "trend_follow":
         params_loader.load_params(path="config/trend.yml")
@@ -519,7 +519,9 @@ class JobRunner:
         self.mode_reason = ""
         # set initial AI call limit based on mode
         default_limit = int(env_loader.get_env("MAX_AI_CALLS_PER_LOOP", "1"))
-        set_call_limit(4 if self.trade_mode == "scalp_momentum" else default_limit)
+        set_call_limit(
+            4 if self.trade_mode in ("scalp_momentum", "micro_scalp") else default_limit
+        )
 
         # Majority-vote pipeline selection
         default_vote = "false" if self.trade_mode == "scalp" else "true"
@@ -633,7 +635,7 @@ class JobRunner:
     def _get_cond_indicators(self) -> dict:
         """Return indicators for market condition check."""
         tf = env_loader.get_env("TREND_COND_TF", "M5").upper()
-        if self.trade_mode in ("scalp", "scalp_momentum"):
+        if self.trade_mode in ("scalp", "scalp_momentum", "micro_scalp"):
             tf = env_loader.get_env("SCALP_COND_TF", self.scalp_cond_tf).upper()
         return getattr(self, f"indicators_{tf}", {}) or {}
 
@@ -690,6 +692,7 @@ class JobRunner:
         file_map = {
             "scalp": "config/scalp_params.yml",
             "scalp_momentum": "config/scalp_params.yml",
+            "micro_scalp": "config/scalp_params.yml",
             "trend_follow": "config/trend.yml",
         }
         path = file_map.get(mode, "config/strategy.yml")
@@ -705,7 +708,7 @@ class JobRunner:
             # update AI cooldown values after reload
             self.refresh_ai_cooldowns()
             default_limit = int(env_loader.get_env("MAX_AI_CALLS_PER_LOOP", "1"))
-            set_call_limit(4 if mode == "scalp_momentum" else default_limit)
+            set_call_limit(4 if mode in ("scalp_momentum", "micro_scalp") else default_limit)
             self.current_params_file = path
         except Exception as exc:
             log.error("Param reload failed: %s", exc)
@@ -1466,6 +1469,7 @@ class JobRunner:
                     skip_align = self.trade_mode in (
                         "scalp",
                         "scalp_momentum",
+                        "micro_scalp",
                         "scalp_range",
                     )
                     if skip_align:

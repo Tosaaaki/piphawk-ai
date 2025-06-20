@@ -23,7 +23,7 @@ try:
 
     last_mode = getattr(params_loader, "load_last_mode", lambda: None)()
     force_scalp = env_loader.get_env("SCALP_MODE", "").lower() == "true"
-    if force_scalp or last_mode in ("scalp", "scalp_momentum"):
+    if force_scalp or last_mode in ("scalp", "scalp_momentum", "micro_scalp"):
         params_loader.load_params(path="config/scalp_params.yml")
     elif last_mode == "trend_follow":
         params_loader.load_params(path="config/trend.yml")
@@ -447,7 +447,9 @@ class JobRunner:
             self.current_params_file = "config/trend.yml"
         self.mode_reason = ""
         default_limit = int(env_loader.get_env("MAX_AI_CALLS_PER_LOOP", "1"))
-        set_call_limit(4 if self.trade_mode == "scalp_momentum" else default_limit)
+        set_call_limit(
+            4 if self.trade_mode in ("scalp_momentum", "micro_scalp") else default_limit
+        )
 
         # Restore TP adjustment flags based on existing TP order comment
         try:
@@ -540,7 +542,7 @@ class JobRunner:
     def _get_cond_indicators(self) -> dict:
         """Return indicators for market condition check."""
         tf = env_loader.get_env("TREND_COND_TF", "M5").upper()
-        if self.trade_mode in ("scalp", "scalp_momentum"):
+        if self.trade_mode in ("scalp", "scalp_momentum", "micro_scalp"):
             tf = env_loader.get_env("SCALP_COND_TF", self.scalp_cond_tf).upper()
         return getattr(self, f"indicators_{tf}", {}) or {}
 
@@ -551,7 +553,7 @@ class JobRunner:
         # ----------------------
         # モードごとの設定ファイル
         # ----------------------
-        if mode in ("scalp", "scalp_momentum"):
+        if mode in ("scalp", "scalp_momentum", "micro_scalp"):
             config_file = "config/scalp_params.yml"
         elif mode in ("trend", "trend_follow"):
             config_file = "config/trend.yml"
@@ -572,7 +574,7 @@ class JobRunner:
             logger.info("Reloading params from %s", config_file)
             params_loader.load_params(path=config_file)
             default_limit = int(env_loader.get_env("MAX_AI_CALLS_PER_LOOP", "1"))
-            set_call_limit(4 if mode == "scalp_momentum" else default_limit)
+            set_call_limit(4 if mode in ("scalp_momentum", "micro_scalp") else default_limit)
             self.current_params_file = config_file
         except Exception as exc:
             logger.error("Param reload failed: %s", exc)

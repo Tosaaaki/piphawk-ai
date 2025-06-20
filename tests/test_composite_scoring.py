@@ -6,6 +6,7 @@ import pytest
 
 def _reload_module():
     import signals.composite_mode as cm
+    os.environ["TRADE_MODE_RATIO"] = "0:0:0"
     return importlib.reload(cm)
 
 

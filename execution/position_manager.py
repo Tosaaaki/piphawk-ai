@@ -30,6 +30,7 @@ class Order:
 _SPLIT_TABLE: dict[str, tuple[float, float]] = {
     "trend_follow": (0.7, 0.3),
     "scalp_momentum": (0.5, 0.5),
+    "micro_scalp": (0.5, 0.5),
 }
 
 

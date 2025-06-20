@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import random
 from typing import Iterable, Sequence
 
 from analysis.llm_mode_selector import select_mode_llm
@@ -64,6 +65,13 @@ MODE_ADX_QTL = float(env_loader.get_env("MODE_ADX_QTL", "0"))
 MODE_QTL_LOOKBACK = int(env_loader.get_env("MODE_QTL_LOOKBACK", "20"))
 HTF_SLOPE_MIN = float(env_loader.get_env("HTF_SLOPE_MIN", "0.1"))
 
+# --- Mode ratio -------------------------------------------------------
+_ratio_raw = env_loader.get_env("TRADE_MODE_RATIO", "")
+try:
+    _MICRO_RATIO, _SCALP_RATIO, _TREND_RATIO = [int(v) for v in _ratio_raw.split(":")]
+except Exception:
+    _MICRO_RATIO, _SCALP_RATIO, _TREND_RATIO = (0, 0, 0)
+
 # --- Vol-Trend matrix parameters ------------------------------------
 ATR_HIGH_RATIO = float(env_loader.get_env("ATR_HIGH_RATIO", "1.4"))
 ATR_LOW_RATIO = float(env_loader.get_env("ATR_LOW_RATIO", "0.8"))
@@ -118,6 +126,19 @@ def _in_window(now: float, start: float, end: float) -> bool:
     if start <= end:
         return start <= now < end
     return now >= start or now < end
+
+
+def _apply_mode_ratio(base: str) -> str:
+    """Return mode adjusted by TRADE_MODE_RATIO."""
+    total = _MICRO_RATIO + _SCALP_RATIO + _TREND_RATIO
+    if total <= 0 or base not in {"scalp_momentum", "trend_follow"}:
+        return base
+    val = random.uniform(0, total)
+    if val < _MICRO_RATIO:
+        return "micro_scalp"
+    if val < _MICRO_RATIO + _SCALP_RATIO:
+        return "scalp_momentum"
+    return "trend_follow"
 
 
 def decide_trade_mode_matrix(
@@ -334,10 +355,11 @@ def decide_trade_mode_detail(
         _LAST_MODE = mode
         _LAST_SWITCH = candle_len
 
+    mode_adj = _apply_mode_ratio(mode)
     logging.getLogger(__name__).info(
-        "decide_trade_mode -> %s (score=%.2f)", mode, score
+        "decide_trade_mode -> %s (score=%.2f)", mode_adj, score
     )
-    return mode, score, reasons
+    return mode_adj, score, reasons
 
 
 def map_llm(llm_mode: str) -> str:
@@ -351,7 +373,8 @@ def decide_trade_mode(indicators: dict) -> str:
     """Return trade mode using rule-based detector."""
 
     ctx = MarketContext(price=0.0, indicators=indicators)
-    return detect_mode(ctx)
+    mode = detect_mode(ctx)
+    return _apply_mode_ratio(mode)
 
 
 def calculate_scores(indicators: dict) -> float:
@@ -406,4 +429,8 @@ __all__ = [
     "SCALP_REV_ADX_MAX",
     "SCALP_REV_RSI_HIGH",
     "SCALP_REV_RSI_LOW",
+    "_apply_mode_ratio",
+    "_MICRO_RATIO",
+    "_SCALP_RATIO",
+    "_TREND_RATIO",
 ]

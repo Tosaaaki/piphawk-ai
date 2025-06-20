@@ -22,6 +22,7 @@ from piphawk_ai.vote_arch.regime_detector import MarketMetrics
 
 
 def test_run_cycle(monkeypatch):
+    monkeypatch.setenv("TRADE_MODE_RATIO", "0:0:0")
     def fake_filter(indicators, price=None, **_):
         return True
 
@@ -74,6 +75,7 @@ def test_run_cycle(monkeypatch):
 
 
 def test_run_cycle_filter_block(monkeypatch):
+    monkeypatch.setenv("TRADE_MODE_RATIO", "0:0:0")
     monkeypatch.setattr(
         "backend.strategy.signal_filter.pass_entry_filter", lambda *a, **k: False
     )

@@ -4,6 +4,7 @@ import os
 
 def _reload_composite():
     import signals.composite_mode as cm
+    os.environ["TRADE_MODE_RATIO"] = "0:0:0"
     return importlib.reload(cm)
 
 
