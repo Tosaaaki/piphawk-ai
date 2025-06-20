@@ -268,7 +268,7 @@ def build_trade_plan_prompt(
             f"If momentum is still strong you may follow the trend. Otherwise respond with mode:'wait' so the system rechecks after a pullback of about {pullback_needed:.1f} pips.\n"
         )
 
-    prompt = mode_header + TRADE_PLAN_PROMPT.format(
+    values = dict(
         TREND_ADX_THRESH=TREND_ADX_THRESH,
         RANGE_ENTRY_NOTE=RANGE_ENTRY_NOTE,
         MIN_RRR=MIN_RRR,
@@ -324,6 +324,14 @@ def build_trade_plan_prompt(
         pullback_done=pullback_done,
         macro_summary_formatted=macro_summary if macro_summary else "N/A",
         macro_sentiment_formatted=macro_sentiment if macro_sentiment else "N/A",
+    )
+
+    from collections import defaultdict
+
+    prompt = mode_header + TRADE_PLAN_PROMPT.format_map(defaultdict(str, values))
+    prompt += _instruction_text()
+    # scalp_momentum モードでは常に積極的バイアスを使用
+    if trade_mode == "scalp_momentum":
     ) + _instruction_text()
     # scalp_momentum/micro_scalp モードでは常に積極的バイアスを使用
     if trade_mode in ("scalp_momentum", "micro_scalp"):
