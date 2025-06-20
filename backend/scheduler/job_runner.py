@@ -2498,6 +2498,7 @@ class JobRunner:
                                 timer.stop()
                                 continue
                             else:
+                                side = None
                                 result = process_entry(
                                     indicators,
                                     candles_m5,
@@ -2537,6 +2538,7 @@ class JobRunner:
 
                             log.info("Filter blocked → AI entry decision skipped.")
                             log.info("Filter NG → forcing entry after AI.")
+                            side = None
                             result = process_entry(
                                 indicators,
                                 candles_m5,
