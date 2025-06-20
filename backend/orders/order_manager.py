@@ -20,6 +20,15 @@ from backend.risk_manager import (
 from backend.utils import env_loader
 from backend.utils.http_client import request_with_retries
 from backend.utils.price import format_price
+
+
+def _sanitize_comment(comment: str, max_bytes: int = 240) -> str:
+    """Remove newlines and enforce max byte length for OANDA."""
+    sanitized = comment.replace("\n", " ").replace("\r", " ")
+    if len(sanitized.encode("utf-8")) > max_bytes:
+        sanitized = sanitized.encode("utf-8")[:max_bytes].decode("utf-8", "ignore")
+    return sanitized
+
 from risk.tp_sl_manager import adjust_sl_for_rr
 
 logger = logging.getLogger(__name__)
@@ -153,9 +162,7 @@ class OrderManager:
                 pp=risk_info.get("tp_prob"),
                 qp=risk_info.get("sl_prob"),
             )
-        comment_json = json.dumps(comment_dict, separators=(",", ":"))
-        if len(comment_json.encode("utf-8")) > 240:
-            comment_json = comment_json.encode("utf-8")[:240].decode("utf-8", "ignore")
+        comment_json = _sanitize_comment(json.dumps(comment_dict, separators=(",", ":")))
 
         tag = str(int(time.time()))
 
@@ -275,7 +282,7 @@ class OrderManager:
             "clientExtensions": {"tag": tag},
         })
         if comment_json:
-            order["clientExtensions"]["comment"] = comment_json
+            order["clientExtensions"]["comment"] = _sanitize_comment(comment_json)
         if price_bound is not None:
             order["priceBound"] = format_price(instrument, price_bound)
         data = {"order": order}
@@ -569,12 +576,9 @@ class OrderManager:
                     pp=risk_info.get("tp_prob"),  # TP probability
                     qp=risk_info.get("sl_prob"),  # SL probability
                 )
-            comment_json = json.dumps(comment_dict, separators=(",", ":"))
-            # OANDA は 255 byte 制限。安全マージンで 240 byte に丸める
-            if len(comment_json.encode("utf-8")) > 240:
-                comment_json = comment_json.encode("utf-8")[:240].decode(
-                    "utf-8", "ignore"
-                )
+            comment_json = _sanitize_comment(
+                json.dumps(comment_dict, separators=(",", ":"))
+            )
         except Exception as exc:
             logger.debug(f"[enter_trade] building comment JSON failed: {exc}")
 
