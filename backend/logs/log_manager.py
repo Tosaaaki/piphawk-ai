@@ -423,6 +423,13 @@ def log_param_change(param_name, old_value, new_value, ai_reason):
 
 def log_entry_skip(instrument, side, reason, details=None):
     """Record an entry skip event."""
+    logger.info(
+        "Entry skipped: instrument=%s side=%s reason=%s details=%s",
+        instrument,
+        side,
+        reason,
+        details,
+    )
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
