@@ -4,8 +4,8 @@ Your task:
    - Constraints:
     • tp_prob must be ≥ {MIN_TP_PROB:.2f}
     • Expected value (tp_pips*tp_prob - sl_pips*sl_prob) must be positive
-    • Choose the take-profit level that maximises expected value = probability × pips, subject to RRR ≥ {MIN_RRR}
-    • (tp_pips - spread_pips) must be ≥ {MIN_NET_TP_PIPS} pips
+    • Choose the take-profit level that maximises expected value = probability × pips, subject to RRR ≥ {MIN_RRR}. If below the threshold, enlarge TP or tighten SL.
+    • (tp_pips - spread_pips) must be ≥ {MIN_NET_TP_PIPS} pips and generally not under 5 pips
     • If constraints are not met, pick the side with the higher success probability.
 
 3. Always provide a brief "why" field explaining the trade logic.
