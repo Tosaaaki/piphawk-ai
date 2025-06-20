@@ -360,42 +360,53 @@ class OrderManager:
         results = {}
 
         if new_tp is not None:
-            tp_payload = {
-                "order": {
-                    "type": "TAKE_PROFIT",
-                    "tradeID": trade_id,
-                    "price": format_price(instrument, new_tp),
-                    "timeInForce": "GTC",
+            current_tp = None
+            try:
+                current_tp = self.get_current_tp(trade_id)
+            except Exception:
+                current_tp = None
+            if current_tp is None:
+                tp_payload = {
+                    "order": {
+                        "type": "TAKE_PROFIT",
+                        "tradeID": trade_id,
+                        "price": format_price(instrument, new_tp),
+                        "timeInForce": "GTC",
+                    }
                 }
-            }
-            if entry_uuid:
-                tp_payload["order"]["clientExtensions"] = {"comment": entry_uuid}
-            logger.debug(
-                f"\u25b6\u25b6\u25b6 ADJUST_TP_SL TP payload: {tp_payload}"
-            )
+                if entry_uuid:
+                    tp_payload["order"]["clientExtensions"] = {"comment": entry_uuid}
+                logger.debug(
+                    f"\u25b6\u25b6\u25b6 ADJUST_TP_SL TP payload: {tp_payload}"
+                )
 
-        if new_tp is not None:
-            for attempt in range(3):
+                for attempt in range(3):
+                    response = self._request_with_retries("post", url, json=tp_payload)
 
-                response = self._request_with_retries("post", url, json=tp_payload)
+                    if response.status_code in (200, 201):
+                        results["tp"] = response.json()
+                        break
 
-                if response.status_code in (200, 201):
-                    results["tp"] = response.json()
-                    break
+                    code, msg = _extract_error_details(response)
+                    err_msg = f"TP adjustment failed: {code} {msg}"
 
-                code, msg = _extract_error_details(response)
-                err_msg = f"TP adjustment failed: {code} {msg}"
+                    if code in ("NO_SUCH_TRADE", "ORDER_DOESNT_EXIST") or (
+                        "NO_SUCH_TRADE" in response.text
+                        or "ORDER_DOESNT_EXIST" in response.text
+                    ):
+                        log_error("order_manager", err_msg, response.text)
+                        break
 
-                if code in ("NO_SUCH_TRADE", "ORDER_DOESNT_EXIST") or (
-                    "NO_SUCH_TRADE" in response.text
-                    or "ORDER_DOESNT_EXIST" in response.text
-                ):
-                    log_error("order_manager", err_msg, response.text)
-                    break
-
-                if attempt == 2:
-                    log_error("order_manager", err_msg, response.text)
-                time.sleep(1)
+                    if attempt == 2:
+                        log_error("order_manager", err_msg, response.text)
+                    time.sleep(1)
+            else:
+                logger.debug(
+                    f"\u25b6\u25b6\u25b6 ADJUST_TP_SL calling update_trade_tp: {trade_id} -> {new_tp}"
+                )
+                tp_res = self.update_trade_tp(trade_id, instrument, new_tp)
+                if tp_res is not None:
+                    results["tp"] = tp_res
 
         if new_sl is not None:
             logger.debug(
@@ -981,4 +992,42 @@ class OrderManager:
             is_manual=False,
         )
         logger.debug(f"SL update response: {result}")
+        return result
+
+    def update_trade_tp(self, trade_id, instrument, new_tp_price):
+        """Create or modify a Take Profit order for the given trade."""
+        url = (
+            f"{OANDA_API_URL}/accounts/{OANDA_ACCOUNT_ID}/trades/" f"{trade_id}/orders"
+        )
+        body = {
+            "takeProfit": {
+                "price": format_price(instrument, new_tp_price),
+                "timeInForce": "GTC",
+            }
+        }
+
+        response = self._request_with_retries("put", url, json=body)
+
+        if response.status_code != 200:
+            code, msg = _extract_error_details(response)
+            log_error(
+                "order_manager",
+                f"Failed to update TP: {code} {msg}",
+                response.text,
+            )
+            return None
+
+        result = response.json()
+        log_trade(
+            instrument=instrument,
+            entry_time=datetime.now(timezone.utc).isoformat(),
+            entry_price=new_tp_price,
+            units=0,
+            ai_reason="TP dynamically updated",
+            ai_response=json.dumps(result),
+            regime=None,
+            forced=False,
+            is_manual=False,
+        )
+        logger.debug(f"TP update response: {result}")
         return result
