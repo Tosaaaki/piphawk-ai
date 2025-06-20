@@ -86,6 +86,14 @@ For detailed instructions, refer to [Setup](#setup).
 - Reinforcement learning and feature generation utilities in
   `offline_training/`.
 - Simple backtest helpers are available via `analysis/backtest_utils.py`.
+- Quick TP mode for rapid 2-pip scalping via `execution/quick_tp_mode.py`.
+- `jobs/pending_order_recheck.py` reevaluates pending limit orders.
+- Lightweight metrics helpers in `fast_metrics.py` compute mid price and spread.
+- Walk-forward optimization pipeline under `pipelines/walk_forward/` automates training and forward tests.
+- Bayesian optimization of filter parameters with Optuna via `optuna/bayes_filter_opt.py`.
+- Diagnostic utilities save prompts and metrics to SQLite using `diagnostics/diagnostics.py`.
+- Monitoring modules such as `monitoring/gpt_usage.py` publish Prometheus metrics.
+- `deploy.sh` automates repository updates and container rebuilds.
 
 ### Planned
 
