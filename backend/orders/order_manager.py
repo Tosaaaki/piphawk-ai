@@ -377,9 +377,9 @@ class OrderManager:
         if new_tp is not None:
             for attempt in range(3):
 
-                response = self._request_with_retries("put", url, json=tp_payload)
+                response = self._request_with_retries("post", url, json=tp_payload)
 
-                if response.status_code == 200:
+                if response.status_code in (200, 201):
                     results["tp"] = response.json()
                     break
 
