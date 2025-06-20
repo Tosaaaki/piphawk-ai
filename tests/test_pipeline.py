@@ -33,14 +33,14 @@ def test_run_cycle(monkeypatch):
         "piphawk_ai.vote_arch.pipeline.pass_entry_filter", fake_filter
     )
 
-    def fake_select(prompt: str, n=None):
-        return "scalp_momentum", True
+    def fake_select(prompt: str, metrics):
+        return "scalp_momentum"
 
     monkeypatch.setattr(
-        "piphawk_ai.vote_arch.ai_strategy_selector.select_strategy", fake_select
+        "piphawk_ai.vote_arch.trade_mode_selector.select_mode", fake_select
     )
     monkeypatch.setattr(
-        "piphawk_ai.vote_arch.pipeline.select_strategy", fake_select
+        "piphawk_ai.vote_arch.pipeline.select_mode", fake_select
     )
 
     def fake_plan(prompt: str):

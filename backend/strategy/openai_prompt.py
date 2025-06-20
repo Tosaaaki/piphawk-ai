@@ -330,9 +330,6 @@ def build_trade_plan_prompt(
 
     prompt = mode_header + TRADE_PLAN_PROMPT.format_map(defaultdict(str, values))
     prompt += _instruction_text()
-    # scalp_momentum モードでは常に積極的バイアスを使用
-    if trade_mode == "scalp_momentum":
-    ) + _instruction_text()
     # scalp_momentum/micro_scalp モードでは常に積極的バイアスを使用
     if trade_mode in ("scalp_momentum", "micro_scalp"):
         bias = "aggressive"
