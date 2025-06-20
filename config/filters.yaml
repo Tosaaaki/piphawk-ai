@@ -6,7 +6,7 @@ volume_filter:
     gbp_usd: 35
 
 composite_filter:
-  min_score: 2
+  min_score: 1
   weights:
     rsi_edge: 1
     bb_break: 1

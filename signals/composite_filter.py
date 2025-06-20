@@ -62,7 +62,7 @@ class CompositeFilter:
 
     def __init__(self, min_score: float | None = None, weights: dict[str, float] | None = None) -> None:
         self.min_score = min_score if min_score is not None else float(
-            env_loader.get_env("COMPOSITE_FILTER_MIN_SCORE", "2")
+            env_loader.get_env("COMPOSITE_FILTER_MIN_SCORE", "1")
         )
         self.weights = weights if weights is not None else _load_weights()
         self.functions: dict[str, Callable[[dict[str, Any]], float]] = {}
