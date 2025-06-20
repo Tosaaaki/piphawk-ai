@@ -242,6 +242,7 @@ AIがSCALEを返した際に追加するロット数。デフォルトは0.5。
   Recent Candle Bias フィルターで参照する設定。直近のローソク足本数、ヒゲ比率、出来高急増判定期間を指定する。
   デフォルトは 3 / 2.0 / 5。
 - VOL_SPIKE_ADX_MULT / VOL_SPIKE_ATR_MULT: BB幅がしきい値を下回っていても、ADXまたはATRがこの倍率で急拡大した場合は成行エントリーに切り替える
+- VOL_SPIKE_RATIO: ATRの急増を大ボラとみなす比率。デフォルトは 8.0
 - STRICT_TF_ALIGN: マルチTF整合が取れない場合のキャンセル可否
 - ALIGN_STRICT: 上記と同義のエイリアス
 - FALLBACK_FORCE_ON_NO_SIDE: AI が "no" と答えたときトレンド方向へエントリーを強制するオプション。使用時は STRICT_TF_ALIGN の影響を受けない。
