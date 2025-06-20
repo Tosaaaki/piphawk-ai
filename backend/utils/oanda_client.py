@@ -93,12 +93,18 @@ def get_pending_entry_order(instrument: str) -> Optional[dict]:
         comment_text = order.get("clientExtensions", {}).get("comment", "")
         tag_text = order.get("clientExtensions", {}).get("tag", "0")
 
-        try:
-            meta = json.loads(comment_text)
-        except json.JSONDecodeError:
-            continue
+        entry_uuid = None
+        if comment_text.startswith("limit_"):
+            entry_uuid = comment_text.split("_", 1)[1]
+        else:
+            try:
+                meta = json.loads(comment_text)
+                if meta.get("mode") == "limit":
+                    entry_uuid = meta.get("entry_uuid")
+            except json.JSONDecodeError:
+                pass
 
-        if meta.get("mode") == "limit" and meta.get("entry_uuid"):
+        if entry_uuid:
             try:
                 ts_val = int(tag_text)
             except ValueError:
