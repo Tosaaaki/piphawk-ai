@@ -28,7 +28,7 @@ from typing import Any, Dict, Optional
 import requests
 from requests.exceptions import HTTPError, RequestException
 
-from backend.utils import env_loader
+from backend.utils import decode_comment, env_loader
 
 # ──────────────────────────────────
 #   Environment / Constants
@@ -93,9 +93,8 @@ def get_pending_entry_order(instrument: str) -> Optional[dict]:
         comment_text = order.get("clientExtensions", {}).get("comment", "")
         tag_text = order.get("clientExtensions", {}).get("tag", "0")
 
-        try:
-            meta = json.loads(comment_text)
-        except json.JSONDecodeError:
+        meta = decode_comment(comment_text)
+        if not meta:
             continue
 
         if meta.get("mode") == "limit" and meta.get("entry_uuid"):

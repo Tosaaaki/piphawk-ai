@@ -1,5 +1,6 @@
 from .ai_parse import parse_json_answer
 from .async_helper import run_async
+from .comment_util import decode_comment, encode_comment, sanitize_comment
 from .http_client import request_with_retries
 from .rate_limiter import TokenBucket
 from .restart_guard import can_restart

@@ -3,7 +3,7 @@ import time
 
 import requests
 
-from backend.utils import env_loader
+from backend.utils import decode_comment, env_loader
 from backend.utils.http_client import request_with_retries
 
 logger = logging.getLogger(__name__)
@@ -112,12 +112,10 @@ def get_position_details(instrument: str) -> Optional[Dict[str, Any]]:
         for tr in trades:
             comment = tr.get("clientExtensions", {}).get("comment")
             if comment:
-                try:
-                    entry_regime = json.loads(comment)
+                entry_regime = decode_comment(comment) or {"regime": "unknown"}
+                if entry_regime:
                     sl_pips = entry_regime.get("sl")
                     tp_pips = entry_regime.get("tp")
-                except json.JSONDecodeError:
-                    entry_regime = {"regime": "unknown"}
                 break
         for tr in trades:
             tp_comment = (
