@@ -271,6 +271,7 @@ def build_trade_plan_prompt(
     prompt = mode_header + TRADE_PLAN_PROMPT.format(
         TREND_ADX_THRESH=TREND_ADX_THRESH,
         RANGE_ENTRY_NOTE=RANGE_ENTRY_NOTE,
+        MIN_RRR=MIN_RRR,
         pullback_needed=pullback_needed,
         no_pullback_msg=no_pullback_msg,
         TREND_OVERSHOOT_SECTION=overshoot,
