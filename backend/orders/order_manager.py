@@ -23,11 +23,20 @@ from backend.utils.price import format_price
 
 
 def _sanitize_comment(comment: str, max_bytes: int = 240) -> str:
-    """Remove newlines and enforce max byte length for OANDA."""
-    sanitized = comment.replace("\n", " ").replace("\r", " ")
+    """Remove unsupported characters and enforce max byte length."""
+    tmp = comment.replace("\n", " ").replace("\r", " ")
+    allowed = []
+    for ch in tmp:
+        if ch == '"' or ch == "\\":
+            allowed.append("_")
+        elif 32 <= ord(ch) <= 126:
+            allowed.append(ch)
+        else:
+            allowed.append("_")
+    sanitized = "".join(allowed)
     if len(sanitized.encode("utf-8")) > max_bytes:
         sanitized = sanitized.encode("utf-8")[:max_bytes].decode("utf-8", "ignore")
-    return sanitized
+    return sanitized.strip()
 
 
 def _build_simple_comment(regime: str | None, stance: str | None, entry_uuid: str) -> str:
