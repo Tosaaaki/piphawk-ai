@@ -13,7 +13,7 @@ Allow short-term counter-trend trades only when all of the following are true:
 - A clear reversal pattern (double top/bottom, head-and-shoulders) is present.
 - RSI ≤ 30 for LONG or ≥ 70 for SHORT, showing potential exhaustion.
 - Price action has stabilized with minor reversal candles.
-- TP kept small (5–10 pips) and risk tightly controlled.
+- TP は 5–10 pips 程度に抑えつつ、RRR が {MIN_RRR} 未満にならないよう調整する。
 
 Price has just printed multiple upper shadows and ADX(S10) fell >30% from its peak.
 Evaluate if a short scalp is favorable given potential exhaustion.
