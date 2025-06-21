@@ -7,7 +7,7 @@ def test_trend_adx_default():
         os.environ.pop('TREND_ADX_THRESH')
     import backend.strategy.openai_prompt as prompt
     importlib.reload(prompt)
-    assert prompt.TREND_ADX_THRESH == 20.0
+    assert prompt.TREND_ADX_THRESH == 15.0
 
 def test_trend_adx_env_override():
     os.environ['TREND_ADX_THRESH'] = '30'

@@ -23,7 +23,7 @@ class MarketContext:
 
 _DEFAULT_PATH = Path(__file__).resolve().parents[1] / "config" / "mode_detector.yml"
 _DEFAULT_PARAMS = {
-    "adx_trend_min": 25,
+    "adx_trend_min": 15,
     "adx_range_max": 18,
     "atr_pct_min": 0.003,
     "ema_slope_min": 0.1,
