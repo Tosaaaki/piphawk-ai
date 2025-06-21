@@ -329,16 +329,37 @@ def add_trade_label(trade_id: int, label: str) -> None:
 
 def log_policy_transition(state: str, action: str, reward: float) -> None:
     """Store a (state, action, reward) tuple for offline RL."""
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            '''
-            INSERT INTO policy_transitions (timestamp, state, action, reward)
-            VALUES (?, ?, ?, ?)
-        ''',
-            (datetime.now(timezone.utc).isoformat(), state, action, reward),
-        )
-        conn.commit()
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                '''
+                INSERT INTO policy_transitions (timestamp, state, action, reward)
+                VALUES (?, ?, ?, ?)
+            ''',
+                (datetime.now(timezone.utc).isoformat(), state, action, reward),
+            )
+            conn.commit()
+    except sqlite3.OperationalError as exc:
+        if "no such table" in str(exc):
+            try:
+                init_db()
+                with get_db_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        '''
+                        INSERT INTO policy_transitions (timestamp, state, action, reward)
+                        VALUES (?, ?, ?, ?)
+                    ''',
+                        (datetime.now(timezone.utc).isoformat(), state, action, reward),
+                    )
+                    conn.commit()
+            except Exception as retry_exc:
+                logger.warning("log_policy_transition retry failed: %s", retry_exc)
+        else:
+            logger.warning("log_policy_transition failed: %s", exc)
+    except Exception as exc:
+        logger.warning("log_policy_transition failed: %s", exc)
 
 def log_ai_decision(decision_type, instrument, ai_response):
     with get_db_connection() as conn:
