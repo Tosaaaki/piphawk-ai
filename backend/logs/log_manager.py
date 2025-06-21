@@ -338,6 +338,7 @@ def log_policy_transition(state: str, action: str, reward: float) -> None:
         ''',
             (datetime.now(timezone.utc).isoformat(), state, action, reward),
         )
+        conn.commit()
 
 def log_ai_decision(decision_type, instrument, ai_response):
     with get_db_connection() as conn:
