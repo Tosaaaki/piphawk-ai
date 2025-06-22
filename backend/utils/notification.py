@@ -13,6 +13,7 @@ import logging
 
 from fastapi import HTTPException
 from linebot import LineBotApi
+from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 
 from backend.utils import env_loader
@@ -43,6 +44,13 @@ def send_line_message(text: str, token: str | None = None, user_id: str | None =
     try:
         LineBotApi(token).push_message(user_id, TextSendMessage(text=text))
         logger.debug("Sent LINE message: %s", text)
+    except LineBotApiError as exc:
+        # 月間上限エラーなどの扱いを詳細化
+        if getattr(exc, "status_code", None) == 429:
+            logger.error("LINE monthly limit reached: %s", exc)
+            raise HTTPException(status_code=503, detail="LINE monthly limit reached") from exc
+        logger.error("LINE API error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
         logger.error("LINE API error: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
