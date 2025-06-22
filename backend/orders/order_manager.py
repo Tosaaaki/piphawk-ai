@@ -390,6 +390,13 @@ class OrderManager:
                     code, msg = _extract_error_details(response)
                     err_msg = f"TP adjustment failed: {code} {msg}"
 
+                    if code == "TAKE_PROFIT_ORDER_ALREADY_EXISTS":
+                        logger.info("TP exists, updating instead: %s", trade_id)
+                        tp_res = self.update_trade_tp(trade_id, instrument, new_tp)
+                        if tp_res is not None:
+                            results["tp"] = tp_res
+                            break
+
                     if code in ("NO_SUCH_TRADE", "ORDER_DOESNT_EXIST") or (
                         "NO_SUCH_TRADE" in response.text
                         or "ORDER_DOESNT_EXIST" in response.text

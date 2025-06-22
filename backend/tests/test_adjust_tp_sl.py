@@ -107,5 +107,26 @@ class TestAdjustTpSl(unittest.TestCase):
         self.assertIn("takeProfit", body)
         self.assertEqual(body["takeProfit"]["price"], "151.000")
 
+    def test_update_called_on_existing_error(self):
+        def fail_post(url, json=None, headers=None):
+            return DummyResponse(
+                status_code=400,
+                json_data={
+                    "errorCode": "TAKE_PROFIT_ORDER_ALREADY_EXISTS",
+                    "errorMessage": "exists",
+                },
+                text="exists",
+            )
+
+        sys.modules["requests"].post = fail_post
+
+        res = self.om.adjust_tp_sl("USD_JPY", "t1", new_tp=150.0)
+
+        self.assertEqual(res, {"tp": {"ok": True}})
+        self.assertEqual(len(self.sent), 2)
+        body = self.sent[-1]
+        self.assertIn("takeProfit", body)
+        self.assertEqual(body["takeProfit"]["price"], "150.000")
+
 if __name__ == '__main__':
     unittest.main()
