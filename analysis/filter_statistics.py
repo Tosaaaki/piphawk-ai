@@ -5,9 +5,9 @@ import sqlite3
 from collections import Counter
 from pathlib import Path
 
-from backend.utils import env_loader
+from backend.utils import db_helper, env_loader
 
-DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", "trades.db"))
+DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", db_helper.DB_PATH))
 
 
 def summarize(db_path: Path = DB_PATH) -> dict:

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from backend.logs.log_manager import log_param_change
-from backend.utils import env_loader
+from backend.utils import db_helper, env_loader
 from backend.utils.openai_client import ask_openai
 
 log_level = env_loader.get_env("LOG_LEVEL", "INFO").upper()
@@ -17,7 +17,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 _BASE_DIR = Path(__file__).resolve().parents[2]
-DB_PATH = env_loader.get_env("TRADES_DB_PATH", str(_BASE_DIR / "trades.db"))
+DB_PATH = env_loader.get_env("TRADES_DB_PATH", db_helper.DB_PATH)
 SETTINGS_PATH = "backend/config/settings.env"
 # SQLite table that stores every environment‐parameter change suggested/applied by the strategy optimizer
 PARAM_CHANGE_DB_TABLE = "param_changes"

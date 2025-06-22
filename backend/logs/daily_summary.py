@@ -4,10 +4,10 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-from backend.utils import env_loader
+from backend.utils import db_helper, env_loader
 
 _BASE_DIR = Path(__file__).resolve().parents[2]
-DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", str(_BASE_DIR / "trades.db")))
+DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", db_helper.DB_PATH))
 ACCOUNT_ID = env_loader.get_env("OANDA_ACCOUNT_ID")
 
 

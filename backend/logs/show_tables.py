@@ -1,11 +1,11 @@
 import sqlite3
 from pathlib import Path
 
-from backend.utils import env_loader
+from backend.utils import db_helper, env_loader
 
 # DBのパスを取得
 _BASE_DIR = Path(__file__).resolve().parents[2]
-DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", str(_BASE_DIR / "trades.db")))
+DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", db_helper.DB_PATH))
 
 def list_tables():
     """Return list of table names."""
