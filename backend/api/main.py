@@ -115,7 +115,9 @@ app.add_middleware(
 )
 
 
-DATABASE_PATH = env_loader.get_env("TRADES_DB_PATH", "/app/trades.db")
+from backend.utils import db_helper
+
+DATABASE_PATH = env_loader.get_env("TRADES_DB_PATH", db_helper.DB_PATH)
 ACCOUNT_ID = env_loader.get_env("OANDA_ACCOUNT_ID")
 LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
 

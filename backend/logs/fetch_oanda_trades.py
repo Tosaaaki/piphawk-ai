@@ -5,7 +5,7 @@ from pathlib import Path
 import requests
 
 import backend.logs.log_manager
-from backend.utils import env_loader
+from backend.utils import db_helper, env_loader
 
 # env_loader automatically loads default env files at import time
 # 旧バージョン互換用のトレード取得スクリプト
@@ -13,7 +13,7 @@ from backend.utils import env_loader
 
 
 _BASE_DIR = Path(__file__).resolve().parents[2]
-DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", str(_BASE_DIR / "trades.db")))
+DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", db_helper.DB_PATH))
 
 def fetch_oanda_trades():
     api_key = env_loader.get_env('OANDA_API_KEY')

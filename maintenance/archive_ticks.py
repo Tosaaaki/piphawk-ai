@@ -6,9 +6,9 @@ import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from backend.utils import env_loader
+from backend.utils import db_helper, env_loader
 
-DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", "data/trades.db"))
+DB_PATH = Path(env_loader.get_env("TRADES_DB_PATH", db_helper.DB_PATH))
 
 
 def archive_old_ticks(days: int = 30) -> int:
