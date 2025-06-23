@@ -4,6 +4,11 @@ import os
 import sys
 import time
 import uuid
+from pathlib import Path
+
+if __package__ is None or __package__ == "":
+    # スクリプト実行時にリポジトリルートをパスへ追加
+    sys.path.append(str(Path(__file__).resolve().parents[2]))
 from datetime import datetime, timedelta, timezone
 from logging import getLogger
 from typing import Any

@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+if __package__ is None or __package__ == "":
+    # スクリプト実行時でも backend パッケージを解決できるようにパスを追加
+    sys.path.append(str(Path(__file__).resolve().parents[2]))
+
 import json
 from enum import Enum
 from typing import Any
