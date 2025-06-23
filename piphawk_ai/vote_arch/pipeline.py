@@ -14,6 +14,7 @@ from .regime_detector import MarketMetrics, rule_based_regime
 from .trade_mode_selector import select_mode
 
 FORCE_ENTER = env_loader.get_env("FORCE_ENTER", "false").lower() == "true"
+REVERSE_ENTRY = env_loader.get_env("REVERSE_ENTRY", "false").lower() == "true"
 
 
 
@@ -63,6 +64,12 @@ def run_cycle(
         avg_plan = buffer.average()
         if avg_plan:
             plan = avg_plan
+
+    if REVERSE_ENTRY:
+        if plan.side == "long":
+            plan = EntryPlan(side="short", tp=plan.tp, sl=plan.sl, lot=plan.lot)
+        elif plan.side == "short":
+            plan = EntryPlan(side="long", tp=plan.tp, sl=plan.sl, lot=plan.lot)
 
     # Post-filter は廃止されたため常に True とする
     passed = True

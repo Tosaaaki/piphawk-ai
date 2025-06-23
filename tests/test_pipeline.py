@@ -96,3 +96,51 @@ def test_run_cycle_filter_block(monkeypatch):
     assert result.passed is True
     assert result.plan is not None
 
+
+def test_run_cycle_reverse_entry(monkeypatch):
+    monkeypatch.setenv("TRADE_MODE_RATIO", "0:0:0")
+    monkeypatch.setenv("REVERSE_ENTRY", "true")
+
+    def fake_filter(indicators, price=None, **_):
+        return True
+
+    monkeypatch.setattr(
+        "backend.strategy.signal_filter.pass_entry_filter", fake_filter
+    )
+    monkeypatch.setattr(
+        "piphawk_ai.vote_arch.pipeline.pass_entry_filter", fake_filter
+    )
+
+    monkeypatch.setattr(
+        "piphawk_ai.vote_arch.trade_mode_selector.select_mode", lambda *_a: "scalp_momentum"
+    )
+    monkeypatch.setattr(
+        "piphawk_ai.vote_arch.pipeline.select_mode", lambda *_a: "scalp_momentum"
+    )
+
+    def fake_plan(prompt: str):
+        return EntryPlan(side="long", tp=10, sl=5, lot=1)
+
+    monkeypatch.setattr(
+        "piphawk_ai.vote_arch.ai_entry_plan.generate_plan", fake_plan
+    )
+    monkeypatch.setattr(
+        "piphawk_ai.vote_arch.pipeline.generate_plan", fake_plan
+    )
+
+    metrics = MarketMetrics(adx_m5=30, ema_fast=1.1, ema_slow=1.0, bb_width_m5=0.1)
+    snapshot = MarketSnapshot(atr=0.05, news_score=0.0, oi_bias=0.0)
+
+    result = run_cycle(
+        {},
+        metrics,
+        snapshot,
+        PlanBuffer(),
+        pair="USD_JPY",
+        timeframe="M5",
+        spread=0.01,
+        atr=0.05,
+    )
+
+    assert result.plan.side == "short"
+
