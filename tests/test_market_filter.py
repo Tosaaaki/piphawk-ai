@@ -26,3 +26,15 @@ def test_in_trade_hours_decimal(monkeypatch):
 
     ts_block = datetime(2023, 1, 1, 18, 40, tzinfo=timezone.utc)
     assert not _in_trade_hours(ts_block)
+
+
+def test_in_trade_hours_default(monkeypatch):
+    from datetime import datetime, timezone
+
+    from filters.market_filters import _in_trade_hours
+
+    monkeypatch.setenv("TRADE_START_H", "7")
+    monkeypatch.setenv("TRADE_END_H", "23")
+
+    ts = datetime(2023, 1, 1, 4, 0, tzinfo=timezone.utc)
+    assert _in_trade_hours(ts)
