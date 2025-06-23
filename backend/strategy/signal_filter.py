@@ -73,6 +73,17 @@ def counter_trend_block(
     """Return True when higher timeframe trend opposes the side."""
     if side not in ("long", "short"):
         return False
+    range_adx_max = float(env_loader.get_env("COUNTER_RANGE_ADX_MAX", "0"))
+    adx_series = ind_m5.get("adx")
+    if range_adx_max > 0 and adx_series is not None and len(adx_series) >= 1:
+        try:
+            adx_val = float(
+                adx_series.iloc[-1] if hasattr(adx_series, "iloc") else adx_series[-1]
+            )
+            if adx_val <= range_adx_max:
+                return False
+        except Exception:
+            pass
     dir_m15 = (
         _ema_direction(ind_m15.get("ema_fast"), ind_m15.get("ema_slow"))
         if ind_m15

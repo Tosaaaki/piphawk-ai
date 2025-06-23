@@ -21,8 +21,9 @@
 - `REV_BLOCK_BARS`: 急反転を検知するために参照するローソク足本数。
 - `TAIL_RATIO_BLOCK`: ヒゲと実体の比率がこの値以上ならエントリーをブロック。
 - `VOL_SPIKE_PERIOD`: ボリュームスパイク判定に用いる平均期間。
-- `BLOCK_COUNTER_TREND`: M15/H1 が同方向でポジションと逆ならエントリーを停止。
-- `COUNTER_BYPASS_ADX`: M5 ADX がこの値以上でポジションと同方向なら逆張り判定を無視。
+- `BLOCK_COUNTER_TREND`: デフォルト `true`。M15/H1 が同方向でポジションと逆ならエントリーを停止。
+- `COUNTER_BYPASS_ADX`: ADX が高いとき (例:30以上) は逆張り判定を無視してエントリーを許可。
+- `COUNTER_RANGE_ADX_MAX`: M5 ADX がこの値以下なら逆張り抑制を無効化し、レンジ内の逆張りを許可。
 - `LT_TF_PRIORITY_ADX`: 下位足のADXがこの値を超えEMAクロスが発生すると上位足の重みを減少。
 - `LT_TF_WEIGHT_FACTOR`: 重みを減らす際に掛ける係数。
 - `ALIGN_ADX_WEIGHT`: マルチTF整合計算でADX方向を加味する重み。0なら無効。
