@@ -184,7 +184,12 @@ from strategies import (
 from strategies.context_builder import build_context, recent_strategy_performance
 
 try:
-    from backend.logs.log_manager import log_policy_transition
+    from backend.logs.log_manager import (
+        clear_last_entry_info,
+        get_last_entry_info,
+        log_policy_transition,
+        set_last_entry_info,
+    )
 except Exception:  # pragma: no cover - test stubs may remove
 
     def log_policy_transition(*_a, **_k):
@@ -493,8 +498,9 @@ class JobRunner:
             },
             use_offline_policy=use_policy,
         )
-        self.last_entry_context = None
-        self.last_entry_strategy = None
+        ctx, strat = get_last_entry_info()
+        self.last_entry_context = ctx
+        self.last_entry_strategy = strat
         self.current_context = None
         self.current_strategy_name = None
 
@@ -609,6 +615,7 @@ class JobRunner:
                 )
             except Exception as exc:
                 logger.warning(f"Strategy update failed: {exc}")
+            clear_last_entry_info()
             self.last_entry_context = None
             self.last_entry_strategy = None
 
@@ -2291,6 +2298,7 @@ class JobRunner:
                             self.scale_count = 0
                             self.last_entry_context = self.current_context
                             self.last_entry_strategy = self.current_strategy_name
+                            set_last_entry_info(self.last_entry_context, self.last_entry_strategy)
                         else:
                             reason = filter_ctx.get("reason", "unknown")
                             logger.info(

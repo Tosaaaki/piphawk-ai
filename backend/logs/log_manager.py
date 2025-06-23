@@ -1,3 +1,4 @@
+import json
 import logging
 import sqlite3
 from datetime import datetime, timezone
@@ -317,6 +318,14 @@ def log_trade(
         ))
         trade_id = cursor.lastrowid
         conn.commit()
+        if exit_time and profit_loss is not None:
+            try:
+                ctx, strat = get_last_entry_info()
+                if ctx and strat:
+                    log_policy_transition(json.dumps(ctx), strat, float(profit_loss))
+                    clear_last_entry_info()
+            except Exception as exc:
+                logger.warning("policy transition on exit failed: %s", exc)
         return trade_id
 
 def add_trade_label(trade_id: int, label: str) -> None:
@@ -572,3 +581,40 @@ def count_exit_adjust_calls(trade_id: str) -> int:
         cur.execute('SELECT COUNT(*) FROM exit_adjust_calls WHERE trade_id = ?', (trade_id,))
         row = cur.fetchone()
         return int(row[0]) if row else 0
+
+
+def set_last_entry_info(context: dict, strategy: str) -> None:
+    """Persist last entry context and strategy."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT OR REPLACE INTO sync_state (key, value) VALUES (?, ?)",
+            ("last_entry_context", json.dumps(context)),
+        )
+        cur.execute(
+            "INSERT OR REPLACE INTO sync_state (key, value) VALUES (?, ?)",
+            ("last_entry_strategy", strategy),
+        )
+        conn.commit()
+
+
+def get_last_entry_info() -> tuple[dict | None, str | None]:
+    """Return persisted entry context and strategy if available."""
+    with get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT value FROM sync_state WHERE key = 'last_entry_context'")
+        row_ctx = cur.fetchone()
+        cur.execute("SELECT value FROM sync_state WHERE key = 'last_entry_strategy'")
+        row_str = cur.fetchone()
+    ctx = json.loads(row_ctx[0]) if row_ctx and row_ctx[0] else None
+    strat = row_str[0] if row_str else None
+    return ctx, strat
+
+
+def clear_last_entry_info() -> None:
+    """Remove persisted entry context and strategy."""
+    with get_db_connection() as conn:
+        conn.execute(
+            "DELETE FROM sync_state WHERE key IN ('last_entry_context','last_entry_strategy')"
+        )
+        conn.commit()
