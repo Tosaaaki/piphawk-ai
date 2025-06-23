@@ -9,7 +9,7 @@ from backend.utils import env_loader
 
 def _in_trade_hours(ts: datetime | None = None) -> bool:
     """取引可能時間かを判定する."""
-    ts = (ts or datetime.utcnow()).astimezone(timezone(timedelta(hours=9)))
+    ts = (ts or datetime.now(timezone.utc)).astimezone(timezone(timedelta(hours=9)))
     start = float(env_loader.get_env("TRADE_START_H", "7"))
     end = float(env_loader.get_env("TRADE_END_H", "23"))
     current = ts.hour + ts.minute / 60.0

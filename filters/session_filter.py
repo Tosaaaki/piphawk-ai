@@ -15,7 +15,8 @@ log = logging.getLogger(__name__)
 
 def is_quiet_hours(now: datetime | None = None) -> bool:
     """JST 03-06時を静寂時間帯として判定する."""
-    jst = (now or datetime.utcnow()).astimezone(timezone(timedelta(hours=9)))
+    base = now or datetime.now(timezone.utc)
+    jst = base.astimezone(timezone(timedelta(hours=9)))
     return 3 <= jst.hour < 6
 
 

@@ -22,3 +22,17 @@ def test_apply_filters_wide_spread(monkeypatch):
     ok, ctx, reason = session_filter.apply_filters(0.1, 0.2, 2.0, tradeable=True)
     assert not ok
     assert reason == "wide_spread"
+
+
+def test_is_quiet_hours_jst_false():
+    from datetime import datetime, timezone
+
+    dt = datetime(2023, 1, 1, 4, 0, tzinfo=timezone.utc)
+    assert not session_filter.is_quiet_hours(dt)
+
+
+def test_is_quiet_hours_jst_true():
+    from datetime import datetime, timezone
+
+    dt = datetime(2023, 1, 1, 20, 0, tzinfo=timezone.utc)
+    assert session_filter.is_quiet_hours(dt)
